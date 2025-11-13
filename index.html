@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zellous - PTT</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f0f; color: #fff; }
+    .container { display: grid; grid-template-columns: 280px 1fr 280px; gap: 12px; height: 100vh; padding: 12px; }
+    .panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; overflow-y: auto; padding: 16px; }
+    .main { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
+    .header { text-align: center; }
+    .header h1 { font-size: 28px; margin-bottom: 4px; }
+    .header p { font-size: 12px; opacity: 0.6; }
+    .status { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; }
+    .status-dot.offline { background: #f44336; }
+    .ptt-btn { width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; color: #fff; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 24px rgba(33, 150, 243, 0.3); }
+    .ptt-btn:hover { transform: scale(1.05); box-shadow: 0 12px 32px rgba(33, 150, 243, 0.4); }
+    .ptt-btn:active { transform: scale(0.95); }
+    .ptt-btn.recording { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); animation: pulse 0.6s infinite; box-shadow: 0 0 20px rgba(244, 67, 54, 0.6); }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .vol-control { display: flex; gap: 8px; align-items: center; width: 100%; }
+    .vol-control input { flex: 1; }
+    .vol-control span { font-size: 12px; width: 40px; }
+    .title { font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: 0.5; margin-bottom: 12px; }
+    .item { padding: 12px; background: #252525; border-radius: 6px; margin-bottom: 8px; }
+    .item.active { background: #1976D2; border-left: 3px solid #64B5F6; }
+    .item-header { font-weight: 500; font-size: 13px; }
+    .item-meta { font-size: 11px; opacity: 0.6; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+    .replay-btn { background: #2196F3; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; transition: all 0.2s; }
+    .replay-btn:hover { background: #1976D2; }
+    @media (max-width: 1024px) { .container { grid-template-columns: 1fr; } .panel { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="panel">
+      <div class="title">Active Speakers</div>
+      <div id="speakers"></div>
+    </div>
+    <div class="main">
+      <div class="header">
+        <h1>Zellous</h1>
+        <p id="roomName" style="font-size: 14px; opacity: 0.8; margin-bottom: 4px;"></p>
+        <p id="status">Connecting...</p>
+      </div>
+      <div class="status">
+        <div id="statusDot" class="status-dot offline"></div>
+        <span id="statusText">Offline</span>
+        <span id="recording" style="display:none; margin-left: auto;">🔴 Recording</span>
+      </div>
+      <button id="pttBtn" class="ptt-btn">HOLD TO TALK</button>
+      <div class="vol-control">
+        <label style="font-size: 11px;">VOL</label>
+        <input id="volume" type="range" min="0" max="100" value="70">
+        <span id="volValue">70%</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="title">Messages</div>
+      <div id="messages"></div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

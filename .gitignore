@@ -1,0 +1,6 @@
+node_modules/
+.vexify.db
+.claude/
+.playwright-mcp/
+npm-debug.log*
+.DS_Store
