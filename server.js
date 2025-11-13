@@ -49,7 +49,7 @@ const handlers = {
     broadcast({ type: 'speaker_joined', user: client.username, userId: client.id }, null, client.roomId);
   },
   audio_chunk: (client, msg) => {
-    broadcast({ type: 'audio_data', userId: client.id, data: msg.data }, null, client.roomId);
+    broadcast({ type: 'audio_data', userId: client.id, data: msg.data }, client, client.roomId);
   },
   audio_end: (client) => {
     client.speaking = false;

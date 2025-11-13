@@ -249,6 +249,7 @@ Object.assign(audio, {
       state.pausedAudioBuffer = state.audioBuffers.get(userId) ? [...state.audioBuffers.get(userId)] : null;
       state.playbackState.set(userId, 'paused');
       state.audioSources.delete(userId);
+      state.audioBuffers.set(userId, []);
     }
   },
   resume: () => {
