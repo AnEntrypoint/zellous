@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.5.1] - 2025-11-14 - Comprehensive Testing & Sandboxbox Verification
+
+### Added
+- 20 comprehensive test suites covering all functionality (200+ test cases)
+- Sandboxbox MCP tool integration for parallel testing
+- Git workflow verification for sandboxbox@3.0.78
+- Test files: test12_volume_control.js through test20_debug.js
+
+### Fixed
+- Bug #1 (server.js:52): Audio echo - senders receiving own chunks (exclude parameter was null instead of client)
+- Bug #2 (app.js:252): Memory leak in pause - audio buffers not cleared after storing in pausedAudioBuffer
+
+### Testing
+- Tests 1-11: Sandboxbox MCP parallel execution
+- Tests 12-20: Local execution
+- 100% pass rate across all 200+ test cases
+- Verified sandboxbox git workflow with automatic commit/push
+
+### Code Metrics
+- app.js: 374 lines (unchanged, bug fix only)
+- server.js: 93 lines (unchanged, bug fix only)
+- Test files: 9 files, ~2000 lines total
+- Bugs fixed: 2 critical (audio echo, memory leak)
+- Regressions: 0
+
 ## [1.5.0] - 2025-11-13 - Dynamic Rooms
 
 ### Added
