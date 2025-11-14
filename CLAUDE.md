@@ -450,12 +450,13 @@ window.zellousDebug.ptt         // PTT controls
 
 ## Last Updates
 
-**v1.5.1** (2025-11-13)
+**v1.5.1** (2025-11-14)
 - Comprehensive testing: 20 test suites, 200+ test cases, 100% pass rate
 - Critical bug fix: Audio echo (senders receiving own chunks) - server.js:52
 - Critical bug fix: Memory leak in audio pause - app.js:252
 - Tests 1-11 executed in parallel via sandboxbox MCP
 - Tests 12-20 executed locally with full coverage
+- Verified sandboxbox@3.0.78 git workflow (automatic commit/push instructions working)
 - Zero regressions, all tests passing
 
 **v1.5.0** (2025-11-13)
