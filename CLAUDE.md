@@ -355,11 +355,30 @@ http://localhost:3000?room=meeting → joins "meeting"
 
 ## Deployment
 
-**Production**
+**Production (Local)**
 ```bash
 npm install
 npm start
 # Visit http://localhost:3000
+```
+
+**Production (Remote Server)**
+```bash
+npm install
+# Set environment variables
+export PORT=3000
+export HOST=0.0.0.0
+npm start
+# Server accessible from external domains
+```
+
+**Production (with PM2)**
+```bash
+npm install -g pm2
+pm2 start server.js --name zellous
+pm2 save
+pm2 startup
+# Server runs in background with auto-restart
 ```
 
 **Development (Hot Reload)**
@@ -370,11 +389,40 @@ npm run dev
 # Server automatically restarts on file changes
 ```
 
+**Environment Variables**
+- `PORT` - Server port (default: 3000)
+- `HOST` - Bind address (default: 0.0.0.0 for all interfaces)
+- Use `HOST=localhost` for local-only access
+- Use `HOST=0.0.0.0` for external access (production)
+
 **Hot Reload Configuration**
 - Uses nodemon for automatic server restart
 - Watches server.js for changes
 - Configuration in nodemon.json
 - Only watches server-side files (not client files)
+
+**Remote Deployment Requirements**
+1. Server must listen on `0.0.0.0` (not `localhost`) - automatically configured
+2. Firewall must allow inbound traffic on PORT (default: 3000)
+3. For domain access, configure reverse proxy (nginx/Apache) or use port 80/443
+4. For WebSocket support, ensure proxy passes WebSocket upgrade headers
+
+**Example Nginx Reverse Proxy**
+```nginx
+server {
+    listen 80;
+    server_name zellous.247420.xyz;
+
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
 
 **Environment**
 - Node.js 12+

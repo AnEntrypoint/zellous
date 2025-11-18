@@ -4,10 +4,20 @@ A production-ready Push-to-Talk application with Opus codec, dynamic rooms, audi
 
 ## Quick Start
 
+**Local Development:**
 ```bash
 npm install
 npm start
 # Visit http://localhost:3000
+```
+
+**Remote Server Deployment:**
+```bash
+npm install
+export PORT=3000
+export HOST=0.0.0.0  # Listen on all interfaces
+npm start
+# Server now accessible from external domains
 ```
 
 **Development with hot reload:**
@@ -20,6 +30,12 @@ npm run dev
 http://localhost:3000?room=meeting
 http://localhost:3000?room=team1
 ```
+
+**Important:** For remote access (e.g., zellous.247420.xyz), ensure:
+1. Server is running with `HOST=0.0.0.0` (automatic by default)
+2. Firewall allows inbound traffic on the PORT (default: 3000)
+3. For domains, set up reverse proxy (nginx) or use port 80/443
+4. See [CLAUDE.md](CLAUDE.md) for nginx configuration example
 
 ## Features
 
