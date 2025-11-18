@@ -62,8 +62,10 @@ const audio = {
   createDecoder: (userId) => {
     const decoder = new AudioDecoder({
       output: (audioData) => {
-        const samples = new Float32Array(audioData.numberOfFrames);
-        audioData.copyTo(samples, { planeIndex: 0 });
+        const size = audioData.allocationSize({ planeIndex: 0 });
+        const buffer = new ArrayBuffer(size);
+        audioData.copyTo(buffer, { planeIndex: 0 });
+        const samples = new Float32Array(buffer);
         if (!state.audioBuffers.has(userId)) state.audioBuffers.set(userId, []);
         state.audioBuffers.get(userId).push(samples);
         audioData.close();
