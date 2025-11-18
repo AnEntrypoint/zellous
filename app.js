@@ -24,6 +24,7 @@ const state = {
   recordingAudio: new Map(),
   audioEncoder: null,
   audioDecoders: new Map(),
+  scheduledPlaybackTime: new Map(),
   ws: null,
   userId: null,
   roomId: getRoomFromURL()
@@ -219,6 +220,12 @@ Object.assign(audio, {
     gainNode.connect(state.audioContext.destination);
     state.audioSources.set(userId, { gainNode });
     state.playbackState.set(userId, 'playing');
+
+    // Initialize scheduled time to current time (with small buffer for processing)
+    if (!state.scheduledPlaybackTime.has(userId)) {
+      state.scheduledPlaybackTime.set(userId, state.audioContext.currentTime + 0.05);
+    }
+
     const interval = setInterval(() => {
       if (!state.audioSources.has(userId)) {
         clearInterval(interval);
@@ -230,18 +237,35 @@ Object.assign(audio, {
           state.audioSources.delete(userId);
           state.audioBuffers.delete(userId);
           state.playbackState.delete(userId);
+          state.scheduledPlaybackTime.delete(userId);
           clearInterval(interval);
         }
         return;
       }
+
       const data = queue.shift();
       const buf = state.audioContext.createBuffer(1, data.length, config.sampleRate);
       buf.getChannelData(0).set(data);
       const src = state.audioContext.createBufferSource();
       src.buffer = buf;
       src.connect(gainNode);
-      src.start();
-    }, 100);
+
+      // Get the current scheduled time
+      let scheduledTime = state.scheduledPlaybackTime.get(userId);
+      const currentTime = state.audioContext.currentTime;
+
+      // If we're behind, reset to current time to avoid audio glitches
+      if (scheduledTime < currentTime) {
+        scheduledTime = currentTime;
+      }
+
+      // Schedule the audio to start at the precise time
+      src.start(scheduledTime);
+
+      // Update scheduled time for next chunk (duration = samples / sample rate)
+      const duration = data.length / config.sampleRate;
+      state.scheduledPlaybackTime.set(userId, scheduledTime + duration);
+    }, 20);
   },
   pause: () => {
     const userId = Array.from(state.activeSpeakers)[0];
@@ -250,6 +274,7 @@ Object.assign(audio, {
       state.playbackState.set(userId, 'paused');
       state.audioSources.delete(userId);
       state.audioBuffers.set(userId, []);
+      state.scheduledPlaybackTime.delete(userId);
     }
   },
   resume: () => {
