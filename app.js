@@ -27,7 +27,13 @@ const state = {
   scheduledPlaybackTime: new Map(),
   ws: null,
   userId: null,
-  roomId: getRoomFromURL()
+  roomId: getRoomFromURL(),
+  // Queue system
+  audioQueue: [],              // Array of segment objects {id, userId, username, timestamp, status, chunks, decodedSamples}
+  activeSegments: new Map(),   // userId -> current segment being recorded
+  currentSegmentId: null,      // ID of currently playing segment
+  isDeafened: false,           // Deafen mode toggle
+  nextSegmentId: 1             // Counter for unique segment IDs
 };
 
 const ui = {
@@ -40,7 +46,9 @@ const ui = {
   volumeValue: document.getElementById('volValue'),
   speakers: document.getElementById('speakers'),
   messages: document.getElementById('messages'),
-  roomName: document.getElementById('roomName')
+  roomName: document.getElementById('roomName'),
+  audioQueueView: document.getElementById('audioQueueView'),
+  deafenBtn: document.getElementById('deafenBtn')
 };
 
 const audio = {
@@ -85,29 +93,178 @@ const audio = {
   }
 };
 
+const queue = {
+  addSegment: (userId, username) => {
+    const segment = {
+      id: state.nextSegmentId++,
+      userId,
+      username,
+      timestamp: new Date(),
+      status: 'recording',
+      chunks: [],
+      decodedSamples: []
+    };
+    state.activeSegments.set(userId, segment);
+    return segment;
+  },
+  addChunk: (userId, chunkData) => {
+    const segment = state.activeSegments.get(userId);
+    if (segment) {
+      segment.chunks.push(new Uint8Array(chunkData));
+      // Update UI every 10 chunks to show progress
+      if (segment.chunks.length % 10 === 0) {
+        ui.render.queue();
+      }
+    }
+  },
+  completeSegment: (userId) => {
+    const segment = state.activeSegments.get(userId);
+    if (segment && segment.chunks.length > 0) {
+      segment.status = 'queued';
+      state.audioQueue.push(segment);
+      state.activeSegments.delete(userId);
+      ui.render.queue();
+      // Start playback if not currently playing and not deafened
+      if (!state.currentSegmentId && !state.isDeafened && !state.isSpeaking) {
+        queue.playNext();
+      }
+    }
+  },
+  getNextQueuedSegment: () => {
+    return state.audioQueue.find(seg => seg.status === 'queued');
+  },
+  markAsPlaying: (segmentId) => {
+    const segment = state.audioQueue.find(s => s.id === segmentId);
+    if (segment) {
+      segment.status = 'playing';
+      state.currentSegmentId = segmentId;
+      ui.render.queue();
+    }
+  },
+  markAsPlayed: (segmentId) => {
+    const segment = state.audioQueue.find(s => s.id === segmentId);
+    if (segment) {
+      segment.status = 'played';
+      state.currentSegmentId = null;
+      ui.render.queue();
+      // Play next if available
+      queue.playNext();
+    }
+  },
+  playNext: () => {
+    if (state.isSpeaking || state.isDeafened || state.currentSegmentId) return;
+
+    const nextSegment = queue.getNextQueuedSegment();
+    if (!nextSegment) return;
+
+    queue.markAsPlaying(nextSegment.id);
+    queue.decodeAndPlay(nextSegment);
+  },
+  decodeAndPlay: (segment) => {
+    // Create dedicated decoder for this segment
+    const decoderId = `queue-${segment.id}`;
+    const decoder = new AudioDecoder({
+      output: (audioData) => {
+        const size = audioData.allocationSize({ planeIndex: 0 });
+        const buffer = new ArrayBuffer(size);
+        audioData.copyTo(buffer, { planeIndex: 0 });
+        const samples = new Float32Array(buffer);
+        segment.decodedSamples.push(samples);
+        audioData.close();
+      },
+      error: (e) => console.error('Queue decoder error:', e)
+    });
+    decoder.configure({
+      codec: 'opus',
+      sampleRate: config.sampleRate,
+      numberOfChannels: 1
+    });
+
+    // Decode all chunks
+    segment.chunks.forEach(chunkData => {
+      const chunk = new EncodedAudioChunk({
+        type: 'key',
+        timestamp: performance.now() * 1000,
+        data: chunkData
+      });
+      decoder.decode(chunk);
+    });
+
+    // Wait for decoding to complete, then play
+    decoder.flush().then(() => {
+      queue.playSamples(segment);
+      decoder.close();
+    });
+  },
+  playSamples: (segment) => {
+    if (segment.decodedSamples.length === 0) {
+      queue.markAsPlayed(segment.id);
+      return;
+    }
+
+    const gainNode = state.audioContext.createGain();
+    gainNode.gain.value = state.masterVolume;
+    gainNode.connect(state.audioContext.destination);
+
+    let scheduledTime = state.audioContext.currentTime + 0.05;
+
+    segment.decodedSamples.forEach(data => {
+      const buf = state.audioContext.createBuffer(1, data.length, config.sampleRate);
+      buf.getChannelData(0).set(data);
+      const src = state.audioContext.createBufferSource();
+      src.buffer = buf;
+      src.connect(gainNode);
+      src.start(scheduledTime);
+
+      const duration = data.length / config.sampleRate;
+      scheduledTime += duration;
+    });
+
+    // Mark as played after all samples finish
+    const totalDuration = (scheduledTime - state.audioContext.currentTime) * 1000;
+    setTimeout(() => {
+      queue.markAsPlayed(segment.id);
+    }, totalDuration);
+  },
+  pausePlayback: () => {
+    // This will be called when PTT starts or deafen is activated
+    // Current implementation will let the current segment finish
+    // but prevent new segments from starting
+  },
+  resumePlayback: () => {
+    // Resume queue playback
+    if (!state.currentSegmentId) {
+      queue.playNext();
+    }
+  }
+};
+
 const message = {
   handlers: {
     speaker_joined: (msg) => {
       state.activeSpeakers.add(msg.userId);
+      // Create queue segment for this speaker
+      queue.addSegment(msg.userId, msg.user);
+      // Keep old system for replay functionality
       state.recordingAudio.set(msg.userId, []);
-      if (!state.audioDecoders.has(msg.userId)) {
-        state.audioDecoders.set(msg.userId, audio.createDecoder(msg.userId));
-      }
       message.add(`${msg.user} started talking`, null, msg.userId, msg.user);
       ui.render.speakers();
+      ui.render.queue();
     },
     speaker_left: (msg) => {
       state.activeSpeakers.delete(msg.userId);
+      // Complete the queue segment
+      queue.completeSegment(msg.userId);
+      // Keep old system for replay
       const audioData = state.recordingAudio.get(msg.userId);
       message.add(`${msg.user} stopped talking`, audioData, msg.userId, msg.user);
       state.recordingAudio.delete(msg.userId);
       ui.render.speakers();
-      if (state.pausedAudioBuffer && msg.userId === Array.from(state.activeSpeakers)[0]) {
-        audio.resume();
-      }
     },
     audio_data: (msg) => {
-      audio.handleChunk(msg.userId, msg.data);
+      // Add chunk to queue segment (for queue playback)
+      queue.addChunk(msg.userId, msg.data);
+      // Keep old system for replay functionality
       if (state.recordingAudio.has(msg.userId)) {
         state.recordingAudio.get(msg.userId).push(new Uint8Array(msg.data));
       }
@@ -313,7 +470,7 @@ const ptt = {
     state.isSpeaking = true;
     ui.ptt.classList.add('recording');
     ui.recordingIndicator.style.display = 'inline';
-    audio.pause();
+    // Queue system will automatically stop playing new segments while speaking
     network.send({ type: 'audio_start' });
   },
   stop: () => {
@@ -321,7 +478,32 @@ const ptt = {
     ui.ptt.classList.remove('recording');
     ui.recordingIndicator.style.display = 'none';
     network.send({ type: 'audio_end' });
-    audio.resume();
+    // Resume queue playback
+    queue.resumePlayback();
+  }
+};
+
+const deafen = {
+  toggle: () => {
+    state.isDeafened = !state.isDeafened;
+    if (state.isDeafened) {
+      deafen.activate();
+    } else {
+      deafen.deactivate();
+    }
+  },
+  activate: () => {
+    ui.deafenBtn.classList.add('active');
+    ui.deafenBtn.innerHTML = '🔇 Deafened';
+    // Queue will continue to accumulate but won't play
+    ui.render.queue();
+  },
+  deactivate: () => {
+    ui.deafenBtn.classList.remove('active');
+    ui.deafenBtn.innerHTML = '🔊 Deafen';
+    // Resume playing queued audio
+    queue.resumePlayback();
+    ui.render.queue();
   }
 };
 
@@ -355,6 +537,54 @@ const ui_render = {
   },
   roomName: () => {
     ui.roomName.textContent = `Room: ${state.roomId}`;
+  },
+  queue: () => {
+    const allSegments = [
+      ...Array.from(state.activeSegments.values()),
+      ...state.audioQueue
+    ];
+
+    if (allSegments.length === 0) {
+      ui.audioQueueView.innerHTML = '<div style="opacity: 0.5; font-size: 11px; text-align: center; padding: 20px;">No audio in queue</div>';
+      return;
+    }
+
+    // Find the index of the first queued or playing segment
+    const separatorIndex = allSegments.findIndex(s => s.status === 'playing' || s.status === 'queued');
+
+    let html = '';
+    allSegments.forEach((segment, index) => {
+      // Add separator before first unplayed segment
+      if (index === separatorIndex && separatorIndex > 0) {
+        html += '<div class="queue-separator">▼ Unplayed ▼</div>';
+      }
+
+      const statusIcon = {
+        'recording': '🔴',
+        'queued': '⏸️',
+        'playing': '▶️',
+        'played': '✓'
+      }[segment.status] || '•';
+
+      const timeStr = segment.timestamp.toLocaleTimeString();
+
+      html += `
+        <div class="queue-item ${segment.status}">
+          <div class="queue-header">${statusIcon} ${segment.username}</div>
+          <div class="queue-meta">${timeStr} • ${segment.chunks.length} chunks</div>
+        </div>
+      `;
+    });
+
+    ui.audioQueueView.innerHTML = html;
+
+    // Auto-scroll to keep the separator or current playing item visible
+    const separator = ui.audioQueueView.querySelector('.queue-separator');
+    const playing = ui.audioQueueView.querySelector('.queue-item.playing');
+    const target = separator || playing;
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 };
 
@@ -378,6 +608,7 @@ const ui_events = {
       state.audioSources.forEach(s => s.gainNode.gain.value = state.masterVolume);
       ui.volumeValue.textContent = e.target.value + '%';
     });
+    ui.deafenBtn.addEventListener('click', deafen.toggle);
   }
 };
 
@@ -387,7 +618,9 @@ window.zellousDebug = {
   audio,
   message,
   network,
-  ptt
+  ptt,
+  queue,
+  deafen
 };
 
 async function init() {
