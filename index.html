@@ -32,7 +32,8 @@
     .replay-btn { background: #2196F3; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; transition: all 0.2s; }
     .replay-btn:hover { background: #1976D2; }
     .queue-item { padding: 10px; background: #252525; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid transparent; transition: all 0.2s; }
-    .queue-item.played { opacity: 0.4; border-left-color: #666; }
+    .queue-item[style*="cursor: pointer"]:hover { background: #2a2a2a; transform: translateX(2px); }
+    .queue-item.played { opacity: 0.6; border-left-color: #666; }
     .queue-item.playing { background: #1976D2; border-left-color: #64B5F6; animation: pulse-subtle 1s infinite; }
     .queue-item.queued { border-left-color: #FFA726; }
     @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
