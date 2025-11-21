@@ -29,11 +29,12 @@ const state = {
   userId: null,
   roomId: getRoomFromURL(),
   // Queue system
-  audioQueue: [],              // Array of segment objects {id, userId, username, timestamp, status, chunks, decodedSamples}
+  audioQueue: [],              // Array of segment objects {id, userId, username, timestamp, status, chunks, decodedSamples, isOwnAudio}
   activeSegments: new Map(),   // userId -> current segment being recorded
   currentSegmentId: null,      // ID of currently playing segment
   isDeafened: false,           // Deafen mode toggle
-  nextSegmentId: 1             // Counter for unique segment IDs
+  nextSegmentId: 1,            // Counter for unique segment IDs
+  ownAudioChunks: []           // Temporary storage for own audio chunks while recording
 };
 
 const ui = {
@@ -57,6 +58,8 @@ const audio = {
       output: (chunk, metadata) => {
         const buffer = new Uint8Array(chunk.byteLength);
         chunk.copyTo(buffer);
+        // Store own audio chunks for queue replay
+        state.ownAudioChunks.push(new Uint8Array(buffer));
         network.send({ type: 'audio_chunk', data: Array.from(buffer) });
       },
       error: (e) => console.error('Encoder error:', e)
@@ -94,7 +97,7 @@ const audio = {
 };
 
 const queue = {
-  addSegment: (userId, username) => {
+  addSegment: (userId, username, isOwnAudio = false) => {
     const segment = {
       id: state.nextSegmentId++,
       userId,
@@ -102,7 +105,8 @@ const queue = {
       timestamp: new Date(),
       status: 'recording',
       chunks: [],
-      decodedSamples: []
+      decodedSamples: [],
+      isOwnAudio
     };
     state.activeSegments.set(userId, segment);
     return segment;
@@ -120,12 +124,13 @@ const queue = {
   completeSegment: (userId) => {
     const segment = state.activeSegments.get(userId);
     if (segment && segment.chunks.length > 0) {
-      segment.status = 'queued';
+      // Own audio goes directly to 'played' status (available for replay but doesn't auto-play)
+      segment.status = segment.isOwnAudio ? 'played' : 'queued';
       state.audioQueue.push(segment);
       state.activeSegments.delete(userId);
       ui.render.queue();
-      // Start playback if not currently playing and not deafened
-      if (!state.currentSegmentId && !state.isDeafened && !state.isSpeaking) {
+      // Start playback if not currently playing and not deafened (skip own audio)
+      if (!state.currentSegmentId && !state.isDeafened && !state.isSpeaking && !segment.isOwnAudio) {
         queue.playNext();
       }
     }
@@ -236,6 +241,70 @@ const queue = {
     if (!state.currentSegmentId) {
       queue.playNext();
     }
+  },
+  replaySegment: (segmentId) => {
+    const segment = state.audioQueue.find(s => s.id === segmentId);
+    if (!segment || segment.chunks.length === 0) return;
+
+    // Create dedicated decoder for replay
+    const decoderId = `replay-${segmentId}-${Date.now()}`;
+    const decodedSamples = [];
+
+    const decoder = new AudioDecoder({
+      output: (audioData) => {
+        const size = audioData.allocationSize({ planeIndex: 0 });
+        const buffer = new ArrayBuffer(size);
+        audioData.copyTo(buffer, { planeIndex: 0 });
+        const samples = new Float32Array(buffer);
+        decodedSamples.push(samples);
+        audioData.close();
+      },
+      error: (e) => console.error('Replay decoder error:', e)
+    });
+
+    decoder.configure({
+      codec: 'opus',
+      sampleRate: config.sampleRate,
+      numberOfChannels: 1
+    });
+
+    // Decode all chunks
+    segment.chunks.forEach(chunkData => {
+      const chunk = new EncodedAudioChunk({
+        type: 'key',
+        timestamp: performance.now() * 1000,
+        data: chunkData
+      });
+      decoder.decode(chunk);
+    });
+
+    // Wait for decoding to complete, then play
+    decoder.flush().then(() => {
+      if (decodedSamples.length === 0) {
+        decoder.close();
+        return;
+      }
+
+      const gainNode = state.audioContext.createGain();
+      gainNode.gain.value = state.masterVolume;
+      gainNode.connect(state.audioContext.destination);
+
+      let scheduledTime = state.audioContext.currentTime + 0.05;
+
+      decodedSamples.forEach(data => {
+        const buf = state.audioContext.createBuffer(1, data.length, config.sampleRate);
+        buf.getChannelData(0).set(data);
+        const src = state.audioContext.createBufferSource();
+        src.buffer = buf;
+        src.connect(gainNode);
+        src.start(scheduledTime);
+
+        const duration = data.length / config.sampleRate;
+        scheduledTime += duration;
+      });
+
+      decoder.close();
+    });
   }
 };
 
@@ -470,6 +539,12 @@ const ptt = {
     state.isSpeaking = true;
     ui.ptt.classList.add('recording');
     ui.recordingIndicator.style.display = 'inline';
+    // Clear previous own audio chunks
+    state.ownAudioChunks = [];
+    // Create queue segment for own audio
+    if (state.userId) {
+      queue.addSegment(state.userId, 'You', true);
+    }
     // Queue system will automatically stop playing new segments while speaking
     network.send({ type: 'audio_start' });
   },
@@ -478,6 +553,15 @@ const ptt = {
     ui.ptt.classList.remove('recording');
     ui.recordingIndicator.style.display = 'none';
     network.send({ type: 'audio_end' });
+    // Complete own audio segment with collected chunks
+    if (state.userId) {
+      const ownSegment = state.activeSegments.get(state.userId);
+      if (ownSegment) {
+        // Copy chunks from ownAudioChunks to the segment
+        ownSegment.chunks = [...state.ownAudioChunks];
+      }
+      queue.completeSegment(state.userId);
+    }
     // Resume queue playback
     queue.resumePlayback();
   }
@@ -568,15 +652,31 @@ const ui_render = {
 
       const timeStr = segment.timestamp.toLocaleTimeString();
 
+      // Make clickable if has chunks and not currently recording
+      const clickable = segment.chunks.length > 0 && segment.status !== 'recording';
+      const cursorStyle = clickable ? 'cursor: pointer;' : '';
+      const ownAudioLabel = segment.isOwnAudio ? ' <span style="opacity: 0.5;">(You)</span>' : '';
+
       html += `
-        <div class="queue-item ${segment.status}">
-          <div class="queue-header">${statusIcon} ${segment.username}</div>
-          <div class="queue-meta">${timeStr} • ${segment.chunks.length} chunks</div>
+        <div class="queue-item ${segment.status}" data-segment-id="${segment.id}" style="${cursorStyle}">
+          <div class="queue-header">${statusIcon} ${segment.username}${ownAudioLabel}</div>
+          <div class="queue-meta">${timeStr} • ${segment.chunks.length} chunks ${clickable ? '• Click to replay' : ''}</div>
         </div>
       `;
     });
 
     ui.audioQueueView.innerHTML = html;
+
+    // Add click handlers to clickable queue items
+    document.querySelectorAll('.queue-item[data-segment-id]').forEach(item => {
+      const segmentId = parseInt(item.dataset.segmentId);
+      const segment = allSegments.find(s => s.id === segmentId);
+      if (segment && segment.chunks.length > 0 && segment.status !== 'recording') {
+        item.addEventListener('click', () => {
+          queue.replaySegment(segmentId);
+        });
+      }
+    });
 
     // Auto-scroll to keep the separator or current playing item visible
     const separator = ui.audioQueueView.querySelector('.queue-separator');
