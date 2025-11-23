@@ -119,20 +119,27 @@ const queue = {
       if (segment.chunks.length % 10 === 0) {
         ui.render.queue();
       }
+      return true;
     }
+    return false;
   },
   completeSegment: (userId) => {
     const segment = state.activeSegments.get(userId);
+    console.log('completeSegment called for userId:', userId, 'segment exists:', !!segment, 'chunks:', segment?.chunks?.length || 0);
     if (segment && segment.chunks.length > 0) {
       // Own audio goes directly to 'played' status (available for replay but doesn't auto-play)
       segment.status = segment.isOwnAudio ? 'played' : 'queued';
       state.audioQueue.push(segment);
       state.activeSegments.delete(userId);
       ui.render.queue();
+      console.log('Segment completed. Status:', segment.status, 'currentSegmentId:', state.currentSegmentId, 'isDeafened:', state.isDeafened, 'isSpeaking:', state.isSpeaking);
       // Start playback if not currently playing and not deafened (skip own audio)
       if (!state.currentSegmentId && !state.isDeafened && !state.isSpeaking && !segment.isOwnAudio) {
+        console.log('Starting playback...');
         queue.playNext();
       }
+    } else {
+      console.log('Segment not completed - no segment or no chunks');
     }
   },
   getNextQueuedSegment: () => {
@@ -166,8 +173,12 @@ const queue = {
     queue.decodeAndPlay(nextSegment);
   },
   decodeAndPlay: (segment) => {
+    console.log('Decoding segment:', segment.id, 'with', segment.chunks.length, 'chunks');
+
     // Create dedicated decoder for this segment
     const decoderId = `queue-${segment.id}`;
+    let decodeErrors = 0;
+
     const decoder = new AudioDecoder({
       output: (audioData) => {
         const size = audioData.allocationSize({ planeIndex: 0 });
@@ -177,7 +188,10 @@ const queue = {
         segment.decodedSamples.push(samples);
         audioData.close();
       },
-      error: (e) => console.error('Queue decoder error:', e)
+      error: (e) => {
+        decodeErrors++;
+        console.error('Queue decoder error:', e);
+      }
     });
     decoder.configure({
       codec: 'opus',
@@ -186,25 +200,40 @@ const queue = {
     });
 
     // Decode all chunks
-    segment.chunks.forEach(chunkData => {
-      const chunk = new EncodedAudioChunk({
-        type: 'key',
-        timestamp: performance.now() * 1000,
-        data: chunkData
-      });
-      decoder.decode(chunk);
+    segment.chunks.forEach((chunkData, index) => {
+      try {
+        const chunk = new EncodedAudioChunk({
+          type: 'key',
+          timestamp: index * 20000, // Use sequential timestamps (20ms per chunk)
+          data: chunkData
+        });
+        decoder.decode(chunk);
+      } catch (e) {
+        console.error('Error creating/decoding chunk', index, ':', e);
+      }
     });
 
     // Wait for decoding to complete, then play
     decoder.flush().then(() => {
+      console.log('Decoding complete. Samples:', segment.decodedSamples.length, 'Errors:', decodeErrors);
       queue.playSamples(segment);
       decoder.close();
+    }).catch(e => {
+      console.error('Decoder flush error:', e);
+      decoder.close();
+      queue.markAsPlayed(segment.id);
     });
   },
   playSamples: (segment) => {
     if (segment.decodedSamples.length === 0) {
+      console.log('No decoded samples to play for segment:', segment.id);
       queue.markAsPlayed(segment.id);
       return;
+    }
+
+    // Resume AudioContext if suspended (required by browsers)
+    if (state.audioContext?.state === 'suspended') {
+      state.audioContext.resume();
     }
 
     const gainNode = state.audioContext.createGain();
@@ -311,9 +340,13 @@ const queue = {
 const message = {
   handlers: {
     speaker_joined: (msg) => {
+      console.log('speaker_joined received:', msg.userId, msg.user);
       state.activeSpeakers.add(msg.userId);
-      // Create queue segment for this speaker
-      queue.addSegment(msg.userId, msg.user);
+      // Create queue segment for this speaker (skip if it's our own user - we create it in ptt.start)
+      if (msg.userId !== state.userId) {
+        queue.addSegment(msg.userId, msg.user);
+        console.log('Created queue segment for user:', msg.userId);
+      }
       // Keep old system for replay functionality
       state.recordingAudio.set(msg.userId, []);
       message.add(`${msg.user} started talking`, null, msg.userId, msg.user);
@@ -321,9 +354,12 @@ const message = {
       ui.render.queue();
     },
     speaker_left: (msg) => {
+      console.log('speaker_left received:', msg.userId, msg.user);
       state.activeSpeakers.delete(msg.userId);
-      // Complete the queue segment
-      queue.completeSegment(msg.userId);
+      // Complete the queue segment (but not for own audio - that's handled in ptt.stop)
+      if (msg.userId !== state.userId) {
+        queue.completeSegment(msg.userId);
+      }
       // Keep old system for replay
       const audioData = state.recordingAudio.get(msg.userId);
       message.add(`${msg.user} stopped talking`, audioData, msg.userId, msg.user);
@@ -332,7 +368,10 @@ const message = {
     },
     audio_data: (msg) => {
       // Add chunk to queue segment (for queue playback)
-      queue.addChunk(msg.userId, msg.data);
+      const added = queue.addChunk(msg.userId, msg.data);
+      if (!added) {
+        console.warn('audio_data received but no segment exists for userId:', msg.userId);
+      }
       // Keep old system for replay functionality
       if (state.recordingAudio.has(msg.userId)) {
         state.recordingAudio.get(msg.userId).push(new Uint8Array(msg.data));
@@ -539,6 +578,10 @@ const ptt = {
     state.isSpeaking = true;
     ui.ptt.classList.add('recording');
     ui.recordingIndicator.style.display = 'inline';
+    // Resume AudioContext on user gesture (required by browsers)
+    if (state.audioContext?.state === 'suspended') {
+      state.audioContext.resume();
+    }
     // Clear previous own audio chunks
     state.ownAudioChunks = [];
     // Create queue segment for own audio
@@ -548,10 +591,20 @@ const ptt = {
     // Queue system will automatically stop playing new segments while speaking
     network.send({ type: 'audio_start' });
   },
-  stop: () => {
+  stop: async () => {
     state.isSpeaking = false;
     ui.ptt.classList.remove('recording');
     ui.recordingIndicator.style.display = 'none';
+
+    // Flush encoder to ensure all audio data is sent before audio_end
+    if (state.audioEncoder && state.audioEncoder.state === 'configured') {
+      try {
+        await state.audioEncoder.flush();
+      } catch (e) {
+        console.error('Encoder flush error:', e);
+      }
+    }
+
     network.send({ type: 'audio_end' });
     // Complete own audio segment with collected chunks
     if (state.userId) {
