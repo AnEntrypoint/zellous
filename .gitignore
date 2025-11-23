@@ -4,3 +4,4 @@ node_modules/
 .playwright-mcp/
 npm-debug.log*
 .DS_Store
+test-results/
