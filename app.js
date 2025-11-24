@@ -34,6 +34,8 @@ const state = {
   activeSegments: new Map(),   // userId -> current segment being recorded
   currentSegmentId: null,      // ID of currently playing segment
   replayingSegmentId: null,    // ID of segment currently being replayed
+  replayGainNode: null,        // GainNode for current replay (to stop it)
+  replayTimeout: null,         // Timeout for replay completion
   isDeafened: false,           // Deafen mode toggle
   nextSegmentId: 1,            // Counter for unique segment IDs
   ownAudioChunks: [],          // Temporary storage for own audio chunks while recording
@@ -305,11 +307,24 @@ const queue = {
       queue.playNext();
     }
   },
+  stopReplay: () => {
+    if (state.replayGainNode) {
+      state.replayGainNode.disconnect();
+      state.replayGainNode = null;
+    }
+    if (state.replayTimeout) {
+      clearTimeout(state.replayTimeout);
+      state.replayTimeout = null;
+    }
+    state.replayingSegmentId = null;
+    webcam.hidePlayback();
+  },
   replaySegment: (segmentId, continueQueue = true) => {
     const segmentIndex = state.audioQueue.findIndex(s => s.id === segmentId);
     const segment = state.audioQueue[segmentIndex];
     if (!segment || segment.chunks.length === 0) return;
 
+    queue.stopReplay();
     state.replayingSegmentId = segmentId;
     ui.render.queue();
 
@@ -340,6 +355,7 @@ const queue = {
       const gainNode = state.audioContext.createGain();
       gainNode.gain.value = state.masterVolume;
       gainNode.connect(state.audioContext.destination);
+      state.replayGainNode = gainNode;
 
       let scheduledTime = state.audioContext.currentTime + 0.05;
       let totalDuration = 0;
@@ -357,13 +373,15 @@ const queue = {
 
       if (segment.videoChunks && segment.videoChunks.length > 0) {
         webcam.showVideo(segment.videoChunks, segment.username);
-        setTimeout(() => webcam.hidePlayback(), totalDuration * 1000 + 100);
       }
 
       decoder.close();
 
-      setTimeout(() => {
+      state.replayTimeout = setTimeout(() => {
+        state.replayGainNode = null;
+        state.replayTimeout = null;
         state.replayingSegmentId = null;
+        webcam.hidePlayback();
         ui.render.queue();
         if (continueQueue && segmentIndex + 1 < state.audioQueue.length) {
           queue.replaySegment(state.audioQueue[segmentIndex + 1].id, true);
