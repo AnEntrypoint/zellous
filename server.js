@@ -75,9 +75,7 @@ wss.on('connection', (ws) => {
       const msg = unpack(Buffer.isBuffer(data) ? data : Buffer.from(data));
       const handler = handlers[msg.type];
       if (handler) handler(client, msg);
-    } catch (err) {
-      console.error('Error:', err.message);
-    }
+    } catch (e) {}
   });
 
   ws.on('close', () => {

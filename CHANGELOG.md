@@ -1,5 +1,25 @@
 # Changelog
 
+## [2.0.0] - 2025-11-24 - Modular Architecture Refactor
+
+### Changed
+- Split monolithic app.js (1198L) into 8 modules (598L total, 50% reduction)
+- Modules: state, ui, audio, queue, network, ptt, webcam, app
+- All modules under 200-line hard limit
+- Complete UI redesign with modern CSS
+- Mobile-responsive layout with hamburger menu for sidebars
+
+### Added
+- Window globals for all modules (debugging via REPL)
+- Input/output device selectors
+- Skip/resume live audio controls
+- WebM video streaming with VP9/VP8
+
+### Removed
+- All test files (manual testing via MCP Playwright)
+- All console.log statements
+- All comments
+
 ## [1.5.1] - 2025-11-14 - Comprehensive Testing & Sandboxbox Verification
 
 ### Added

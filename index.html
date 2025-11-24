@@ -2,149 +2,290 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zellous - PTT</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Zellous</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f0f; color: #fff; }
-    .container { display: grid; grid-template-columns: 280px 1fr 280px 320px; gap: 12px; height: 100vh; padding: 12px; }
-    .panel { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; overflow-y: auto; padding: 16px; }
-    .main { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; }
-    .header { text-align: center; }
-    .header h1 { font-size: 28px; margin-bottom: 4px; }
-    .header p { font-size: 12px; opacity: 0.6; }
-    .status { display: flex; gap: 8px; align-items: center; padding: 12px 16px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #4CAF50; }
-    .status-dot.offline { background: #f44336; }
-    .ptt-btn { width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%); border: none; color: #fff; font-weight: 600; cursor: pointer; transition: all 0.2s; box-shadow: 0 8px 24px rgba(33, 150, 243, 0.3); }
-    .ptt-btn:hover { transform: scale(1.05); box-shadow: 0 12px 32px rgba(33, 150, 243, 0.4); }
-    .ptt-btn:active { transform: scale(0.95); }
-    .ptt-btn.recording { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); animation: pulse 0.6s infinite; box-shadow: 0 0 20px rgba(244, 67, 54, 0.6); }
-    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-    .vol-control { display: flex; gap: 8px; align-items: center; width: 100%; }
-    .vol-control input { flex: 1; }
-    .vol-control span { font-size: 12px; width: 40px; }
-    .title { font-size: 11px; font-weight: 600; text-transform: uppercase; opacity: 0.5; margin-bottom: 12px; }
-    .item { padding: 12px; background: #252525; border-radius: 6px; margin-bottom: 8px; }
-    .item.active { background: #1976D2; border-left: 3px solid #64B5F6; }
-    .item-header { font-weight: 500; font-size: 13px; }
-    .item-meta { font-size: 11px; opacity: 0.6; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
-    .replay-btn { background: #2196F3; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; transition: all 0.2s; }
-    .replay-btn:hover { background: #1976D2; }
-    .queue-item { padding: 10px; background: #252525; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid transparent; transition: all 0.2s; }
-    .queue-item.played { opacity: 0.6; border-left-color: #666; }
-    .queue-item.playing { background: #1976D2; border-left-color: #64B5F6; animation: pulse-subtle 1s infinite; }
-    .queue-item.queued { border-left-color: #FFA726; }
-    .queue-item.replaying { background: #4CAF50; border-left-color: #81C784; }
-    @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
-    .queue-separator { margin: 12px 0; padding: 8px; text-align: center; font-size: 10px; font-weight: 600; text-transform: uppercase; opacity: 0.5; border-top: 2px solid #FFA726; border-bottom: 2px solid #FFA726; background: rgba(255, 167, 38, 0.1); }
-    .queue-header { font-weight: 500; font-size: 12px; margin-bottom: 2px; }
-    .queue-meta { font-size: 10px; opacity: 0.6; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-    .queue-play-btn, .queue-dl-btn { background: #444; color: #fff; border: none; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer; margin-left: auto; }
-    .queue-play-btn:hover { background: #2196F3; }
-    .queue-dl-btn:hover { background: #4CAF50; }
-    .skip-live-btn, .resume-live-btn { width: 100%; background: #FF5722; color: #fff; border: none; padding: 8px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; margin-bottom: 8px; }
-    .skip-live-btn:hover { background: #E64A19; }
-    .resume-live-btn { background: #4CAF50; }
-    .resume-live-btn:hover { background: #388E3C; }
-    .deafen-btn { background: #757575; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
-    .deafen-btn:hover { background: #616161; }
-    .deafen-btn.active { background: #f44336; }
-    .vad-btn { background: #757575; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
-    .vad-btn:hover { background: #616161; }
-    .vad-btn.active { background: #4CAF50; }
-    .vad-meter { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 4px; }
-    .vad-meter-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #FFC107, #f44336); width: 0%; transition: width 0.05s; }
-    .vad-threshold { position: absolute; height: 100%; width: 2px; background: #fff; top: 0; }
-    .webcam-btn { background: #757575; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
-    .webcam-btn:hover { background: #616161; }
-    .webcam-btn.active { background: #9C27B0; }
-    .webcam-preview { width: 120px; height: 90px; background: #000; border-radius: 6px; overflow: hidden; display: none; }
+    :root { --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e; --border: #2a2a2a; --text: #fff; --text2: rgba(255,255,255,0.6); --accent: #3b82f6; --accent2: #2563eb; --danger: #ef4444; --success: #22c55e; --warning: #f59e0b; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; overflow: hidden; }
+    
+    /* Layout */
+    .app { display: flex; height: 100vh; height: 100dvh; }
+    .sidebar { width: 260px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+    .sidebar.right { border-right: none; border-left: 1px solid var(--border); }
+    .sidebar-header { padding: 12px; border-bottom: 1px solid var(--border); font-size: 11px; font-weight: 600; text-transform: uppercase; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+    .sidebar-content { flex: 1; overflow-y: auto; padding: 8px; }
+    .main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; gap: 12px; min-width: 0; }
+    
+    /* Mobile nav */
+    .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 8px; z-index: 100; }
+    .mobile-nav-btns { display: flex; gap: 8px; }
+    .mobile-nav-btn { flex: 1; padding: 10px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 11px; font-weight: 500; cursor: pointer; text-align: center; }
+    .mobile-nav-btn.active { background: var(--accent); border-color: var(--accent); }
+    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 90; }
+    
+    /* Header */
+    .logo { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .room-badge { font-size: 11px; padding: 4px 10px; background: var(--surface2); border-radius: 12px; color: var(--text2); }
+    .connection { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text2); }
+    .connection-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+    .connection-dot.offline { background: var(--danger); }
+    
+    /* PTT Button */
+    .ptt { width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%); border: none; color: #fff; font-weight: 600; font-size: 11px; cursor: pointer; transition: all 0.15s; box-shadow: 0 4px 20px rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center; text-transform: uppercase; letter-spacing: 0.5px; }
+    .ptt:hover { transform: scale(1.03); }
+    .ptt:active { transform: scale(0.97); }
+    .ptt.recording { background: linear-gradient(135deg, var(--danger) 0%, #dc2626 100%); box-shadow: 0 0 30px rgba(239,68,68,0.4); animation: ptt-pulse 0.8s infinite; }
+    @keyframes ptt-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+    
+    /* Controls */
+    .controls { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 280px; }
+    .control-row { display: flex; gap: 6px; align-items: center; }
+    .control-label { font-size: 10px; color: var(--text2); width: 32px; flex-shrink: 0; text-transform: uppercase; }
+    .control-input { flex: 1; min-width: 0; }
+    .control-value { font-size: 10px; color: var(--text2); width: 36px; text-align: right; }
+    input[type="range"] { width: 100%; height: 4px; -webkit-appearance: none; background: var(--surface2); border-radius: 2px; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+    select { width: 100%; padding: 6px 8px; background: var(--surface2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; font-size: 11px; cursor: pointer; }
+    
+    /* Buttons */
+    .btn { padding: 8px 14px; border-radius: 6px; border: none; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: var(--border); }
+    .btn-secondary.active { background: var(--accent); border-color: var(--accent); }
+    .btn-danger.active { background: var(--danger); border-color: var(--danger); }
+    .btn-success.active { background: var(--success); border-color: var(--success); }
+    
+    /* Queue items */
+    .queue-item { padding: 8px 10px; background: var(--surface2); border-radius: 6px; margin-bottom: 4px; border-left: 2px solid transparent; display: flex; align-items: center; gap: 8px; }
+    .queue-item.recording { border-left-color: var(--danger); }
+    .queue-item.queued { border-left-color: var(--warning); }
+    .queue-item.playing, .queue-item.replaying { border-left-color: var(--success); background: rgba(34,197,94,0.1); }
+    .queue-item.played { opacity: 0.5; }
+    .queue-icon { font-size: 12px; }
+    .queue-info { flex: 1; min-width: 0; }
+    .queue-name { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .queue-meta { font-size: 10px; color: var(--text2); }
+    .queue-actions { display: flex; gap: 4px; }
+    .queue-btn { width: 24px; height: 24px; border-radius: 4px; border: none; background: var(--border); color: var(--text); cursor: pointer; font-size: 10px; display: flex; align-items: center; justify-content: center; }
+    .queue-btn:hover { background: var(--accent); }
+    .skip-btn { width: 100%; padding: 8px; background: var(--warning); color: #000; border: none; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; margin-bottom: 8px; }
+    .skip-btn.resume { background: var(--success); }
+    
+    /* Messages */
+    .msg { padding: 8px 10px; background: var(--surface2); border-radius: 6px; margin-bottom: 4px; }
+    .msg-text { font-size: 12px; margin-bottom: 2px; }
+    .msg-time { font-size: 10px; color: var(--text2); }
+    .msg-replay { background: var(--accent); color: #fff; border: none; padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; margin-left: 8px; }
+    
+    /* Speakers */
+    .speaker { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface2); border-radius: 6px; margin-bottom: 4px; }
+    .speaker-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: speaker-pulse 1s infinite; }
+    @keyframes speaker-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .speaker-name { font-size: 12px; font-weight: 500; }
+    
+    /* VAD meter */
+    .vad-container { width: 100%; max-width: 280px; }
+    .vad-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; position: relative; }
+    .vad-fill { height: 100%; background: linear-gradient(90deg, var(--success), var(--warning), var(--danger)); transition: width 0.05s; }
+    .vad-threshold-marker { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #fff; border-radius: 1px; }
+    
+    /* Webcam */
+    .webcam-preview { width: 100px; height: 75px; background: #000; border-radius: 6px; overflow: hidden; display: none; }
     .webcam-preview video { width: 100%; height: 100%; object-fit: cover; }
-    .video-playback { position: fixed; bottom: 20px; right: 20px; width: 240px; height: 180px; background: #000; border-radius: 8px; overflow: hidden; display: none; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-    .video-playback video, .video-playback img { width: 100%; height: 100%; object-fit: cover; }
-    .video-playback .video-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; font-size: 11px; }
-    @media (max-width: 1024px) { .container { grid-template-columns: 1fr; } .panel { display: none; } }
+    .video-playback { position: fixed; bottom: 70px; right: 12px; width: 200px; height: 150px; background: #000; border-radius: 8px; overflow: hidden; display: none; z-index: 80; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .video-playback video { width: 100%; height: 100%; object-fit: cover; }
+    .video-label { position: absolute; bottom: 6px; left: 6px; background: rgba(0,0,0,0.7); padding: 3px 8px; border-radius: 4px; font-size: 10px; }
+    
+    /* Empty state */
+    .empty { padding: 20px; text-align: center; color: var(--text2); font-size: 11px; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    
+    /* Mobile */
+    @media (max-width: 900px) {
+      .sidebar { position: fixed; top: 0; bottom: 60px; width: 280px; z-index: 95; transform: translateX(-100%); transition: transform 0.2s; }
+      .sidebar.right { right: 0; left: auto; transform: translateX(100%); }
+      .sidebar.open { transform: translateX(0); }
+      .mobile-nav { display: block; }
+      .overlay.open { display: block; }
+      .main { padding-bottom: 80px; }
+      .video-playback { bottom: 80px; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="panel">
-      <div class="title">Active Speakers</div>
-      <div id="speakers"></div>
+  <div class="app">
+    <div class="sidebar" id="sidebarLeft">
+      <div class="sidebar-header"><span>👥</span> Speakers & Messages</div>
+      <div class="sidebar-content">
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 10px; color: var(--text2); margin-bottom: 6px; text-transform: uppercase;">Live</div>
+          <div id="speakers"><div class="empty">No active speakers</div></div>
+        </div>
+        <div>
+          <div style="font-size: 10px; color: var(--text2); margin-bottom: 6px; text-transform: uppercase;">Messages</div>
+          <div id="messages"><div class="empty">No messages yet</div></div>
+        </div>
+      </div>
     </div>
+    
     <div class="main">
-      <div class="header">
-        <h1>Zellous</h1>
-        <p id="roomName" style="font-size: 14px; opacity: 0.8; margin-bottom: 4px;"></p>
-        <p id="status">Connecting...</p>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div class="logo">Zellous</div>
+        <div class="room-badge" id="roomName">lobby</div>
       </div>
-      <div class="status">
-        <div id="statusDot" class="status-dot offline"></div>
-        <span id="statusText">Offline</span>
-        <span id="recording" style="display:none; margin-left: auto;">🔴 Recording</span>
+      <div class="connection">
+        <div class="connection-dot offline" id="statusDot"></div>
+        <span id="statusText">Connecting...</span>
+        <span id="recording" style="display: none; color: var(--danger);">● REC</span>
       </div>
-      <button id="pttBtn" class="ptt-btn">HOLD TO TALK</button>
-      <div class="vol-control">
-        <label style="font-size: 11px;">VOL</label>
-        <input id="volume" type="range" min="0" max="100" value="70">
-        <span id="volValue">70%</span>
+      
+      <button id="pttBtn" class="ptt">Hold to Talk</button>
+      
+      <div class="controls">
+        <div class="control-row">
+          <span class="control-label">Vol</span>
+          <input type="range" id="volume" min="0" max="100" value="70" class="control-input">
+          <span class="control-value" id="volValue">70%</span>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Mic</span>
+          <select id="inputDevice" class="control-input"></select>
+        </div>
+        <div class="control-row">
+          <span class="control-label">Out</span>
+          <select id="outputDevice" class="control-input"></select>
+        </div>
       </div>
-      <div class="vol-control" style="gap: 4px;">
-        <label style="font-size: 11px;">MIC</label>
-        <select id="inputDevice" style="flex: 1; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px; font-size: 10px;"></select>
+      
+      <div class="btn-row">
+        <button id="deafenBtn" class="btn btn-secondary btn-danger">🔊 Deafen</button>
+        <button id="vadBtn" class="btn btn-secondary btn-success">🎤 VAD</button>
+        <button id="webcamBtn" class="btn btn-secondary">📷 Cam</button>
       </div>
-      <div class="vol-control" style="gap: 4px;">
-        <label style="font-size: 11px;">OUT</label>
-        <select id="outputDevice" style="flex: 1; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px; font-size: 10px;"></select>
+      
+      <div class="controls" id="vadControls" style="display: none;">
+        <div class="control-row">
+          <span class="control-label">Sens</span>
+          <input type="range" id="vadThreshold" min="0" max="100" value="15" class="control-input">
+          <span class="control-value" id="vadValue">15%</span>
+        </div>
       </div>
-      <button id="deafenBtn" class="deafen-btn">🔊 Deafen</button>
-      <button id="vadBtn" class="vad-btn">🎤 Voice Activation</button>
-      <div class="vol-control" id="vadControls" style="display: none;">
-        <label style="font-size: 11px;">SENS</label>
-        <input id="vadThreshold" type="range" min="0" max="100" value="15">
-        <span id="vadValue">15%</span>
+      <div class="vad-container" id="vadMeterContainer" style="display: none;">
+        <div class="vad-bar">
+          <div class="vad-fill" id="vadMeter" style="width: 0%;"></div>
+          <div class="vad-threshold-marker" id="vadThresholdMarker" style="left: 15%;"></div>
+        </div>
       </div>
-      <div class="vad-meter" id="vadMeterContainer" style="display: none; position: relative;">
-        <div class="vad-meter-fill" id="vadMeter"></div>
-        <div class="vad-threshold" id="vadThresholdMarker" style="left: 15%;"></div>
-      </div>
-      <button id="webcamBtn" class="webcam-btn">📷 Webcam Off</button>
-      <div class="vol-control" style="gap: 4px;">
-        <label style="font-size: 11px;">RES</label>
-        <select id="webcamResolution" style="flex: 1; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px;">
-          <option value="160x120">160x120</option>
-          <option value="320x240" selected>320x240</option>
-          <option value="640x480">640x480</option>
-          <option value="1280x720">1280x720</option>
-        </select>
-        <label style="font-size: 11px;">FPS</label>
-        <select id="webcamFps" style="width: 60px; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px;">
-          <option value="5">5</option>
-          <option value="10">10</option>
-          <option value="15" selected>15</option>
-          <option value="24">24</option>
-          <option value="30">30</option>
-        </select>
+      
+      <div class="controls" id="webcamControls" style="display: none;">
+        <div class="control-row">
+          <span class="control-label">Res</span>
+          <select id="webcamResolution" class="control-input">
+            <option value="160x120">160x120</option>
+            <option value="320x240" selected>320x240</option>
+            <option value="640x480">640x480</option>
+            <option value="1280x720">1280x720</option>
+          </select>
+          <select id="webcamFps" style="width: 60px;">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15" selected>15</option>
+            <option value="24">24</option>
+            <option value="30">30</option>
+          </select>
+        </div>
       </div>
       <div class="webcam-preview" id="webcamPreview">
         <video id="webcamVideo" autoplay muted playsinline></video>
       </div>
     </div>
-    <div class="video-playback" id="videoPlayback">
-      <video id="videoPlaybackVideo" autoplay playsinline></video>
-      <div class="video-label" id="videoPlaybackLabel"></div>
-    </div>
-    <div class="panel">
-      <div class="title">Messages</div>
-      <div id="messages"></div>
-    </div>
-    <div class="panel">
-      <div class="title">Audio Queue</div>
-      <div id="audioQueueView"></div>
+    
+    <div class="sidebar right" id="sidebarRight">
+      <div class="sidebar-header"><span>📋</span> Audio Queue</div>
+      <div class="sidebar-content">
+        <div id="audioQueueView"><div class="empty">Queue empty</div></div>
+      </div>
     </div>
   </div>
+  
+  <div class="video-playback" id="videoPlayback">
+    <video id="videoPlaybackVideo" autoplay playsinline></video>
+    <div class="video-label" id="videoPlaybackLabel"></div>
+  </div>
+  
+  <div class="overlay" id="overlay"></div>
+  
+  <div class="mobile-nav">
+    <div class="mobile-nav-btns">
+      <button class="mobile-nav-btn" id="navLeft">👥 Speakers</button>
+      <button class="mobile-nav-btn active" id="navMain">🎙️ Talk</button>
+      <button class="mobile-nav-btn" id="navRight">📋 Queue</button>
+    </div>
+  </div>
+  
   <script src="msgpackr.min.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/queue.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/ptt.js"></script>
+  <script src="js/webcam.js"></script>
   <script src="app.js"></script>
+  <script>
+    const navLeft = document.getElementById('navLeft');
+    const navMain = document.getElementById('navMain');
+    const navRight = document.getElementById('navRight');
+    const sidebarLeft = document.getElementById('sidebarLeft');
+    const sidebarRight = document.getElementById('sidebarRight');
+    const overlay = document.getElementById('overlay');
+    const webcamControls = document.getElementById('webcamControls');
+    
+    function closeAll() {
+      sidebarLeft.classList.remove('open');
+      sidebarRight.classList.remove('open');
+      overlay.classList.remove('open');
+      navLeft.classList.remove('active');
+      navRight.classList.remove('active');
+      navMain.classList.add('active');
+    }
+    
+    navLeft.onclick = () => {
+      const isOpen = sidebarLeft.classList.contains('open');
+      closeAll();
+      if (!isOpen) {
+        sidebarLeft.classList.add('open');
+        overlay.classList.add('open');
+        navLeft.classList.add('active');
+        navMain.classList.remove('active');
+      }
+    };
+    
+    navRight.onclick = () => {
+      const isOpen = sidebarRight.classList.contains('open');
+      closeAll();
+      if (!isOpen) {
+        sidebarRight.classList.add('open');
+        overlay.classList.add('open');
+        navRight.classList.add('active');
+        navMain.classList.remove('active');
+      }
+    };
+    
+    navMain.onclick = closeAll;
+    overlay.onclick = closeAll;
+    
+    document.getElementById('webcamBtn').addEventListener('click', () => {
+      setTimeout(() => {
+        webcamControls.style.display = window.zellousDebug?.state?.webcamEnabled ? 'block' : 'none';
+      }, 100);
+    });
+  </script>
 </body>
 </html>
