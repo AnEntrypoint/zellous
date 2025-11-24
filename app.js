@@ -164,19 +164,13 @@ const queue = {
     const segment = state.activeSegments.get(userId);
     console.log('completeSegment called for userId:', userId, 'segment exists:', !!segment, 'chunks:', segment?.chunks?.length || 0, 'playedRealtime:', segment?.playedRealtime);
     if (segment && segment.chunks.length > 0) {
-      // If played in real-time or own audio, mark as 'played' (available for replay but doesn't auto-play)
-      // Only queue for playback if it wasn't played in real-time
       segment.status = (segment.isOwnAudio || segment.playedRealtime) ? 'played' : 'queued';
       state.audioQueue.push(segment);
       state.activeSegments.delete(userId);
       ui.render.queue();
-      console.log('Segment completed. Status:', segment.status, 'currentSegmentId:', state.currentSegmentId, 'isDeafened:', state.isDeafened, 'isSpeaking:', state.isSpeaking);
-      // Start playback if not currently playing and not deafened (skip own audio and real-time played)
-      if (!state.currentSegmentId && !state.isDeafened && !state.isSpeaking && !segment.isOwnAudio && !segment.playedRealtime) {
-        console.log('Starting playback...');
-        queue.playNext();
-      }
+      console.log('Segment completed. Status:', segment.status);
     } else {
+      state.activeSegments.delete(userId);
       console.log('Segment not completed - no segment or no chunks');
     }
   },
@@ -202,13 +196,20 @@ const queue = {
     }
   },
   playNext: () => {
-    if (state.isSpeaking || state.isDeafened || state.currentSegmentId) return;
+    if (state.isSpeaking || state.isDeafened || state.currentSegmentId || state.replayingSegmentId) return;
 
     const nextSegment = queue.getNextQueuedSegment();
-    if (!nextSegment) return;
+    if (nextSegment) {
+      queue.markAsPlaying(nextSegment.id);
+      queue.decodeAndPlay(nextSegment);
+      return;
+    }
 
-    queue.markAsPlaying(nextSegment.id);
-    queue.decodeAndPlay(nextSegment);
+    if (!state.currentLiveSpeaker && !state.skipLiveAudio && state.activeSpeakers.size > 0) {
+      const nextLiveSpeaker = Array.from(state.activeSpeakers)[0];
+      state.currentLiveSpeaker = nextLiveSpeaker;
+      ui.render.queue();
+    }
   },
   decodeAndPlay: (segment) => {
     console.log('Decoding segment:', segment.id, 'with', segment.chunks.length, 'chunks');
@@ -492,13 +493,15 @@ const message = {
       state.recordingAudio.delete(msg.userId);
       if (state.currentLiveSpeaker === msg.userId) {
         state.currentLiveSpeaker = null;
-        if (!state.skipLiveAudio && !state.isDeafened && !state.isSpeaking) {
-          queue.playNext();
-        }
       }
       if (state.activeSpeakers.size === 0) {
         state.skipLiveAudio = false;
         state.currentLiveSpeaker = null;
+      }
+      if (!state.currentLiveSpeaker && !state.currentSegmentId && !state.replayingSegmentId) {
+        if (!state.isDeafened && !state.isSpeaking) {
+          queue.playNext();
+        }
       }
       ui.render.speakers();
       ui.render.queue();
