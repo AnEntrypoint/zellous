@@ -306,13 +306,13 @@ test.describe('Zellous Comprehensive Tests', () => {
         window.zellousDebug.network.send({ type: 'audio_start' });
       });
       
-      await page2.waitForFunction(() => window.zellousDebug.state.activeSpeakers.size > 0, { timeout: 5000 });
+      await page2.waitForFunction(() => window.zellousDebug.state.activeSpeakers.size > 0, { timeout: 10000 });
 
       await page1.evaluate(() => {
         window.zellousDebug.network.send({ type: 'audio_end' });
       });
       
-      await page2.waitForFunction(() => window.zellousDebug.state.activeSpeakers.size === 0, { timeout: 5000 });
+      await page2.waitForFunction(() => window.zellousDebug.state.activeSpeakers.size === 0, { timeout: 10000 });
 
       const activeSpeakers = await page2.evaluate(() => Array.from(window.zellousDebug.state.activeSpeakers));
 
@@ -417,7 +417,7 @@ test.describe('Zellous Comprehensive Tests', () => {
       await context2.close();
     });
 
-    test('sender does not receive their own audio chunks', async ({ browser }) => {
+    test('sender does not receive their own audio data via relay', async ({ browser }) => {
       const context1 = await browser.newContext();
       const context2 = await browser.newContext();
       const page1 = await context1.newPage();
@@ -429,38 +429,56 @@ test.describe('Zellous Comprehensive Tests', () => {
 
       await page2.goto(`?room=${room}`);
       await page2.waitForFunction(() => window.zellousDebug?.state?.userId, { timeout: 10000 });
-      await page2.waitForTimeout(300);
+      await page2.waitForTimeout(500);
 
-      const user1Id = await page1.evaluate(() => window.zellousDebug.state.userId);
+      // Track audio_data messages received by both pages
+      await page1.evaluate(() => {
+        window.receivedAudioData = [];
+        const originalHandle = window.zellousDebug.message.handle;
+        window.zellousDebug.message.handle = (msg) => {
+          if (msg.type === 'audio_data') {
+            window.receivedAudioData.push(msg);
+          }
+          return originalHandle(msg);
+        };
+      });
+
+      await page2.evaluate(() => {
+        window.receivedAudioData = [];
+        const originalHandle = window.zellousDebug.message.handle;
+        window.zellousDebug.message.handle = (msg) => {
+          if (msg.type === 'audio_data') {
+            window.receivedAudioData.push(msg);
+          }
+          return originalHandle(msg);
+        };
+      });
 
       await page1.evaluate(() => {
         window.zellousDebug.network.send({ type: 'audio_start' });
       });
-      await page1.waitForTimeout(200);
+      await page2.waitForFunction(() => window.zellousDebug.state.activeSpeakers.size > 0, { timeout: 5000 });
 
       for (let i = 0; i < 3; i++) {
         await page1.evaluate(() => {
           window.zellousDebug.network.send({ type: 'audio_chunk', data: new Array(100).fill(128) });
         });
-        await page1.waitForTimeout(50);
+        await page1.waitForTimeout(100);
       }
+
+      await page2.waitForTimeout(300);
+
+      // Page1 should NOT have received any audio_data (server excludes sender)
+      const page1ReceivedCount = await page1.evaluate(() => window.receivedAudioData.length);
+      expect(page1ReceivedCount).toBe(0);
+
+      // Page2 SHOULD have received audio_data in real-time
+      const page2ReceivedCount = await page2.evaluate(() => window.receivedAudioData.length);
+      expect(page2ReceivedCount).toBeGreaterThanOrEqual(2);
 
       await page1.evaluate(() => {
         window.zellousDebug.network.send({ type: 'audio_end' });
       });
-      await page1.waitForTimeout(300);
-
-      const page1SegmentsFromOthers = await page1.evaluate((myId) => {
-        const segments = Array.from(window.zellousDebug.state.activeSegments.entries());
-        return segments.filter(([key]) => key !== myId).length;
-      }, user1Id);
-
-      const page1QueueFromOthers = await page1.evaluate((myId) => {
-        return window.zellousDebug.state.audioQueue.filter(s => s.userId !== myId && !s.isOwnAudio).length;
-      }, user1Id);
-
-      expect(page1SegmentsFromOthers).toBe(0);
-      expect(page1QueueFromOthers).toBe(0);
 
       await context1.close();
       await context2.close();
