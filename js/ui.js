@@ -41,7 +41,15 @@ ui.render = {
     if (state.messages.length === 0) { ui.messages.innerHTML = '<div class="empty">No messages yet</div>'; return; }
     ui.messages.innerHTML = state.messages.map(m => `<div class="msg"><div class="msg-text">${m.text}</div><div class="msg-time">${m.time}${m.hasAudio ? `<button class="msg-replay" data-msg-id="${m.id}">▶</button>` : ''}</div></div>`).join('');
     ui.messages.scrollTop = ui.messages.scrollHeight;
-    document.querySelectorAll('.msg-replay').forEach(btn => btn.addEventListener('click', (e) => audio.replay(parseFloat(e.target.dataset.msgId))));
+    document.querySelectorAll('.msg-replay').forEach(btn => btn.addEventListener('click', (e) => {
+      const msgId = parseFloat(e.target.dataset.msgId);
+      const msg = state.messages.find(m => m.id === msgId);
+      if (msg?.userId) {
+        const segment = state.audioQueue.find(s => s.userId === msg.userId && Math.abs(s.timestamp.getTime() - msgId) < 5000);
+        if (segment) { queue.replaySegment(segment.id, false); return; }
+      }
+      audio.replay(msgId);
+    }));
   },
   roomName: () => { ui.roomName.textContent = state.roomId; },
   queue: () => {
