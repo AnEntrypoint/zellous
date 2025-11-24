@@ -90,6 +90,14 @@
         <input id="volume" type="range" min="0" max="100" value="70">
         <span id="volValue">70%</span>
       </div>
+      <div class="vol-control" style="gap: 4px;">
+        <label style="font-size: 11px;">MIC</label>
+        <select id="inputDevice" style="flex: 1; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px; font-size: 10px;"></select>
+      </div>
+      <div class="vol-control" style="gap: 4px;">
+        <label style="font-size: 11px;">OUT</label>
+        <select id="outputDevice" style="flex: 1; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px; font-size: 10px;"></select>
+      </div>
       <button id="deafenBtn" class="deafen-btn">🔊 Deafen</button>
       <button id="vadBtn" class="vad-btn">🎤 Voice Activation</button>
       <div class="vol-control" id="vadControls" style="display: none;">
