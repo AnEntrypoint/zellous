@@ -17,6 +17,7 @@ const state = {
   audioSources: new Map(),
   playbackState: new Map(),
   pausedAudioBuffer: null,
+  pausedBuffers: null,         // Map of userId -> paused audio buffers during PTT
   masterVolume: 0.7,
   activeSpeakers: new Set(),
   messages: [],
@@ -367,14 +368,22 @@ const message = {
       ui.render.speakers();
     },
     audio_data: (msg) => {
-      // Add chunk to queue segment (for queue playback)
-      const added = queue.addChunk(msg.userId, msg.data);
-      if (!added) {
-        console.warn('audio_data received but no segment exists for userId:', msg.userId);
+      // Create segment if it doesn't exist (handles race condition)
+      if (!state.activeSegments.has(msg.userId) && !state.activeSpeakers.has(msg.userId)) {
+        state.activeSpeakers.add(msg.userId);
+        queue.addSegment(msg.userId, `User${msg.userId}`);
+        state.recordingAudio.set(msg.userId, []);
+        ui.render.speakers();
       }
+      // Add chunk to queue segment (for replay)
+      queue.addChunk(msg.userId, msg.data);
       // Keep old system for replay functionality
       if (state.recordingAudio.has(msg.userId)) {
         state.recordingAudio.get(msg.userId).push(new Uint8Array(msg.data));
+      }
+      // REAL-TIME PLAYBACK: decode and play immediately if not deafened/speaking
+      if (!state.isDeafened && !state.isSpeaking) {
+        audio.handleChunk(msg.userId, msg.data);
       }
     },
     user_joined: (msg) => message.add(`${msg.user} joined`, null, msg.userId, msg.user),
@@ -469,19 +478,31 @@ const audioIO = {
 
 Object.assign(audio, {
   handleChunk: (userId, data) => {
+    // Resume AudioContext if suspended
+    if (state.audioContext?.state === 'suspended') {
+      state.audioContext.resume();
+    }
     if (!state.audioDecoders.has(userId)) {
       state.audioDecoders.set(userId, audio.createDecoder(userId));
     }
     const decoder = state.audioDecoders.get(userId);
-    const chunk = new EncodedAudioChunk({
-      type: 'key',
-      timestamp: performance.now() * 1000,
-      data: new Uint8Array(data)
-    });
-    decoder.decode(chunk);
+    try {
+      const chunk = new EncodedAudioChunk({
+        type: 'key',
+        timestamp: performance.now() * 1000,
+        data: new Uint8Array(data)
+      });
+      decoder.decode(chunk);
+    } catch (e) {
+      console.error('Error decoding chunk:', e);
+    }
   },
   play: (userId) => {
     if (state.audioSources.has(userId)) return;
+    // Resume AudioContext if suspended
+    if (state.audioContext?.state === 'suspended') {
+      state.audioContext.resume();
+    }
     const gainNode = state.audioContext.createGain();
     gainNode.gain.value = state.masterVolume;
     gainNode.connect(state.audioContext.destination);
@@ -570,6 +591,45 @@ Object.assign(audio, {
       });
       decoder.decode(chunk);
     });
+  },
+  pauseAll: () => {
+    // Store current buffers and stop all playback
+    state.pausedBuffers = new Map();
+    state.audioSources.forEach((source, userId) => {
+      const buffers = state.audioBuffers.get(userId);
+      if (buffers && buffers.length > 0) {
+        state.pausedBuffers.set(userId, [...buffers]);
+      }
+      state.audioBuffers.set(userId, []);
+      state.playbackState.set(userId, 'paused');
+    });
+    // Clear all audio sources to stop playback intervals
+    state.audioSources.clear();
+    state.scheduledPlaybackTime.clear();
+  },
+  resumeAll: () => {
+    // Restore paused buffers and resume playback
+    if (state.pausedBuffers) {
+      state.pausedBuffers.forEach((buffers, userId) => {
+        if (buffers.length > 0) {
+          const existingBuffers = state.audioBuffers.get(userId) || [];
+          state.audioBuffers.set(userId, [...buffers, ...existingBuffers]);
+          state.playbackState.set(userId, 'playing');
+          // Restart playback if there are active speakers or buffered audio
+          if (state.activeSpeakers.has(userId) || state.audioBuffers.get(userId)?.length > 0) {
+            audio.play(userId);
+          }
+        }
+      });
+      state.pausedBuffers = null;
+    }
+    // Also restart playback for any active speakers that accumulated audio while paused
+    state.activeSpeakers.forEach(userId => {
+      if (!state.audioSources.has(userId) && state.audioBuffers.get(userId)?.length > 0) {
+        state.playbackState.set(userId, 'playing');
+        audio.play(userId);
+      }
+    });
   }
 });
 
@@ -582,13 +642,14 @@ const ptt = {
     if (state.audioContext?.state === 'suspended') {
       state.audioContext.resume();
     }
+    // Pause all incoming audio playback while speaking
+    audio.pauseAll();
     // Clear previous own audio chunks
     state.ownAudioChunks = [];
     // Create queue segment for own audio
     if (state.userId) {
       queue.addSegment(state.userId, 'You', true);
     }
-    // Queue system will automatically stop playing new segments while speaking
     network.send({ type: 'audio_start' });
   },
   stop: async () => {
@@ -615,6 +676,8 @@ const ptt = {
       }
       queue.completeSegment(state.userId);
     }
+    // Resume all incoming audio playback
+    audio.resumeAll();
     // Resume queue playback
     queue.resumePlayback();
   }
@@ -751,6 +814,18 @@ ui.render = ui_render;
 
 const ui_events = {
   setup: () => {
+    // Resume AudioContext on any user interaction (required by browsers)
+    const resumeAudioContext = () => {
+      if (state.audioContext?.state === 'suspended') {
+        state.audioContext.resume().then(() => {
+          console.log('AudioContext resumed');
+        });
+      }
+    };
+    document.addEventListener('click', resumeAudioContext, { once: false });
+    document.addEventListener('touchstart', resumeAudioContext, { once: false });
+    document.addEventListener('keydown', resumeAudioContext, { once: false });
+    
     ui.ptt.addEventListener('mousedown', ptt.start);
     ui.ptt.addEventListener('mouseup', ptt.stop);
     ui.ptt.addEventListener('touchstart', ptt.start);
