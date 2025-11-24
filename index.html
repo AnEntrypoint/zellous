@@ -95,12 +95,29 @@
         <div class="vad-threshold" id="vadThresholdMarker" style="left: 15%;"></div>
       </div>
       <button id="webcamBtn" class="webcam-btn">📷 Webcam Off</button>
+      <div class="vol-control" style="gap: 4px;">
+        <label style="font-size: 11px;">RES</label>
+        <select id="webcamResolution" style="flex: 1; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px;">
+          <option value="160x120">160x120</option>
+          <option value="320x240" selected>320x240</option>
+          <option value="640x480">640x480</option>
+          <option value="1280x720">1280x720</option>
+        </select>
+        <label style="font-size: 11px;">FPS</label>
+        <select id="webcamFps" style="width: 60px; background: #252525; color: #fff; border: 1px solid #444; border-radius: 4px; padding: 4px;">
+          <option value="5">5</option>
+          <option value="10">10</option>
+          <option value="15" selected>15</option>
+          <option value="24">24</option>
+          <option value="30">30</option>
+        </select>
+      </div>
       <div class="webcam-preview" id="webcamPreview">
         <video id="webcamVideo" autoplay muted playsinline></video>
       </div>
     </div>
     <div class="video-playback" id="videoPlayback">
-      <img id="videoPlaybackImg" src="">
+      <video id="videoPlaybackVideo" autoplay playsinline></video>
       <div class="video-label" id="videoPlaybackLabel"></div>
     </div>
     <div class="panel">
@@ -112,6 +129,7 @@
       <div id="audioQueueView"></div>
     </div>
   </div>
+  <script src="msgpackr.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
