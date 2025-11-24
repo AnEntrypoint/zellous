@@ -459,14 +459,14 @@ test.describe('Zellous Comprehensive Tests', () => {
       });
       await page2.waitForFunction(() => window.zellousDebug.state.activeSpeakers.size > 0, { timeout: 5000 });
 
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         await page1.evaluate(() => {
           window.zellousDebug.network.send({ type: 'audio_chunk', data: new Array(100).fill(128) });
         });
         await page1.waitForTimeout(100);
       }
 
-      await page2.waitForTimeout(300);
+      await page2.waitForFunction(() => window.receivedAudioData.length >= 3, { timeout: 5000 });
 
       // Page1 should NOT have received any audio_data (server excludes sender)
       const page1ReceivedCount = await page1.evaluate(() => window.receivedAudioData.length);
@@ -474,7 +474,7 @@ test.describe('Zellous Comprehensive Tests', () => {
 
       // Page2 SHOULD have received audio_data in real-time
       const page2ReceivedCount = await page2.evaluate(() => window.receivedAudioData.length);
-      expect(page2ReceivedCount).toBeGreaterThanOrEqual(2);
+      expect(page2ReceivedCount).toBeGreaterThanOrEqual(3);
 
       await page1.evaluate(() => {
         window.zellousDebug.network.send({ type: 'audio_end' });
@@ -611,8 +611,9 @@ test.describe('Zellous Comprehensive Tests', () => {
     test('queue view exists and is initially empty state', async ({ browser }) => {
       const context = await browser.newContext();
       const page = await context.newPage();
+      const room = getUniqueRoom();
 
-      await page.goto('/');
+      await page.goto(`?room=${room}`);
       await page.waitForFunction(() => window.zellousDebug?.state?.ws?.readyState === 1, { timeout: 10000 });
 
       const queueLength = await page.evaluate(() => window.zellousDebug.state.audioQueue.length);
