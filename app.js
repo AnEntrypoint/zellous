@@ -33,6 +33,7 @@ const state = {
   audioQueue: [],              // Array of segment objects {id, userId, username, timestamp, status, chunks, decodedSamples, isOwnAudio}
   activeSegments: new Map(),   // userId -> current segment being recorded
   currentSegmentId: null,      // ID of currently playing segment
+  replayingSegmentId: null,    // ID of segment currently being replayed
   isDeafened: false,           // Deafen mode toggle
   nextSegmentId: 1,            // Counter for unique segment IDs
   ownAudioChunks: [],          // Temporary storage for own audio chunks while recording
@@ -304,46 +305,35 @@ const queue = {
       queue.playNext();
     }
   },
-  replaySegment: (segmentId) => {
-    const segment = state.audioQueue.find(s => s.id === segmentId);
+  replaySegment: (segmentId, continueQueue = true) => {
+    const segmentIndex = state.audioQueue.findIndex(s => s.id === segmentId);
+    const segment = state.audioQueue[segmentIndex];
     if (!segment || segment.chunks.length === 0) return;
 
-    // Create dedicated decoder for replay
-    const decoderId = `replay-${segmentId}-${Date.now()}`;
-    const decodedSamples = [];
+    state.replayingSegmentId = segmentId;
+    ui.render.queue();
 
+    const decodedSamples = [];
     const decoder = new AudioDecoder({
       output: (audioData) => {
         const size = audioData.allocationSize({ planeIndex: 0 });
         const buffer = new ArrayBuffer(size);
         audioData.copyTo(buffer, { planeIndex: 0 });
-        const samples = new Float32Array(buffer);
-        decodedSamples.push(samples);
+        decodedSamples.push(new Float32Array(buffer));
         audioData.close();
       },
       error: (e) => console.error('Replay decoder error:', e)
     });
 
-    decoder.configure({
-      codec: 'opus',
-      sampleRate: config.sampleRate,
-      numberOfChannels: 1
-    });
-
-    // Decode all chunks
+    decoder.configure({ codec: 'opus', sampleRate: config.sampleRate, numberOfChannels: 1 });
     segment.chunks.forEach(chunkData => {
-      const chunk = new EncodedAudioChunk({
-        type: 'key',
-        timestamp: performance.now() * 1000,
-        data: chunkData
-      });
-      decoder.decode(chunk);
+      decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: performance.now() * 1000, data: chunkData }));
     });
 
-    // Wait for decoding to complete, then play
     decoder.flush().then(() => {
       if (decodedSamples.length === 0) {
         decoder.close();
+        state.replayingSegmentId = null;
         return;
       }
 
@@ -361,10 +351,8 @@ const queue = {
         src.buffer = buf;
         src.connect(gainNode);
         src.start(scheduledTime);
-
-        const duration = data.length / config.sampleRate;
-        totalDuration += duration;
-        scheduledTime += duration;
+        totalDuration += data.length / config.sampleRate;
+        scheduledTime += data.length / config.sampleRate;
       });
 
       if (segment.videoChunks && segment.videoChunks.length > 0) {
@@ -373,6 +361,85 @@ const queue = {
       }
 
       decoder.close();
+
+      setTimeout(() => {
+        state.replayingSegmentId = null;
+        ui.render.queue();
+        if (continueQueue && segmentIndex + 1 < state.audioQueue.length) {
+          queue.replaySegment(state.audioQueue[segmentIndex + 1].id, true);
+        }
+      }, totalDuration * 1000 + 50);
+    });
+  },
+  downloadSegment: (segmentId) => {
+    const segment = state.audioQueue.find(s => s.id === segmentId);
+    if (!segment || segment.chunks.length === 0) return;
+
+    const decodedSamples = [];
+    const decoder = new AudioDecoder({
+      output: (audioData) => {
+        const size = audioData.allocationSize({ planeIndex: 0 });
+        const buffer = new ArrayBuffer(size);
+        audioData.copyTo(buffer, { planeIndex: 0 });
+        decodedSamples.push(new Float32Array(buffer));
+        audioData.close();
+      },
+      error: (e) => console.error('Download decoder error:', e)
+    });
+
+    decoder.configure({ codec: 'opus', sampleRate: config.sampleRate, numberOfChannels: 1 });
+    segment.chunks.forEach(chunkData => {
+      decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: performance.now() * 1000, data: chunkData }));
+    });
+
+    decoder.flush().then(() => {
+      decoder.close();
+      if (decodedSamples.length === 0) return;
+
+      const totalLength = decodedSamples.reduce((sum, arr) => sum + arr.length, 0);
+      const wavBuffer = new ArrayBuffer(44 + totalLength * 2);
+      const view = new DataView(wavBuffer);
+      const writeString = (offset, str) => { for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i)); };
+      writeString(0, 'RIFF');
+      view.setUint32(4, 36 + totalLength * 2, true);
+      writeString(8, 'WAVE');
+      writeString(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, 1, true);
+      view.setUint32(24, config.sampleRate, true);
+      view.setUint32(28, config.sampleRate * 2, true);
+      view.setUint16(32, 2, true);
+      view.setUint16(34, 16, true);
+      writeString(36, 'data');
+      view.setUint32(40, totalLength * 2, true);
+
+      let offset = 44;
+      decodedSamples.forEach(samples => {
+        samples.forEach(sample => {
+          const s = Math.max(-1, Math.min(1, sample));
+          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+          offset += 2;
+        });
+      });
+
+      const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${segment.username}-${segment.timestamp.toISOString().slice(0,19).replace(/:/g,'-')}.wav`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      if (segment.videoChunks && segment.videoChunks.length > 0) {
+        const videoBlob = new Blob(segment.videoChunks, { type: 'video/webm' });
+        const videoUrl = URL.createObjectURL(videoBlob);
+        const va = document.createElement('a');
+        va.href = videoUrl;
+        va.download = `${segment.username}-${segment.timestamp.toISOString().slice(0,19).replace(/:/g,'-')}.webm`;
+        va.click();
+        URL.revokeObjectURL(videoUrl);
+      }
     });
   }
 };
@@ -923,17 +990,16 @@ const ui_render = {
       return;
     }
 
-    // Find the index of the first queued or playing segment
     const separatorIndex = allSegments.findIndex(s => s.status === 'playing' || s.status === 'queued');
 
     let html = '';
     allSegments.forEach((segment, index) => {
-      // Add separator before first unplayed segment
       if (index === separatorIndex && separatorIndex > 0) {
         html += '<div class="queue-separator">▼ Unplayed ▼</div>';
       }
 
-      const statusIcon = {
+      const isReplaying = state.replayingSegmentId === segment.id;
+      const statusIcon = isReplaying ? '🔊' : {
         'recording': '🔴',
         'queued': '⏸️',
         'playing': '▶️',
@@ -945,28 +1011,33 @@ const ui_render = {
       const videoIcon = hasVideo ? ' 📹' : '';
 
       const clickable = segment.chunks.length > 0 && segment.status !== 'recording';
-      const cursorStyle = clickable ? 'cursor: pointer;' : '';
       const ownAudioLabel = segment.isOwnAudio ? ' <span style="opacity: 0.5;">(You)</span>' : '';
+      const replayingClass = isReplaying ? ' replaying' : '';
 
       html += `
-        <div class="queue-item ${segment.status}" data-segment-id="${segment.id}" style="${cursorStyle}">
+        <div class="queue-item ${segment.status}${replayingClass}" data-segment-id="${segment.id}">
           <div class="queue-header">${statusIcon} ${segment.username}${ownAudioLabel}${videoIcon}</div>
-          <div class="queue-meta">${timeStr} • ${segment.chunks.length} chunks${hasVideo ? ' • video' : ''} ${clickable ? '• Click to replay' : ''}</div>
+          <div class="queue-meta">
+            ${timeStr} • ${segment.chunks.length} chunks${hasVideo ? ' • video' : ''}
+            ${clickable ? `<button class="queue-play-btn" data-id="${segment.id}">▶</button><button class="queue-dl-btn" data-id="${segment.id}">⬇</button>` : ''}
+          </div>
         </div>
       `;
     });
 
     ui.audioQueueView.innerHTML = html;
 
-    // Add click handlers to clickable queue items
-    document.querySelectorAll('.queue-item[data-segment-id]').forEach(item => {
-      const segmentId = parseInt(item.dataset.segmentId);
-      const segment = allSegments.find(s => s.id === segmentId);
-      if (segment && segment.chunks.length > 0 && segment.status !== 'recording') {
-        item.addEventListener('click', () => {
-          queue.replaySegment(segmentId);
-        });
-      }
+    document.querySelectorAll('.queue-play-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        queue.replaySegment(parseInt(btn.dataset.id), true);
+      });
+    });
+    document.querySelectorAll('.queue-dl-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        queue.downloadSegment(parseInt(btn.dataset.id));
+      });
     });
 
     // Auto-scroll to keep the separator or current playing item visible
