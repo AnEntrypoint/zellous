@@ -36,6 +36,7 @@ const state = {
   replayingSegmentId: null,    // ID of segment currently being replayed
   replayGainNode: null,        // GainNode for current replay (to stop it)
   replayTimeout: null,         // Timeout for replay completion
+  skipLiveAudio: false,        // Skip live audio to catch up with queue
   isDeafened: false,           // Deafen mode toggle
   nextSegmentId: 1,            // Counter for unique segment IDs
   ownAudioChunks: [],          // Temporary storage for own audio chunks while recording
@@ -481,17 +482,18 @@ const message = {
     speaker_left: (msg) => {
       console.log('speaker_left received:', msg.userId, msg.user);
       state.activeSpeakers.delete(msg.userId);
-      // Hide video playback when speaker stops
       webcam.hidePlayback();
-      // Complete the queue segment (but not for own audio - that's handled in ptt.stop)
       if (msg.userId !== state.userId) {
         queue.completeSegment(msg.userId);
       }
-      // Keep old system for replay
       const audioData = state.recordingAudio.get(msg.userId);
       message.add(`${msg.user} stopped talking`, audioData, msg.userId, msg.user);
       state.recordingAudio.delete(msg.userId);
+      if (state.activeSpeakers.size === 0) {
+        state.skipLiveAudio = false;
+      }
       ui.render.speakers();
+      ui.render.queue();
     },
     audio_data: (msg) => {
       // Create segment if it doesn't exist (handles race condition)
@@ -507,14 +509,10 @@ const message = {
       if (state.recordingAudio.has(msg.userId)) {
         state.recordingAudio.get(msg.userId).push(new Uint8Array(msg.data));
       }
-      // REAL-TIME PLAYBACK: decode and play immediately if not deafened/speaking
-      if (!state.isDeafened && !state.isSpeaking) {
+      if (!state.isDeafened && !state.isSpeaking && !state.skipLiveAudio) {
         audio.handleChunk(msg.userId, msg.data);
-        // Mark segment as played in real-time so it won't play again from queue
         const segment = state.activeSegments.get(msg.userId);
-        if (segment) {
-          segment.playedRealtime = true;
-        }
+        if (segment) segment.playedRealtime = true;
       }
     },
     video_chunk: (msg) => {
@@ -523,7 +521,7 @@ const message = {
         if (!segment.videoChunks) segment.videoChunks = [];
         segment.videoChunks.push(msg.data);
       }
-      if (!state.isDeafened && !state.isSpeaking) {
+      if (!state.isDeafened && !state.isSpeaking && !state.skipLiveAudio) {
         if (!state.incomingVideoChunks) state.incomingVideoChunks = new Map();
         if (!state.incomingVideoChunks.has(msg.userId)) state.incomingVideoChunks.set(msg.userId, []);
         state.incomingVideoChunks.get(msg.userId).push(msg.data);
@@ -757,14 +755,12 @@ Object.assign(audio, {
     state.scheduledPlaybackTime.clear();
   },
   resumeAll: () => {
-    // Restore paused buffers and resume playback
     if (state.pausedBuffers) {
       state.pausedBuffers.forEach((buffers, userId) => {
         if (buffers.length > 0) {
           const existingBuffers = state.audioBuffers.get(userId) || [];
           state.audioBuffers.set(userId, [...buffers, ...existingBuffers]);
           state.playbackState.set(userId, 'playing');
-          // Restart playback if there are active speakers or buffered audio
           if (state.activeSpeakers.has(userId) || state.audioBuffers.get(userId)?.length > 0) {
             audio.play(userId);
           }
@@ -772,13 +768,36 @@ Object.assign(audio, {
       });
       state.pausedBuffers = null;
     }
-    // Also restart playback for any active speakers that accumulated audio while paused
     state.activeSpeakers.forEach(userId => {
       if (!state.audioSources.has(userId) && state.audioBuffers.get(userId)?.length > 0) {
         state.playbackState.set(userId, 'playing');
         audio.play(userId);
       }
     });
+  },
+  skipLive: () => {
+    state.skipLiveAudio = true;
+    state.audioSources.forEach((source, userId) => {
+      source.gainNode.disconnect();
+    });
+    state.audioSources.clear();
+    state.audioBuffers.clear();
+    state.audioDecoders.forEach((decoder, userId) => {
+      try { decoder.close(); } catch (e) {}
+    });
+    state.audioDecoders.clear();
+    state.playbackState.clear();
+    state.scheduledPlaybackTime.clear();
+    webcam.hidePlayback();
+    state.activeSpeakers.forEach(userId => {
+      const segment = state.activeSegments.get(userId);
+      if (segment) segment.playedRealtime = false;
+    });
+    ui.render.queue();
+  },
+  resumeLive: () => {
+    state.skipLiveAudio = false;
+    ui.render.queue();
   }
 });
 
@@ -1008,9 +1027,15 @@ const ui_render = {
       return;
     }
 
+    const hasLiveAudio = state.activeSpeakers.size > 0 && !state.skipLiveAudio;
     const separatorIndex = allSegments.findIndex(s => s.status === 'playing' || s.status === 'queued');
 
     let html = '';
+    if (hasLiveAudio) {
+      html += '<button class="skip-live-btn" id="skipLiveBtn">⏭ Skip Live Audio</button>';
+    } else if (state.skipLiveAudio && state.activeSpeakers.size > 0) {
+      html += '<button class="resume-live-btn" id="resumeLiveBtn">▶ Resume Live Audio</button>';
+    }
     allSegments.forEach((segment, index) => {
       if (index === separatorIndex && separatorIndex > 0) {
         html += '<div class="queue-separator">▼ Unplayed ▼</div>';
@@ -1057,6 +1082,10 @@ const ui_render = {
         queue.downloadSegment(parseInt(btn.dataset.id));
       });
     });
+    const skipBtn = document.getElementById('skipLiveBtn');
+    if (skipBtn) skipBtn.addEventListener('click', () => audio.skipLive());
+    const resumeBtn = document.getElementById('resumeLiveBtn');
+    if (resumeBtn) resumeBtn.addEventListener('click', () => audio.resumeLive());
 
     // Auto-scroll to keep the separator or current playing item visible
     const separator = ui.audioQueueView.querySelector('.queue-separator');
