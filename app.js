@@ -55,7 +55,10 @@ const state = {
   webcamFps: 15,               // Framerate setting
   ownVideoChunks: [],          // Temporary storage for own video chunks
   incomingVideoChunks: null,   // Map of userId -> video chunks for streaming
-  mediaSource: null            // Map of userId -> MediaSource for streaming
+  mediaSource: null,           // Map of userId -> MediaSource for streaming
+  // Device selection
+  inputDeviceId: null,         // Selected microphone device ID
+  outputDeviceId: null         // Selected speaker device ID
 };
 
 const ui = {
@@ -83,6 +86,8 @@ const ui = {
   webcamVideo: document.getElementById('webcamVideo'),
   webcamResolution: document.getElementById('webcamResolution'),
   webcamFps: document.getElementById('webcamFps'),
+  inputDevice: document.getElementById('inputDevice'),
+  outputDevice: document.getElementById('outputDevice'),
   videoPlayback: document.getElementById('videoPlayback'),
   videoPlaybackVideo: document.getElementById('videoPlaybackVideo'),
   videoPlaybackLabel: document.getElementById('videoPlaybackLabel')
@@ -603,13 +608,42 @@ const network = {
 const audioIO = {
   init: async () => {
     state.audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: config.sampleRate });
+    await audioIO.enumerateDevices();
+    await audioIO.selectInput(state.inputDeviceId);
+  },
+  enumerateDevices: async () => {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    ui.inputDevice.innerHTML = '';
+    ui.outputDevice.innerHTML = '';
+    devices.forEach(device => {
+      const option = document.createElement('option');
+      option.value = device.deviceId;
+      option.textContent = device.label || `${device.kind} (${device.deviceId.slice(0, 8)})`;
+      if (device.kind === 'audioinput') ui.inputDevice.appendChild(option);
+      if (device.kind === 'audiooutput') ui.outputDevice.appendChild(option);
+    });
+    if (state.inputDeviceId) ui.inputDevice.value = state.inputDeviceId;
+    if (state.outputDeviceId) ui.outputDevice.value = state.outputDeviceId;
+  },
+  selectInput: async (deviceId) => {
+    if (state.mediaStream) {
+      state.mediaStream.getTracks().forEach(track => track.stop());
+    }
     try {
-      state.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true }
-      });
+      const constraints = { audio: { echoCancellation: true, noiseSuppression: true } };
+      if (deviceId) constraints.audio.deviceId = { exact: deviceId };
+      state.mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      state.inputDeviceId = deviceId || state.mediaStream.getAudioTracks()[0]?.getSettings()?.deviceId;
       audioIO.setupRecording();
+      await audioIO.enumerateDevices();
     } catch (err) {
       ui.setStatus('Microphone denied', true);
+    }
+  },
+  selectOutput: async (deviceId) => {
+    state.outputDeviceId = deviceId;
+    if (state.audioContext.destination.setSinkId) {
+      await state.audioContext.destination.setSinkId(deviceId);
     }
   },
   setupRecording: () => {
@@ -1165,6 +1199,8 @@ const ui_events = {
         webcam.enable();
       }
     });
+    ui.inputDevice.addEventListener('change', (e) => audioIO.selectInput(e.target.value));
+    ui.outputDevice.addEventListener('change', (e) => audioIO.selectOutput(e.target.value));
   }
 };
 
