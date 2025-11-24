@@ -120,7 +120,8 @@ const queue = {
       status: 'recording',
       chunks: [],
       decodedSamples: [],
-      isOwnAudio
+      isOwnAudio,
+      playedRealtime: false
     };
     state.activeSegments.set(userId, segment);
     return segment;
@@ -139,16 +140,17 @@ const queue = {
   },
   completeSegment: (userId) => {
     const segment = state.activeSegments.get(userId);
-    console.log('completeSegment called for userId:', userId, 'segment exists:', !!segment, 'chunks:', segment?.chunks?.length || 0);
+    console.log('completeSegment called for userId:', userId, 'segment exists:', !!segment, 'chunks:', segment?.chunks?.length || 0, 'playedRealtime:', segment?.playedRealtime);
     if (segment && segment.chunks.length > 0) {
-      // Own audio goes directly to 'played' status (available for replay but doesn't auto-play)
-      segment.status = segment.isOwnAudio ? 'played' : 'queued';
+      // If played in real-time or own audio, mark as 'played' (available for replay but doesn't auto-play)
+      // Only queue for playback if it wasn't played in real-time
+      segment.status = (segment.isOwnAudio || segment.playedRealtime) ? 'played' : 'queued';
       state.audioQueue.push(segment);
       state.activeSegments.delete(userId);
       ui.render.queue();
       console.log('Segment completed. Status:', segment.status, 'currentSegmentId:', state.currentSegmentId, 'isDeafened:', state.isDeafened, 'isSpeaking:', state.isSpeaking);
-      // Start playback if not currently playing and not deafened (skip own audio)
-      if (!state.currentSegmentId && !state.isDeafened && !state.isSpeaking && !segment.isOwnAudio) {
+      // Start playback if not currently playing and not deafened (skip own audio and real-time played)
+      if (!state.currentSegmentId && !state.isDeafened && !state.isSpeaking && !segment.isOwnAudio && !segment.playedRealtime) {
         console.log('Starting playback...');
         queue.playNext();
       }
@@ -397,6 +399,11 @@ const message = {
       // REAL-TIME PLAYBACK: decode and play immediately if not deafened/speaking
       if (!state.isDeafened && !state.isSpeaking) {
         audio.handleChunk(msg.userId, msg.data);
+        // Mark segment as played in real-time so it won't play again from queue
+        const segment = state.activeSegments.get(msg.userId);
+        if (segment) {
+          segment.playedRealtime = true;
+        }
       }
     },
     user_joined: (msg) => message.add(`${msg.user} joined`, null, msg.userId, msg.user),
