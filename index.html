@@ -32,14 +32,17 @@
     .replay-btn { background: #2196F3; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; transition: all 0.2s; }
     .replay-btn:hover { background: #1976D2; }
     .queue-item { padding: 10px; background: #252525; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid transparent; transition: all 0.2s; }
-    .queue-item[style*="cursor: pointer"]:hover { background: #2a2a2a; transform: translateX(2px); }
     .queue-item.played { opacity: 0.6; border-left-color: #666; }
     .queue-item.playing { background: #1976D2; border-left-color: #64B5F6; animation: pulse-subtle 1s infinite; }
     .queue-item.queued { border-left-color: #FFA726; }
+    .queue-item.replaying { background: #4CAF50; border-left-color: #81C784; }
     @keyframes pulse-subtle { 0%, 100% { opacity: 1; } 50% { opacity: 0.85; } }
     .queue-separator { margin: 12px 0; padding: 8px; text-align: center; font-size: 10px; font-weight: 600; text-transform: uppercase; opacity: 0.5; border-top: 2px solid #FFA726; border-bottom: 2px solid #FFA726; background: rgba(255, 167, 38, 0.1); }
     .queue-header { font-weight: 500; font-size: 12px; margin-bottom: 2px; }
-    .queue-meta { font-size: 10px; opacity: 0.6; }
+    .queue-meta { font-size: 10px; opacity: 0.6; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .queue-play-btn, .queue-dl-btn { background: #444; color: #fff; border: none; padding: 2px 6px; border-radius: 3px; font-size: 10px; cursor: pointer; margin-left: auto; }
+    .queue-play-btn:hover { background: #2196F3; }
+    .queue-dl-btn:hover { background: #4CAF50; }
     .deafen-btn { background: #757575; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
     .deafen-btn:hover { background: #616161; }
     .deafen-btn.active { background: #f44336; }
