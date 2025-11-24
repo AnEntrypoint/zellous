@@ -3,6 +3,7 @@ import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import { pack, unpack } from 'msgpackr';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -25,7 +26,7 @@ const createClient = (ws, id) => ({
 });
 
 const broadcast = (msg, exclude = null, roomId = null) => {
-  const data = JSON.stringify(msg);
+  const data = pack(msg);
   for (const client of state.clients.values()) {
     if (client.ws.readyState === 1 && client !== exclude && (!roomId || client.roomId === roomId)) {
       client.ws.send(data);
@@ -37,7 +38,7 @@ const handlers = {
   join_room: (client, msg) => {
     client.roomId = msg.roomId || 'lobby';
     const roomClients = Array.from(state.clients.values()).filter(c => c.roomId === client.roomId && c !== client);
-    client.ws.send(JSON.stringify({
+    client.ws.send(pack({
       type: 'room_joined',
       roomId: client.roomId,
       currentUsers: roomClients.map(c => ({ id: c.id, username: c.username }))
@@ -51,8 +52,8 @@ const handlers = {
   audio_chunk: (client, msg) => {
     broadcast({ type: 'audio_data', userId: client.id, data: msg.data }, client, client.roomId);
   },
-  video_frame: (client, msg) => {
-    broadcast({ type: 'video_frame', userId: client.id, data: msg.data }, client, client.roomId);
+  video_chunk: (client, msg) => {
+    broadcast({ type: 'video_chunk', userId: client.id, data: msg.data }, client, client.roomId);
   },
   audio_end: (client) => {
     client.speaking = false;
@@ -71,7 +72,7 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (data) => {
     try {
-      const msg = JSON.parse(data.toString());
+      const msg = unpack(Buffer.isBuffer(data) ? data : Buffer.from(data));
       const handler = handlers[msg.type];
       if (handler) handler(client, msg);
     } catch (err) {
@@ -85,7 +86,7 @@ wss.on('connection', (ws) => {
     broadcast({ type: 'user_left', userId: clientId }, null, roomId);
   });
 
-  ws.send(JSON.stringify({
+  ws.send(pack({
     type: 'connection_established',
     clientId
   }));

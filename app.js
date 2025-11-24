@@ -39,15 +39,18 @@ const state = {
   // VAD (Voice Activity Detection)
   vadEnabled: false,           // Voice activation mode
   vadThreshold: 0.15,          // Sensitivity threshold (0-1)
-  vadSilenceDelay: 500,        // ms of silence before stopping
+  vadSilenceDelay: 1500,       // ms of silence before stopping (longer to avoid cutting between words)
   vadSilenceTimer: null,       // Timer for silence detection
   vadAnalyser: null,           // Audio analyser node for VAD
   // Webcam
   webcamEnabled: false,        // Webcam toggle
   webcamStream: null,          // MediaStream for webcam
-  webcamCanvas: null,          // Canvas for capturing frames
-  webcamInterval: null,        // Interval for frame capture
-  ownVideoFrames: []           // Temporary storage for own video frames
+  webcamRecorder: null,        // MediaRecorder for MP4 capture
+  webcamResolution: '320x240', // Resolution setting
+  webcamFps: 15,               // Framerate setting
+  ownVideoChunks: [],          // Temporary storage for own video chunks
+  incomingVideoChunks: null,   // Map of userId -> video chunks for streaming
+  mediaSource: null            // Map of userId -> MediaSource for streaming
 };
 
 const ui = {
@@ -73,8 +76,10 @@ const ui = {
   webcamBtn: document.getElementById('webcamBtn'),
   webcamPreview: document.getElementById('webcamPreview'),
   webcamVideo: document.getElementById('webcamVideo'),
+  webcamResolution: document.getElementById('webcamResolution'),
+  webcamFps: document.getElementById('webcamFps'),
   videoPlayback: document.getElementById('videoPlayback'),
-  videoPlaybackImg: document.getElementById('videoPlaybackImg'),
+  videoPlaybackVideo: document.getElementById('videoPlaybackVideo'),
   videoPlaybackLabel: document.getElementById('videoPlaybackLabel')
 };
 
@@ -84,9 +89,8 @@ const audio = {
       output: (chunk, metadata) => {
         const buffer = new Uint8Array(chunk.byteLength);
         chunk.copyTo(buffer);
-        // Store own audio chunks for queue replay
         state.ownAudioChunks.push(new Uint8Array(buffer));
-        network.send({ type: 'audio_chunk', data: Array.from(buffer) });
+        network.send({ type: 'audio_chunk', data: buffer });
       },
       error: (e) => console.error('Encoder error:', e)
     });
@@ -134,7 +138,7 @@ const queue = {
       decodedSamples: [],
       isOwnAudio,
       playedRealtime: false,
-      videoFrames: []
+      videoChunks: []
     };
     state.activeSegments.set(userId, segment);
     return segment;
@@ -363,26 +367,9 @@ const queue = {
         scheduledTime += duration;
       });
 
-      // Play video frames alongside audio if available
-      if (segment.videoFrames && segment.videoFrames.length > 0) {
-        const frameInterval = (totalDuration * 1000) / segment.videoFrames.length;
-        let frameIndex = 0;
-        
-        const videoInterval = setInterval(() => {
-          if (frameIndex >= segment.videoFrames.length) {
-            clearInterval(videoInterval);
-            webcam.hidePlayback();
-            return;
-          }
-          webcam.showFrame(segment.videoFrames[frameIndex], segment.username);
-          frameIndex++;
-        }, frameInterval);
-        
-        // Hide video after audio finishes
-        setTimeout(() => {
-          clearInterval(videoInterval);
-          webcam.hidePlayback();
-        }, totalDuration * 1000 + 100);
+      if (segment.videoChunks && segment.videoChunks.length > 0) {
+        webcam.showVideo(segment.videoChunks, segment.username);
+        setTimeout(() => webcam.hidePlayback(), totalDuration * 1000 + 100);
       }
 
       decoder.close();
@@ -445,16 +432,18 @@ const message = {
         }
       }
     },
-    video_frame: (msg) => {
-      // Store video frame in segment
+    video_chunk: (msg) => {
       const segment = state.activeSegments.get(msg.userId);
       if (segment) {
-        segment.videoFrames.push(msg.data);
+        if (!segment.videoChunks) segment.videoChunks = [];
+        segment.videoChunks.push(msg.data);
       }
-      // Show real-time video if not deafened/speaking
       if (!state.isDeafened && !state.isSpeaking) {
+        if (!state.incomingVideoChunks) state.incomingVideoChunks = new Map();
+        if (!state.incomingVideoChunks.has(msg.userId)) state.incomingVideoChunks.set(msg.userId, []);
+        state.incomingVideoChunks.get(msg.userId).push(msg.data);
         const username = segment?.username || `User${msg.userId}`;
-        webcam.showFrame(msg.data, username);
+        webcam.streamChunk(msg.userId, msg.data, username);
       }
     },
     user_joined: (msg) => message.add(`${msg.user} joined`, null, msg.userId, msg.user),
@@ -492,11 +481,15 @@ const network = {
   connect: () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     state.ws = new WebSocket(`${protocol}//${window.location.host}`);
+    state.ws.binaryType = 'arraybuffer';
     state.ws.onopen = () => {
       ui.setStatus('Connected', false);
       network.send({ type: 'join_room', roomId: state.roomId });
     };
-    state.ws.onmessage = (e) => message.handle(JSON.parse(e.data));
+    state.ws.onmessage = (e) => {
+      const msg = msgpackr.unpack(new Uint8Array(e.data));
+      message.handle(msg);
+    };
     state.ws.onerror = () => ui.setStatus('Error', true);
     state.ws.onclose = () => {
       ui.setStatus('Disconnected', true);
@@ -506,7 +499,7 @@ const network = {
   send: (msg) => {
     if (state.ws?.readyState === WebSocket.OPEN) {
       msg.roomId = state.roomId;
-      state.ws.send(JSON.stringify(msg));
+      state.ws.send(msgpackr.pack(msg));
     }
   }
 };
@@ -717,9 +710,8 @@ const ptt = {
     audio.pauseAll();
     // Hide any video playback
     webcam.hidePlayback();
-    // Clear previous own audio/video chunks
     state.ownAudioChunks = [];
-    state.ownVideoFrames = [];
+    state.ownVideoChunks = [];
     // Create queue segment for own audio
     if (state.userId) {
       queue.addSegment(state.userId, 'You', true);
@@ -752,9 +744,8 @@ const ptt = {
     if (state.userId) {
       const ownSegment = state.activeSegments.get(state.userId);
       if (ownSegment) {
-        // Copy chunks from ownAudioChunks to the segment
         ownSegment.chunks = [...state.ownAudioChunks];
-        ownSegment.videoFrames = [...state.ownVideoFrames];
+        ownSegment.videoChunks = [...state.ownVideoChunks];
       }
       queue.completeSegment(state.userId);
     }
@@ -950,10 +941,9 @@ const ui_render = {
       }[segment.status] || '•';
 
       const timeStr = segment.timestamp.toLocaleTimeString();
-      const hasVideo = segment.videoFrames && segment.videoFrames.length > 0;
+      const hasVideo = segment.videoChunks && segment.videoChunks.length > 0;
       const videoIcon = hasVideo ? ' 📹' : '';
 
-      // Make clickable if has chunks and not currently recording
       const clickable = segment.chunks.length > 0 && segment.status !== 'recording';
       const cursorStyle = clickable ? 'cursor: pointer;' : '';
       const ownAudioLabel = segment.isOwnAudio ? ' <span style="opacity: 0.5;">(You)</span>' : '';
@@ -961,7 +951,7 @@ const ui_render = {
       html += `
         <div class="queue-item ${segment.status}" data-segment-id="${segment.id}" style="${cursorStyle}">
           <div class="queue-header">${statusIcon} ${segment.username}${ownAudioLabel}${videoIcon}</div>
-          <div class="queue-meta">${timeStr} • ${segment.chunks.length} chunks${hasVideo ? ' • ' + segment.videoFrames.length + ' frames' : ''} ${clickable ? '• Click to replay' : ''}</div>
+          <div class="queue-meta">${timeStr} • ${segment.chunks.length} chunks${hasVideo ? ' • video' : ''} ${clickable ? '• Click to replay' : ''}</div>
         </div>
       `;
     });
@@ -1028,6 +1018,20 @@ const ui_events = {
       ui.vadValue.textContent = e.target.value + '%';
     });
     ui.webcamBtn.addEventListener('click', webcam.toggle);
+    ui.webcamResolution.addEventListener('change', (e) => {
+      state.webcamResolution = e.target.value;
+      if (state.webcamEnabled) {
+        webcam.disable();
+        webcam.enable();
+      }
+    });
+    ui.webcamFps.addEventListener('change', (e) => {
+      state.webcamFps = parseInt(e.target.value);
+      if (state.webcamEnabled) {
+        webcam.disable();
+        webcam.enable();
+      }
+    });
   }
 };
 
@@ -1041,19 +1045,15 @@ const webcam = {
   },
   enable: async () => {
     try {
+      const [width, height] = state.webcamResolution.split('x').map(Number);
       state.webcamStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { width: 320, height: 240, facingMode: 'user' } 
+        video: { width, height, frameRate: state.webcamFps, facingMode: 'user' } 
       });
       ui.webcamVideo.srcObject = state.webcamStream;
       ui.webcamPreview.style.display = 'block';
       ui.webcamBtn.classList.add('active');
       ui.webcamBtn.innerHTML = '📷 Webcam On';
       state.webcamEnabled = true;
-      
-      // Create canvas for frame capture
-      state.webcamCanvas = document.createElement('canvas');
-      state.webcamCanvas.width = 160;
-      state.webcamCanvas.height = 120;
     } catch (err) {
       console.error('Webcam error:', err);
       ui.webcamBtn.innerHTML = '📷 Webcam Denied';
@@ -1072,36 +1072,93 @@ const webcam = {
     webcam.stopCapture();
   },
   startCapture: () => {
-    if (!state.webcamEnabled || !state.webcamCanvas) return;
-    state.ownVideoFrames = [];
-    const ctx = state.webcamCanvas.getContext('2d');
-    
-    state.webcamInterval = setInterval(() => {
-      if (!state.isSpeaking || !state.webcamEnabled) return;
-      ctx.drawImage(ui.webcamVideo, 0, 0, 160, 120);
-      const frameData = state.webcamCanvas.toDataURL('image/jpeg', 0.5);
-      state.ownVideoFrames.push(frameData);
-      // Send frame to server
-      network.send({ type: 'video_frame', data: frameData });
-    }, 200); // 5 fps
+    if (!state.webcamEnabled || !state.webcamStream) return;
+    state.ownVideoChunks = [];
+    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' :
+                     MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' :
+                     MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
+    const [width, height] = state.webcamResolution.split('x').map(Number);
+    const bitrate = Math.round(width * height * state.webcamFps * 0.1);
+    state.webcamRecorder = new MediaRecorder(state.webcamStream, { mimeType, videoBitsPerSecond: bitrate });
+    state.webcamRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        e.data.arrayBuffer().then((buffer) => {
+          const data = new Uint8Array(buffer);
+          state.ownVideoChunks.push(data);
+          network.send({ type: 'video_chunk', data: data });
+        });
+      }
+    };
+    state.webcamRecorder.start(500);
   },
   stopCapture: () => {
-    if (state.webcamInterval) {
-      clearInterval(state.webcamInterval);
-      state.webcamInterval = null;
+    if (state.webcamRecorder && state.webcamRecorder.state !== 'inactive') {
+      state.webcamRecorder.stop();
+      state.webcamRecorder = null;
     }
   },
-  showFrame: (frameData, username) => {
-    if (!frameData) {
+  showVideo: (videoChunks, username) => {
+    if (!videoChunks || videoChunks.length === 0) {
       ui.videoPlayback.style.display = 'none';
       return;
     }
-    ui.videoPlaybackImg.src = frameData;
+    const mimeType = 'video/webm';
+    const blob = new Blob(videoChunks, { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    if (ui.videoPlaybackVideo.src) URL.revokeObjectURL(ui.videoPlaybackVideo.src);
+    ui.videoPlaybackVideo.src = url;
+    ui.videoPlaybackVideo.play();
     ui.videoPlaybackLabel.textContent = username || 'Unknown';
     ui.videoPlayback.style.display = 'block';
   },
+  streamChunk: (userId, chunk, username) => {
+    if (!state.mediaSource) {
+      state.mediaSource = new Map();
+    }
+    if (!state.mediaSource.has(userId)) {
+      const ms = new MediaSource();
+      const url = URL.createObjectURL(ms);
+      state.mediaSource.set(userId, { ms, url, buffer: null, queue: [] });
+      ms.addEventListener('sourceopen', () => {
+        const mimeType = 'video/webm;codecs=vp8';
+        if (MediaSource.isTypeSupported(mimeType)) {
+          const sb = ms.addSourceBuffer(mimeType);
+          const entry = state.mediaSource.get(userId);
+          entry.buffer = sb;
+          sb.addEventListener('updateend', () => {
+            if (entry.queue.length > 0 && !sb.updating) {
+              sb.appendBuffer(entry.queue.shift());
+            }
+          });
+        }
+      });
+      ui.videoPlaybackVideo.src = url;
+      ui.videoPlaybackLabel.textContent = username || 'Unknown';
+      ui.videoPlayback.style.display = 'block';
+    }
+    const entry = state.mediaSource.get(userId);
+    if (entry.buffer && !entry.buffer.updating) {
+      entry.buffer.appendBuffer(chunk);
+    } else {
+      entry.queue.push(chunk);
+    }
+  },
   hidePlayback: () => {
     ui.videoPlayback.style.display = 'none';
+    if (ui.videoPlaybackVideo.src) {
+      ui.videoPlaybackVideo.pause();
+      URL.revokeObjectURL(ui.videoPlaybackVideo.src);
+      ui.videoPlaybackVideo.src = '';
+    }
+    if (state.mediaSource) {
+      state.mediaSource.forEach((entry) => {
+        if (entry.ms.readyState === 'open') {
+          entry.ms.endOfStream();
+        }
+        URL.revokeObjectURL(entry.url);
+      });
+      state.mediaSource.clear();
+    }
   }
 };
 
