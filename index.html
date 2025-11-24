@@ -43,6 +43,12 @@
     .deafen-btn { background: #757575; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
     .deafen-btn:hover { background: #616161; }
     .deafen-btn.active { background: #f44336; }
+    .vad-btn { background: #757575; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+    .vad-btn:hover { background: #616161; }
+    .vad-btn.active { background: #4CAF50; }
+    .vad-meter { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+    .vad-meter-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #FFC107, #f44336); width: 0%; transition: width 0.05s; }
+    .vad-threshold { position: absolute; height: 100%; width: 2px; background: #fff; top: 0; }
     @media (max-width: 1024px) { .container { grid-template-columns: 1fr; } .panel { display: none; } }
   </style>
 </head>
@@ -70,6 +76,16 @@
         <span id="volValue">70%</span>
       </div>
       <button id="deafenBtn" class="deafen-btn">🔊 Deafen</button>
+      <button id="vadBtn" class="vad-btn">🎤 Voice Activation</button>
+      <div class="vol-control" id="vadControls" style="display: none;">
+        <label style="font-size: 11px;">SENS</label>
+        <input id="vadThreshold" type="range" min="0" max="100" value="15">
+        <span id="vadValue">15%</span>
+      </div>
+      <div class="vad-meter" id="vadMeterContainer" style="display: none; position: relative;">
+        <div class="vad-meter-fill" id="vadMeter"></div>
+        <div class="vad-threshold" id="vadThresholdMarker" style="left: 15%;"></div>
+      </div>
     </div>
     <div class="panel">
       <div class="title">Messages</div>

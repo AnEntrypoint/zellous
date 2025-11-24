@@ -35,7 +35,13 @@ const state = {
   currentSegmentId: null,      // ID of currently playing segment
   isDeafened: false,           // Deafen mode toggle
   nextSegmentId: 1,            // Counter for unique segment IDs
-  ownAudioChunks: []           // Temporary storage for own audio chunks while recording
+  ownAudioChunks: [],          // Temporary storage for own audio chunks while recording
+  // VAD (Voice Activity Detection)
+  vadEnabled: false,           // Voice activation mode
+  vadThreshold: 0.15,          // Sensitivity threshold (0-1)
+  vadSilenceDelay: 500,        // ms of silence before stopping
+  vadSilenceTimer: null,       // Timer for silence detection
+  vadAnalyser: null            // Audio analyser node for VAD
 };
 
 const ui = {
@@ -50,7 +56,14 @@ const ui = {
   messages: document.getElementById('messages'),
   roomName: document.getElementById('roomName'),
   audioQueueView: document.getElementById('audioQueueView'),
-  deafenBtn: document.getElementById('deafenBtn')
+  deafenBtn: document.getElementById('deafenBtn'),
+  vadBtn: document.getElementById('vadBtn'),
+  vadControls: document.getElementById('vadControls'),
+  vadThreshold: document.getElementById('vadThreshold'),
+  vadValue: document.getElementById('vadValue'),
+  vadMeterContainer: document.getElementById('vadMeterContainer'),
+  vadMeter: document.getElementById('vadMeter'),
+  vadThresholdMarker: document.getElementById('vadThresholdMarker')
 };
 
 const audio = {
@@ -707,6 +720,107 @@ const deafen = {
   }
 };
 
+const vad = {
+  toggle: () => {
+    state.vadEnabled = !state.vadEnabled;
+    if (state.vadEnabled) {
+      vad.activate();
+    } else {
+      vad.deactivate();
+    }
+  },
+  activate: () => {
+    ui.vadBtn.classList.add('active');
+    ui.vadBtn.innerHTML = '🎤 VAD Active';
+    ui.vadControls.style.display = 'flex';
+    ui.vadMeterContainer.style.display = 'block';
+    ui.ptt.innerHTML = 'VAD MODE';
+    ui.ptt.style.pointerEvents = 'none';
+    ui.ptt.style.opacity = '0.6';
+    vad.startMonitoring();
+  },
+  deactivate: () => {
+    ui.vadBtn.classList.remove('active');
+    ui.vadBtn.innerHTML = '🎤 Voice Activation';
+    ui.vadControls.style.display = 'none';
+    ui.vadMeterContainer.style.display = 'none';
+    ui.ptt.innerHTML = 'HOLD TO TALK';
+    ui.ptt.style.pointerEvents = 'auto';
+    ui.ptt.style.opacity = '1';
+    vad.stopMonitoring();
+    // Stop speaking if currently active
+    if (state.isSpeaking) {
+      ptt.stop();
+    }
+  },
+  startMonitoring: () => {
+    if (!state.audioContext || !state.mediaStream) return;
+    
+    // Create analyser if not exists
+    if (!state.vadAnalyser) {
+      state.vadAnalyser = state.audioContext.createAnalyser();
+      state.vadAnalyser.fftSize = 512;
+      state.vadAnalyser.smoothingTimeConstant = 0.3;
+      const source = state.audioContext.createMediaStreamSource(state.mediaStream);
+      source.connect(state.vadAnalyser);
+    }
+    
+    const dataArray = new Uint8Array(state.vadAnalyser.frequencyBinCount);
+    
+    const checkLevel = () => {
+      if (!state.vadEnabled) return;
+      
+      state.vadAnalyser.getByteFrequencyData(dataArray);
+      
+      // Calculate RMS level
+      let sum = 0;
+      for (let i = 0; i < dataArray.length; i++) {
+        sum += dataArray[i] * dataArray[i];
+      }
+      const rms = Math.sqrt(sum / dataArray.length) / 255;
+      
+      // Update meter
+      ui.vadMeter.style.width = (rms * 100) + '%';
+      
+      // Check against threshold
+      if (rms > state.vadThreshold) {
+        // Voice detected
+        if (state.vadSilenceTimer) {
+          clearTimeout(state.vadSilenceTimer);
+          state.vadSilenceTimer = null;
+        }
+        if (!state.isSpeaking) {
+          ptt.start();
+        }
+      } else {
+        // Silence detected
+        if (state.isSpeaking && !state.vadSilenceTimer) {
+          state.vadSilenceTimer = setTimeout(() => {
+            if (state.vadEnabled && state.isSpeaking) {
+              ptt.stop();
+            }
+            state.vadSilenceTimer = null;
+          }, state.vadSilenceDelay);
+        }
+      }
+      
+      requestAnimationFrame(checkLevel);
+    };
+    
+    checkLevel();
+  },
+  stopMonitoring: () => {
+    if (state.vadSilenceTimer) {
+      clearTimeout(state.vadSilenceTimer);
+      state.vadSilenceTimer = null;
+    }
+  },
+  setThreshold: (value) => {
+    state.vadThreshold = value / 100;
+    ui.vadThresholdMarker.style.left = value + '%';
+  }
+};
+
 const ui_render = {
   speakers: () => {
     ui.speakers.innerHTML = '';
@@ -826,17 +940,22 @@ const ui_events = {
     document.addEventListener('touchstart', resumeAudioContext, { once: false });
     document.addEventListener('keydown', resumeAudioContext, { once: false });
     
-    ui.ptt.addEventListener('mousedown', ptt.start);
-    ui.ptt.addEventListener('mouseup', ptt.stop);
-    ui.ptt.addEventListener('touchstart', ptt.start);
-    ui.ptt.addEventListener('touchend', ptt.stop);
-    ui.ptt.addEventListener('touchcancel', ptt.stop);
+    ui.ptt.addEventListener('mousedown', () => { if (!state.vadEnabled) ptt.start(); });
+    ui.ptt.addEventListener('mouseup', () => { if (!state.vadEnabled) ptt.stop(); });
+    ui.ptt.addEventListener('touchstart', () => { if (!state.vadEnabled) ptt.start(); });
+    ui.ptt.addEventListener('touchend', () => { if (!state.vadEnabled) ptt.stop(); });
+    ui.ptt.addEventListener('touchcancel', () => { if (!state.vadEnabled) ptt.stop(); });
     ui.volumeSlider.addEventListener('input', (e) => {
       state.masterVolume = e.target.value / 100;
       state.audioSources.forEach(s => s.gainNode.gain.value = state.masterVolume);
       ui.volumeValue.textContent = e.target.value + '%';
     });
     ui.deafenBtn.addEventListener('click', deafen.toggle);
+    ui.vadBtn.addEventListener('click', vad.toggle);
+    ui.vadThreshold.addEventListener('input', (e) => {
+      vad.setThreshold(e.target.value);
+      ui.vadValue.textContent = e.target.value + '%';
+    });
   }
 };
 
@@ -848,7 +967,8 @@ window.zellousDebug = {
   network,
   ptt,
   queue,
-  deafen
+  deafen,
+  vad
 };
 
 async function init() {
