@@ -37,6 +37,7 @@ const state = {
   replayGainNode: null,        // GainNode for current replay (to stop it)
   replayTimeout: null,         // Timeout for replay completion
   skipLiveAudio: false,        // Skip live audio to catch up with queue
+  currentLiveSpeaker: null,    // userId of speaker currently being played live (one at a time)
   isDeafened: false,           // Deafen mode toggle
   nextSegmentId: 1,            // Counter for unique segment IDs
   ownAudioChunks: [],          // Temporary storage for own audio chunks while recording
@@ -489,30 +490,39 @@ const message = {
       const audioData = state.recordingAudio.get(msg.userId);
       message.add(`${msg.user} stopped talking`, audioData, msg.userId, msg.user);
       state.recordingAudio.delete(msg.userId);
+      if (state.currentLiveSpeaker === msg.userId) {
+        state.currentLiveSpeaker = null;
+        if (!state.skipLiveAudio && !state.isDeafened && !state.isSpeaking) {
+          queue.playNext();
+        }
+      }
       if (state.activeSpeakers.size === 0) {
         state.skipLiveAudio = false;
+        state.currentLiveSpeaker = null;
       }
       ui.render.speakers();
       ui.render.queue();
     },
     audio_data: (msg) => {
-      // Create segment if it doesn't exist (handles race condition)
       if (!state.activeSegments.has(msg.userId) && !state.activeSpeakers.has(msg.userId)) {
         state.activeSpeakers.add(msg.userId);
         queue.addSegment(msg.userId, `User${msg.userId}`);
         state.recordingAudio.set(msg.userId, []);
         ui.render.speakers();
       }
-      // Add chunk to queue segment (for replay)
       queue.addChunk(msg.userId, msg.data);
-      // Keep old system for replay functionality
       if (state.recordingAudio.has(msg.userId)) {
         state.recordingAudio.get(msg.userId).push(new Uint8Array(msg.data));
       }
       if (!state.isDeafened && !state.isSpeaking && !state.skipLiveAudio) {
-        audio.handleChunk(msg.userId, msg.data);
-        const segment = state.activeSegments.get(msg.userId);
-        if (segment) segment.playedRealtime = true;
+        if (!state.currentLiveSpeaker) {
+          state.currentLiveSpeaker = msg.userId;
+        }
+        if (state.currentLiveSpeaker === msg.userId) {
+          audio.handleChunk(msg.userId, msg.data);
+          const segment = state.activeSegments.get(msg.userId);
+          if (segment) segment.playedRealtime = true;
+        }
       }
     },
     video_chunk: (msg) => {
@@ -521,7 +531,7 @@ const message = {
         if (!segment.videoChunks) segment.videoChunks = [];
         segment.videoChunks.push(msg.data);
       }
-      if (!state.isDeafened && !state.isSpeaking && !state.skipLiveAudio) {
+      if (!state.isDeafened && !state.isSpeaking && !state.skipLiveAudio && state.currentLiveSpeaker === msg.userId) {
         if (!state.incomingVideoChunks) state.incomingVideoChunks = new Map();
         if (!state.incomingVideoChunks.has(msg.userId)) state.incomingVideoChunks.set(msg.userId, []);
         state.incomingVideoChunks.get(msg.userId).push(msg.data);
@@ -777,6 +787,7 @@ Object.assign(audio, {
   },
   skipLive: () => {
     state.skipLiveAudio = true;
+    state.currentLiveSpeaker = null;
     state.audioSources.forEach((source, userId) => {
       source.gainNode.disconnect();
     });
@@ -797,6 +808,7 @@ Object.assign(audio, {
   },
   resumeLive: () => {
     state.skipLiveAudio = false;
+    state.currentLiveSpeaker = null;
     ui.render.queue();
   }
 });
