@@ -55,7 +55,8 @@ const state = {
   webcamFps: 15,               // Framerate setting
   ownVideoChunks: [],          // Temporary storage for own video chunks
   incomingVideoChunks: null,   // Map of userId -> video chunks for streaming
-  mediaSource: null,           // Map of userId -> MediaSource for streaming
+  liveVideoChunks: null,       // Map of userId -> accumulated video chunks for live playback
+  liveVideoInterval: null      // Interval for updating live video
   // Device selection
   inputDeviceId: null,         // Selected microphone device ID
   outputDeviceId: null         // Selected speaker device ID
@@ -1281,35 +1282,28 @@ const webcam = {
     ui.videoPlayback.style.display = 'block';
   },
   streamChunk: (userId, chunk, username) => {
-    if (!state.mediaSource) {
-      state.mediaSource = new Map();
+    if (!state.liveVideoChunks) state.liveVideoChunks = new Map();
+    if (!state.liveVideoChunks.has(userId)) {
+      state.liveVideoChunks.set(userId, []);
     }
-    if (!state.mediaSource.has(userId)) {
-      const ms = new MediaSource();
-      const url = URL.createObjectURL(ms);
-      state.mediaSource.set(userId, { ms, url, buffer: null, queue: [] });
-      ms.addEventListener('sourceopen', () => {
-        const mimeType = 'video/webm;codecs=vp8';
-        if (MediaSource.isTypeSupported(mimeType)) {
-          const sb = ms.addSourceBuffer(mimeType);
-          const entry = state.mediaSource.get(userId);
-          entry.buffer = sb;
-          sb.addEventListener('updateend', () => {
-            if (entry.queue.length > 0 && !sb.updating) {
-              sb.appendBuffer(entry.queue.shift());
-            }
-          });
+    state.liveVideoChunks.get(userId).push(chunk);
+    ui.videoPlaybackLabel.textContent = username || 'Unknown';
+    ui.videoPlayback.style.display = 'block';
+    if (!state.liveVideoInterval) {
+      state.liveVideoInterval = setInterval(() => {
+        if (!state.currentLiveSpeaker || !state.liveVideoChunks?.has(state.currentLiveSpeaker)) {
+          return;
         }
-      });
-      ui.videoPlaybackVideo.src = url;
-      ui.videoPlaybackLabel.textContent = username || 'Unknown';
-      ui.videoPlayback.style.display = 'block';
-    }
-    const entry = state.mediaSource.get(userId);
-    if (entry.buffer && !entry.buffer.updating) {
-      entry.buffer.appendBuffer(chunk);
-    } else {
-      entry.queue.push(chunk);
+        const chunks = state.liveVideoChunks.get(state.currentLiveSpeaker);
+        if (chunks.length === 0) return;
+        const blob = new Blob(chunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const oldUrl = ui.videoPlaybackVideo.src;
+        ui.videoPlaybackVideo.src = url;
+        ui.videoPlaybackVideo.currentTime = Math.max(0, ui.videoPlaybackVideo.duration - 0.5) || 0;
+        ui.videoPlaybackVideo.play().catch(() => {});
+        if (oldUrl && oldUrl.startsWith('blob:')) URL.revokeObjectURL(oldUrl);
+      }, 1000);
     }
   },
   hidePlayback: () => {
@@ -1319,14 +1313,12 @@ const webcam = {
       URL.revokeObjectURL(ui.videoPlaybackVideo.src);
       ui.videoPlaybackVideo.src = '';
     }
-    if (state.mediaSource) {
-      state.mediaSource.forEach((entry) => {
-        if (entry.ms.readyState === 'open') {
-          entry.ms.endOfStream();
-        }
-        URL.revokeObjectURL(entry.url);
-      });
-      state.mediaSource.clear();
+    if (state.liveVideoInterval) {
+      clearInterval(state.liveVideoInterval);
+      state.liveVideoInterval = null;
+    }
+    if (state.liveVideoChunks) {
+      state.liveVideoChunks.clear();
     }
   }
 };
