@@ -51,6 +51,9 @@ const handlers = {
   audio_chunk: (client, msg) => {
     broadcast({ type: 'audio_data', userId: client.id, data: msg.data }, client, client.roomId);
   },
+  video_frame: (client, msg) => {
+    broadcast({ type: 'video_frame', userId: client.id, data: msg.data }, client, client.roomId);
+  },
   audio_end: (client) => {
     client.speaking = false;
     broadcast({ type: 'speaker_left', userId: client.id, user: client.username }, null, client.roomId);

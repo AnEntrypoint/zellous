@@ -49,6 +49,14 @@
     .vad-meter { width: 100%; height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin-top: 4px; }
     .vad-meter-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #FFC107, #f44336); width: 0%; transition: width 0.05s; }
     .vad-threshold { position: absolute; height: 100%; width: 2px; background: #fff; top: 0; }
+    .webcam-btn { background: #757575; color: #fff; border: none; padding: 8px 16px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+    .webcam-btn:hover { background: #616161; }
+    .webcam-btn.active { background: #9C27B0; }
+    .webcam-preview { width: 120px; height: 90px; background: #000; border-radius: 6px; overflow: hidden; display: none; }
+    .webcam-preview video { width: 100%; height: 100%; object-fit: cover; }
+    .video-playback { position: fixed; bottom: 20px; right: 20px; width: 240px; height: 180px; background: #000; border-radius: 8px; overflow: hidden; display: none; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .video-playback video, .video-playback img { width: 100%; height: 100%; object-fit: cover; }
+    .video-playback .video-label { position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7); padding: 4px 8px; border-radius: 4px; font-size: 11px; }
     @media (max-width: 1024px) { .container { grid-template-columns: 1fr; } .panel { display: none; } }
   </style>
 </head>
@@ -86,6 +94,14 @@
         <div class="vad-meter-fill" id="vadMeter"></div>
         <div class="vad-threshold" id="vadThresholdMarker" style="left: 15%;"></div>
       </div>
+      <button id="webcamBtn" class="webcam-btn">📷 Webcam Off</button>
+      <div class="webcam-preview" id="webcamPreview">
+        <video id="webcamVideo" autoplay muted playsinline></video>
+      </div>
+    </div>
+    <div class="video-playback" id="videoPlayback">
+      <img id="videoPlaybackImg" src="">
+      <div class="video-label" id="videoPlaybackLabel"></div>
     </div>
     <div class="panel">
       <div class="title">Messages</div>
