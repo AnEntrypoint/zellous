@@ -1,0 +1,15 @@
+# Nixpacks configuration for Zellous
+# Avoids apt package installation that can fail due to mirror sync issues
+
+[phases.setup]
+# Don't install apt packages - they're not needed for this Node.js app
+aptPkgs = []
+
+[phases.install]
+cmds = ["npm ci || npm install"]
+
+[phases.build]
+cmds = []
+
+[start]
+cmd = "npm start"
