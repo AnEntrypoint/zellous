@@ -10,7 +10,8 @@ module.exports = {
     libraryTarget: 'umd'
   },
   externals: {
-    osjs: 'OSjs'
+    osjs: 'OSjs',
+    hyperapp: 'hyperapp'
   },
   plugins: [
     new MiniCssExtractPlugin({

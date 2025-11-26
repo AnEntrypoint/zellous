@@ -4,7 +4,7 @@
   "description": "Zellous Push-to-Talk application for OS.js",
   "main": "main.js",
   "scripts": {
-    "build": "webpack",
+    "build": "webpack && cp metadata.json zellous-loader.js dist/",
     "watch": "webpack --watch"
   },
   "dependencies": {},
