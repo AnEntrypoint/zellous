@@ -27,8 +27,21 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: true, // Allow all origins for iframe embedding
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
+
+// Allow iframe embedding from OS.js instances
+app.use((req, res, next) => {
+  // Remove restrictive X-Frame-Options to allow embedding
+  res.removeHeader('X-Frame-Options');
+  // Allow embedding from any origin (or specify specific origins)
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://os.247420.xyz https://*.247420.xyz http://localhost:* http://127.0.0.1:*");
+  next();
+});
+
 app.use(express.static(__dirname));
 app.use(optionalAuth);
 

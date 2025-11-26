@@ -5,6 +5,8 @@
  * It provides window management, settings integration, and event communication.
  */
 
+import './main.css';
+
 import {
   app,
   h,
@@ -15,8 +17,23 @@ import {
 const WINDOW_WIDTH = 1000;
 const WINDOW_HEIGHT = 700;
 
-// Zellous server URL (configure based on deployment)
-const ZELLOUS_SERVER = window.location.origin.replace(/:\d+$/, ':3000');
+// Zellous server URL - configurable for external deployments
+// Priority: settings > environment > auto-detect
+const getZellousServer = (proc) => {
+  // Check settings first
+  if (proc?.settings?.serverUrl) {
+    return proc.settings.serverUrl;
+  }
+  // Check if running on same origin (development)
+  if (window.location.port) {
+    return window.location.origin.replace(/:\d+$/, ':3000');
+  }
+  // Default to a deployed Zellous instance
+  return 'https://zellous.247420.xyz';
+};
+
+// Legacy constant for backwards compatibility
+const ZELLOUS_SERVER = 'https://zellous.247420.xyz';
 
 /**
  * Create Zellous window content
@@ -26,8 +43,11 @@ const createContent = (core, proc, win, args) => {
   const room = args.room || 'lobby';
   const token = args.token || proc.settings.token || '';
 
+  // Get server URL dynamically
+  const serverUrl = getZellousServer(proc);
+
   // Build iframe URL with parameters
-  let iframeUrl = `${ZELLOUS_SERVER}?room=${encodeURIComponent(room)}`;
+  let iframeUrl = `${serverUrl}?room=${encodeURIComponent(room)}`;
   if (token) {
     iframeUrl += `&token=${encodeURIComponent(token)}`;
   }
@@ -69,7 +89,7 @@ const createContent = (core, proc, win, args) => {
 
   joinBtn.onclick = () => {
     const newRoom = roomInput.value.trim() || 'lobby';
-    iframe.src = `${ZELLOUS_SERVER}?room=${encodeURIComponent(newRoom)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    iframe.src = `${serverUrl}?room=${encodeURIComponent(newRoom)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
   };
 
   roomInput.onkeypress = (e) => {
@@ -124,11 +144,19 @@ const showSettings = (core, proc, win) => {
   core.make('osjs/dialog', 'prompt', {
     title: 'Zellous Settings',
     message: 'Enter Zellous server URL:',
-    value: proc.settings.serverUrl || ZELLOUS_SERVER
+    value: proc.settings.serverUrl || getZellousServer(proc)
   }, (btn, value) => {
     if (btn === 'ok' && value) {
       proc.settings.serverUrl = value;
       proc.saveSettings();
+      // Refresh iframe with new server
+      const iframe = win.$content?.querySelector('iframe');
+      if (iframe) {
+        const urlObj = new URL(iframe.src);
+        const room = urlObj.searchParams.get('room') || 'lobby';
+        const token = urlObj.searchParams.get('token') || '';
+        iframe.src = `${value}?room=${encodeURIComponent(room)}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+      }
     }
   });
 };
@@ -143,9 +171,9 @@ const createApplication = (core, args, options, metadata) => {
     metadata
   });
 
-  // Default settings
+  // Default settings (serverUrl is resolved dynamically via getZellousServer)
   proc.settings = {
-    serverUrl: ZELLOUS_SERVER,
+    serverUrl: null, // null = use auto-detection
     token: null,
     ...proc.settings
   };
