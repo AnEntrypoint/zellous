@@ -20,5 +20,9 @@
   "files": [
     "main.js",
     "main.css"
-  ]
+  ],
+  "external": {
+    "serverUrl": "https://zellous.247420.xyz",
+    "standalone": "zellous-loader.js"
+  }
 }

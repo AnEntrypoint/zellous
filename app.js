@@ -71,6 +71,53 @@ const ui_events = {
     ui.outputDevice.addEventListener('change', (e) => audioIO.selectOutput(e.target.value));
   }
 };
+// OS.js integration - postMessage to parent frame
+const osjsIntegration = {
+  // Notify parent OS.js window of events
+  notify: (type, data = {}) => {
+    if (window.parent !== window) {
+      try {
+        window.parent.postMessage({ type: `zellous:${type}`, ...data }, '*');
+      } catch (e) { /* ignore cross-origin errors */ }
+    }
+  },
+  // Handle messages from OS.js parent
+  handleMessage: (event) => {
+    if (!event.data?.type) return;
+    switch (event.data.type) {
+      case 'osjs:focus':
+        // Resume audio context when OS.js window gets focus
+        if (state.audioContext?.state === 'suspended') {
+          state.audioContext.resume();
+        }
+        break;
+      case 'osjs:getState':
+        // Return current state to parent
+        osjsIntegration.notify('state', {
+          room: state.roomId,
+          speaking: state.isSpeaking,
+          authenticated: state.isAuthenticated
+        });
+        break;
+    }
+  },
+  // Override ptt to notify parent
+  wrapPtt: () => {
+    const originalStart = ptt.start;
+    const originalStop = ptt.stop;
+    ptt.start = function() {
+      originalStart.apply(this, arguments);
+      osjsIntegration.notify('speaking', { speaking: true });
+    };
+    ptt.stop = function() {
+      originalStop.apply(this, arguments);
+      osjsIntegration.notify('speaking', { speaking: false });
+    };
+  }
+};
+
+window.addEventListener('message', osjsIntegration.handleMessage);
 window.audioIO = audioIO;
+window.osjsIntegration = osjsIntegration;
 window.zellousDebug = { state, config, audio, message, network, ptt, queue, deafen, vad, webcam };
-(async () => { ui.render.roomName(); await audioIO.init(); network.connect(); ui_events.setup(); })();
+(async () => { ui.render.roomName(); await audioIO.init(); network.connect(); ui_events.setup(); osjsIntegration.wrapPtt(); })();
