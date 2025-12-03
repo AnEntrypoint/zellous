@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import crypto from 'crypto';
-import { DATA_ROOT } from './storage.js';
+import { DATA_ROOT, ensureDir } from './storage-utils.js';
 import { validators } from './validation.js';
 
 // Bot API - Simple connectivity for bots and external clients
@@ -9,12 +9,7 @@ import { validators } from './validation.js';
 
 const BOTS_DIR = join(DATA_ROOT, 'bots');
 
-// Ensure bots directory exists
-const ensureBotsDir = async () => {
-  try {
-    await fs.mkdir(BOTS_DIR, { recursive: true });
-  } catch {}
-};
+const ensureBotsDir = async () => ensureDir(BOTS_DIR);
 
 // Generate API key
 const generateApiKey = () => `zb_${crypto.randomBytes(32).toString('hex')}`;
