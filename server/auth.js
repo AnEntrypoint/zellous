@@ -1,5 +1,6 @@
 import { users, sessions } from './storage.js';
 import { validators } from './validation.js';
+import { errorResponse } from './response-formatter.js';
 
 // Authentication middleware and helpers
 
@@ -96,15 +97,15 @@ const authenticateWebSocket = async (token) => {
 // Register new user
 const register = async (username, password, displayName = null) => {
   let validation = validators.username(username);
-  if (!validation.valid) return { error: validation.error };
+  if (!validation.valid) return errorResponse(validation.error);
 
   const existing = await users.findByUsername(username);
   if (existing) {
-    return { error: 'Username already taken' };
+    return errorResponse('Username already taken');
   }
 
   validation = validators.password(password);
-  if (!validation.valid) return { error: validation.error };
+  if (!validation.valid) return errorResponse(validation.error);
 
   const user = await users.create(username, password, displayName);
   return { user };
@@ -114,7 +115,7 @@ const register = async (username, password, displayName = null) => {
 const login = async (username, password, deviceInfo = null) => {
   const user = await users.authenticate(username, password);
   if (!user) {
-    return { error: 'Invalid username or password' };
+    return errorResponse('Invalid username or password');
   }
 
   // Add device if info provided
@@ -190,7 +191,7 @@ const updateSettings = async (userId, settings) => {
 // Update display name
 const updateDisplayName = async (userId, displayName) => {
   const validation = validators.displayName(displayName);
-  if (!validation.valid) return { error: validation.error };
+  if (!validation.valid) return errorResponse(validation.error);
   await users.update(userId, { displayName });
   return { displayName };
 };
@@ -198,16 +199,16 @@ const updateDisplayName = async (userId, displayName) => {
 // Change password
 const changePassword = async (userId, currentPassword, newPassword) => {
   const user = await users.findById(userId);
-  if (!user) return { error: 'User not found' };
+  if (!user) return errorResponse('User not found');
 
   const crypto = await import('crypto');
   const testHash = crypto.pbkdf2Sync(currentPassword, user.passwordSalt, 10000, 64, 'sha512').toString('hex');
   if (testHash !== user.passwordHash) {
-    return { error: 'Current password is incorrect' };
+    return errorResponse('Current password is incorrect');
   }
 
   const validation = validators.password(newPassword);
-  if (!validation.valid) return { error: validation.error };
+  if (!validation.valid) return errorResponse(validation.error);
 
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.pbkdf2Sync(newPassword, salt, 10000, 64, 'sha512').toString('hex');
