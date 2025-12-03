@@ -1,6 +1,8 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, generateId } from './storage-utils.js';
+import logger from '@sequential/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
 
 const sessions = {
   async create(userId, deviceId = null) {
@@ -67,12 +69,12 @@ const sessions = {
               sessions.push(data);
             }
           } catch (e) {
-            console.error(`[Storage] Failed to session parse in loop: ${e.message}`);
+            logger.error(`[Storage] Failed to session parse in loop: ${e.message}`);
           }
         }
       }
     } catch (e) {
-      console.error(`[Storage] Failed to sessions directory read: ${e.message}`);
+      logger.error(`[Storage] Failed to sessions directory read: ${e.message}`);
     }
     return sessions;
   },

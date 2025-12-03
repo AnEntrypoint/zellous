@@ -3,6 +3,7 @@ import { existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import { delay, withRetry } from '@sequential/async-patterns';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_ROOT = join(__dirname, '..', 'data');

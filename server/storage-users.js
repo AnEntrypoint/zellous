@@ -1,6 +1,8 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, generateId, shortId, hashPassword, verifyPassword } from './storage-utils.js';
+import logger from '@sequential/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
 
 const users = {
   async create(username, password, displayName = null) {
@@ -36,7 +38,7 @@ const users = {
     try {
       index = JSON.parse(await fs.readFile(indexPath, 'utf8'));
     } catch (e) {
-      console.error(`[Storage] Failed to read username index: ${e.message}`);
+      logger.error(`[Storage] Failed to read username index: ${e.message}`);
     }
     index[username] = userId;
     await fs.writeFile(indexPath, JSON.stringify(index, null, 2));
@@ -51,7 +53,7 @@ const users = {
         return this.findById(userId);
       }
     } catch (e) {
-      console.error(`[Storage] Failed to username index lookup: ${e.message}`);
+      logger.error(`[Storage] Failed to username index lookup: ${e.message}`);
     }
     return null;
   },
@@ -61,7 +63,7 @@ const users = {
       const data = await fs.readFile(join(DATA_ROOT, 'users', `${userId}.json`), 'utf8');
       return JSON.parse(data);
     } catch (e) {
-      console.error(`[Storage] Failed to read user ${userId}: ${e.message}`);
+      logger.error(`[Storage] Failed to read user ${userId}: ${e.message}`);
       return null;
     }
   },

@@ -7,3 +7,4 @@ npm-debug.log*
 test-results/
 osjs/dist/
 osjs/node_modules/
+README.md

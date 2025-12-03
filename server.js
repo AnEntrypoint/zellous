@@ -5,8 +5,8 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { pack, unpack } from 'msgpackr';
 import cors from 'cors';
+import logger from '@sequential/sequential-logging';
 
-// Server modules
 import {
   initStorage, rooms, messages, media, files,
   startCleanupProcessor, stopCleanupProcessor, DATA_ROOT
@@ -26,18 +26,14 @@ const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
-// Middleware
 app.use(cors({
   origin: true, // Allow all origins for iframe embedding
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
 
-// Allow iframe embedding from OS.js instances
 app.use((req, res, next) => {
-  // Remove restrictive X-Frame-Options to allow embedding
   res.removeHeader('X-Frame-Options');
-  // Allow embedding from any origin (or specify specific origins)
   res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://os.247420.xyz https://*.247420.xyz http://localhost:* http://127.0.0.1:*");
   next();
 });
@@ -45,7 +41,6 @@ app.use((req, res, next) => {
 app.use(express.static(__dirname));
 app.use(optionalAuth);
 
-// ==================== SERVER STATE ====================
 
 const state = {
   clients: new Map(),
@@ -66,7 +61,6 @@ const createClient = (ws, id, user = null) => ({
   isAuthenticated: !!user
 });
 
-// ==================== BROADCAST ====================
 
 const filterClientsByRoom = (roomId, exclude = null) => {
   return Array.from(state.clients.values())
@@ -83,31 +77,25 @@ const broadcast = (msg, exclude = null, roomId = null) => {
   }
 };
 
-// ==================== ROOM MANAGEMENT ====================
 
 const joinRoom = async (client, roomId) => {
   const oldRoomId = client.roomId;
 
-  // Leave old room
   if (oldRoomId && state.roomUsers.has(oldRoomId)) {
     state.roomUsers.get(oldRoomId).delete(client.id);
     if (state.roomUsers.get(oldRoomId).size === 0) {
       state.roomUsers.delete(oldRoomId);
-      // Schedule cleanup after 10 minutes of emptiness
       await rooms.scheduleCleanup(oldRoomId);
     }
   }
 
-  // Join new room
   client.roomId = roomId;
   if (!state.roomUsers.has(roomId)) {
     state.roomUsers.set(roomId, new Set());
-    // Cancel any pending cleanup
     await rooms.cancelCleanup(roomId);
   }
   state.roomUsers.get(roomId).add(client.id);
 
-  // Update room storage
   await rooms.ensureRoom(roomId);
   await rooms.setUserCount(roomId, state.roomUsers.get(roomId).size);
 };
@@ -126,10 +114,8 @@ const leaveRoom = async (client) => {
   }
 };
 
-// ==================== MESSAGE HANDLERS ====================
 
 const handlers = {
-  // Authentication
   authenticate: async (client, msg) => {
     const auth = await authenticateWebSocket(msg.token);
     if (auth) {
@@ -149,7 +135,6 @@ const handlers = {
     }
   },
 
-  // Room management
   join_room: async (client, msg) => {
     const roomId = msg.roomId || 'lobby';
     await joinRoom(client, roomId);
@@ -175,7 +160,6 @@ const handlers = {
       isAuthenticated: client.isAuthenticated
     }, client, roomId);
 
-    // Send recent messages
     const recentMsgs = await messages.getRecent(roomId, 50);
     if (recentMsgs.length > 0) {
       client.ws.send(pack({
@@ -185,7 +169,6 @@ const handlers = {
     }
   },
 
-  // Audio
   audio_start: async (client) => {
     client.speaking = true;
     const mediaSessionId = await media.createSession(client.roomId, client.id, client.username);
@@ -223,7 +206,6 @@ const handlers = {
     }, null, client.roomId);
   },
 
-  // Video
   video_chunk: async (client, msg) => {
     const mediaSessionId = state.mediaSessions.get(client.id);
     if (mediaSessionId) {
@@ -236,7 +218,6 @@ const handlers = {
     }, client, client.roomId);
   },
 
-  // Text messaging
   text_message: async (client, msg) => {
     const msgData = await messages.save(client.roomId, {
       userId: client.id,
@@ -252,9 +233,7 @@ const handlers = {
     }, null, client.roomId);
   },
 
-  // Image message (inline display)
   image_message: async (client, msg) => {
-    // Save image file
     const imageBuffer = Buffer.from(msg.data, 'base64');
     const fileMeta = await files.save(
       client.roomId,
@@ -284,9 +263,7 @@ const handlers = {
     }, null, client.roomId);
   },
 
-  // File transfer
   file_upload_start: async (client, msg) => {
-    // Notify room that file upload is starting
     broadcast({
       type: 'file_upload_started',
       userId: client.id,
@@ -298,8 +275,6 @@ const handlers = {
   },
 
   file_upload_chunk: async (client, msg) => {
-    // For chunked uploads - accumulate chunks
-    // This is handled by the file upload endpoint
   },
 
   file_upload_complete: async (client, msg) => {
@@ -333,7 +308,6 @@ const handlers = {
     }, null, client.roomId);
   },
 
-  // User settings
   set_username: async (client, msg) => {
     client.username = msg.username;
     broadcast({
@@ -343,7 +317,6 @@ const handlers = {
     }, null, client.roomId);
   },
 
-  // Fetch message history
   get_messages: async (client, msg) => {
     const msgs = await messages.getRecent(client.roomId, msg.limit || 50, msg.before);
     client.ws.send(pack({
@@ -352,7 +325,6 @@ const handlers = {
     }));
   },
 
-  // Fetch file list
   get_files: async (client, msg) => {
     const fileList = await files.list(client.roomId, msg.path || '');
     client.ws.send(pack({
@@ -363,22 +335,18 @@ const handlers = {
   }
 };
 
-// ==================== WEBSOCKET CONNECTION ====================
 
 wss.on('connection', async (ws, req) => {
-  // Check if this is a bot connection
   const url = new URL(req.url, `http://${req.headers.host}`);
   const isBot = url.pathname === '/api/bot/ws';
 
   if (isBot) {
-    // Handle bot WebSocket connection
     const botConn = new BotConnection(ws, broadcast, state);
     ws.on('message', (data) => botConn.handleMessage(data.toString()));
     ws.on('close', () => botConn.cleanup());
     return;
   }
 
-  // Regular user connection
   const clientId = ++state.counter;
   const token = url.searchParams.get('token');
 
@@ -401,7 +369,7 @@ wss.on('connection', async (ws, req) => {
         await handler(client, msg);
       }
     } catch (e) {
-      console.error('[WS] Message error:', e.message);
+      logger.error('[WS] Message error:', e.message);
     }
   });
 
@@ -421,9 +389,7 @@ wss.on('connection', async (ws, req) => {
   }));
 });
 
-// ==================== REST API ROUTES ====================
 
-// Auth routes
 app.post('/api/auth/register', async (req, res) => {
   const { username, password, displayName } = req.body;
   const result = await register(username, password, displayName);
@@ -452,7 +418,6 @@ app.post('/api/auth/logout-all', requireAuth, async (req, res) => {
   res.json({ success: true, sessionsInvalidated: count });
 });
 
-// User routes
 app.get('/api/user', requireAuth, async (req, res) => {
   res.json({ user: req.user });
 });
@@ -485,13 +450,11 @@ app.post('/api/user/change-password', requireAuth, async (req, res) => {
   res.json(result);
 });
 
-// Session routes
 app.get('/api/sessions', requireAuth, async (req, res) => {
   const sessions = await getActiveSessions(req.user.id);
   res.json({ sessions });
 });
 
-// Device routes
 app.get('/api/devices', requireAuth, async (req, res) => {
   const devices = await getDevices(req.user.id);
   res.json({ devices });
@@ -502,7 +465,6 @@ app.delete('/api/devices/:deviceId', requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
-// Room routes
 app.get('/api/rooms', async (req, res) => {
   const roomList = [];
   for (const [roomId, users] of state.roomUsers.entries()) {
@@ -536,7 +498,6 @@ app.get('/api/rooms/:roomId', async (req, res) => {
   });
 });
 
-// File routes
 app.get('/api/rooms/:roomId/files', async (req, res) => {
   const fileList = await files.list(req.params.roomId, req.query.path || '');
   res.json({ files: fileList });
@@ -556,7 +517,6 @@ app.get('/api/rooms/:roomId/files/:fileId', async (req, res) => {
   res.send(data);
 });
 
-// Message routes
 app.get('/api/rooms/:roomId/messages', async (req, res) => {
   const msgs = await messages.getRecent(
     req.params.roomId,
@@ -566,33 +526,27 @@ app.get('/api/rooms/:roomId/messages', async (req, res) => {
   res.json({ messages: msgs });
 });
 
-// Setup bot API routes
 setupBotApiRoutes(app, state, broadcast);
 
-// ==================== SERVER STARTUP ====================
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const startServer = async () => {
-  // Initialize storage
   await initStorage();
 
-  // Start cleanup processor
   startCleanupProcessor();
 
-  // Handle graceful shutdown
   const shutdown = async () => {
-    console.log('\n[Server] Shutting down...');
+    logger.info('\n[Server] Shutting down...');
     stopCleanupProcessor();
 
-    // Close all WebSocket connections
     for (const client of state.clients.values()) {
       client.ws.close();
     }
 
     server.close(() => {
-      console.log('[Server] Closed');
+      logger.info('[Server] Closed');
       process.exit(0);
     });
   };
@@ -601,12 +555,11 @@ const startServer = async () => {
   process.on('SIGTERM', shutdown);
 
   server.listen(PORT, HOST, () => {
-    console.log(`[Zellous] Server running on http://${HOST}:${PORT}`);
-    console.log(`[Zellous] Data directory: ${DATA_ROOT}`);
+    logger.info(`[Zellous] Server running on http://${HOST}:${PORT}`);
+    logger.info(`[Zellous] Data directory: ${DATA_ROOT}`);
   });
 };
 
 startServer().catch(console.error);
 
-// Export for testing
 export { app, server, state, broadcast };

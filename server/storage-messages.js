@@ -2,6 +2,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, shortId } from './storage-utils.js';
 import { rooms } from './storage-rooms.js';
+import logger from '@sequential/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
 
 const messages = {
   async save(roomId, message) {
@@ -44,7 +46,7 @@ const messages = {
             messages.push(data);
           }
         } catch (e) {
-          console.error(`[Storage] Failed to message file parse in loop: ${e.message}`);
+          logger.error(`[Storage] Failed to message file parse in loop: ${e.message}`);
         }
       }
       return messages.reverse();
@@ -63,7 +65,7 @@ const messages = {
         }
       }
     } catch (e) {
-      console.error(`[Storage] Failed to message directory read for getById: ${e.message}`);
+      logger.error(`[Storage] Failed to message directory read for getById: ${e.message}`);
     }
     return null;
   }
