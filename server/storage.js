@@ -7,9 +7,11 @@ import { rooms } from './storage-rooms.js';
 import { messages } from './storage-messages.js';
 import { media } from './storage-media.js';
 import { files } from './storage-files.js';
+import logger from '@sequential/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
 
 async function cleanupOnStartup() {
-  console.log('[Storage] Running startup cleanup...');
+  logger.info('[Storage] Running startup cleanup...');
 
   const cleanupPath = join(DATA_ROOT, 'cleanup.json');
   try {
@@ -19,7 +21,7 @@ async function cleanupOnStartup() {
     }
     await fs.writeFile(cleanupPath, '{}');
   } catch (e) {
-    console.error(`[Storage] Failed to cleanup.json read in cleanupOnStartup: ${e.message}`);
+    logger.error(`[Storage] Failed to cleanup.json read in cleanupOnStartup: ${e.message}`);
   }
 
   const sessionsDir = join(DATA_ROOT, 'sessions');
@@ -32,16 +34,16 @@ async function cleanupOnStartup() {
           const session = JSON.parse(await fs.readFile(join(sessionsDir, file), 'utf8'));
           if (session.expiresAt < now) {
             await fs.unlink(join(sessionsDir, file));
-            console.log(`[Storage] Cleaned expired session: ${session.id}`);
+            logger.info(`[Storage] Cleaned expired session: ${session.id}`);
           }
         } catch (e) {
-          console.error(`[Storage] Failed to sessions read in cleanupOnStartup: ${e.message}`);
+          logger.error(`[Storage] Failed to sessions read in cleanupOnStartup: ${e.message}`);
         }
       }
     }
   } catch {}
 
-  console.log('[Storage] Startup cleanup complete');
+  logger.info('[Storage] Startup cleanup complete');
 }
 
 async function initialize() {

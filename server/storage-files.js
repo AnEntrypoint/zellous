@@ -2,6 +2,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, shortId, ensureDir } from './storage-utils.js';
 import { rooms } from './storage-rooms.js';
+import logger from '@sequential/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
 
 const files = {
   async save(roomId, userId, filename, data, customPath = '') {
@@ -54,12 +56,12 @@ const files = {
             const meta = JSON.parse(await fs.readFile(join(filesDir, entry.name), 'utf8'));
             result.push({ type: 'file', ...meta });
           } catch (e) {
-            console.error(`[Storage] Failed to meta.json parse in files list: ${e.message}`);
+            logger.error(`[Storage] Failed to meta.json parse in files list: ${e.message}`);
           }
         }
       }
     } catch (e) {
-      console.error(`[Storage] Failed to files directory read: ${e.message}`);
+      logger.error(`[Storage] Failed to files directory read: ${e.message}`);
     }
 
     return result;
@@ -93,13 +95,13 @@ async function findFileRecursive(dir, fileId) {
         try {
           meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
         } catch (e) {
-          console.error(`[Storage] Failed to meta.json read in findFileRecursive: ${e.message}`);
+          logger.error(`[Storage] Failed to meta.json read in findFileRecursive: ${e.message}`);
         }
         return { filepath: fullPath, meta };
       }
     }
   } catch (e) {
-    console.error(`[Storage] Failed to directory read in findFileRecursive: ${e.message}`);
+    logger.error(`[Storage] Failed to directory read in findFileRecursive: ${e.message}`);
   }
   return null;
 }

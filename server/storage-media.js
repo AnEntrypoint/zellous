@@ -2,6 +2,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, ensureDir } from './storage-utils.js';
 import { rooms } from './storage-rooms.js';
+import logger from '@sequential/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
 
 const media = {
   async saveChunk(roomId, userId, type, chunk, sessionId) {
@@ -41,7 +43,7 @@ const media = {
       meta.endedAt = Date.now();
       await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
     } catch (e) {
-      console.error(`[Storage] Failed to session meta.json read/write: ${e.message}`);
+      logger.error(`[Storage] Failed to session meta.json read/write: ${e.message}`);
     }
   },
 
@@ -52,19 +54,19 @@ const media = {
     try {
       result.meta = JSON.parse(await fs.readFile(join(mediaDir, 'meta.json'), 'utf8'));
     } catch (e) {
-      console.error(`[Storage] Failed to session meta.json read: ${e.message}`);
+      logger.error(`[Storage] Failed to session meta.json read: ${e.message}`);
     }
 
     try {
       result.audio = await fs.readFile(join(mediaDir, 'audio.opus'));
     } catch (e) {
-      console.error(`[Storage] Failed to audio.opus read: ${e.message}`);
+      logger.error(`[Storage] Failed to audio.opus read: ${e.message}`);
     }
 
     try {
       result.video = await fs.readFile(join(mediaDir, 'video.webm'));
     } catch (e) {
-      console.error(`[Storage] Failed to video.webm read: ${e.message}`);
+      logger.error(`[Storage] Failed to video.webm read: ${e.message}`);
     }
 
     return result;

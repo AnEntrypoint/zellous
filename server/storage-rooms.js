@@ -1,6 +1,9 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, ensureDir, CLEANUP_TIMEOUT } from './storage-utils.js';
+import logger from '@sequential/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
+import { delay, withRetry } from '@sequential/async-patterns';
 
 const rooms = {
   async ensureRoom(roomId) {
@@ -57,7 +60,7 @@ const rooms = {
     try {
       cleanup = JSON.parse(await fs.readFile(cleanupPath, 'utf8'));
     } catch (e) {
-      console.error(`[Storage] Failed to cleanup.json read for schedule: ${e.message}`);
+      logger.error(`[Storage] Failed to cleanup.json read for schedule: ${e.message}`);
     }
     cleanup[roomId] = Date.now() + CLEANUP_TIMEOUT;
     await fs.writeFile(cleanupPath, JSON.stringify(cleanup, null, 2));
@@ -70,7 +73,7 @@ const rooms = {
       delete cleanup[roomId];
       await fs.writeFile(cleanupPath, JSON.stringify(cleanup, null, 2));
     } catch (e) {
-      console.error(`[Storage] Failed to cleanup.json read/write for cancel: ${e.message}`);
+      logger.error(`[Storage] Failed to cleanup.json read/write for cancel: ${e.message}`);
     }
   },
 
@@ -93,9 +96,9 @@ const rooms = {
     const roomDir = join(DATA_ROOT, 'rooms', roomId);
     try {
       await fs.rm(roomDir, { recursive: true, force: true });
-      console.log(`[Storage] Cleaned up room: ${roomId}`);
+      logger.info(`[Storage] Cleaned up room: ${roomId}`);
     } catch (e) {
-      console.error(`[Storage] Failed to cleanup room ${roomId}:`, e.message);
+      logger.error(`[Storage] Failed to cleanup room ${roomId}:`, e.message);
     }
   }
 };

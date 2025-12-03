@@ -1,6 +1,7 @@
 import { users, sessions } from './storage.js';
 import { validators } from './validation.js';
 import { errorResponse } from './response-formatter.js';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
 
 const register = async (username, password, displayName = null) => {
   let validation = validators.username(username);
