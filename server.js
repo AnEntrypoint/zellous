@@ -68,10 +68,16 @@ const createClient = (ws, id, user = null) => ({
 
 // ==================== BROADCAST ====================
 
+const filterClientsByRoom = (roomId, exclude = null) => {
+  return Array.from(state.clients.values())
+    .filter(c => c.roomId === roomId && c !== exclude);
+};
+
 const broadcast = (msg, exclude = null, roomId = null) => {
   const data = pack(msg);
-  for (const client of state.clients.values()) {
-    if (client.ws.readyState === 1 && client !== exclude && (!roomId || client.roomId === roomId)) {
+  const clients = roomId ? filterClientsByRoom(roomId, exclude) : Array.from(state.clients.values()).filter(c => c !== exclude);
+  for (const client of clients) {
+    if (client.ws.readyState === 1) {
       client.ws.send(data);
     }
   }
@@ -148,8 +154,7 @@ const handlers = {
     const roomId = msg.roomId || 'lobby';
     await joinRoom(client, roomId);
 
-    const roomClients = Array.from(state.clients.values())
-      .filter(c => c.roomId === roomId && c !== client);
+    const roomClients = filterClientsByRoom(roomId, client);
 
     client.ws.send(pack({
       type: 'room_joined',
