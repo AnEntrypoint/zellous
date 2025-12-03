@@ -3,6 +3,7 @@ import { join } from 'path';
 import crypto from 'crypto';
 import { DATA_ROOT, ensureDir } from './storage-utils.js';
 import { validators } from './validation.js';
+import { responses } from './response-formatter.js';
 
 // Bot API - Simple connectivity for bots and external clients
 // Supports both REST API and simplified WebSocket protocol
@@ -169,12 +170,12 @@ const parseBotApiKey = (req) => {
 const requireBotAuth = async (req, res, next) => {
   const apiKey = parseBotApiKey(req);
   if (!apiKey) {
-    return res.status(401).json({ error: 'Bot API key required' });
+    return responses.send(res, responses.unauthorized('Bot API key required'));
   }
 
   const bot = await bots.findByApiKey(apiKey);
   if (!bot) {
-    return res.status(401).json({ error: 'Invalid API key' });
+    return responses.send(res, responses.unauthorized('Invalid API key'));
   }
 
   await bots.touch(bot.id);
@@ -185,10 +186,10 @@ const requireBotAuth = async (req, res, next) => {
 // Check bot permission middleware factory
 const requireBotPermission = (permission) => async (req, res, next) => {
   if (!req.bot) {
-    return res.status(401).json({ error: 'Bot authentication required' });
+    return responses.send(res, responses.unauthorized('Bot authentication required'));
   }
   if (!await bots.hasPermission(req.bot, permission)) {
-    return res.status(403).json({ error: `Permission '${permission}' required` });
+    return responses.send(res, responses.forbidden(`Permission '${permission}' required`));
   }
   next();
 };
@@ -197,10 +198,10 @@ const requireBotPermission = (permission) => async (req, res, next) => {
 const requireRoomAccess = async (req, res, next) => {
   const roomId = req.params.roomId || req.body?.roomId;
   if (!roomId) {
-    return res.status(400).json({ error: 'Room ID required' });
+    return responses.send(res, responses.badRequest('Room ID required'));
   }
   if (!await bots.canAccessRoom(req.bot, roomId)) {
-    return res.status(403).json({ error: 'Bot not allowed in this room' });
+    return responses.send(res, responses.forbidden('Bot not allowed in this room'));
   }
   next();
 };
@@ -447,13 +448,13 @@ const setupBotApiRoutes = (app, state, broadcast) => {
   // Create bot (requires user auth)
   app.post('/api/bots', async (req, res) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return responses.send(res, responses.unauthorized());
     }
 
     const { name, permissions, allowedRooms } = req.body;
     const nameValidation = validators.botName(name);
     if (!nameValidation.valid) {
-      return res.status(400).json({ error: nameValidation.error });
+      return responses.send(res, responses.badRequest(nameValidation.error));
     }
 
     const result = await bots.create(name, req.user.id, permissions);
@@ -467,7 +468,7 @@ const setupBotApiRoutes = (app, state, broadcast) => {
   // List user's bots
   app.get('/api/bots', async (req, res) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return responses.send(res, responses.unauthorized());
     }
 
     const userBots = await bots.listByOwner(req.user.id);
@@ -482,12 +483,12 @@ const setupBotApiRoutes = (app, state, broadcast) => {
   // Update bot
   app.patch('/api/bots/:botId', async (req, res) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return responses.send(res, responses.unauthorized());
     }
 
     const bot = await bots.findById(req.params.botId);
     if (!bot || bot.ownerId !== req.user.id) {
-      return res.status(404).json({ error: 'Bot not found' });
+      return responses.send(res, responses.notFound('Bot not found'));
     }
 
     const { name, permissions, allowedRooms, webhookUrl } = req.body;
@@ -504,12 +505,12 @@ const setupBotApiRoutes = (app, state, broadcast) => {
   // Delete bot
   app.delete('/api/bots/:botId', async (req, res) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return responses.send(res, responses.unauthorized());
     }
 
     const bot = await bots.findById(req.params.botId);
     if (!bot || bot.ownerId !== req.user.id) {
-      return res.status(404).json({ error: 'Bot not found' });
+      return responses.send(res, responses.notFound('Bot not found'));
     }
 
     await bots.delete(bot.id);
@@ -519,12 +520,12 @@ const setupBotApiRoutes = (app, state, broadcast) => {
   // Regenerate API key
   app.post('/api/bots/:botId/regenerate-key', async (req, res) => {
     if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return responses.send(res, responses.unauthorized());
     }
 
     const bot = await bots.findById(req.params.botId);
     if (!bot || bot.ownerId !== req.user.id) {
-      return res.status(404).json({ error: 'Bot not found' });
+      return responses.send(res, responses.notFound('Bot not found'));
     }
 
     const apiKey = await bots.regenerateApiKey(bot.id);
@@ -549,7 +550,7 @@ const setupBotApiRoutes = (app, state, broadcast) => {
   app.post('/api/rooms/:roomId/messages', requireBotAuth, requireBotPermission('write'), requireRoomAccess, async (req, res) => {
     const { content } = req.body;
     if (!content) {
-      return res.status(400).json({ error: 'Message content required' });
+      return responses.send(res, responses.badRequest('Message content required'));
     }
 
     const msg = {
@@ -577,7 +578,7 @@ const setupBotApiRoutes = (app, state, broadcast) => {
     // Handle file upload (expects raw body or base64)
     const { filename, data, path: customPath } = req.body;
     if (!filename || !data) {
-      return res.status(400).json({ error: 'Filename and data required' });
+      return responses.send(res, responses.badRequest('Filename and data required'));
     }
 
     const { files } = await import('./storage.js');
@@ -609,7 +610,7 @@ const setupBotApiRoutes = (app, state, broadcast) => {
     const { files } = await import('./storage.js');
     const file = await files.get(req.params.roomId, req.params.fileId);
     if (!file) {
-      return res.status(404).json({ error: 'File not found' });
+      return responses.send(res, responses.notFound('File not found'));
     }
 
     const { promises: fs } = await import('fs');
