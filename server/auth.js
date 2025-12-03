@@ -1,4 +1,5 @@
 import { users, sessions } from './storage.js';
+import { validators } from './validation.js';
 
 // Authentication middleware and helpers
 
@@ -94,26 +95,17 @@ const authenticateWebSocket = async (token) => {
 
 // Register new user
 const register = async (username, password, displayName = null) => {
-  // Validate username
-  if (!username || username.length < 3 || username.length > 32) {
-    return { error: 'Username must be 3-32 characters' };
-  }
-  if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-    return { error: 'Username can only contain letters, numbers, and underscores' };
-  }
+  let validation = validators.username(username);
+  if (!validation.valid) return { error: validation.error };
 
-  // Check if username exists
   const existing = await users.findByUsername(username);
   if (existing) {
     return { error: 'Username already taken' };
   }
 
-  // Validate password
-  if (!password || password.length < 6) {
-    return { error: 'Password must be at least 6 characters' };
-  }
+  validation = validators.password(password);
+  if (!validation.valid) return { error: validation.error };
 
-  // Create user
   const user = await users.create(username, password, displayName);
   return { user };
 };
@@ -197,9 +189,8 @@ const updateSettings = async (userId, settings) => {
 
 // Update display name
 const updateDisplayName = async (userId, displayName) => {
-  if (!displayName || displayName.length < 1 || displayName.length > 64) {
-    return { error: 'Display name must be 1-64 characters' };
-  }
+  const validation = validators.displayName(displayName);
+  if (!validation.valid) return { error: validation.error };
   await users.update(userId, { displayName });
   return { displayName };
 };
@@ -209,16 +200,14 @@ const changePassword = async (userId, currentPassword, newPassword) => {
   const user = await users.findById(userId);
   if (!user) return { error: 'User not found' };
 
-  // Import the verification function
   const crypto = await import('crypto');
   const testHash = crypto.pbkdf2Sync(currentPassword, user.passwordSalt, 10000, 64, 'sha512').toString('hex');
   if (testHash !== user.passwordHash) {
     return { error: 'Current password is incorrect' };
   }
 
-  if (!newPassword || newPassword.length < 6) {
-    return { error: 'New password must be at least 6 characters' };
-  }
+  const validation = validators.password(newPassword);
+  if (!validation.valid) return { error: validation.error };
 
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto.pbkdf2Sync(newPassword, salt, 10000, 64, 'sha512').toString('hex');
@@ -228,7 +217,6 @@ const changePassword = async (userId, currentPassword, newPassword) => {
     passwordHash: hash
   });
 
-  // Invalidate all other sessions
   const userSessions = await sessions.findByUserId(userId);
   for (const session of userSessions) {
     await sessions.delete(session.id);

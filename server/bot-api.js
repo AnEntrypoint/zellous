@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import crypto from 'crypto';
 import { DATA_ROOT } from './storage.js';
+import { validators } from './validation.js';
 
 // Bot API - Simple connectivity for bots and external clients
 // Supports both REST API and simplified WebSocket protocol
@@ -65,7 +66,8 @@ const bots = {
   },
 
   async findByApiKey(apiKey) {
-    if (!apiKey?.startsWith('zb_')) return null;
+    const validation = validators.apiKey(apiKey);
+    if (!validation.valid) return null;
 
     await ensureBotsDir();
     const keyHash = hashApiKey(apiKey);
@@ -454,8 +456,9 @@ const setupBotApiRoutes = (app, state, broadcast) => {
     }
 
     const { name, permissions, allowedRooms } = req.body;
-    if (!name) {
-      return res.status(400).json({ error: 'Bot name required' });
+    const nameValidation = validators.botName(name);
+    if (!nameValidation.valid) {
+      return res.status(400).json({ error: nameValidation.error });
     }
 
     const result = await bots.create(name, req.user.id, permissions);
