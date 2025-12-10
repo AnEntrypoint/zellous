@@ -34,7 +34,10 @@
     "ws": "^8.14.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.56.1",
     "nodemon": "^3.1.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnEntrypoint/zellous"
   }
 }
