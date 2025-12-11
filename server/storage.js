@@ -7,8 +7,8 @@ import { rooms } from './storage-rooms.js';
 import { messages } from './storage-messages.js';
 import { media } from './storage-media.js';
 import { files } from './storage-files.js';
-import logger from '@sequential/sequential-logging';
-import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
+import logger from '@sequentialos/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequentialos/timestamp-utilities';
 
 async function cleanupOnStartup() {
   logger.info('[Storage] Running startup cleanup...');

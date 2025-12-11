@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { pack, unpack } from 'msgpackr';
 import cors from 'cors';
-import logger from '@sequential/sequential-logging';
+import logger from '@sequentialos/sequential-logging';
 
 import {
   initStorage, rooms, messages, media, files,
