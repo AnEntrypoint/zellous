@@ -2,8 +2,8 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, ensureDir } from './storage-utils.js';
 import { rooms } from './storage-rooms.js';
-import logger from '@sequential/sequential-logging';
-import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
+import logger from '@sequentialos/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequentialos/timestamp-utilities';
 
 const media = {
   async saveChunk(roomId, userId, type, chunk, sessionId) {

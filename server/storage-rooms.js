@@ -1,9 +1,9 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, ensureDir, CLEANUP_TIMEOUT } from './storage-utils.js';
-import logger from '@sequential/sequential-logging';
-import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
-import { delay, withRetry } from '@sequential/async-patterns';
+import logger from '@sequentialos/sequential-logging';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequentialos/timestamp-utilities';
+import { delay, withRetry } from '@sequentialos/async-patterns';
 
 const rooms = {
   async ensureRoom(roomId) {

@@ -1,5 +1,5 @@
 import { bots } from './bot-store.js';
-import { nowISO, createTimestamps, updateTimestamp } from '@sequential/timestamp-utilities';
+import { nowISO, createTimestamps, updateTimestamp } from '@sequentialos/timestamp-utilities';
 
 const createHandlers = (connection) => ({
   auth: async (msg) => {

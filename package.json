@@ -1,5 +1,5 @@
 {
-  "name": "zellous",
+  "name": "@sequentialos/zellous",
   "version": "2.0.0",
   "description": "Real-time collaboration and communication library with PTT, rooms, and file sharing",
   "type": "module",
