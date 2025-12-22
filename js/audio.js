@@ -37,38 +37,24 @@ const audio = {
     const gainNode = state.audioContext.createGain();
     gainNode.gain.value = state.masterVolume;
     gainNode.connect(state.audioContext.destination);
-    state.audioSources.set(userId, { gainNode, underrunCount: 0 });
+    state.audioSources.set(userId, { gainNode });
     state.playbackState.set(userId, 'playing');
-    if (!state.scheduledPlaybackTime.has(userId)) state.scheduledPlaybackTime.set(userId, state.audioContext.currentTime + 0.1);
+    if (!state.scheduledPlaybackTime.has(userId)) state.scheduledPlaybackTime.set(userId, state.audioContext.currentTime + 0.05);
     const interval = setInterval(() => {
       if (!state.audioSources.has(userId)) { clearInterval(interval); return; }
       const q = state.audioBuffers.get(userId);
-      if (!q?.length) {
-        const src = state.audioSources.get(userId);
-        src.underrunCount = (src.underrunCount || 0) + 1;
-        if (src.underrunCount > 10 && !state.activeSpeakers.has(userId)) {
-          state.audioSources.delete(userId);
-          state.audioBuffers.delete(userId);
-          state.playbackState.delete(userId);
-          state.scheduledPlaybackTime.delete(userId);
-          clearInterval(interval);
-        }
-        return;
-      }
-      const src = state.audioSources.get(userId);
-      if (src) src.underrunCount = 0;
+      if (!q?.length) { if (!state.activeSpeakers.has(userId)) { state.audioSources.delete(userId); state.audioBuffers.delete(userId); state.playbackState.delete(userId); state.scheduledPlaybackTime.delete(userId); clearInterval(interval); } return; }
       const data = q.shift();
       const buf = state.audioContext.createBuffer(1, data.length, config.sampleRate);
       buf.getChannelData(0).set(data);
-      const bufSrc = state.audioContext.createBufferSource();
-      bufSrc.buffer = buf;
-      bufSrc.connect(gainNode);
+      const src = state.audioContext.createBufferSource();
+      src.buffer = buf;
+      src.connect(gainNode);
       let t = state.scheduledPlaybackTime.get(userId);
-      const now = state.audioContext.currentTime;
-      if (t < now - 0.05) t = now + 0.02;
-      bufSrc.start(Math.max(t, now));
+      if (t < state.audioContext.currentTime) t = state.audioContext.currentTime;
+      src.start(t);
       state.scheduledPlaybackTime.set(userId, t + data.length / config.sampleRate);
-    }, 50);
+    }, 20);
   },
   pause: () => {
     const userId = Array.from(state.activeSpeakers)[0];
