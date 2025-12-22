@@ -8,8 +8,8 @@ import cors from 'cors';
 import logger from '@sequentialos/sequential-logging';
 
 import {
-  initStorage, rooms, messages, media, files,
-  startCleanupProcessor, stopCleanupProcessor, DATA_ROOT
+  initialize, rooms, messages, media, files,
+  startCleanup, stopCleanup, DATA_ROOT
 } from './server/storage.js';
 import {
   optionalAuth, requireAuth, authenticateWebSocket,
@@ -533,13 +533,13 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const startServer = async () => {
-  await initStorage();
+  await initialize();
 
-  startCleanupProcessor();
+  startCleanup();
 
   const shutdown = async () => {
     logger.info('\n[Server] Shutting down...');
-    stopCleanupProcessor();
+    stopCleanup();
 
     for (const client of state.clients.values()) {
       client.ws.close();
