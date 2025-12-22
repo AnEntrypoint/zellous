@@ -63,7 +63,13 @@ const message = {
       ui.render.roomName();
     },
     user_joined: (m) => message.add(`${m.user} joined`, null, m.userId, m.user),
-    user_left: (m) => message.add('User left', null, m.userId),
+    user_left: (m) => {
+      message.add('User left', null, m.userId);
+      state.activeSpeakers.delete(m.userId);
+      if (state.currentLiveSpeaker === m.userId) state.currentLiveSpeaker = null;
+      if (state.activeSegments.has(m.userId)) queue.completeSegment(m.userId);
+      if (!state.currentSegmentId && !state.replayingSegmentId) queue.playNext();
+    },
     user_updated: (m) => {
       // Update username in active speakers/segments if needed
     },
@@ -84,17 +90,20 @@ const message = {
       message.add(`${m.user} stopped talking`, state.recordingAudio.get(m.userId), m.userId, m.user);
       state.recordingAudio.delete(m.userId);
       if (state.currentLiveSpeaker === m.userId) state.currentLiveSpeaker = null;
+      state.recentlyEndedSpeakers.add(m.userId);
+      setTimeout(() => state.recentlyEndedSpeakers.delete(m.userId), 5000);
       if (state.activeSpeakers.size === 0) {
         state.skipLiveAudio = false;
         state.currentLiveSpeaker = null;
       }
-      if (!state.currentLiveSpeaker && !state.currentSegmentId && !state.replayingSegmentId && !state.isDeafened && !state.isSpeaking) {
+      if ((!state.currentLiveSpeaker || state.activeSpeakers.size === 0) && !state.currentSegmentId && !state.replayingSegmentId && !state.isDeafened && !state.isSpeaking) {
         queue.playNext();
       }
       ui.render.speakers();
       ui.render.queue();
     },
     audio_data: (m) => {
+      if (state.recentlyEndedSpeakers.has(m.userId)) return;
       if (!state.activeSegments.has(m.userId) && !state.activeSpeakers.has(m.userId)) {
         state.activeSpeakers.add(m.userId);
         queue.addSegment(m.userId, `User${m.userId}`);

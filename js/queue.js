@@ -21,7 +21,7 @@ const queue = {
     if (state.isSpeaking || state.isDeafened || state.currentSegmentId || state.replayingSegmentId) return;
     const next = queue.getNextQueuedSegment();
     if (next) { queue.markAsPlaying(next.id); queue.decodeAndPlay(next); return; }
-    if (!state.currentLiveSpeaker && !state.skipLiveAudio && state.activeSpeakers.size > 0) { state.currentLiveSpeaker = Array.from(state.activeSpeakers)[0]; ui.render.queue(); }
+    if (!state.currentLiveSpeaker && !state.skipLiveAudio && state.activeSpeakers.size > 0) { const validSpeakers = Array.from(state.activeSpeakers).filter(id => state.activeSegments.has(id)); if (validSpeakers.length > 0) { state.currentLiveSpeaker = validSpeakers[0]; ui.render.queue(); } }
   },
   decodeAndPlay: (segment) => {
     const decoder = new AudioDecoder({

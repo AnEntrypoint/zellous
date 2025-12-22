@@ -10,7 +10,7 @@ const state = {
   ws: null, userId: null, roomId: getRoomFromURL(),
   audioQueue: [], activeSegments: new Map(), currentSegmentId: null, replayingSegmentId: null,
   replayGainNode: null, replayTimeout: null, skipLiveAudio: false, currentLiveSpeaker: null,
-  isDeafened: false, nextSegmentId: 1, ownAudioChunks: [],
+  isDeafened: false, nextSegmentId: 1, ownAudioChunks: [], recentlyEndedSpeakers: new Set(),
 
   // VAD state
   vadEnabled: false, vadThreshold: 0.15, vadSilenceDelay: 1500, vadSilenceTimer: null, vadAnalyser: null,

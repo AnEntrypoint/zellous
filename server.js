@@ -374,6 +374,13 @@ wss.on('connection', async (ws, req) => {
   });
 
   ws.on('close', async () => {
+    if (client.speaking === true) {
+      broadcast({
+        type: 'speaker_left',
+        userId: clientId,
+        user: client.username
+      }, null, client.roomId);
+    }
     await leaveRoom(client);
     state.clients.delete(ws);
     broadcast({
