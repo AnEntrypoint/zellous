@@ -8,3 +8,4 @@ test-results/
 osjs/dist/
 osjs/node_modules/
 README.md
+.glootie-stop-verified

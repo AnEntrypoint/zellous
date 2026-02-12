@@ -4,6 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Zellous</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "htm": "https://esm.sh/htm@3.1.1/preact",
+      "preact": "https://esm.sh/preact@10.19.0",
+      "preact/hooks": "https://esm.sh/preact@10.19.0/hooks",
+      "@preact/signals": "https://esm.sh/@preact/signals@1.2.0"
+    }
+  }
+  </script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --bg: #0a0a0a; --surface: #141414; --surface2: #1e1e1e; --border: #2a2a2a; --text: #fff; --text2: rgba(255,255,255,0.6); --accent: #3b82f6; --accent2: #2563eb; --danger: #ef4444; --success: #22c55e; --warning: #f59e0b; }
@@ -371,6 +381,11 @@
   </div>
 
   <script src="msgpackr.min.js"></script>
+  <script type="module">
+    // First load state with signals
+    import { state } from './js/state.js';
+    import { effect } from '@preact/signals';
+  </script>
   <script src="js/state.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/ui.js"></script>
@@ -382,6 +397,45 @@
   <script src="js/ptt.js"></script>
   <script src="js/webcam.js"></script>
   <script src="app.js"></script>
+  <script type="module">
+    // App initialization - set up effect watchers for reactive rendering
+    import { effect } from '@preact/signals';
+    import { state } from './js/state.js';
+
+    // Setup effect watchers to trigger UI renders when signals change
+    effect(() => {
+      // Watch and trigger re-renders on state changes - access via stateSignals to get raw signals
+      window.stateSignals.isSpeaking.value;
+      window.stateSignals.activeSpeakers.value;
+      window.stateSignals.messages.value;
+      window.stateSignals.audioQueue.value;
+      window.stateSignals.chatMessages.value;
+      window.stateSignals.fileList.value;
+      window.stateSignals.isAuthenticated.value;
+      window.stateSignals.currentUser.value;
+      window.stateSignals.isConnected.value;
+      window.stateSignals.isDeafened.value;
+      window.stateSignals.vadEnabled.value;
+      window.stateSignals.webcamEnabled.value;
+      window.stateSignals.masterVolume.value;
+
+      // Trigger render updates
+      if (window.ui?.render) {
+        try {
+          window.ui.render.speakers?.();
+          window.ui.render.queue?.();
+          window.ui.render.messages?.();
+          window.ui.render.chat?.();
+          window.ui.render.files?.();
+          window.ui.render.authStatus?.();
+        } catch (e) {
+          // Silently catch render errors
+        }
+      }
+    });
+
+    window.appReady = true;
+  </script>
   <script>
     // Tab switching
     document.querySelectorAll('.tab').forEach(tab => {

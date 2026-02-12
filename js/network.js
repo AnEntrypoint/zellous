@@ -6,16 +6,22 @@ const network = {
       ? `${protocol}//${window.location.host}?token=${encodeURIComponent(token)}`
       : `${protocol}//${window.location.host}`;
 
-    state.ws = new WebSocket(url);
-    state.ws.binaryType = 'arraybuffer';
-    state.ws.onopen = () => {
-      ui.setStatus('Connected', false);
+    const ws = new WebSocket(url);
+    ws.binaryType = 'arraybuffer';
+    state.ws = ws;
+    ws.onopen = () => {
+      state.connectionStatus = 'Connected';
+      state.isConnected = true;
       network.send({ type: 'join_room', roomId: state.roomId });
     };
-    state.ws.onmessage = (e) => message.handle(msgpackr.unpack(new Uint8Array(e.data)));
-    state.ws.onerror = () => ui.setStatus('Error', true);
-    state.ws.onclose = () => {
-      ui.setStatus('Disconnected', true);
+    ws.onmessage = (e) => message.handle(msgpackr.unpack(new Uint8Array(e.data)));
+    ws.onerror = () => {
+      state.connectionStatus = 'Error';
+      state.isConnected = false;
+    };
+    ws.onclose = () => {
+      state.connectionStatus = 'Disconnected';
+      state.isConnected = false;
       setTimeout(network.connect, 3000);
     };
   },
@@ -65,7 +71,9 @@ const message = {
     user_joined: (m) => message.add(`${m.user} joined`, null, m.userId, m.user),
     user_left: (m) => {
       message.add('User left', null, m.userId);
-      state.activeSpeakers.delete(m.userId);
+      const speakers = new Set(state.activeSpeakers);
+      speakers.delete(m.userId);
+      state.activeSpeakers = speakers;
       if (state.currentLiveSpeaker === m.userId) state.currentLiveSpeaker = null;
       if (state.activeSegments.has(m.userId)) queue.completeSegment(m.userId);
       if (!state.currentSegmentId && !state.replayingSegmentId) queue.playNext();
@@ -76,22 +84,36 @@ const message = {
 
     // Audio
     speaker_joined: (m) => {
-      state.activeSpeakers.add(m.userId);
+      const speakers = new Set(state.activeSpeakers);
+      speakers.add(m.userId);
+      state.activeSpeakers = speakers;
       if (m.userId !== state.userId) queue.addSegment(m.userId, m.user);
-      state.recordingAudio.set(m.userId, []);
+      const recAudio = new Map(state.recordingAudio);
+      recAudio.set(m.userId, []);
+      state.recordingAudio = recAudio;
       message.add(`${m.user} started talking`, null, m.userId, m.user);
       ui.render.speakers();
       ui.render.queue();
     },
     speaker_left: (m) => {
-      state.activeSpeakers.delete(m.userId);
+      const speakers = new Set(state.activeSpeakers);
+      speakers.delete(m.userId);
+      state.activeSpeakers = speakers;
       webcam.hidePlayback();
       if (m.userId !== state.userId) queue.completeSegment(m.userId);
-      message.add(`${m.user} stopped talking`, state.recordingAudio.get(m.userId), m.userId, m.user);
-      state.recordingAudio.delete(m.userId);
+      const recAudio = new Map(state.recordingAudio);
+      message.add(`${m.user} stopped talking`, recAudio.get(m.userId), m.userId, m.user);
+      recAudio.delete(m.userId);
+      state.recordingAudio = recAudio;
       if (state.currentLiveSpeaker === m.userId) state.currentLiveSpeaker = null;
-      state.recentlyEndedSpeakers.add(m.userId);
-      setTimeout(() => state.recentlyEndedSpeakers.delete(m.userId), 5000);
+      const ended = new Set(state.recentlyEndedSpeakers);
+      ended.add(m.userId);
+      state.recentlyEndedSpeakers = ended;
+      setTimeout(() => {
+        const updated = new Set(state.recentlyEndedSpeakers);
+        updated.delete(m.userId);
+        state.recentlyEndedSpeakers = updated;
+      }, 5000);
       if (state.activeSpeakers.size === 0) {
         state.skipLiveAudio = false;
         state.currentLiveSpeaker = null;
@@ -105,14 +127,20 @@ const message = {
     audio_data: (m) => {
       if (state.recentlyEndedSpeakers.has(m.userId)) return;
       if (!state.activeSegments.has(m.userId) && !state.activeSpeakers.has(m.userId)) {
-        state.activeSpeakers.add(m.userId);
+        const speakers = new Set(state.activeSpeakers);
+        speakers.add(m.userId);
+        state.activeSpeakers = speakers;
         queue.addSegment(m.userId, `User${m.userId}`);
-        state.recordingAudio.set(m.userId, []);
+        const recAudio = new Map(state.recordingAudio);
+        recAudio.set(m.userId, []);
+        state.recordingAudio = recAudio;
         ui.render.speakers();
       }
       queue.addChunk(m.userId, m.data);
-      if (state.recordingAudio.has(m.userId)) {
-        state.recordingAudio.get(m.userId).push(new Uint8Array(m.data));
+      const recAudio = state.recordingAudio;
+      if (recAudio.has(m.userId)) {
+        const chunks = recAudio.get(m.userId);
+        chunks.push(new Uint8Array(m.data));
       }
       if (!state.isDeafened && !state.isSpeaking && !state.skipLiveAudio) {
         if (!state.currentLiveSpeaker) state.currentLiveSpeaker = m.userId;
@@ -132,9 +160,13 @@ const message = {
         s.videoChunks.push(m.data);
       }
       if (!state.isDeafened && !state.isSpeaking && !state.skipLiveAudio && state.currentLiveSpeaker === m.userId) {
-        if (!state.incomingVideoChunks) state.incomingVideoChunks = new Map();
-        if (!state.incomingVideoChunks.has(m.userId)) state.incomingVideoChunks.set(m.userId, []);
-        state.incomingVideoChunks.get(m.userId).push(m.data);
+        let incoming = state.incomingVideoChunks;
+        if (!incoming) {
+          incoming = new Map();
+          state.incomingVideoChunks = incoming;
+        }
+        if (!incoming.has(m.userId)) incoming.set(m.userId, []);
+        incoming.get(m.userId).push(m.data);
         webcam.streamChunk(m.userId, m.data, s?.username || `User${m.userId}`);
       }
     },
@@ -175,13 +207,20 @@ const message = {
     const m = { id, text, time: new Date().toLocaleTimeString(), userId, username };
     if (audioData?.length) {
       m.hasAudio = true;
-      state.audioHistory.set(id, audioData);
+      const history = new Map(state.audioHistory);
+      history.set(id, audioData);
+      state.audioHistory = history;
     }
-    state.messages.push(m);
-    if (state.messages.length > 50) {
-      const r = state.messages.shift();
-      if (r.hasAudio) state.audioHistory.delete(r.id);
+    const messages = [...state.messages, m];
+    if (messages.length > 50) {
+      const r = messages.shift();
+      if (r.hasAudio) {
+        const history = new Map(state.audioHistory);
+        history.delete(r.id);
+        state.audioHistory = history;
+      }
     }
+    state.messages = messages;
     ui.render.messages();
   }
 };
