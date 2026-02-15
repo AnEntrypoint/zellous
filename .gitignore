@@ -9,3 +9,11 @@ osjs/dist/
 osjs/node_modules/
 README.md
 .glootie-stop-verified
+.prd
+PLAN.md
+data/sessions/
+data/users/
+data/cleanup.json
+data/rooms/*/messages/
+data/rooms/*/media/
+data/rooms/*/files/
