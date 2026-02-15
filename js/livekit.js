@@ -3,8 +3,6 @@ const lk = {
   room: null,
   _lk: null,
   _qualityInterval: null,
-  _unavailable: false,
-
   // Cache the dynamic import - only load livekit-client once
   async _import() {
     if (!lk._lk) lk._lk = await import('livekit-client');
@@ -12,7 +10,6 @@ const lk = {
   },
 
   async connect(channelName, opts = {}) {
-    if (lk._unavailable) return;
     if (lk.room) await lk.disconnect();
     const { forceRelay = false } = opts;
     const token = auth?.getToken();
@@ -21,7 +18,6 @@ const lk = {
     state.voiceConnectionState = 'connecting';
 
     try {
-      // Fetch token + ICE config from server
       const params = new URLSearchParams({ channel: channelName, identity: username });
       if (forceRelay) params.set('forceRelay', 'true');
 
@@ -30,7 +26,6 @@ const lk = {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: 'HTTP ' + res.status }));
-        if (res.status === 503) lk._unavailable = true;
         throw new Error(err.error || 'Token request failed');
       }
       const data = await res.json();

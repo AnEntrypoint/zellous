@@ -96,6 +96,7 @@ const message = {
 
     // Room
     room_joined: (m) => {
+      if (m.roomId !== state.roomId) return;
       message.add(`Joined room: ${m.roomId}`);
       const members = m.currentUsers.map(u => ({ id: u.id, username: u.username, online: true, isBot: u.isBot, isAuthenticated: u.isAuthenticated }));
       const selfName = state.currentUser?.displayName || state.currentUser?.username || 'You';
