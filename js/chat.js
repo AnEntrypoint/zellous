@@ -15,6 +15,7 @@ const chat = {
       content: trimmed,
       timestamp: Date.now(),
       isAuthenticated: state.isAuthenticated,
+      channelId: state.currentChannel?.id || 'general',
       pending: true
     });
     network.send({ type: 'text_message', content: trimmed, channelId: state.currentChannel?.id || 'general' });
