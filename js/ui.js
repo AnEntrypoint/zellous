@@ -384,6 +384,8 @@ ui.render = {
 ui.actions = {
   switchChannel(channel) {
     state.currentChannel = channel;
+    state.messages = [];
+    message.add(`Switched to #${channel.name}`);
     ui.render.channels();
     ui.render.channelView();
     if (channel.type === 'text') {
