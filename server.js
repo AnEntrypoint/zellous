@@ -566,8 +566,9 @@ app.post('/api/rooms/:roomId/channels', async (req, res) => {
   const { name, type } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name required' });
   if (!['text', 'voice', 'threaded'].includes(type)) return res.status(400).json({ error: 'type must be text, voice, or threaded' });
+  await rooms.ensureRoom(req.params.roomId);
   const channel = await rooms.addChannel(req.params.roomId, { name: name.trim(), type });
-  if (!channel) return res.status(404).json({ error: 'Room not found' });
+  if (!channel) return res.status(500).json({ error: 'Failed to create channel' });
   broadcast({ type: 'channel_created', channel }, null, req.params.roomId);
   res.json({ channel });
 });
