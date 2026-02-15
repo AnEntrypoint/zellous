@@ -334,6 +334,10 @@
       window.stateSignals.voiceConnectionState.value;
       window.stateSignals.voiceConnectionQuality.value;
       window.stateSignals.dataChannelAvailable.value;
+      window.stateSignals.channels.value;
+      window.stateSignals.servers.value;
+      window.stateSignals.currentServerId.value;
+      window.stateSignals.roomMembers.value;
 
       if (window.ui?.render) {
         try { window.ui.render.all?.(); } catch (e) {}
