@@ -1,6 +1,7 @@
 const network = {
   _reconnectDelay: 1000,
   _reconnectMax: 30000,
+  _pendingRoomId: null,
   connect: () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const token = auth?.getToken();
@@ -15,6 +16,7 @@ const network = {
       state.connectionStatus = 'Connected';
       state.isConnected = true;
       network._reconnectDelay = 1000;
+      network._pendingRoomId = state.roomId;
       network.send({ type: 'join_room', roomId: state.roomId });
     };
     ws.onmessage = (e) => message.handle(msgpackr.unpack(new Uint8Array(e.data)));
@@ -44,6 +46,7 @@ const network = {
   },
   switchRoom: (roomId) => {
     state.roomId = roomId;
+    network._pendingRoomId = roomId;
     if (state.ws?.readyState === WebSocket.OPEN) {
       network.send({ type: 'join_room', roomId });
     } else {
@@ -96,8 +99,13 @@ const message = {
 
     // Room
     room_joined: (m) => {
-      if (m.roomId !== state.roomId) return;
-      message.add(`Joined room: ${m.roomId}`);
+      if (m.roomId !== network._pendingRoomId) return;
+      network._pendingRoomId = null;
+      state.roomId = m.roomId;
+      state.messages = [];
+      const srv = (state.servers || []).find(s => s.id === m.roomId);
+      const roomLabel = srv ? srv.name : m.roomId;
+      message.add(`Joined room: ${roomLabel}`);
       const members = m.currentUsers.map(u => ({ id: u.id, username: u.username, online: true, isBot: u.isBot, isAuthenticated: u.isAuthenticated }));
       const selfName = state.currentUser?.displayName || state.currentUser?.username || 'You';
       members.unshift({ id: state.userId, username: selfName, online: true, isAuthenticated: state.isAuthenticated });
