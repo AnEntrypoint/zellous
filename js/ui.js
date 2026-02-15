@@ -1,14 +1,10 @@
 const ui = {
+  // DOM references
   ptt: document.getElementById('pttBtn'),
-  statusDot: document.getElementById('statusDot'),
-  statusText: document.getElementById('statusText'),
-  recordingIndicator: document.getElementById('recording'),
+  pttStatus: document.getElementById('pttStatus'),
+  pttStatusText: document.getElementById('pttStatusText'),
   volumeSlider: document.getElementById('volume'),
   volumeValue: document.getElementById('volValue'),
-  speakers: document.getElementById('speakers'),
-  messages: document.getElementById('messages'),
-  roomName: document.getElementById('roomName'),
-  audioQueueView: document.getElementById('audioQueueView'),
   deafenBtn: document.getElementById('deafenBtn'),
   vadBtn: document.getElementById('vadBtn'),
   vadControls: document.getElementById('vadControls'),
@@ -22,79 +18,297 @@ const ui = {
   webcamVideo: document.getElementById('webcamVideo'),
   webcamResolution: document.getElementById('webcamResolution'),
   webcamFps: document.getElementById('webcamFps'),
+  webcamControls: document.getElementById('webcamControls'),
   inputDevice: document.getElementById('inputDevice'),
   outputDevice: document.getElementById('outputDevice'),
   videoPlayback: document.getElementById('videoPlayback'),
   videoPlaybackVideo: document.getElementById('videoPlaybackVideo'),
   videoPlaybackLabel: document.getElementById('videoPlaybackLabel'),
-  // New elements
-  chatView: document.getElementById('chatView'),
   chatInput: document.getElementById('chatInput'),
-  chatSendBtn: document.getElementById('chatSendBtn'),
+  chatMessages: document.getElementById('chatMessages'),
+  chatMessagesInner: document.getElementById('chatMessagesInner'),
   fileInput: document.getElementById('fileInput'),
-  authBtn: document.getElementById('authBtn'),
+  audioQueueView: document.getElementById('audioQueueView'),
+  // Discord layout elements
+  channelList: document.getElementById('channelList'),
+  memberList: document.getElementById('memberList'),
+  onlineMembers: document.getElementById('onlineMembers'),
+  onlineHeader: document.getElementById('onlineHeader'),
+  chatHeaderName: document.getElementById('chatHeaderName'),
+  chatHeaderIcon: document.getElementById('chatHeaderIcon'),
+  chatHeaderTopic: document.getElementById('chatHeaderTopic'),
+  chatArea: document.getElementById('chatArea'),
+  voiceView: document.getElementById('voiceView'),
+  voiceGrid: document.getElementById('voiceGrid'),
+  threadedView: document.getElementById('threadedView'),
+  voicePanel: document.getElementById('voicePanel'),
+  voicePanelChannel: document.getElementById('voicePanelChannel'),
+  serverHeader: document.getElementById('serverHeader'),
   authModal: document.getElementById('authModal'),
-  filesView: document.getElementById('filesView'),
+  authError: document.getElementById('authError'),
+  userPanelName: document.getElementById('userPanelName'),
+  userPanelTag: document.getElementById('userPanelTag'),
+  userPanelAvatar: document.getElementById('userPanelAvatar'),
+  userStatusDot: document.getElementById('userStatusDot'),
+  mobileTitle: document.getElementById('mobileTitle'),
+  channelSidebar: document.getElementById('channelSidebar'),
+  drawerOverlay: document.getElementById('drawerOverlay'),
+  settingsPopover: document.getElementById('settingsPopover'),
+};
 
-  setStatus: (text, isError) => {
-    ui.statusDot.className = isError ? 'connection-dot offline' : 'connection-dot';
-    ui.statusText.textContent = text;
-  }
+// Helper: get initials from username
+const getInitial = (name) => (name || '?')[0].toUpperCase();
+
+// Helper: get avatar color from user id/name
+const avatarColors = ['#5865f2','#57f287','#feb347','#fe7168','#9b59b6','#1abc9c','#e67e22','#e74c3c'];
+const getAvatarColor = (id) => avatarColors[Math.abs(typeof id === 'number' ? id : (id||'').length) % avatarColors.length];
+
+// Format timestamp Discord style
+const formatTime = (ts) => {
+  const d = new Date(ts);
+  const now = new Date();
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (d.toDateString() === now.toDateString()) return 'Today at ' + time;
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return 'Yesterday at ' + time;
+  return d.toLocaleDateString() + ' ' + time;
 };
 
 ui.render = {
-  speakers: () => {
-    ui.speakers.innerHTML = state.activeSpeakers.size === 0 ? '<div class="empty">No active speakers</div>' :
-      Array.from(state.activeSpeakers).map(id => `<div class="speaker"><div class="speaker-dot"></div><div class="speaker-name">User${id}</div></div>`).join('');
+  all() {
+    this.channels();
+    this.members();
+    this.chat();
+    this.queue();
+    this.authStatus();
+    this.channelView();
+    this.voicePanel();
   },
 
-  messages: () => {
-    if (state.messages.length === 0) {
-      ui.messages.innerHTML = '<div class="empty">No messages yet</div>';
+  messages() {},
+
+  speakers() {},
+
+  channels() {
+    if (!ui.channelList) return;
+    const ch = state.channels;
+    const current = state.currentChannel;
+    let html = '';
+
+    // Text channels category
+    const textChannels = ch.filter(c => c.type === 'text');
+    if (textChannels.length) {
+      html += '<div class="category-header"><svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>TEXT CHANNELS</div>';
+      textChannels.forEach(c => {
+        html += `<div class="channel-item${current.id === c.id ? ' active' : ''}" data-channel="${c.id}" data-type="${c.type}">
+          <span class="channel-icon">#</span>
+          <span class="channel-name">${c.name}</span>
+        </div>`;
+      });
+    }
+
+    // Voice channels category
+    const voiceChannels = ch.filter(c => c.type === 'voice');
+    if (voiceChannels.length) {
+      html += '<div class="category-header"><svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>VOICE CHANNELS</div>';
+      voiceChannels.forEach(c => {
+        html += `<div class="channel-item${current.id === c.id ? ' active' : ''}" data-channel="${c.id}" data-type="${c.type}">
+          <span class="channel-icon">&#128264;</span>
+          <span class="channel-name">${c.name}</span>
+        </div>`;
+        // Show voice participants under voice channel
+        if (state.voiceConnected && state.voiceChannelName === c.name) {
+          html += '<div class="voice-users">';
+          (state.voiceParticipants || []).forEach(p => {
+            const speaking = p.isSpeaking ? ' speaking' : '';
+            html += `<div class="voice-user">
+              <div class="voice-user-avatar${speaking}" style="background:${getAvatarColor(p.identity)}">${getInitial(p.identity)}</div>
+              <span>${p.identity}</span>
+            </div>`;
+          });
+          html += '</div>';
+        }
+      });
+    }
+
+    // Threaded channels category
+    const threadedChannels = ch.filter(c => c.type === 'threaded');
+    if (threadedChannels.length) {
+      html += '<div class="category-header"><svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>THREADED CHANNELS</div>';
+      threadedChannels.forEach(c => {
+        html += `<div class="channel-item${current.id === c.id ? ' active' : ''}" data-channel="${c.id}" data-type="${c.type}">
+          <span class="channel-icon">&#128203;</span>
+          <span class="channel-name">${c.name}</span>
+        </div>`;
+      });
+    }
+
+    ui.channelList.innerHTML = html;
+
+    // Bind click events
+    ui.channelList.querySelectorAll('.channel-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.dataset.channel;
+        const type = el.dataset.type;
+        const ch = state.channels.find(c => c.id === id);
+        if (ch) ui.actions.switchChannel(ch);
+      });
+    });
+  },
+
+  channelView() {
+    const ch = state.currentChannel;
+    if (!ch) return;
+
+    // Hide all views
+    ui.chatArea.style.display = 'none';
+    ui.voiceView.style.display = 'none';
+    ui.threadedView.style.display = 'none';
+
+    // Show the right view
+    if (ch.type === 'text') {
+      ui.chatArea.style.display = 'flex';
+      ui.chatHeaderIcon.textContent = '#';
+      ui.chatHeaderName.textContent = ch.name;
+      ui.chatInput.placeholder = `Message #${ch.name}`;
+    } else if (ch.type === 'voice') {
+      ui.voiceView.style.display = 'flex';
+      ui.chatHeaderIcon.textContent = '\u{1F508}';
+      ui.chatHeaderName.textContent = ch.name;
+      this.voiceGrid();
+    } else if (ch.type === 'threaded') {
+      ui.threadedView.style.display = 'flex';
+      ui.chatHeaderIcon.textContent = '\u{1F4CB}';
+      ui.chatHeaderName.textContent = ch.name;
+    }
+
+    ui.mobileTitle.textContent = (ch.type === 'text' ? '# ' : '') + ch.name;
+  },
+
+  voiceGrid() {
+    if (!ui.voiceGrid) return;
+    const participants = state.voiceParticipants || [];
+    if (participants.length === 0 && !state.voiceConnected) {
+      ui.voiceGrid.innerHTML = '<div class="empty-state">Click to join voice channel</div>';
       return;
     }
-    ui.messages.innerHTML = state.messages.map(m => `<div class="msg"><div class="msg-text">${m.text}</div><div class="msg-time">${m.time}${m.hasAudio ? `<button class="msg-replay" data-msg-id="${m.id}">▶</button>` : ''}</div></div>`).join('');
-    ui.messages.scrollTop = ui.messages.scrollHeight;
-    document.querySelectorAll('.msg-replay').forEach(btn => btn.addEventListener('click', (e) => {
-      const msgId = parseFloat(e.target.dataset.msgId);
-      const msg = state.messages.find(m => m.id === msgId);
-      if (msg?.userId) {
-        const segment = state.audioQueue.find(s => s.userId === msg.userId && Math.abs(s.timestamp.getTime() - msgId) < 5000);
-        if (segment) {
-          queue.replaySegment(segment.id, false);
-          return;
-        }
+    const qDot = (q) => {
+      if (!q || q === 'unknown') return '';
+      return `<span class="quality-dot ${q}" title="${q}"></span>`;
+    };
+    ui.voiceGrid.innerHTML = participants.map(p => {
+      const speaking = p.isSpeaking ? ' speaking' : '';
+      return `<div class="voice-tile">
+        <div class="voice-tile-avatar${speaking}" style="background:${getAvatarColor(p.identity)}">
+          ${getInitial(p.identity)}
+        </div>
+        <div class="voice-tile-name">${p.identity} ${qDot(p.connectionQuality)}</div>
+        ${p.isMuted ? '<div class="voice-tile-muted">Muted</div>' : ''}
+      </div>`;
+    }).join('');
+  },
+
+  members() {
+    if (!ui.onlineMembers) return;
+    const members = state.roomMembers || [];
+    const online = members.filter(m => m.online !== false);
+    ui.onlineHeader.textContent = `ONLINE \u2014 ${online.length}`;
+    ui.onlineMembers.innerHTML = online.map(m => `
+      <div class="member-item">
+        <div class="member-avatar" style="background:${getAvatarColor(m.id)}">
+          ${getInitial(m.username)}
+          <div class="member-status"></div>
+        </div>
+        <span class="member-name">${m.username}</span>
+      </div>
+    `).join('') || '';
+  },
+
+  chat() {
+    if (!ui.chatMessagesInner) return;
+    const msgs = chat?.messages || [];
+    if (msgs.length === 0) {
+      ui.chatMessagesInner.innerHTML = '<div class="empty-state">No messages yet. Say something!</div>';
+      return;
+    }
+
+    let html = '';
+    let lastUser = null;
+    let lastTime = 0;
+
+    msgs.forEach(m => {
+      const sameUser = m.userId === lastUser && (m.timestamp - lastTime) < 420000; // 7 min grouping
+      const time = formatTime(m.timestamp);
+      const shortTime = new Date(m.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      const username = m.username || 'User';
+      const color = getAvatarColor(m.userId);
+
+      if (!sameUser) {
+        html += `<div class="msg-group">
+          <div class="msg-avatar" style="background:${color}">${getInitial(username)}</div>
+          <span class="msg-username" style="color:${color}">${chat.escapeHtml(username)}</span>
+          <span class="msg-timestamp">${time}</span>`;
+      } else {
+        html += `<div class="msg-cont">
+          <span class="msg-hover-time">${shortTime}</span>`;
       }
-      audio.replay(msgId);
-    }));
+
+      // Content based on type
+      switch (m.type) {
+        case 'image':
+          html += chat.createImagePreview(m);
+          break;
+        case 'file':
+          html += chat.createFileAttachment(m);
+          break;
+        default:
+          html += `<div class="msg-content">${chat.linkify(m.content || '')}</div>`;
+      }
+
+      html += '</div>';
+      lastUser = m.userId;
+      lastTime = m.timestamp;
+    });
+
+    ui.chatMessagesInner.innerHTML = html;
+    ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
   },
 
-  roomName: () => {
-    ui.roomName.textContent = state.roomId;
-  },
-
-  queue: () => {
+  queue() {
+    if (!ui.audioQueueView) return;
     const all = [...Array.from(state.activeSegments.values()), ...state.audioQueue];
     if (all.length === 0) {
-      ui.audioQueueView.innerHTML = '<div class="empty">Queue empty</div>';
+      ui.audioQueueView.innerHTML = '<div class="empty-state">Queue empty</div>';
       return;
     }
     let html = state.activeSpeakers.size > 0 && !state.skipLiveAudio
-      ? '<button class="skip-btn" id="skipLiveBtn">⏭ Skip Live</button>'
-      : (state.skipLiveAudio && state.activeSpeakers.size > 0 ? '<button class="skip-btn resume" id="resumeLiveBtn">▶ Resume Live</button>' : '');
+      ? '<button class="skip-btn" id="skipLiveBtn">Skip Live</button>'
+      : (state.skipLiveAudio && state.activeSpeakers.size > 0 ? '<button class="skip-btn resume" id="resumeLiveBtn">Resume Live</button>' : '');
 
     all.forEach(s => {
       const replaying = state.replayingSegmentId === s.id;
-      const icon = replaying ? '🔊' : { recording: '🔴', queued: '⏸', playing: '▶', played: '✓' }[s.status] || '•';
+      const icon = replaying ? '\u{1F50A}' : { recording: '\u{1F534}', queued: '\u23F8', playing: '\u25B6', played: '\u2713' }[s.status] || '\u2022';
       const clickable = s.chunks.length > 0 && s.status !== 'recording';
-      html += `<div class="queue-item ${s.status}${replaying ? ' replaying' : ''}"><span class="queue-icon">${icon}</span><div class="queue-info"><div class="queue-name">${s.username}${s.isOwnAudio ? ' (You)' : ''}${s.videoChunks?.length ? ' 📹' : ''}</div><div class="queue-meta">${s.timestamp.toLocaleTimeString()} · ${s.chunks.length}</div></div>${clickable ? `<div class="queue-actions"><button class="queue-btn" data-play="${s.id}">▶</button><button class="queue-btn" data-dl="${s.id}">⬇</button></div>` : ''}</div>`;
+      html += `<div class="queue-item ${s.status}${replaying ? ' replaying' : ''}">
+        <span class="queue-icon">${icon}</span>
+        <div class="queue-info">
+          <div class="queue-name">${s.username}${s.isOwnAudio ? ' (You)' : ''}${s.videoChunks?.length ? ' \u{1F4F9}' : ''}</div>
+          <div class="queue-meta">${s.timestamp.toLocaleTimeString()} \u00B7 ${s.chunks.length} chunks</div>
+        </div>
+        ${clickable ? `<div class="queue-actions">
+          <button class="queue-btn" data-play="${s.id}">\u25B6</button>
+          <button class="queue-btn" data-dl="${s.id}">\u2B07</button>
+        </div>` : ''}
+      </div>`;
     });
     ui.audioQueueView.innerHTML = html;
-    document.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', e => {
+
+    ui.audioQueueView.querySelectorAll('[data-play]').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation();
       queue.replaySegment(parseInt(b.dataset.play), true);
     }));
-    document.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', e => {
+    ui.audioQueueView.querySelectorAll('[data-dl]').forEach(b => b.addEventListener('click', e => {
       e.stopPropagation();
       queue.downloadSegment(parseInt(b.dataset.dl));
     }));
@@ -102,110 +316,130 @@ ui.render = {
     document.getElementById('resumeLiveBtn')?.addEventListener('click', () => audio.resumeLive());
   },
 
-  // Chat rendering
-  chat: () => {
-    if (!ui.chatView) return;
-    if (chat.messages.length === 0) {
-      ui.chatView.innerHTML = '<div class="empty">No chat messages yet</div>';
-      return;
-    }
-
-    const html = chat.messages.map(m => {
-      const time = chat.formatTime(m.timestamp);
-      const userClass = m.isAuthenticated ? 'authenticated' : '';
-      let content = '';
-
-      switch (m.type) {
-        case 'text':
-          content = `<div class="chat-text">${chat.linkify(m.content)}</div>`;
-          break;
-        case 'image':
-          content = chat.createImagePreview(m);
-          break;
-        case 'file':
-          content = chat.createFileAttachment(m);
-          break;
-        default:
-          content = `<div class="chat-text">${chat.escapeHtml(m.content || '')}</div>`;
-      }
-
-      return `<div class="chat-msg ${userClass}">
-        <div class="chat-header">
-          <span class="chat-username">${chat.escapeHtml(m.username || 'User')}</span>
-          <span class="chat-time">${time}</span>
-        </div>
-        ${content}
-      </div>`;
-    }).join('');
-
-    ui.chatView.innerHTML = html;
-    ui.chatView.scrollTop = ui.chatView.scrollHeight;
-  },
-
-  // Files rendering
-  files: () => {
-    if (!ui.filesView) return;
-    if (state.fileList.length === 0) {
-      ui.filesView.innerHTML = '<div class="empty">No files in this folder</div>';
-      return;
-    }
-
-    let html = state.currentFilePath
-      ? `<div class="file-item folder" onclick="ui.actions.browseFiles('..')"><span class="file-icon">📁</span><span class="file-name">..</span></div>`
-      : '';
-
-    state.fileList.forEach(f => {
-      if (f.type === 'directory') {
-        html += `<div class="file-item folder" onclick="ui.actions.browseFiles('${f.name}')">
-          <span class="file-icon">📁</span>
-          <span class="file-name">${chat.escapeHtml(f.name)}</span>
-        </div>`;
-      } else {
-        const icon = chat.getFileIcon(f.mimeType);
-        html += `<div class="file-item">
-          <span class="file-icon">${icon}</span>
-          <div class="file-info">
-            <span class="file-name">${chat.escapeHtml(f.originalName)}</span>
-            <span class="file-size">${chat.formatSize(f.size)}</span>
-          </div>
-          <button class="file-dl-btn" onclick="fileTransfer.download('${f.id}', '${f.originalName}')">⬇</button>
-        </div>`;
-      }
-    });
-
-    ui.filesView.innerHTML = html;
-  },
-
-  // Auth status
-  authStatus: () => {
-    if (!ui.authBtn) return;
-    if (state.isAuthenticated && state.currentUser) {
-      ui.authBtn.textContent = state.currentUser.displayName || state.currentUser.username;
-      ui.authBtn.classList.add('authenticated');
+  voicePanel() {
+    if (!state.voiceConnected) return;
+    const header = document.querySelector('.voice-panel-header');
+    if (!header) return;
+    const cs = state.voiceConnectionState;
+    if (cs === 'reconnecting') {
+      header.innerHTML = '<span style="color:var(--status-warning)">\u25CF</span> Reconnecting\u2026';
+    } else if (cs === 'connected') {
+      const qc = { excellent: 'var(--status-positive)', good: 'var(--status-positive)', poor: 'var(--status-warning)', lost: 'var(--status-danger)' }[state.voiceConnectionQuality] || 'var(--status-positive)';
+      header.innerHTML = `<span style="color:${qc}">\u25CF</span> Voice Connected`;
     } else {
-      ui.authBtn.textContent = 'Login';
-      ui.authBtn.classList.remove('authenticated');
+      header.innerHTML = '<span style="color:var(--status-danger)">\u25CF</span> Disconnected';
+    }
+  },
+
+  authStatus() {
+    if (!ui.userPanelName) return;
+    if (state.isAuthenticated && state.currentUser) {
+      const name = state.currentUser.displayName || state.currentUser.username;
+      ui.userPanelName.textContent = name;
+      ui.userPanelTag.textContent = '@' + state.currentUser.username;
+      ui.userPanelAvatar.childNodes[0].textContent = getInitial(name);
+      ui.userStatusDot.classList.add('online');
+    } else {
+      ui.userPanelName.textContent = 'Not logged in';
+      ui.userPanelTag.textContent = 'Click to login';
+      ui.userPanelAvatar.childNodes[0].textContent = '?';
+      ui.userStatusDot.classList.remove('online');
     }
   }
 };
 
 // UI Actions
 ui.actions = {
-  sendChat: () => {
-    const input = ui.chatInput;
-    if (!input) return;
-    const content = input.value.trim();
-    if (content) {
-      chat.send(content);
-      input.value = '';
+  switchChannel(channel) {
+    state.currentChannel = channel;
+    ui.render.channels();
+    ui.render.channelView();
+    // Auto-connect to voice channels via LiveKit
+    if (channel.type === 'voice' && !state.voiceConnected && window.lk) {
+      const forceRelay = localStorage.getItem('zellous_forceRelay') === 'true';
+      lk.connect(channel.name, { forceRelay });
+    }
+    // Close mobile drawer
+    ui.channelSidebar.classList.remove('open');
+    ui.drawerOverlay.classList.remove('open');
+  },
+
+  showAuthModal() {
+    const modal = ui.authModal;
+    if (!modal) return;
+    modal.classList.add('open');
+    ui.authError.style.display = 'none';
+    if (auth.isLoggedIn()) {
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('userMenu').style.display = 'block';
+      document.getElementById('authModalTabs').style.display = 'none';
+      document.getElementById('authModalTitle').textContent = 'Account';
+      document.getElementById('authModalSubtitle').textContent = '';
+      const name = auth.user.displayName || auth.user.username;
+      document.getElementById('profileAvatar').textContent = getInitial(name);
+      document.getElementById('profileName').textContent = name;
+      document.getElementById('profileTag').textContent = '@' + auth.user.username;
+    } else {
+      document.getElementById('loginForm').style.display = 'block';
+      document.getElementById('registerForm').style.display = 'none';
+      document.getElementById('userMenu').style.display = 'none';
+      document.getElementById('authModalTabs').style.display = 'flex';
+      document.getElementById('authModalTitle').textContent = 'Welcome back!';
+      document.getElementById('authModalSubtitle').textContent = 'Log in to continue to Zellous';
+      document.getElementById('loginTab').classList.add('active');
+      document.getElementById('registerTab').classList.remove('active');
     }
   },
 
-  uploadFile: () => {
+  hideAuthModal() {
+    ui.authModal?.classList.remove('open');
+  },
+
+  async login(username, password) {
+    try {
+      ui.authError.style.display = 'none';
+      await auth.login(username, password);
+      ui.actions.hideAuthModal();
+      ui.render.authStatus();
+    } catch (e) {
+      ui.authError.textContent = e.message;
+      ui.authError.style.display = 'block';
+    }
+  },
+
+  async register(username, password, displayName) {
+    try {
+      ui.authError.style.display = 'none';
+      await auth.register(username, password, displayName);
+      await auth.login(username, password);
+      ui.actions.hideAuthModal();
+      ui.render.authStatus();
+    } catch (e) {
+      ui.authError.textContent = e.message;
+      ui.authError.style.display = 'block';
+    }
+  },
+
+  async logout() {
+    await auth.logout();
+    ui.actions.hideAuthModal();
+    ui.render.authStatus();
+  },
+
+  sendChat() {
+    const content = ui.chatInput?.value?.trim();
+    if (content) {
+      chat.send(content);
+      ui.chatInput.value = '';
+    }
+  },
+
+  uploadFile() {
     ui.fileInput?.click();
   },
 
-  handleFileSelect: (e) => {
+  handleFileSelect(e) {
     const files = e.target.files;
     if (!files?.length) return;
     for (const file of files) {
@@ -218,52 +452,30 @@ ui.actions = {
     e.target.value = '';
   },
 
-  browseFiles: (path) => {
-    let newPath = state.currentFilePath;
-    if (path === '..') {
-      newPath = newPath.split('/').slice(0, -1).join('/');
-    } else {
-      newPath = newPath ? `${newPath}/${path}` : path;
-    }
-    network.send({ type: 'get_files', path: newPath });
+  toggleMembers() {
+    const ml = document.getElementById('memberList');
+    ml.classList.toggle('open');
   },
 
-  showAuthModal: () => {
-    if (ui.authModal) {
-      ui.authModal.classList.add('open');
-    }
+  toggleQueue() {
+    const qs = document.getElementById('queueSidebar');
+    qs.classList.toggle('open');
   },
 
-  hideAuthModal: () => {
-    if (ui.authModal) {
-      ui.authModal.classList.remove('open');
-    }
+  toggleSettings() {
+    ui.settingsPopover.classList.toggle('open');
   },
 
-  login: async (username, password) => {
-    try {
-      await auth.login(username, password);
-      ui.actions.hideAuthModal();
-      ui.render.authStatus();
-    } catch (e) {
-      alert(e.message);
-    }
+  openMobileMenu() {
+    ui.channelSidebar.classList.add('open');
+    ui.drawerOverlay.classList.add('open');
   },
 
-  register: async (username, password, displayName) => {
-    try {
-      await auth.register(username, password, displayName);
-      await auth.login(username, password);
-      ui.actions.hideAuthModal();
-      ui.render.authStatus();
-    } catch (e) {
-      alert(e.message);
-    }
-  },
-
-  logout: async () => {
-    await auth.logout();
-    ui.render.authStatus();
+  closeMobileMenu() {
+    ui.channelSidebar.classList.remove('open');
+    ui.drawerOverlay.classList.remove('open');
+    document.getElementById('memberList').classList.remove('open');
+    document.getElementById('queueSidebar')?.classList.remove('open');
   }
 };
 

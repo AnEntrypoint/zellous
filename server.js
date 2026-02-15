@@ -535,6 +535,62 @@ app.get('/api/rooms/:roomId/messages', async (req, res) => {
 
 setupBotApiRoutes(app, state, broadcast);
 
+// LiveKit setup - cache SDK import and build static config once
+let _lkSdk = null;
+const lkConfig = {
+  url: process.env.LIVEKIT_URL || '',
+  apiKey: process.env.LIVEKIT_API_KEY || '',
+  apiSecret: process.env.LIVEKIT_API_SECRET || '',
+  turnUrl: process.env.LIVEKIT_TURN_URL || '',
+  turnUsername: process.env.LIVEKIT_TURN_USERNAME || '',
+  turnCredential: process.env.LIVEKIT_TURN_CREDENTIAL || '',
+};
+
+async function getLkSdk() {
+  if (!_lkSdk) _lkSdk = await import('livekit-server-sdk');
+  return _lkSdk;
+}
+
+// Pre-build ICE server list once (immutable at runtime)
+const iceServers = (() => {
+  const servers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+  if (lkConfig.turnUrl && lkConfig.turnUsername && lkConfig.turnCredential) {
+    servers.push({ urls: [lkConfig.turnUrl], username: lkConfig.turnUsername, credential: lkConfig.turnCredential });
+  }
+  return servers;
+})();
+const hasTurn = iceServers.length > 1;
+
+// LiveKit token endpoint
+app.get('/api/livekit/token', optionalAuth, async (req, res) => {
+  const { channel, identity, forceRelay } = req.query;
+  if (!channel || !identity) return res.status(400).json({ error: 'channel and identity required' });
+  if (identity.length > 128 || channel.length > 64) return res.status(400).json({ error: 'identity or channel too long' });
+
+  if (!lkConfig.url || !lkConfig.apiKey || !lkConfig.apiSecret) {
+    return res.status(503).json({ error: 'LiveKit not configured' });
+  }
+
+  try {
+    const { AccessToken } = await getLkSdk();
+    const roomName = `zellous-${channel}`;
+    const token = new AccessToken(lkConfig.apiKey, lkConfig.apiSecret, { identity, ttl: '6h' });
+    token.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true, canPublishData: true });
+    const jwt = await token.toJwt();
+
+    let rtcConfig = undefined;
+    if (hasTurn) {
+      rtcConfig = { iceServers };
+      if (forceRelay === 'true') rtcConfig = { iceServers, iceTransportPolicy: 'relay' };
+    }
+
+    res.json({ token: jwt, url: lkConfig.url, rtcConfig });
+  } catch (e) {
+    logger.error('[LiveKit] Token generation failed:', e.message);
+    res.status(500).json({ error: 'Failed to generate voice token' });
+  }
+});
+
 
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';

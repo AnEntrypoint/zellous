@@ -121,26 +121,25 @@ const chat = {
     return mimeType?.startsWith('image/');
   },
 
-  // Create image preview element
+  // Create image preview element (Discord style)
   createImagePreview(msg) {
     const url = this.getImageUrl(state.roomId, msg.metadata.fileId);
-    return `<div class="chat-image">
+    return `<div class="msg-image">
       <img src="${url}" alt="${msg.metadata.filename || 'image'}" loading="lazy" onclick="chat.openImage('${url}')">
-      ${msg.content ? `<div class="chat-image-caption">${this.escapeHtml(msg.content)}</div>` : ''}
+      ${msg.content ? `<div class="msg-image-caption">${this.escapeHtml(msg.content)}</div>` : ''}
     </div>`;
   },
 
-  // Create file attachment element
+  // Create file attachment element (Discord style)
   createFileAttachment(msg) {
     const url = this.getFileUrl(state.roomId, msg.metadata.fileId);
     const icon = this.getFileIcon(msg.metadata.mimeType);
-    return `<div class="chat-file">
-      <span class="chat-file-icon">${icon}</span>
-      <div class="chat-file-info">
-        <a href="${url}" download="${msg.metadata.filename}" class="chat-file-name">${this.escapeHtml(msg.metadata.filename)}</a>
-        <div class="chat-file-size">${this.formatSize(msg.metadata.size)}</div>
+    return `<div class="msg-file">
+      <span class="msg-file-icon">${icon}</span>
+      <div class="msg-file-info">
+        <a href="${url}" download="${msg.metadata.filename}" class="msg-file-name">${this.escapeHtml(msg.metadata.filename)}</a>
+        <div class="msg-file-size">${this.formatSize(msg.metadata.size)}</div>
       </div>
-      ${msg.content ? `<div class="chat-file-desc">${this.escapeHtml(msg.content)}</div>` : ''}
     </div>`;
   },
 

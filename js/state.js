@@ -84,7 +84,42 @@ const state = {
   connectionStatus: signal('Connecting...'),
 
   // User directory
-  users: signal(new Map())
+  users: signal(new Map()),
+
+  // Channel state
+  currentChannel: signal({ id: 'general', type: 'text', name: 'general' }),
+  channels: signal([
+    { id: 'general', type: 'text', name: 'general' },
+    { id: 'voice', type: 'voice', name: 'Voice Chat' },
+    { id: 'queue', type: 'threaded', name: 'Audio Queue' }
+  ]),
+
+  // LiveKit state
+  voiceConnected: signal(false),
+  voiceChannelName: signal(''),
+  voiceParticipants: signal([]),
+  livekitRoom: signal(null),
+  micMuted: signal(false),
+
+  // LiveKit connection quality & resilience
+  voiceConnectionQuality: signal('unknown'),
+  voiceConnectionState: signal('disconnected'),
+  voiceReconnectAttempts: signal(0),
+
+  // Data channel transport
+  dataChannelAvailable: signal(false),
+  useDataChannel: signal(false),
+
+  // Voice deafen (separate from threaded isDeafened)
+  voiceDeafened: signal(false),
+
+  // Member list
+  roomMembers: signal([]),
+
+  // UI panels
+  membersVisible: signal(true),
+  queueVisible: signal(true),
+  settingsOpen: signal(false),
 };
 
 // Create a proxy that makes signals transparent to legacy code
