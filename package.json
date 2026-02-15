@@ -35,6 +35,7 @@
     "express": "^4.18.2",
     "livekit-server-sdk": "^2.15.0",
     "msgpackr": "^1.11.5",
+    "puppeteer": "^24.37.3",
     "ws": "^8.14.2"
   },
   "devDependencies": {

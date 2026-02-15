@@ -252,7 +252,13 @@ window.zellousDebug = { state, config, audio, message, network, ptt, queue, deaf
   ui.render.channelView();
   ui.render.authStatus();
   await audioIO.init();
+  const lastServer = localStorage.getItem('zellous_lastServer');
+  if (lastServer) {
+    state.currentServerId = lastServer;
+    state.roomId = lastServer;
+  }
   network.connect();
   ui_events.setup();
   osjsIntegration.wrapPtt();
+  if (window.serverManager) serverManager.loadServers();
 })();

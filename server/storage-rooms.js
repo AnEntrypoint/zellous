@@ -1,9 +1,15 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
-import { DATA_ROOT, ensureDir, CLEANUP_TIMEOUT } from './storage-utils.js';
+import { DATA_ROOT, ensureDir, CLEANUP_TIMEOUT, shortId } from './storage-utils.js';
 import logger from '@sequentialos/sequential-logging';
 import { nowISO, createTimestamps, updateTimestamp } from '@sequentialos/timestamp-utilities';
 import { delay, withRetry } from '@sequentialos/async-patterns';
+
+const DEFAULT_CHANNELS = [
+  { id: 'general', type: 'text', name: 'general' },
+  { id: 'voice', type: 'voice', name: 'Voice Chat' },
+  { id: 'queue', type: 'threaded', name: 'Audio Queue' }
+];
 
 const rooms = {
   async ensureRoom(roomId) {
@@ -18,12 +24,14 @@ const rooms = {
     try {
       meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
       meta.lastActivityAt = Date.now();
+      if (!meta.channels) meta.channels = [...DEFAULT_CHANNELS];
     } catch {
       meta = {
         id: roomId,
         createdAt: Date.now(),
         lastActivityAt: Date.now(),
-        userCount: 0
+        userCount: 0,
+        channels: [...DEFAULT_CHANNELS]
       };
     }
     await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
@@ -100,6 +108,43 @@ const rooms = {
     } catch (e) {
       logger.error(`[Storage] Failed to cleanup room ${roomId}:`, e.message);
     }
+  },
+
+  async getChannels(roomId) {
+    const meta = await this.getMeta(roomId);
+    return meta?.channels || [...DEFAULT_CHANNELS];
+  },
+
+  async addChannel(roomId, { name, type, permissions }) {
+    const meta = await this.getMeta(roomId);
+    if (!meta) return null;
+    if (!meta.channels) meta.channels = [...DEFAULT_CHANNELS];
+    const id = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') + '-' + shortId().slice(0, 4);
+    const channel = { id, type: type || 'text', name, permissions: permissions || null };
+    meta.channels.push(channel);
+    await this.updateMeta(roomId, { channels: meta.channels });
+    return channel;
+  },
+
+  async updateChannel(roomId, channelId, updates) {
+    const meta = await this.getMeta(roomId);
+    if (!meta?.channels) return null;
+    const ch = meta.channels.find(c => c.id === channelId);
+    if (!ch) return null;
+    if (updates.name) ch.name = updates.name;
+    if (updates.permissions !== undefined) ch.permissions = updates.permissions;
+    await this.updateMeta(roomId, { channels: meta.channels });
+    return ch;
+  },
+
+  async deleteChannel(roomId, channelId) {
+    const meta = await this.getMeta(roomId);
+    if (!meta?.channels) return false;
+    const idx = meta.channels.findIndex(c => c.id === channelId);
+    if (idx === -1) return false;
+    meta.channels.splice(idx, 1);
+    await this.updateMeta(roomId, { channels: meta.channels });
+    return true;
   }
 };
 

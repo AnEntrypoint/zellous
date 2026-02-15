@@ -84,8 +84,16 @@ const message = {
       const selfName = state.currentUser?.displayName || state.currentUser?.username || 'You';
       members.unshift({ id: state.userId, username: selfName, online: true, isAuthenticated: state.isAuthenticated });
       state.roomMembers = members;
+      if (m.channels?.length) {
+        state.channels = m.channels;
+        const cur = state.currentChannel;
+        if (!m.channels.find(c => c.id === cur?.id)) {
+          state.currentChannel = m.channels[0] || { id: 'general', type: 'text', name: 'general' };
+        }
+      }
       m.currentUsers.forEach(u => message.add(`${u.username} is online`, null, u.id, u.username));
       ui.render.channels?.();
+      ui.render.channelView?.();
       ui.render.members?.();
     },
     user_joined: (m) => {
@@ -108,8 +116,30 @@ const message = {
       if (state.activeSegments.has(m.userId)) queue.completeSegment(m.userId);
       if (!state.currentSegmentId && !state.replayingSegmentId) queue.playNext();
     },
-    user_updated: (m) => {
-      // Update username in active speakers/segments if needed
+    user_updated: (m) => {},
+
+    channel_created: (m) => {
+      const channels = [...state.channels, m.channel];
+      state.channels = channels;
+      ui.render.channels?.();
+    },
+    channel_updated: (m) => {
+      const channels = state.channels.map(c => c.id === m.channel.id ? { ...c, ...m.channel } : c);
+      state.channels = channels;
+      if (state.currentChannel?.id === m.channel.id) {
+        state.currentChannel = channels.find(c => c.id === m.channel.id);
+        ui.render.channelView?.();
+      }
+      ui.render.channels?.();
+    },
+    channel_deleted: (m) => {
+      const channels = state.channels.filter(c => c.id !== m.channelId);
+      state.channels = channels;
+      if (state.currentChannel?.id === m.channelId && channels.length > 0) {
+        state.currentChannel = channels[0];
+        ui.render.channelView?.();
+      }
+      ui.render.channels?.();
     },
 
     // Audio
@@ -224,6 +254,28 @@ const message = {
       state.fileList = m.files;
       state.currentFilePath = m.path;
       ui.render.files?.();
+    },
+
+    message_deleted: (m) => {
+      const msgs = (state.chatMessages || []).filter(msg => msg.id !== m.messageId);
+      state.chatMessages = msgs;
+      ui.render.chat?.();
+    },
+    user_kicked: (m) => {
+      if (m.userId === state.userId) {
+        message.add('You were kicked from this server');
+        if (window.serverManager) serverManager.switchTo(null);
+      } else {
+        message.add(`User was kicked`);
+      }
+    },
+    user_banned: (m) => {
+      if (m.userId === state.userId) {
+        message.add('You were banned from this server');
+        if (window.serverManager) serverManager.switchTo(null);
+      } else {
+        message.add(`User was banned`);
+      }
     }
   },
 

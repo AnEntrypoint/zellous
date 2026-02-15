@@ -120,6 +120,10 @@ const state = {
   membersVisible: signal(true),
   queueVisible: signal(true),
   settingsOpen: signal(false),
+
+  // Server/guild state
+  servers: signal([]),
+  currentServerId: signal(null),
 };
 
 // Create a proxy that makes signals transparent to legacy code
