@@ -83,9 +83,12 @@ const collectRoomClients = (roomId, exclude = null) => {
 const joinRoom = async (client, roomId) => {
   const oldRoomId = client.roomId;
 
-  if (oldRoomId && state.roomUsers.has(oldRoomId)) {
+  if (oldRoomId && oldRoomId !== roomId && state.roomUsers.has(oldRoomId)) {
     state.roomUsers.get(oldRoomId).delete(client.id);
-    if (state.roomUsers.get(oldRoomId).size === 0) {
+    broadcast({ type: 'user_left', userId: client.id }, client, oldRoomId);
+    const oldCount = state.roomUsers.get(oldRoomId).size;
+    await rooms.setUserCount(oldRoomId, oldCount);
+    if (oldCount === 0) {
       state.roomUsers.delete(oldRoomId);
       await rooms.scheduleCleanup(oldRoomId);
     }

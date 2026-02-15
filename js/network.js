@@ -31,12 +31,24 @@ const network = {
     };
   },
   reconnect: () => {
-    if (state.ws) {
-      state.ws.onclose = null;
-      state.ws.close();
+    const ws = state.ws;
+    if (ws) {
+      ws.onclose = null;
+      ws.onerror = null;
+      ws.close();
+      state.ws = null;
     }
+    state.isConnected = false;
     network._reconnectDelay = 1000;
     network.connect();
+  },
+  switchRoom: (roomId) => {
+    state.roomId = roomId;
+    if (state.ws?.readyState === WebSocket.OPEN) {
+      network.send({ type: 'join_room', roomId });
+    } else {
+      network.reconnect();
+    }
   },
   send: (msg) => {
     if (state.ws?.readyState === WebSocket.OPEN) {
@@ -89,12 +101,11 @@ const message = {
       const selfName = state.currentUser?.displayName || state.currentUser?.username || 'You';
       members.unshift({ id: state.userId, username: selfName, online: true, isAuthenticated: state.isAuthenticated });
       state.roomMembers = members;
-      if (m.channels?.length) {
-        state.channels = m.channels;
-        const cur = state.currentChannel;
-        if (!m.channels.find(c => c.id === cur?.id)) {
-          state.currentChannel = m.channels[0] || { id: 'general', type: 'text', name: 'general' };
-        }
+      const channels = m.channels || [];
+      state.channels = channels;
+      const cur = state.currentChannel;
+      if (!channels.find(c => c.id === cur?.id)) {
+        state.currentChannel = channels[0] || { id: 'general', type: 'text', name: 'general' };
       }
       m.currentUsers.forEach(u => message.add(`${u.username} is online`, null, u.id, u.username));
       ui.render.channels?.();

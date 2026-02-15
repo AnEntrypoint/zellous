@@ -248,15 +248,15 @@ window.osjsIntegration = osjsIntegration;
 window.zellousDebug = { state, config, audio, message, network, ptt, queue, deafen, vad, webcam, lk };
 
 (async () => {
-  ui.render.channels();
-  ui.render.channelView();
-  ui.render.authStatus();
-  await audioIO.init();
   const lastServer = localStorage.getItem('zellous_lastServer');
   if (lastServer) {
     state.currentServerId = lastServer;
     state.roomId = lastServer;
   }
+  ui.render.channels();
+  ui.render.channelView();
+  ui.render.authStatus();
+  await audioIO.init();
   network.connect();
   ui_events.setup();
   osjsIntegration.wrapPtt();
