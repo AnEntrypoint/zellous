@@ -37,6 +37,21 @@ const network = {
       msg.roomId = state.roomId;
       state.ws.send(msgpackr.pack(msg));
     }
+  },
+  // Route audio messages through LiveKit data channel when available, WS as fallback.
+  // Always also sends to WS for server-side recording unless DC-only mode.
+  sendAudio: (msg) => {
+    if (window.lk?.isDataChannelReady()) {
+      if (msg.type === 'audio_chunk') {
+        lk.sendData('audio_chunk', new Uint8Array(msg.data), true);
+      } else {
+        lk.sendData(msg.type, JSON.stringify({ type: msg.type }), true);
+      }
+      // Still send to WS for server persistence/recording
+      network.send(msg);
+      return;
+    }
+    network.send(msg);
   }
 };
 
@@ -65,12 +80,27 @@ const message = {
     // Room
     room_joined: (m) => {
       message.add(`Joined room: ${m.roomId}`);
+      const members = m.currentUsers.map(u => ({ id: u.id, username: u.username, online: true, isBot: u.isBot, isAuthenticated: u.isAuthenticated }));
+      const selfName = state.currentUser?.displayName || state.currentUser?.username || 'You';
+      members.unshift({ id: state.userId, username: selfName, online: true, isAuthenticated: state.isAuthenticated });
+      state.roomMembers = members;
       m.currentUsers.forEach(u => message.add(`${u.username} is online`, null, u.id, u.username));
-      ui.render.roomName();
+      ui.render.channels?.();
+      ui.render.members?.();
     },
-    user_joined: (m) => message.add(`${m.user} joined`, null, m.userId, m.user),
+    user_joined: (m) => {
+      message.add(`${m.user} joined`, null, m.userId, m.user);
+      const members = [...state.roomMembers];
+      if (!members.find(x => x.id === m.userId)) {
+        members.push({ id: m.userId, username: m.user, online: true, isBot: m.isBot, isAuthenticated: m.isAuthenticated });
+        state.roomMembers = members;
+      }
+      ui.render.members?.();
+    },
     user_left: (m) => {
       message.add('User left', null, m.userId);
+      state.roomMembers = state.roomMembers.filter(x => x.id !== m.userId);
+      ui.render.members?.();
       const speakers = new Set(state.activeSpeakers);
       speakers.delete(m.userId);
       state.activeSpeakers = speakers;

@@ -5,7 +5,7 @@ const audio = {
         const buffer = new Uint8Array(chunk.byteLength);
         chunk.copyTo(buffer);
         state.ownAudioChunks.push(new Uint8Array(buffer));
-        network.send({ type: 'audio_chunk', data: buffer });
+        network.sendAudio({ type: 'audio_chunk', data: buffer });
       },
       error: () => {}
     });
