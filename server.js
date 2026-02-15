@@ -167,11 +167,13 @@ const handlers = {
       isAuthenticated: client.isAuthenticated
     }, client, roomId);
 
-    const recentMsgs = await messages.getRecent(roomId, 50);
+    const defaultChannel = channels.length > 0 ? channels.find(c => c.type === 'text')?.id || channels[0].id : 'general';
+    const recentMsgs = await messages.getRecent(roomId, 50, null, defaultChannel);
     if (recentMsgs.length > 0) {
       client.ws.send(pack({
         type: 'message_history',
-        messages: recentMsgs
+        messages: recentMsgs,
+        channelId: defaultChannel
       }));
     }
   },
@@ -226,21 +228,24 @@ const handlers = {
   },
 
   text_message: async (client, msg) => {
+    const channelId = msg.channelId || 'general';
     const msgData = await messages.save(client.roomId, {
       userId: client.id,
       username: client.username,
       type: 'text',
-      content: msg.content
+      content: msg.content,
+      channelId
     });
 
     broadcast({
-      type: 'text_message',
       ...msgData,
+      type: 'text_message',
       isAuthenticated: client.isAuthenticated
     }, client, client.roomId);
   },
 
   image_message: async (client, msg) => {
+    const channelId = msg.channelId || 'general';
     const imageBuffer = Buffer.from(msg.data, 'base64');
     const fileMeta = await files.save(
       client.roomId,
@@ -255,6 +260,7 @@ const handlers = {
       username: client.username,
       type: 'image',
       content: msg.caption || '',
+      channelId,
       metadata: {
         fileId: fileMeta.id,
         filename: fileMeta.originalName,
@@ -264,8 +270,8 @@ const handlers = {
     });
 
     broadcast({
-      type: 'image_message',
       ...msgData,
+      type: 'image_message',
       isAuthenticated: client.isAuthenticated
     }, client, client.roomId);
   },
@@ -285,6 +291,7 @@ const handlers = {
   },
 
   file_upload_complete: async (client, msg) => {
+    const channelId = msg.channelId || 'general';
     const fileBuffer = Buffer.from(msg.data, 'base64');
     const fileMeta = await files.save(
       client.roomId,
@@ -299,6 +306,7 @@ const handlers = {
       username: client.username,
       type: 'file',
       content: msg.description || '',
+      channelId,
       metadata: {
         fileId: fileMeta.id,
         filename: fileMeta.originalName,
@@ -309,8 +317,8 @@ const handlers = {
     });
 
     broadcast({
-      type: 'file_shared',
       ...msgData,
+      type: 'file_shared',
       isAuthenticated: client.isAuthenticated
     }, client, client.roomId);
   },
@@ -325,10 +333,12 @@ const handlers = {
   },
 
   get_messages: async (client, msg) => {
-    const msgs = await messages.getRecent(client.roomId, msg.limit || 50, msg.before);
+    const channelId = msg.channelId || 'general';
+    const msgs = await messages.getRecent(client.roomId, msg.limit || 50, msg.before, channelId);
     client.ws.send(pack({
       type: 'message_history',
-      messages: msgs
+      messages: msgs,
+      channelId
     }));
   },
 
@@ -551,7 +561,8 @@ app.get('/api/rooms/:roomId/messages', async (req, res) => {
   const msgs = await messages.getRecent(
     req.params.roomId,
     parseInt(req.query.limit) || 50,
-    req.query.before ? parseInt(req.query.before) : null
+    req.query.before ? parseInt(req.query.before) : null,
+    req.query.channelId || null
   );
   res.json({ messages: msgs });
 });

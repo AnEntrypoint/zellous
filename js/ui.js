@@ -390,12 +390,15 @@ ui.actions = {
     state.currentChannel = channel;
     ui.render.channels();
     ui.render.channelView();
-    // Auto-connect to voice channels via LiveKit
+    if (channel.type === 'text') {
+      state.chatMessages = [];
+      ui.render.chat();
+      network.send({ type: 'get_messages', limit: 50, channelId: channel.id });
+    }
     if (channel.type === 'voice' && !state.voiceConnected && window.lk) {
       const forceRelay = localStorage.getItem('zellous_forceRelay') === 'true';
       lk.connect(channel.name, { forceRelay });
     }
-    // Close mobile drawer
     ui.channelSidebar.classList.remove('open');
     ui.drawerOverlay.classList.remove('open');
   },
