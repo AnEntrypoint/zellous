@@ -698,56 +698,59 @@ app.delete('/api/rooms/:roomId/messages/:messageId', optionalAuth, async (req, r
 
 setupBotApiRoutes(app, state, broadcast);
 
-// LiveKit setup - cache SDK import and build static config once
+// LiveKit setup - cache SDK import, read config from env on each request
 let _lkSdk = null;
-const lkConfig = {
-  url: process.env.LIVEKIT_URL || '',
-  apiKey: process.env.LIVEKIT_API_KEY || '',
-  apiSecret: process.env.LIVEKIT_API_SECRET || '',
-  turnUrl: process.env.LIVEKIT_TURN_URL || '',
-  turnUsername: process.env.LIVEKIT_TURN_USERNAME || '',
-  turnCredential: process.env.LIVEKIT_TURN_CREDENTIAL || '',
-};
+
+function getLkConfig() {
+  return {
+    url: process.env.LIVEKIT_URL || '',
+    apiKey: process.env.LIVEKIT_API_KEY || '',
+    apiSecret: process.env.LIVEKIT_API_SECRET || '',
+    turnUrl: process.env.LIVEKIT_TURN_URL || '',
+    turnUsername: process.env.LIVEKIT_TURN_USERNAME || '',
+    turnCredential: process.env.LIVEKIT_TURN_CREDENTIAL || '',
+  };
+}
 
 async function getLkSdk() {
   if (!_lkSdk) _lkSdk = await import('livekit-server-sdk');
   return _lkSdk;
 }
 
-// Pre-build ICE server list once (immutable at runtime)
-const iceServers = (() => {
+function buildIceServers(cfg) {
   const servers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
-  if (lkConfig.turnUrl && lkConfig.turnUsername && lkConfig.turnCredential) {
-    servers.push({ urls: [lkConfig.turnUrl], username: lkConfig.turnUsername, credential: lkConfig.turnCredential });
+  if (cfg.turnUrl && cfg.turnUsername && cfg.turnCredential) {
+    servers.push({ urls: [cfg.turnUrl], username: cfg.turnUsername, credential: cfg.turnCredential });
   }
   return servers;
-})();
-const hasTurn = iceServers.length > 1;
+}
 
-// LiveKit token endpoint
 app.get('/api/livekit/token', optionalAuth, async (req, res) => {
   const { channel, identity, forceRelay } = req.query;
   if (!channel || !identity) return res.status(400).json({ error: 'channel and identity required' });
   if (identity.length > 128 || channel.length > 64) return res.status(400).json({ error: 'identity or channel too long' });
 
-  if (!lkConfig.url || !lkConfig.apiKey || !lkConfig.apiSecret) {
+  const cfg = getLkConfig();
+  if (!cfg.url || !cfg.apiKey || !cfg.apiSecret) {
     return res.status(503).json({ error: 'LiveKit not configured' });
   }
 
   try {
     const { AccessToken } = await getLkSdk();
     const roomName = `zellous-${channel}`;
-    const token = new AccessToken(lkConfig.apiKey, lkConfig.apiSecret, { identity, ttl: '6h' });
+    const token = new AccessToken(cfg.apiKey, cfg.apiSecret, { identity, ttl: '6h' });
     token.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true, canPublishData: true });
     const jwt = await token.toJwt();
 
+    const iceServers = buildIceServers(cfg);
+    const hasTurn = iceServers.length > 1;
     let rtcConfig = undefined;
     if (hasTurn) {
       rtcConfig = { iceServers };
       if (forceRelay === 'true') rtcConfig = { iceServers, iceTransportPolicy: 'relay' };
     }
 
-    res.json({ token: jwt, url: lkConfig.url, rtcConfig });
+    res.json({ token: jwt, url: cfg.url, rtcConfig });
   } catch (e) {
     logger.error('[LiveKit] Token generation failed:', e.message);
     res.status(500).json({ error: 'Failed to generate voice token' });

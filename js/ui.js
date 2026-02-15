@@ -199,10 +199,6 @@ ui.render = {
       ui.voiceGrid.querySelector('.voice-join-prompt')?.addEventListener('click', () => {
         const ch = state.currentChannel;
         if (!ch || ch.type !== 'voice') return;
-        if (window.lk?._unavailable) {
-          ui.voiceGrid.innerHTML = '<div class="empty-state" style="color:var(--status-danger)">Voice server unavailable</div>';
-          return;
-        }
         if (window.lk) {
           const forceRelay = localStorage.getItem('zellous_forceRelay') === 'true';
           lk.connect(ch.name, { forceRelay });
