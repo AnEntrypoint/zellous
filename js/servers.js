@@ -35,17 +35,22 @@ const serverManager = {
 
   async switchTo(serverId) {
     state.currentServerId = serverId;
-    localStorage.setItem('zellous_lastServer', serverId);
+    localStorage.setItem('zellous_lastServer', serverId || '');
+    state.channels = [];
+    state.currentChannel = { id: 'general', type: 'text', name: 'general' };
+    state.chatMessages = [];
+    state.roomMembers = [];
+    ui.render.channels?.();
     if (serverId) {
       const srv = state.servers.find(s => s.id === serverId);
       if (srv) ui.serverHeader.textContent = srv.name;
       state.roomId = serverId;
-      network.reconnect();
     } else {
       ui.serverHeader.textContent = 'Zellous';
       state.roomId = new URLSearchParams(window.location.search).get('room') || 'lobby';
-      network.reconnect();
     }
+    if (state.voiceConnected && window.lk) lk.disconnect();
+    network.switchRoom(state.roomId);
     serverManager.renderList();
   },
 
