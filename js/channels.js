@@ -37,24 +37,41 @@ const channelManager = {
     modal.className = 'modal-overlay open';
     modal.innerHTML = `<div class="modal-box" style="max-width:360px">
       <div class="modal-title">Create ${typeLabel} Channel</div>
+      <div class="modal-error" id="channelCreateError" style="display:none"></div>
       <form id="createChannelForm" onsubmit="return false">
         <div class="modal-field">
           <label class="modal-label">Channel Name</label>
           <input type="text" class="modal-input" id="newChannelName" placeholder="new-channel" maxlength="40" autofocus>
         </div>
-        <button type="submit" class="modal-btn">Create Channel</button>
+        <button type="submit" class="modal-btn" id="createChannelBtn">Create Channel</button>
         <button type="button" class="modal-btn secondary" id="cancelCreateChannel">Cancel</button>
       </form>
     </div>`;
     document.body.appendChild(modal);
-    modal.querySelector('#newChannelName').focus();
+    const input = modal.querySelector('#newChannelName');
+    const errEl = modal.querySelector('#channelCreateError');
+    const submitBtn = modal.querySelector('#createChannelBtn');
+    input.focus();
+
+    const showError = (msg) => {
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+    };
+
     modal.querySelector('#createChannelForm').addEventListener('submit', async () => {
-      const name = document.getElementById('newChannelName').value.trim();
-      if (!name) return;
+      const name = input.value.trim();
+      errEl.style.display = 'none';
+      if (!name) { showError('Channel name is required'); return; }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
       try {
         await channelManager.create(name, type);
         modal.remove();
-      } catch (e) { console.warn('[Channel] Create failed:', e.message); }
+      } catch (e) {
+        showError(e.message || 'Failed to create channel');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Channel';
+      }
     });
     modal.querySelector('#cancelCreateChannel').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
