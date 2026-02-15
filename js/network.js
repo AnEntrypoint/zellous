@@ -1,4 +1,6 @@
 const network = {
+  _reconnectDelay: 1000,
+  _reconnectMax: 30000,
   connect: () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const token = auth?.getToken();
@@ -12,6 +14,7 @@ const network = {
     ws.onopen = () => {
       state.connectionStatus = 'Connected';
       state.isConnected = true;
+      network._reconnectDelay = 1000;
       network.send({ type: 'join_room', roomId: state.roomId });
     };
     ws.onmessage = (e) => message.handle(msgpackr.unpack(new Uint8Array(e.data)));
@@ -22,20 +25,22 @@ const network = {
     ws.onclose = () => {
       state.connectionStatus = 'Disconnected';
       state.isConnected = false;
-      setTimeout(network.connect, 3000);
+      const delay = network._reconnectDelay;
+      network._reconnectDelay = Math.min(delay * 2, network._reconnectMax);
+      setTimeout(network.connect, delay);
     };
   },
   reconnect: () => {
     if (state.ws) {
-      state.ws.onclose = null; // Prevent auto-reconnect
+      state.ws.onclose = null;
       state.ws.close();
     }
+    network._reconnectDelay = 1000;
     network.connect();
   },
   send: (msg) => {
     if (state.ws?.readyState === WebSocket.OPEN) {
-      msg.roomId = state.roomId;
-      state.ws.send(msgpackr.pack(msg));
+      state.ws.send(msgpackr.pack({ ...msg, roomId: state.roomId }));
     }
   },
   // Route audio messages through LiveKit data channel when available, WS as fallback.

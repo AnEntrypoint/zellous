@@ -19,7 +19,8 @@ class BotConnection {
 
   async handleMessage(data) {
     try {
-      const msg = typeof data === 'string' ? JSON.parse(data) : data;
+      const raw = Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+      const msg = JSON.parse(raw);
       const handler = this.handlers[msg.type];
       if (handler) {
         await handler(msg);

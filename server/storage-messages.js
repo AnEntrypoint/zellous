@@ -32,24 +32,27 @@ const messages = {
   async getRecent(roomId, limit = 50, before = null) {
     const msgDir = join(DATA_ROOT, 'rooms', roomId, 'messages');
     try {
-      const files = (await fs.readdir(msgDir))
+      let files = (await fs.readdir(msgDir))
         .filter(f => f.endsWith('.json'))
         .sort()
         .reverse();
 
-      const messages = [];
-      for (const file of files) {
-        if (messages.length >= limit) break;
-        try {
-          const data = JSON.parse(await fs.readFile(join(msgDir, file), 'utf8'));
-          if (!before || data.timestamp < before) {
-            messages.push(data);
-          }
-        } catch (e) {
-          logger.error(`[Storage] Failed to message file parse in loop: ${e.message}`);
-        }
+      if (before) {
+        files = files.filter(f => {
+          const ts = parseInt(f.split('-')[0], 10);
+          return !isNaN(ts) && ts < before;
+        });
       }
-      return messages.reverse();
+
+      const batch = files.slice(0, limit);
+      const results = await Promise.all(
+        batch.map(file =>
+          fs.readFile(join(msgDir, file), 'utf8')
+            .then(d => JSON.parse(d))
+            .catch(() => null)
+        )
+      );
+      return results.filter(Boolean).reverse();
     } catch {
       return [];
     }

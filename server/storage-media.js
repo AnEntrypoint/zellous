@@ -1,15 +1,18 @@
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { DATA_ROOT, ensureDir } from './storage-utils.js';
-import { rooms } from './storage-rooms.js';
 import logger from '@sequentialos/sequential-logging';
 import { nowISO, createTimestamps, updateTimestamp } from '@sequentialos/timestamp-utilities';
 
 const media = {
+  _ensuredMediaDirs: new Set(),
+
   async saveChunk(roomId, userId, type, chunk, sessionId) {
-    await rooms.ensureRoom(roomId);
     const mediaDir = join(DATA_ROOT, 'rooms', roomId, 'media', sessionId);
-    await ensureDir(mediaDir);
+    if (!this._ensuredMediaDirs.has(mediaDir)) {
+      await ensureDir(mediaDir);
+      this._ensuredMediaDirs.add(mediaDir);
+    }
 
     const filename = type === 'audio' ? 'audio.opus' : 'video.webm';
     const filepath = join(mediaDir, filename);
