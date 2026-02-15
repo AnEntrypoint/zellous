@@ -20,3 +20,5 @@ data/rooms/*/files/
 data/rooms/*/meta.json
 data/servers/
 ux-audit-screenshots/
+bin/
+livekit.yaml

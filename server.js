@@ -20,6 +20,10 @@ import {
 import {
   bots, BotConnection, setupBotApiRoutes
 } from './server/bot-api.js';
+import {
+  getLkSdk, getConfig as getLkConfig, buildIceServers,
+  initializeLiveKit, stopLivekitServer
+} from './server/livekit.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -698,33 +702,6 @@ app.delete('/api/rooms/:roomId/messages/:messageId', optionalAuth, async (req, r
 
 setupBotApiRoutes(app, state, broadcast);
 
-// LiveKit setup - cache SDK import, read config from env on each request
-let _lkSdk = null;
-
-function getLkConfig() {
-  return {
-    url: process.env.LIVEKIT_URL || '',
-    apiKey: process.env.LIVEKIT_API_KEY || '',
-    apiSecret: process.env.LIVEKIT_API_SECRET || '',
-    turnUrl: process.env.LIVEKIT_TURN_URL || '',
-    turnUsername: process.env.LIVEKIT_TURN_USERNAME || '',
-    turnCredential: process.env.LIVEKIT_TURN_CREDENTIAL || '',
-  };
-}
-
-async function getLkSdk() {
-  if (!_lkSdk) _lkSdk = await import('livekit-server-sdk');
-  return _lkSdk;
-}
-
-function buildIceServers(cfg) {
-  const servers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
-  if (cfg.turnUrl && cfg.turnUsername && cfg.turnCredential) {
-    servers.push({ urls: [cfg.turnUrl], username: cfg.turnUsername, credential: cfg.turnCredential });
-  }
-  return servers;
-}
-
 app.get('/api/livekit/token', optionalAuth, async (req, res) => {
   const { channel, identity, forceRelay } = req.query;
   if (!channel || !identity) return res.status(400).json({ error: 'channel and identity required' });
@@ -750,7 +727,16 @@ app.get('/api/livekit/token', optionalAuth, async (req, res) => {
       if (forceRelay === 'true') rtcConfig = { iceServers, iceTransportPolicy: 'relay' };
     }
 
-    res.json({ token: jwt, url: cfg.url, rtcConfig });
+    let clientUrl = cfg.url;
+    if (clientUrl.includes('localhost') || clientUrl.includes('127.0.0.1')) {
+      const reqHost = (req.headers.host || '').split(':')[0];
+      if (reqHost && reqHost !== 'localhost' && reqHost !== '127.0.0.1') {
+        const proto = req.headers['x-forwarded-proto'] === 'https' ? 'wss' : 'ws';
+        clientUrl = `${proto}://${reqHost}:7880`;
+      }
+    }
+
+    res.json({ token: jwt, url: clientUrl, rtcConfig });
   } catch (e) {
     logger.error('[LiveKit] Token generation failed:', e.message);
     res.status(500).json({ error: 'Failed to generate voice token' });
@@ -763,11 +749,13 @@ const HOST = process.env.HOST || '0.0.0.0';
 
 const startServer = async () => {
   await initialize();
+  await initializeLiveKit();
 
   startCleanup();
 
   const shutdown = async () => {
     logger.info('\n[Server] Shutting down...');
+    stopLivekitServer();
     stopCleanup();
     clearInterval(pingInterval);
 
