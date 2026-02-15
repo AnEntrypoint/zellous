@@ -64,11 +64,16 @@ const serverManager = {
       if (state.roomId !== roomId) return;
       const channels = data.channels || [];
       state.channels = channels;
+      const prev = state.currentChannel?.id;
       const cur = state.currentChannel;
       const match = channels.find(c => c.id === cur?.id);
       state.currentChannel = match || channels[0] || { id: 'general', type: 'text', name: 'general' };
       ui.render.channels?.();
       ui.render.channelView?.();
+      if (state.currentChannel?.id !== prev && state.currentChannel?.type === 'text') {
+        state.chatMessages = [];
+        network.send({ type: 'get_messages', limit: 50, channelId: state.currentChannel.id });
+      }
     } catch (e) { console.warn('[Servers] Channel load failed:', e.message); }
   },
 

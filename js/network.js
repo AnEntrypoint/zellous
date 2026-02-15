@@ -110,6 +110,11 @@ const message = {
       ui.render.channels?.();
       ui.render.channelView?.();
       ui.render.members?.();
+      const ch = state.currentChannel;
+      if (ch?.type === 'text') {
+        state.chatMessages = [];
+        network.send({ type: 'get_messages', limit: 50, channelId: ch.id });
+      }
     },
     user_joined: (m) => {
       message.add(`${m.user} joined`, null, m.userId, m.user);

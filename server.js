@@ -166,16 +166,6 @@ const handlers = {
       isBot: client.isBot,
       isAuthenticated: client.isAuthenticated
     }, client, roomId);
-
-    const defaultChannel = channels.length > 0 ? channels.find(c => c.type === 'text')?.id || channels[0].id : 'general';
-    const recentMsgs = await messages.getRecent(roomId, 50, null, defaultChannel);
-    if (recentMsgs.length > 0) {
-      client.ws.send(pack({
-        type: 'message_history',
-        messages: recentMsgs,
-        channelId: defaultChannel
-      }));
-    }
   },
 
   audio_start: async (client) => {
