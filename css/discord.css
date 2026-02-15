@@ -2507,3 +2507,103 @@ select option {
   transform: translateX(18px);
   background: #fff;
 }
+
+/* --------------------------------------------------------------------------
+   38. Category Add Button
+   -------------------------------------------------------------------------- */
+
+.category-add-btn {
+  margin-left: auto;
+  width: 18px;
+  height: 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+  line-height: 1;
+  padding: 0;
+}
+
+.category-header:hover .category-add-btn {
+  opacity: 1;
+}
+
+.category-add-btn:hover {
+  color: var(--header-primary);
+}
+
+/* --------------------------------------------------------------------------
+   39. Context Menu
+   -------------------------------------------------------------------------- */
+
+.context-menu {
+  background: var(--bg-floating);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  min-width: 160px;
+  box-shadow: var(--elevation-high);
+  animation: popoverIn 0.1s ease;
+}
+
+.context-menu-item {
+  padding: 6px 8px;
+  border-radius: 3px;
+  font-size: 14px;
+  color: var(--text-normal);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.context-menu-item:hover {
+  background: var(--brand-500);
+  color: #fff;
+}
+
+.context-menu-item.danger {
+  color: var(--status-danger);
+}
+
+.context-menu-item.danger:hover {
+  background: var(--status-danger);
+  color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   40. Add Server Button
+   -------------------------------------------------------------------------- */
+
+.server-icon.add-server {
+  background: var(--bg-primary);
+  color: var(--status-positive);
+  font-size: 24px;
+  font-weight: 300;
+}
+
+.server-icon.add-server:hover {
+  background: var(--status-positive);
+  color: #fff;
+}
+
+/* --------------------------------------------------------------------------
+   41. Member Role Badge
+   -------------------------------------------------------------------------- */
+
+.member-role-badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.06);
+}

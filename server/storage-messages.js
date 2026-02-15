@@ -68,6 +68,22 @@ const messages = {
       logger.error(`[Storage] Failed to message directory read for getById: ${e.message}`);
     }
     return null;
+  },
+
+  async remove(roomId, messageId) {
+    const msgDir = join(DATA_ROOT, 'rooms', roomId, 'messages');
+    try {
+      const files = await fs.readdir(msgDir);
+      for (const file of files) {
+        if (file.includes(messageId)) {
+          await fs.unlink(join(msgDir, file));
+          return true;
+        }
+      }
+    } catch (e) {
+      logger.error(`[Storage] Failed to delete message ${messageId}: ${e.message}`);
+    }
+    return false;
   }
 };
 

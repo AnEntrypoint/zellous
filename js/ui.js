@@ -86,9 +86,24 @@ ui.render = {
     this.voicePanel();
   },
 
-  messages() {},
+  messages() {
+    if (!ui.chatMessagesInner) return;
+    const sysMessages = state.messages || [];
+    if (sysMessages.length === 0) return;
+    const chatMsgs = chat?.messages || [];
+    if (chatMsgs.length > 0) return;
+    let html = '';
+    sysMessages.forEach(m => {
+      html += `<div class="msg-system"><span class="msg-system-icon">\u2192</span>${m.text} <span class="msg-timestamp">${m.time}</span></div>`;
+    });
+    ui.chatMessagesInner.innerHTML = html;
+    ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
+  },
 
-  speakers() {},
+  speakers() {
+    ui.render.voiceGrid?.();
+    ui.render.channels?.();
+  },
 
   channels() {
     if (!ui.channelList) return;
@@ -96,29 +111,24 @@ ui.render = {
     const current = state.currentChannel;
     let html = '';
 
-    // Text channels category
-    const textChannels = ch.filter(c => c.type === 'text');
-    if (textChannels.length) {
-      html += '<div class="category-header"><svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>TEXT CHANNELS</div>';
-      textChannels.forEach(c => {
-        html += `<div class="channel-item${current.id === c.id ? ' active' : ''}" data-channel="${c.id}" data-type="${c.type}">
-          <span class="channel-icon">#</span>
-          <span class="channel-name">${c.name}</span>
-        </div>`;
-      });
-    }
+    const catHtml = (label, type) => `<div class="category-header"><svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>${label}<button class="category-add-btn" data-add-type="${type}" title="Create Channel">+</button></div>`;
+    const icons = { text: '#', voice: '&#128264;', threaded: '&#128203;' };
+    const groups = [
+      { label: 'TEXT CHANNELS', type: 'text' },
+      { label: 'VOICE CHANNELS', type: 'voice' },
+      { label: 'THREADED CHANNELS', type: 'threaded' }
+    ];
 
-    // Voice channels category
-    const voiceChannels = ch.filter(c => c.type === 'voice');
-    if (voiceChannels.length) {
-      html += '<div class="category-header"><svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>VOICE CHANNELS</div>';
-      voiceChannels.forEach(c => {
+    groups.forEach(g => {
+      const filtered = ch.filter(c => c.type === g.type);
+      if (!filtered.length && g.type !== 'text') return;
+      html += catHtml(g.label, g.type);
+      filtered.forEach(c => {
         html += `<div class="channel-item${current.id === c.id ? ' active' : ''}" data-channel="${c.id}" data-type="${c.type}">
-          <span class="channel-icon">&#128264;</span>
+          <span class="channel-icon">${icons[c.type] || '#'}</span>
           <span class="channel-name">${c.name}</span>
         </div>`;
-        // Show voice participants under voice channel
-        if (state.voiceConnected && state.voiceChannelName === c.name) {
+        if (g.type === 'voice' && state.voiceConnected && state.voiceChannelName === c.name) {
           html += '<div class="voice-users">';
           (state.voiceParticipants || []).forEach(p => {
             const speaking = p.isSpeaking ? ' speaking' : '';
@@ -130,29 +140,24 @@ ui.render = {
           html += '</div>';
         }
       });
-    }
-
-    // Threaded channels category
-    const threadedChannels = ch.filter(c => c.type === 'threaded');
-    if (threadedChannels.length) {
-      html += '<div class="category-header"><svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>THREADED CHANNELS</div>';
-      threadedChannels.forEach(c => {
-        html += `<div class="channel-item${current.id === c.id ? ' active' : ''}" data-channel="${c.id}" data-type="${c.type}">
-          <span class="channel-icon">&#128203;</span>
-          <span class="channel-name">${c.name}</span>
-        </div>`;
-      });
-    }
+    });
 
     ui.channelList.innerHTML = html;
 
-    // Bind click events
     ui.channelList.querySelectorAll('.channel-item').forEach(el => {
       el.addEventListener('click', () => {
-        const id = el.dataset.channel;
-        const type = el.dataset.type;
-        const ch = state.channels.find(c => c.id === id);
+        const ch = state.channels.find(c => c.id === el.dataset.channel);
         if (ch) ui.actions.switchChannel(ch);
+      });
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (window.channelManager) channelManager.showContextMenu(el.dataset.channel, e.clientX, e.clientY);
+      });
+    });
+    ui.channelList.querySelectorAll('.category-add-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.channelManager) channelManager.showCreateModal(btn.dataset.addType);
       });
     });
   },
@@ -190,7 +195,19 @@ ui.render = {
     if (!ui.voiceGrid) return;
     const participants = state.voiceParticipants || [];
     if (participants.length === 0 && !state.voiceConnected) {
-      ui.voiceGrid.innerHTML = '<div class="empty-state">Click to join voice channel</div>';
+      ui.voiceGrid.innerHTML = '<div class="empty-state voice-join-prompt" style="cursor:pointer">Click to join voice channel</div>';
+      ui.voiceGrid.querySelector('.voice-join-prompt')?.addEventListener('click', () => {
+        const ch = state.currentChannel;
+        if (!ch || ch.type !== 'voice') return;
+        if (window.lk?._unavailable) {
+          ui.voiceGrid.innerHTML = '<div class="empty-state" style="color:var(--status-danger)">Voice server unavailable</div>';
+          return;
+        }
+        if (window.lk) {
+          const forceRelay = localStorage.getItem('zellous_forceRelay') === 'true';
+          lk.connect(ch.name, { forceRelay });
+        }
+      });
       return;
     }
     const qDot = (q) => {
@@ -214,21 +231,39 @@ ui.render = {
     const members = state.roomMembers || [];
     const online = members.filter(m => m.online !== false);
     ui.onlineHeader.textContent = `ONLINE \u2014 ${online.length}`;
-    ui.onlineMembers.innerHTML = online.map(m => `
-      <div class="member-item">
+    ui.onlineMembers.innerHTML = online.map(m => {
+      const badge = window.moderation && m.role ? moderation.roleLabel(m.role) : '';
+      const badgeColor = window.moderation && m.role ? moderation.roleBadgeColor(m.role) : null;
+      const badgeHtml = badge ? `<span class="member-role-badge" style="color:${badgeColor || 'var(--text-muted)'}">${badge}</span>` : '';
+      return `<div class="member-item" data-member-id="${m.id}" data-member-name="${m.username}">
         <div class="member-avatar" style="background:${getAvatarColor(m.id)}">
           ${getInitial(m.username)}
           <div class="member-status"></div>
         </div>
-        <span class="member-name">${m.username}</span>
-      </div>
-    `).join('') || '';
+        <span class="member-name">${m.username}</span>${badgeHtml}
+      </div>`;
+    }).join('') || '';
+
+    ui.onlineMembers.querySelectorAll('.member-item').forEach(el => {
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (window.moderation && el.dataset.memberId !== String(state.userId)) {
+          moderation.showMemberMenu(el.dataset.memberId, el.dataset.memberName, e.clientX, e.clientY);
+        }
+      });
+    });
   },
 
   chat() {
     if (!ui.chatMessagesInner) return;
-    const msgs = chat?.messages || [];
-    if (msgs.length === 0) {
+    const chatMsgs = chat?.messages || [];
+    const sysMsgs = (state.messages || []).map(m => ({
+      id: m.id, type: 'system', text: m.text,
+      timestamp: new Date(m.time || Date.now()).getTime() || Date.now(),
+      userId: m.userId, username: m.username
+    }));
+    const merged = [...chatMsgs, ...sysMsgs].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+    if (merged.length === 0) {
       ui.chatMessagesInner.innerHTML = '<div class="empty-state">No messages yet. Say something!</div>';
       return;
     }
@@ -237,33 +272,34 @@ ui.render = {
     let lastUser = null;
     let lastTime = 0;
 
-    msgs.forEach(m => {
-      const sameUser = m.userId === lastUser && (m.timestamp - lastTime) < 420000; // 7 min grouping
+    merged.forEach(m => {
+      if (m.type === 'system') {
+        lastUser = null;
+        lastTime = 0;
+        html += `<div class="msg-system"><span class="msg-system-icon">\u2192</span>${m.text}</div>`;
+        return;
+      }
+      const sameUser = m.userId === lastUser && (m.timestamp - lastTime) < 420000;
       const time = formatTime(m.timestamp);
       const shortTime = new Date(m.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
       const username = m.username || 'User';
       const color = getAvatarColor(m.userId);
+      const pending = m.pending ? ' style="opacity:0.6"' : '';
 
       if (!sameUser) {
-        html += `<div class="msg-group">
+        html += `<div class="msg-group"${pending}>
           <div class="msg-avatar" style="background:${color}">${getInitial(username)}</div>
           <span class="msg-username" style="color:${color}">${chat.escapeHtml(username)}</span>
           <span class="msg-timestamp">${time}</span>`;
       } else {
-        html += `<div class="msg-cont">
+        html += `<div class="msg-cont"${pending}>
           <span class="msg-hover-time">${shortTime}</span>`;
       }
 
-      // Content based on type
       switch (m.type) {
-        case 'image':
-          html += chat.createImagePreview(m);
-          break;
-        case 'file':
-          html += chat.createFileAttachment(m);
-          break;
-        default:
-          html += `<div class="msg-content">${chat.linkify(m.content || '')}</div>`;
+        case 'image': html += chat.createImagePreview(m); break;
+        case 'file': html += chat.createFileAttachment(m); break;
+        default: html += `<div class="msg-content">${chat.linkify(m.content || '')}</div>`;
       }
 
       html += '</div>';

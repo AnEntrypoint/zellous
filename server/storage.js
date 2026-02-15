@@ -7,6 +7,7 @@ import { rooms } from './storage-rooms.js';
 import { messages } from './storage-messages.js';
 import { media } from './storage-media.js';
 import { files } from './storage-files.js';
+import { servers } from './storage-servers.js';
 import logger from '@sequentialos/sequential-logging';
 import { nowISO, createTimestamps, updateTimestamp } from '@sequentialos/timestamp-utilities';
 
@@ -48,6 +49,7 @@ async function cleanupOnStartup() {
 
 async function initialize() {
   await initStorage();
+  await servers.initialize();
   await cleanupOnStartup();
 }
 
@@ -69,5 +71,6 @@ export {
   messages,
   media,
   files,
+  servers,
   DATA_ROOT
 };

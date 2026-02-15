@@ -17,3 +17,6 @@ data/cleanup.json
 data/rooms/*/messages/
 data/rooms/*/media/
 data/rooms/*/files/
+data/rooms/*/meta.json
+data/servers/
+ux-audit-screenshots/
