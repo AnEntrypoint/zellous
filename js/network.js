@@ -104,9 +104,8 @@ const message = {
       const channels = m.channels || [];
       state.channels = channels;
       const cur = state.currentChannel;
-      if (!channels.find(c => c.id === cur?.id)) {
-        state.currentChannel = channels[0] || { id: 'general', type: 'text', name: 'general' };
-      }
+      const match = channels.find(c => c.id === cur?.id);
+      state.currentChannel = match || channels[0] || { id: 'general', type: 'text', name: 'general' };
       m.currentUsers.forEach(u => message.add(`${u.username} is online`, null, u.id, u.username));
       ui.render.channels?.();
       ui.render.channelView?.();

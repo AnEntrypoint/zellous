@@ -52,6 +52,24 @@ const serverManager = {
     if (state.voiceConnected && window.lk) lk.disconnect();
     network.switchRoom(state.roomId);
     serverManager.renderList();
+    serverManager.loadChannels(state.roomId);
+  },
+
+  async loadChannels(roomId) {
+    try {
+      const token = auth?.getToken();
+      const res = await fetch(`/api/rooms/${roomId}/channels`, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (state.roomId !== roomId) return;
+      const channels = data.channels || [];
+      state.channels = channels;
+      const cur = state.currentChannel;
+      const match = channels.find(c => c.id === cur?.id);
+      state.currentChannel = match || channels[0] || { id: 'general', type: 'text', name: 'general' };
+      ui.render.channels?.();
+      ui.render.channelView?.();
+    } catch (e) { console.warn('[Servers] Channel load failed:', e.message); }
   },
 
   renderList() {
