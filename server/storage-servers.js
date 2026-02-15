@@ -63,14 +63,10 @@ const servers = {
 
   async listForUser(userId) {
     const all = await this.listAll();
-    const result = [];
-    for (const s of all) {
-      const meta = await this.getMeta(s.id);
-      if (meta?.members?.some(m => m.userId === userId)) {
-        result.push({ id: s.id, name: meta.name, iconColor: meta.iconColor, ownerId: meta.ownerId, memberCount: meta.members.length });
-      }
-    }
-    return result;
+    const metas = await Promise.all(all.map(s => this.getMeta(s.id)));
+    return metas
+      .filter(meta => meta?.members?.some(m => m.userId === userId))
+      .map(meta => ({ id: meta.id, name: meta.name, iconColor: meta.iconColor, ownerId: meta.ownerId, memberCount: meta.members.length }));
   },
 
   async join(serverId, userId, username) {

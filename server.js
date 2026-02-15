@@ -62,19 +62,21 @@ const createClient = (ws, id, user = null) => ({
 });
 
 
-const filterClientsByRoom = (roomId, exclude = null) => {
-  return Array.from(state.clients.values())
-    .filter(c => c.roomId === roomId && c !== exclude);
-};
-
 const broadcast = (msg, exclude = null, roomId = null) => {
   const data = pack(msg);
-  const clients = roomId ? filterClientsByRoom(roomId, exclude) : Array.from(state.clients.values()).filter(c => c !== exclude);
-  for (const client of clients) {
-    if (client.ws.readyState === 1) {
+  for (const client of state.clients.values()) {
+    if (client !== exclude && (!roomId || client.roomId === roomId) && client.ws.readyState === 1) {
       client.ws.send(data);
     }
   }
+};
+
+const collectRoomClients = (roomId, exclude = null) => {
+  const result = [];
+  for (const c of state.clients.values()) {
+    if (c.roomId === roomId && c !== exclude) result.push(c);
+  }
+  return result;
 };
 
 
@@ -139,7 +141,7 @@ const handlers = {
     const roomId = msg.roomId || 'lobby';
     await joinRoom(client, roomId);
 
-    const roomClients = filterClientsByRoom(roomId, client);
+    const roomClients = collectRoomClients(roomId, client);
     const channels = await rooms.getChannels(roomId);
 
     client.ws.send(pack({
@@ -182,16 +184,16 @@ const handlers = {
     }, null, client.roomId);
   },
 
-  audio_chunk: async (client, msg) => {
-    const mediaSessionId = state.mediaSessions.get(client.id);
-    if (mediaSessionId) {
-      await media.saveChunk(client.roomId, client.id, 'audio', msg.data, mediaSessionId);
-    }
+  audio_chunk: (client, msg) => {
     broadcast({
       type: 'audio_data',
       userId: client.id,
       data: msg.data
     }, client, client.roomId);
+    const mediaSessionId = state.mediaSessions.get(client.id);
+    if (mediaSessionId) {
+      media.saveChunk(client.roomId, client.id, 'audio', msg.data, mediaSessionId).catch(() => {});
+    }
   },
 
   audio_end: async (client) => {
@@ -208,16 +210,16 @@ const handlers = {
     }, null, client.roomId);
   },
 
-  video_chunk: async (client, msg) => {
-    const mediaSessionId = state.mediaSessions.get(client.id);
-    if (mediaSessionId) {
-      await media.saveChunk(client.roomId, client.id, 'video', msg.data, mediaSessionId);
-    }
+  video_chunk: (client, msg) => {
     broadcast({
       type: 'video_chunk',
       userId: client.id,
       data: msg.data
     }, client, client.roomId);
+    const mediaSessionId = state.mediaSessions.get(client.id);
+    if (mediaSessionId) {
+      media.saveChunk(client.roomId, client.id, 'video', msg.data, mediaSessionId).catch(() => {});
+    }
   },
 
   text_message: async (client, msg) => {
@@ -338,13 +340,26 @@ const handlers = {
 };
 
 
+const PING_INTERVAL = 30000;
+const pingInterval = setInterval(() => {
+  for (const client of state.clients.values()) {
+    if (client._alive === false) {
+      client.ws.terminate();
+      continue;
+    }
+    client._alive = false;
+    client.ws.ping();
+  }
+}, PING_INTERVAL);
+wss.on('close', () => clearInterval(pingInterval));
+
 wss.on('connection', async (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const isBot = url.pathname === '/api/bot/ws';
 
   if (isBot) {
     const botConn = new BotConnection(ws, broadcast, state);
-    ws.on('message', (data) => botConn.handleMessage(data.toString()));
+    ws.on('message', (data) => botConn.handleMessage(data));
     ws.on('close', () => botConn.cleanup());
     return;
   }
@@ -361,7 +376,10 @@ wss.on('connection', async (ws, req) => {
   }
 
   const client = createClient(ws, clientId, user);
+  client._alive = true;
   state.clients.set(ws, client);
+
+  ws.on('pong', () => { client._alive = true; });
 
   ws.on('message', async (data) => {
     try {
@@ -743,6 +761,7 @@ const startServer = async () => {
   const shutdown = async () => {
     logger.info('\n[Server] Shutting down...');
     stopCleanup();
+    clearInterval(pingInterval);
 
     for (const client of state.clients.values()) {
       client.ws.close();

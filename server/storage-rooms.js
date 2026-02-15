@@ -11,8 +11,12 @@ const DEFAULT_CHANNELS = [
   { id: 'queue', type: 'threaded', name: 'Audio Queue' }
 ];
 
+const _ensuredRooms = new Set();
+
 const rooms = {
   async ensureRoom(roomId) {
+    if (_ensuredRooms.has(roomId)) return this.getMeta(roomId);
+
     const roomDir = join(DATA_ROOT, 'rooms', roomId);
     await ensureDir(roomDir);
     await ensureDir(join(roomDir, 'messages'));
@@ -23,8 +27,10 @@ const rooms = {
     let meta;
     try {
       meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
-      meta.lastActivityAt = Date.now();
-      if (!meta.channels) meta.channels = [...DEFAULT_CHANNELS];
+      if (!meta.channels) {
+        meta.channels = [...DEFAULT_CHANNELS];
+        await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
+      }
     } catch {
       meta = {
         id: roomId,
@@ -33,8 +39,9 @@ const rooms = {
         userCount: 0,
         channels: [...DEFAULT_CHANNELS]
       };
+      await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
     }
-    await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
+    _ensuredRooms.add(roomId);
     return meta;
   },
 
@@ -104,6 +111,7 @@ const rooms = {
     const roomDir = join(DATA_ROOT, 'rooms', roomId);
     try {
       await fs.rm(roomDir, { recursive: true, force: true });
+      _ensuredRooms.delete(roomId);
       logger.info(`[Storage] Cleaned up room: ${roomId}`);
     } catch (e) {
       logger.error(`[Storage] Failed to cleanup room ${roomId}:`, e.message);
