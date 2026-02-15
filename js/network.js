@@ -254,7 +254,7 @@ const message = {
       chat.handleImageMessage(m);
     },
     message_history: (m) => {
-      chat.handleHistory(m.messages);
+      chat.handleHistory(m.messages, m.channelId);
     },
 
     // Files

@@ -35,7 +35,8 @@ const fileTransfer = {
           filename: file.name,
           data: base64,
           path: customPath,
-          description
+          description,
+          channelId: state.currentChannel?.id || 'general'
         });
         resolve({ filename: file.name, size: file.size });
       };
@@ -93,7 +94,8 @@ const fileTransfer = {
       filename: file.name,
       data: fullBase64,
       path: customPath,
-      description
+      description,
+      channelId: state.currentChannel?.id || 'general'
     });
 
     upload.status = 'complete';

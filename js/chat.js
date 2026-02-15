@@ -17,7 +17,7 @@ const chat = {
       isAuthenticated: state.isAuthenticated,
       pending: true
     });
-    network.send({ type: 'text_message', content: trimmed });
+    network.send({ type: 'text_message', content: trimmed, channelId: state.currentChannel?.id || 'general' });
   },
 
   async sendImage(file, caption = '') {
@@ -25,12 +25,14 @@ const chat = {
     const reader = new FileReader();
     reader.onload = (e) => {
       const base64 = e.target.result.split(',')[1];
-      network.send({ type: 'image_message', filename: file.name, data: base64, caption });
+      network.send({ type: 'image_message', filename: file.name, data: base64, caption, channelId: state.currentChannel?.id || 'general' });
     };
     reader.readAsDataURL(file);
   },
 
   handleTextMessage(msg) {
+    const msgChannel = msg.channelId || 'general';
+    if (msgChannel !== (state.currentChannel?.id || 'general')) return;
     this.addMessage({
       id: msg.id,
       type: 'text',
@@ -38,11 +40,14 @@ const chat = {
       username: msg.username,
       content: msg.content,
       timestamp: msg.timestamp || Date.now(),
-      isAuthenticated: msg.isAuthenticated
+      isAuthenticated: msg.isAuthenticated,
+      channelId: msgChannel
     });
   },
 
   handleImageMessage(msg) {
+    const msgChannel = msg.channelId || 'general';
+    if (msgChannel !== (state.currentChannel?.id || 'general')) return;
     this.addMessage({
       id: msg.id,
       type: 'image',
@@ -51,11 +56,14 @@ const chat = {
       content: msg.content,
       timestamp: msg.timestamp || Date.now(),
       metadata: msg.metadata,
-      isAuthenticated: msg.isAuthenticated
+      isAuthenticated: msg.isAuthenticated,
+      channelId: msgChannel
     });
   },
 
   handleFileShared(msg) {
+    const msgChannel = msg.channelId || 'general';
+    if (msgChannel !== (state.currentChannel?.id || 'general')) return;
     this.addMessage({
       id: msg.id,
       type: 'file',
@@ -64,15 +72,18 @@ const chat = {
       content: msg.content,
       timestamp: msg.timestamp || Date.now(),
       metadata: msg.metadata,
-      isAuthenticated: msg.isAuthenticated
+      isAuthenticated: msg.isAuthenticated,
+      channelId: msgChannel
     });
   },
 
-  handleHistory(msgs) {
+  handleHistory(msgs, channelId) {
+    if (channelId && channelId !== (state.currentChannel?.id || 'general')) return;
     this.messages = msgs.map(m => ({
       id: m.id, type: m.type || 'text', userId: m.userId,
       username: m.username, content: m.content, timestamp: m.timestamp,
-      metadata: m.metadata, isAuthenticated: m.isAuthenticated
+      metadata: m.metadata, isAuthenticated: m.isAuthenticated,
+      channelId: m.channelId || 'general'
     }));
     ui.render.chat();
   },

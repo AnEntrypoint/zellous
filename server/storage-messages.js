@@ -13,6 +13,7 @@ const messages = {
     const msgData = {
       id: msgId,
       roomId,
+      channelId: message.channelId || 'general',
       userId: message.userId,
       username: message.username,
       type: message.type || 'text',
@@ -29,7 +30,7 @@ const messages = {
     return msgData;
   },
 
-  async getRecent(roomId, limit = 50, before = null) {
+  async getRecent(roomId, limit = 50, before = null, channelId = null) {
     const msgDir = join(DATA_ROOT, 'rooms', roomId, 'messages');
     try {
       let files = (await fs.readdir(msgDir))
@@ -44,15 +45,16 @@ const messages = {
         });
       }
 
-      const batch = files.slice(0, limit);
-      const results = await Promise.all(
-        batch.map(file =>
-          fs.readFile(join(msgDir, file), 'utf8')
-            .then(d => JSON.parse(d))
-            .catch(() => null)
-        )
-      );
-      return results.filter(Boolean).reverse();
+      const results = [];
+      for (const file of files) {
+        if (results.length >= limit) break;
+        try {
+          const msg = JSON.parse(await fs.readFile(join(msgDir, file), 'utf8'));
+          const msgChannel = msg.channelId || 'general';
+          if (!channelId || msgChannel === channelId) results.push(msg);
+        } catch {}
+      }
+      return results.reverse();
     } catch {
       return [];
     }
