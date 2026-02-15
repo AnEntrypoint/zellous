@@ -184,7 +184,7 @@ body {
   padding: 12px 0;
   overflow-y: auto;
   overflow-x: hidden;
-  gap: 8px;
+  gap: 12px;
   z-index: 10;
 }
 
@@ -243,6 +243,13 @@ body {
 
 .server-icon.active .server-pill {
   height: 40px;
+}
+
+#serverIcons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .server-separator {
