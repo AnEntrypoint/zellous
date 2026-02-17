@@ -1,5 +1,5 @@
 import express from 'express';
-import { WebSocketServer } from 'ws';
+import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -44,6 +44,90 @@ app.use((req, res, next) => {
 
 app.use(express.static(__dirname));
 app.use(optionalAuth);
+
+const LK_HTTP_PORT = 7882;
+const LK_WS_PORT = 7882;
+
+function createLiveKitProxy() {
+  const proxyPath = '/livekit';
+
+  app.use((req, res, next) => {
+    if (!req.path.startsWith(proxyPath)) return next();
+
+    const targetPath = req.path.slice(proxyPath.length) || '/';
+    const targetUrl = `http://127.0.0.1:${LK_HTTP_PORT}${targetPath}`;
+    const options = {
+      hostname: '127.0.0.1',
+      port: LK_HTTP_PORT,
+      path: targetPath,
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: '127.0.0.1:' + LK_HTTP_PORT,
+        'x-forwarded-for': req.ip || req.connection.remoteAddress,
+        'x-forwarded-proto': req.protocol,
+      },
+    };
+
+    const proxyReq = http.request(options, (proxyRes) => {
+      if (proxyRes.statusCode === 404) {
+        res.status(404).json({ error: 'Not found' });
+        return;
+      }
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+
+    proxyReq.on('error', (e) => {
+      logger.error('[LiveKit Proxy] HTTP:', e.message);
+      res.status(502).json({ error: 'LiveKit unavailable' });
+    });
+
+    req.pipe(proxyReq, { end: true });
+  });
+}
+
+function createLiveKitWebSocketProxy() {
+  server.on('upgrade', (request, socket, head) => {
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    if (url.pathname.startsWith('/livekit')) {
+      const targetPath = url.pathname.slice('/livekit'.length) || '/';
+      const targetUrl = `ws://127.0.0.1:${LK_WS_PORT}${targetPath}${url.search}`;
+
+      const targetSocket = new WebSocket(targetUrl, {
+        headers: {
+          'x-forwarded-for': socket.remoteAddress || '',
+        },
+      });
+
+      targetSocket.on('open', () => {
+        socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n');
+        targetSocket.on('message', (data) => {
+          if (socket.writable) socket.write(data);
+        });
+        targetSocket.on('close', () => socket.end());
+        targetSocket.on('error', (e) => {
+          logger.error('[LiveKit WS] Target error:', e.message);
+          socket.end();
+        });
+
+        socket.on('data', (data) => {
+          if (targetSocket.readyState === 1) targetSocket.send(data);
+        });
+        socket.on('close', () => targetSocket.close());
+        socket.on('error', (e) => {
+          logger.error('[LiveKit WS] Client error:', e.message);
+          targetSocket.close();
+        });
+      });
+
+      targetSocket.on('error', (e) => {
+        logger.error('[LiveKit WS] Connect error:', e.message);
+        socket.end('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+      });
+    }
+  });
+}
 
 
 const state = {
@@ -235,7 +319,7 @@ const handlers = {
       ...msgData,
       type: 'text_message',
       isAuthenticated: client.isAuthenticated
-    }, client, client.roomId);
+    }, null, client.roomId);
   },
 
   image_message: async (client, msg) => {
@@ -267,7 +351,7 @@ const handlers = {
       ...msgData,
       type: 'image_message',
       isAuthenticated: client.isAuthenticated
-    }, client, client.roomId);
+    }, null, client.roomId);
   },
 
   file_upload_start: async (client, msg) => {
@@ -324,6 +408,27 @@ const handlers = {
       userId: client.id,
       username: msg.username
     }, null, client.roomId);
+  },
+
+  edit_message: async (client, msg) => {
+    const messageId = msg.messageId;
+    const newContent = msg.content;
+    if (!messageId || !newContent?.trim()) return;
+
+    const existing = await messages.getById(client.roomId, messageId);
+    if (!existing) return;
+    if (existing.userId !== client.id && !client.isAuthenticated) return;
+
+    const updated = await messages.update(client.roomId, messageId, { content: newContent.trim() });
+    if (updated) {
+      broadcast({
+        type: 'message_updated',
+        messageId,
+        content: updated.content,
+        edited: true,
+        editedAt: updated.editedAt
+      }, null, client.roomId);
+    }
   },
 
   get_messages: async (client, msg) => {
@@ -700,6 +805,39 @@ app.delete('/api/rooms/:roomId/messages/:messageId', optionalAuth, async (req, r
   res.json({ success: true });
 });
 
+app.patch('/api/rooms/:roomId/messages/:messageId', optionalAuth, async (req, res) => {
+  const { content } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: 'Content required' });
+
+  const existing = await messages.getById(req.params.roomId, req.params.messageId);
+  if (!existing) return res.status(404).json({ error: 'Message not found' });
+
+  if (req.user) {
+    if (existing.userId !== req.user.id) {
+      const meta = await servers.getMeta(req.params.roomId);
+      const role = meta?.members?.find(m => m.userId === req.user.id)?.role;
+      if (!role || !['owner', 'admin', 'moderator'].includes(role)) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
+    }
+  } else if (!req.session?.clientId || existing.userId !== req.session.clientId) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  const updated = await messages.update(req.params.roomId, req.params.messageId, { content: content.trim() });
+  if (!updated) return res.status(500).json({ error: 'Update failed' });
+
+  broadcast({
+    type: 'message_updated',
+    messageId: req.params.messageId,
+    content: updated.content,
+    edited: true,
+    editedAt: updated.editedAt
+  }, null, req.params.roomId);
+
+  res.json({ success: true, message: updated });
+});
+
 setupBotApiRoutes(app, state, broadcast);
 
 app.get('/api/livekit/token', optionalAuth, async (req, res) => {
@@ -727,14 +865,9 @@ app.get('/api/livekit/token', optionalAuth, async (req, res) => {
       if (forceRelay === 'true') rtcConfig = { iceServers, iceTransportPolicy: 'relay' };
     }
 
-    let clientUrl = cfg.url;
-    if (clientUrl.includes('localhost') || clientUrl.includes('127.0.0.1')) {
-      const reqHost = (req.headers.host || '').split(':')[0];
-      if (reqHost && reqHost !== 'localhost' && reqHost !== '127.0.0.1') {
-        const proto = req.headers['x-forwarded-proto'] === 'https' ? 'wss' : 'ws';
-        clientUrl = `${proto}://${reqHost}:7880`;
-      }
-    }
+    const proto = req.headers['x-forwarded-proto'] === 'https' ? 'wss' : 'ws';
+    const reqHost = req.headers.host || `${req.hostname || 'localhost'}:${PORT}`;
+    const clientUrl = `${proto}://${reqHost}/livekit`;
 
     res.json({ token: jwt, url: clientUrl, rtcConfig });
   } catch (e) {
@@ -750,6 +883,9 @@ const HOST = process.env.HOST || '0.0.0.0';
 const startServer = async () => {
   await initialize();
   await initializeLiveKit();
+
+  createLiveKitProxy();
+  createLiveKitWebSocketProxy();
 
   startCleanup();
 

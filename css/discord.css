@@ -760,6 +760,13 @@ body {
   vertical-align: baseline;
 }
 
+.msg-edited {
+  font-size: 11px;
+  color: var(--text-faint);
+  margin-left: 4px;
+  font-weight: 400;
+}
+
 .msg-content {
   color: var(--text-normal);
   font-size: 15px;
@@ -2299,6 +2306,12 @@ select option {
     bottom: 0;
     z-index: 200;
     box-shadow: -4px 0 16px rgba(0, 0, 0, 0.3);
+  }
+  .chat-input-wrapper {
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-primary);
+    padding: 0 16px 16px;
   }
 }
 

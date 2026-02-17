@@ -290,6 +290,15 @@ const message = {
       state.chatMessages = msgs;
       ui.render.chat?.();
     },
+    message_updated: (m) => {
+      const msgs = state.chatMessages || [];
+      const idx = msgs.findIndex(msg => msg.id === m.messageId);
+      if (idx !== -1) {
+        msgs[idx] = { ...msgs[idx], content: m.content, edited: m.edited, editedAt: m.editedAt };
+        state.chatMessages = [...msgs];
+        ui.render.chat?.();
+      }
+    },
     user_kicked: (m) => {
       if (m.userId === state.userId) {
         message.add('You were kicked from this server');

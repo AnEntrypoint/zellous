@@ -6,14 +6,6 @@ const moderation = {
     return h;
   },
 
-  async deleteMessage(messageId) {
-    const res = await fetch(`/api/rooms/${state.roomId}/messages/${messageId}`, {
-      method: 'DELETE', headers: this._headers()
-    });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-    return true;
-  },
-
   async kickUser(serverId, userId) {
     const res = await fetch(`/api/servers/${serverId}/kick/${userId}`, {
       method: 'POST', headers: this._headers()
