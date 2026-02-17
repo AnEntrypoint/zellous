@@ -281,14 +281,15 @@ ui.render = {
       const username = m.username || 'User';
       const color = getAvatarColor(m.userId);
       const pending = m.pending ? ' style="opacity:0.6"' : '';
+      const editedBadge = m.edited ? '<span class="msg-edited">(edited)</span>' : '';
 
       if (!sameUser) {
-        html += `<div class="msg-group"${pending}>
+        html += `<div class="msg-group" data-message-id="${m.id}" data-user-id="${m.userId}"${pending}>
           <div class="msg-avatar" style="background:${color}">${getInitial(username)}</div>
           <span class="msg-username" style="color:${color}">${chat.escapeHtml(username)}</span>
-          <span class="msg-timestamp">${time}</span>`;
+          <span class="msg-timestamp">${time}</span>${editedBadge}`;
       } else {
-        html += `<div class="msg-cont"${pending}>
+        html += `<div class="msg-cont" data-message-id="${m.id}" data-user-id="${m.userId}"${pending}>
           <span class="msg-hover-time">${shortTime}</span>`;
       }
 
@@ -305,6 +306,17 @@ ui.render = {
 
     ui.chatMessagesInner.innerHTML = html;
     ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
+
+    ui.chatMessagesInner.querySelectorAll('[data-message-id]').forEach(el => {
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const msgId = el.dataset.messageId;
+        const msg = chat.messages.find(m => m.id === msgId);
+        if (msg) {
+          chat.showMessageContextMenu(msg, e.clientX, e.clientY);
+        }
+      });
+    });
   },
 
   queue() {

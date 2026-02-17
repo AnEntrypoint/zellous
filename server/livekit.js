@@ -69,12 +69,12 @@ function generateDevConfig() {
   const apiSecret = randomBytes(24).toString('base64url');
 
   const yaml = [
-    'port: 7880',
+    'port: 7882',
     'rtc:',
     '  port_range_start: 50000',
     '  port_range_end: 50200',
     '  use_external_ip: false',
-    '  tcp_port: 7881',
+    '  tcp_port: 7883',
     'keys:',
     `  ${apiKey}: ${apiSecret}`,
     'logging:',
@@ -88,7 +88,7 @@ function generateDevConfig() {
 
 async function isLivekitRunning() {
   try {
-    const res = await fetch('http://127.0.0.1:7880');
+    const res = await fetch('http://127.0.0.1:7882');
     return res.ok;
   } catch {
     return false;
@@ -101,7 +101,7 @@ const MAX_RESTARTS = 10;
 const RESTART_DELAY = 2000;
 
 function spawnLivekit() {
-  const child = spawn(BINARY_PATH, ['--config', CONFIG_PATH, '--bind', '0.0.0.0'], {
+  const child = spawn(BINARY_PATH, ['--config', CONFIG_PATH, '--bind', '127.0.0.1'], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
@@ -134,7 +134,7 @@ function spawnLivekit() {
 
 async function startLivekitServer() {
   if (await isLivekitRunning()) {
-    logger.info('[LiveKit] Server already running on :7880');
+    logger.info('[LiveKit] Server already running on 127.0.0.1:7882');
     return;
   }
 
@@ -154,7 +154,7 @@ async function startLivekitServer() {
   for (let i = 0; i < 30; i++) {
     await new Promise(r => setTimeout(r, 500));
     if (await isLivekitRunning()) {
-      logger.info('[LiveKit] Server ready on :7880');
+      logger.info('[LiveKit] Server ready on 127.0.0.1:7882');
       return;
     }
   }
@@ -195,7 +195,7 @@ function getConfig() {
   }
 
   return {
-    url: 'ws://localhost:7880',
+    url: 'ws://127.0.0.1:7882',
     apiKey: _devConfig.apiKey,
     apiSecret: _devConfig.apiSecret,
     turnUrl: '',

@@ -89,6 +89,24 @@ const messages = {
       logger.error(`[Storage] Failed to delete message ${messageId}: ${e.message}`);
     }
     return false;
+  },
+
+  async update(roomId, messageId, updates) {
+    const msgDir = join(DATA_ROOT, 'rooms', roomId, 'messages');
+    try {
+      const files = await fs.readdir(msgDir);
+      for (const file of files) {
+        if (file.includes(messageId)) {
+          const msg = JSON.parse(await fs.readFile(join(msgDir, file), 'utf8'));
+          const updated = { ...msg, ...updates, edited: true, editedAt: Date.now() };
+          await fs.writeFile(join(msgDir, file), JSON.stringify(updated, null, 2));
+          return updated;
+        }
+      }
+    } catch (e) {
+      logger.error(`[Storage] Failed to update message ${messageId}: ${e.message}`);
+    }
+    return null;
   }
 };
 

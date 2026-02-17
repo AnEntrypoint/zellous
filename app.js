@@ -252,13 +252,20 @@ window.zellousDebug = { state, config, audio, message, network, ptt, queue, deaf
   if (lastServer) {
     state.currentServerId = lastServer;
     state.roomId = lastServer;
+    if (window.serverManager) {
+      await serverManager.loadServers();
+      await serverManager.switchTo(lastServer);
+    } else {
+      network.connect();
+    }
+  } else {
+    network.connect();
   }
   ui.render.channels();
   ui.render.channelView();
   ui.render.authStatus();
   await audioIO.init();
-  network.connect();
   ui_events.setup();
   osjsIntegration.wrapPtt();
-  if (window.serverManager) serverManager.loadServers();
+  if (window.serverManager && !lastServer) serverManager.loadServers();
 })();
