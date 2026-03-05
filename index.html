@@ -35,7 +35,14 @@
 
     <!-- CHANNEL SIDEBAR -->
     <div class="channel-sidebar" id="channelSidebar">
-      <div class="server-header" id="serverHeader">Zellous</div>
+      <div class="server-boost-bar"></div>
+      <div class="server-header" id="serverHeader">
+        <div class="server-header-dropdown">
+          <span class="server-header-name" id="serverHeaderName">Zellous</span>
+          <span class="server-header-chevron">&#9660;</span>
+        </div>
+        <button class="server-header-btn" id="createCategoryBtn" title="Create Category">+</button>
+      </div>
       <div class="channel-list" id="channelList"></div>
       <div class="voice-panel" id="voicePanel">
         <div class="voice-panel-header">
@@ -78,10 +85,12 @@
         <span class="chat-header-icon" id="chatHeaderIcon">#</span>
         <span class="chat-header-name" id="chatHeaderName">general</span>
         <div class="chat-header-divider"></div>
-        <span class="chat-header-topic" id="chatHeaderTopic">Welcome to the room</span>
+        <span class="chat-header-topic" id="chatHeaderTopic"></span>
         <div class="chat-header-toolbar">
+          <button class="toolbar-btn" id="toggleThreadsBtn" title="Threads">&#128172;</button>
           <button class="toolbar-btn" id="toggleQueueBtn" title="Audio Queue">&#128203;</button>
           <button class="toolbar-btn" id="toggleMembersBtn" title="Members">&#128101;</button>
+          <button class="toolbar-btn" id="searchBtn" title="Search">&#128269;</button>
         </div>
       </div>
 
@@ -97,6 +106,7 @@
             <button class="attach-btn" id="attachBtn" title="Upload file">+</button>
             <input type="text" class="chat-input" id="chatInput" placeholder="Message #general">
             <div class="input-buttons">
+              <button class="input-icon-btn" id="emojiBtn" title="Emoji">&#128578;</button>
               <button class="input-btn" id="sendBtn" title="Send">&#10148;</button>
             </div>
           </div>
@@ -105,12 +115,25 @@
 
       <!-- VOICE CHANNEL VIEW -->
       <div class="voice-view" id="voiceView">
+        <div class="voice-turn-banner" id="voiceTurnBanner" style="display:none"></div>
+        <div class="voice-turn-order" id="voiceTurnOrder" style="display:none"></div>
         <div class="voice-grid" id="voiceGrid"></div>
         <div class="voice-controls" id="voiceControlsBar">
           <button class="voice-ctrl-btn" id="voiceMicBtn" title="Toggle Mic">&#127908;</button>
           <button class="voice-ctrl-btn" id="voiceDeafenBtn" title="Toggle Deafen">&#127911;</button>
           <button class="voice-ctrl-btn" id="voiceCamBtn" title="Toggle Camera">&#128247;</button>
           <button class="voice-ctrl-btn danger" id="voiceLeaveBtn" title="Disconnect">&#128222;</button>
+        </div>
+      </div>
+
+      <!-- FORUM CHANNEL VIEW -->
+      <div class="forum-view" id="forumView" style="display:none">
+        <div class="forum-header-bar">
+          <input class="forum-search" id="forumSearch" placeholder="Search posts...">
+          <button class="forum-new-post-btn" id="forumNewPostBtn">+ New Post</button>
+        </div>
+        <div class="forum-posts" id="forumPosts">
+          <div class="empty-state">No posts yet. Be the first to start a discussion!</div>
         </div>
       </div>
 
@@ -185,6 +208,20 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- THREAD PANEL -->
+    <div class="thread-panel" id="threadPanel">
+      <div class="thread-panel-header">
+        <span>Threads</span>
+        <button class="thread-panel-close" id="threadPanelClose">&#10005;</button>
+      </div>
+      <div class="thread-list" id="threadList">
+        <div class="empty-state">No threads yet</div>
+      </div>
+      <div style="padding:8px">
+        <button class="thread-create-btn" id="createThreadBtn">+ New Thread</button>
       </div>
     </div>
 
@@ -297,8 +334,9 @@
 
     // Load remaining scripts in order
     const scripts = [
-      'js/auth.js', 'js/ui.js', 'js/audio.js', 'js/queue.js',
-      'js/chat.js', 'js/files.js', 'js/channels.js', 'js/servers.js',
+      'js/auth.js', 'js/icons.js', 'js/ui.js', 'js/ui-channels.js', 'js/ui-chat.js', 'js/ui-voice.js',
+      'js/audio.js', 'js/queue.js',
+      'js/chat.js', 'js/files.js', 'js/channels.js', 'js/threads.js', 'js/servers.js',
       'js/moderation.js', 'js/network.js', 'js/ptt.js',
       'js/webcam.js', 'js/livekit.js', 'app.js'
     ];
@@ -335,9 +373,13 @@
       window.stateSignals.voiceConnectionQuality.value;
       window.stateSignals.dataChannelAvailable.value;
       window.stateSignals.channels.value;
+      window.stateSignals.categories.value;
+      window.stateSignals.collapsedCategories.value;
       window.stateSignals.servers.value;
       window.stateSignals.currentServerId.value;
       window.stateSignals.roomMembers.value;
+      window.stateSignals.micMuted.value;
+      window.stateSignals.voiceDeafened.value;
 
       if (window.ui?.render) {
         try { window.ui.render.all?.(); } catch (e) {}

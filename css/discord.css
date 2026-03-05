@@ -293,6 +293,32 @@ body {
   background: var(--bg-modifier-hover);
 }
 
+.server-header-btn {
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+
+.server-header:hover .server-header-btn {
+  opacity: 1;
+}
+
+.server-header-btn:hover {
+  color: var(--header-primary);
+  background: var(--bg-modifier-hover);
+}
+
 .channel-list {
   flex: 1;
   overflow-y: auto;
@@ -1095,10 +1121,8 @@ body {
   flex: 1;
   display: none;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
   min-height: 0;
-  padding: 24px;
 }
 
 .voice-view.active {
@@ -1106,14 +1130,18 @@ body {
 }
 
 .voice-grid {
+  flex: 1;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
   max-width: 900px;
   width: 100%;
+  margin: 0 auto;
   justify-items: center;
   align-items: center;
-  padding: 16px;
+  align-content: center;
+  padding: 24px;
+  overflow-y: auto;
 }
 
 .voice-tile {
@@ -2011,6 +2039,17 @@ select option {
   transform: rotate(-90deg);
 }
 
+.category-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+
+.category-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Hide the CSS ::before arrow when SVG arrow is present */
 .category-header:has(.category-arrow)::before {
   display: none;
@@ -2560,6 +2599,22 @@ select option {
   color: var(--header-primary);
 }
 
+.drop-indicator {
+  height: 2px;
+  background: var(--brand-500);
+  margin: 2px 0;
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.channel-item[draggable="true"] {
+  cursor: grab;
+}
+
+.channel-item[draggable="true"]:active {
+  cursor: grabbing;
+}
+
 /* --------------------------------------------------------------------------
    39. Context Menu
    -------------------------------------------------------------------------- */
@@ -2626,4 +2681,890 @@ select option {
   padding: 1px 4px;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.06);
+}
+
+/* ==========================================================================
+   42. Message Hover Action Toolbar
+   ========================================================================== */
+
+.msg-actions {
+  display: none;
+  position: absolute;
+  top: -16px;
+  right: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+  box-shadow: var(--elevation-high);
+  z-index: 10;
+  align-items: center;
+}
+
+.msg-group:hover .msg-actions,
+.msg-cont:hover .msg-actions {
+  display: flex;
+}
+
+.msg-action-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  position: relative;
+}
+
+.msg-action-btn:hover {
+  background: var(--bg-modifier-hover);
+  color: var(--header-primary);
+}
+
+.msg-action-btn.danger:hover {
+  background: rgba(242, 63, 67, 0.16);
+  color: var(--status-danger);
+}
+
+.msg-action-btn[title]::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-floating);
+  color: var(--header-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  z-index: 20;
+  box-shadow: var(--elevation-high);
+}
+
+.msg-action-btn:hover[title]::after {
+  opacity: 1;
+}
+
+/* ==========================================================================
+   43. Channel Unread / Mention Indicators
+   ========================================================================== */
+
+.channel-item.unread .channel-name {
+  color: var(--header-primary);
+  font-weight: 600;
+}
+
+.channel-item.unread::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 0 4px 4px 0;
+  background: var(--header-primary);
+}
+
+.channel-item {
+  position: relative;
+}
+
+.channel-mention-badge {
+  margin-left: auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--status-danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* ==========================================================================
+   44. Channel Hover Actions (Settings + Invite icons)
+   ========================================================================== */
+
+.channel-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.channel-item:hover .channel-actions {
+  display: flex;
+}
+
+.channel-item:hover .channel-mention-badge {
+  display: none;
+}
+
+.channel-action-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.channel-action-btn:hover {
+  color: var(--header-primary);
+}
+
+/* ==========================================================================
+   45. Muted Channel
+   ========================================================================== */
+
+.channel-item.muted .channel-name {
+  opacity: 0.4;
+}
+
+.channel-item.muted .channel-icon {
+  opacity: 0.3;
+}
+
+.channel-item.muted:hover .channel-name {
+  opacity: 0.7;
+}
+
+/* ==========================================================================
+   46. @Mention Highlight in Messages
+   ========================================================================== */
+
+.mention {
+  background: rgba(88, 101, 242, 0.2);
+  color: #c9cdfb;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.mention:hover {
+  background: rgba(88, 101, 242, 0.4);
+  color: #fff;
+}
+
+.mention.self {
+  background: rgba(240, 178, 50, 0.2);
+  color: #f0b232;
+}
+
+.mention.self:hover {
+  background: rgba(240, 178, 50, 0.4);
+}
+
+/* ==========================================================================
+   47. Voice Turn Indicator
+   ========================================================================== */
+
+.voice-turn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: rgba(35, 165, 90, 0.15);
+  border-bottom: 1px solid rgba(35, 165, 90, 0.3);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--status-positive);
+  flex-shrink: 0;
+}
+
+.voice-turn-banner.your-turn {
+  background: rgba(88, 101, 242, 0.15);
+  border-bottom-color: rgba(88, 101, 242, 0.3);
+  color: var(--brand-500);
+}
+
+.voice-turn-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: recBlink 1.2s ease-in-out infinite;
+}
+
+.voice-turn-order {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(0,0,0,0.16);
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.voice-turn-order::-webkit-scrollbar { display: none; }
+
+.voice-turn-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  background: var(--bg-modifier-hover);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+
+.voice-turn-chip.active {
+  background: rgba(35, 165, 90, 0.2);
+  color: var(--status-positive);
+  font-weight: 700;
+}
+
+.voice-turn-chip.yours {
+  background: rgba(88, 101, 242, 0.2);
+  color: var(--brand-500);
+}
+
+.voice-turn-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* ==========================================================================
+   48. Thread Panel (slides in from right)
+   ========================================================================== */
+
+.thread-panel {
+  width: 0;
+  min-width: 0;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width var(--transition-normal);
+}
+
+.thread-panel.open {
+  width: 360px;
+  min-width: 360px;
+  border-left: 1px solid rgba(0,0,0,0.24);
+}
+
+.thread-panel-header {
+  height: var(--header-height);
+  min-height: var(--header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.16);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--header-primary);
+  flex-shrink: 0;
+}
+
+.thread-panel-close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.thread-panel-close:hover {
+  color: var(--header-primary);
+  background: var(--bg-modifier-hover);
+}
+
+.thread-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.thread-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  margin-bottom: 2px;
+}
+
+.thread-item:hover {
+  background: var(--bg-modifier-hover);
+}
+
+.thread-item.active {
+  background: var(--bg-modifier-selected);
+}
+
+.thread-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.thread-item-icon {
+  font-size: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.thread-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--header-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.thread-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.thread-item-preview {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-left: 22px;
+}
+
+.thread-create-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  font-family: inherit;
+}
+
+.thread-create-btn:hover {
+  background: var(--bg-modifier-hover);
+  color: var(--header-primary);
+}
+
+/* ==========================================================================
+   49. Forum Channel View
+   ========================================================================== */
+
+.forum-view {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.forum-view.active {
+  display: flex;
+}
+
+.forum-header-bar {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 8px;
+  border-bottom: 1px solid rgba(0,0,0,0.16);
+  flex-shrink: 0;
+}
+
+.forum-search {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.forum-search::placeholder { color: var(--text-faint); }
+
+.forum-new-post-btn {
+  padding: 6px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--brand-500);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.forum-new-post-btn:hover { background: var(--brand-560); }
+
+.forum-posts {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.forum-post-card {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.forum-post-card:hover {
+  background: var(--bg-modifier-hover);
+  border-color: var(--bg-modifier-active);
+}
+
+.forum-post-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--header-primary);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.forum-post-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.forum-post-preview {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.forum-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+/* ==========================================================================
+   50. Improved Server Header Dropdown
+   ========================================================================== */
+
+.server-header-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.server-header-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.server-header-chevron {
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.server-header:hover .server-header-chevron {
+  color: var(--header-primary);
+}
+
+/* Server boost bar */
+.server-boost-bar {
+  height: 2px;
+  background: linear-gradient(90deg, #ff73fa, #5865f2, #ff73fa);
+  background-size: 200% 100%;
+  animation: boostShimmer 3s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes boostShimmer {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 200% 0%; }
+}
+
+/* ==========================================================================
+   51. Pinned Messages Badge on Channel Item
+   ========================================================================== */
+
+.channel-item .channel-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   52. Active Thread Indicator
+   ========================================================================== */
+
+.channel-item .thread-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ==========================================================================
+   53. Voice View - Connected State Panel improvements
+   ========================================================================== */
+
+.voice-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(0,0,0,0.16);
+  flex-shrink: 0;
+}
+
+.voice-view-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.voice-view-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   54. Chat Input - Emoji + Gift buttons
+   ========================================================================== */
+
+.input-icon-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color var(--transition-fast);
+}
+
+.input-icon-btn:hover {
+  color: var(--header-primary);
+}
+
+/* ==========================================================================
+   55. Inline reply quote
+   ========================================================================== */
+
+.msg-reply-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  padding-left: 0;
+}
+
+.msg-reply-bar::before {
+  content: '';
+  display: inline-block;
+  width: 36px;
+  height: 10px;
+  border-top: 2px solid var(--text-faint);
+  border-left: 2px solid var(--text-faint);
+  border-top-left-radius: 6px;
+  flex-shrink: 0;
+  margin-top: 8px;
+  margin-left: 16px;
+}
+
+.msg-reply-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.msg-reply-name {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.msg-reply-name:hover { text-decoration: underline; }
+
+.msg-reply-content {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+  cursor: pointer;
+}
+
+.msg-reply-content:hover { text-decoration: underline; color: var(--header-secondary); }
+
+/* Reply compose bar */
+.reply-compose-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid rgba(0,0,0,0.12);
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.reply-compose-name {
+  color: var(--text-link);
+  font-weight: 600;
+}
+
+.reply-compose-close {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.reply-compose-close:hover { color: var(--header-primary); }
+
+/* ==========================================================================
+   56. Member List Role Headers with colored names
+   ========================================================================== */
+
+.member-item .member-name.colored {
+  color: inherit;
+}
+
+.member-section-separator {
+  height: 1px;
+  background: var(--bg-modifier-active);
+  margin: 8px 8px;
+}
+
+/* ==========================================================================
+   57. Notification bell in toolbar
+   ========================================================================== */
+
+.toolbar-btn.notif-active {
+  color: var(--status-warning);
+}
+
+/* ==========================================================================
+   58. Channel icons via SVG (replaces emoji)
+   ========================================================================== */
+
+.ch-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.channel-item.active .ch-icon,
+.channel-item:hover .ch-icon {
+  opacity: 1;
+}
+
+.ch-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+/* ==========================================================================
+   59. Edit message inline
+   ========================================================================== */
+
+.msg-edit-area {
+  margin-top: 4px;
+}
+
+.msg-edit-input {
+  width: 100%;
+  background: var(--bg-tertiary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: 15px;
+  padding: 8px 12px;
+  outline: none;
+  resize: none;
+  min-height: 40px;
+  max-height: 200px;
+  line-height: 1.375;
+}
+
+.msg-edit-input:focus {
+  box-shadow: 0 0 0 2px var(--brand-500);
+}
+
+.msg-edit-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.msg-edit-hint a {
+  color: var(--text-link);
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   60. Reaction pills
+   ========================================================================== */
+
+.msg-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.reaction-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--bg-modifier-hover);
+  border: 1px solid transparent;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  font-family: inherit;
+}
+
+.reaction-pill:hover {
+  background: var(--bg-modifier-active);
+  border-color: var(--brand-500);
+}
+
+.reaction-pill.reacted {
+  background: rgba(88, 101, 242, 0.15);
+  border-color: var(--brand-500);
+  color: var(--brand-500);
+}
+
+.reaction-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.reaction-pill.reacted .reaction-count {
+  color: var(--brand-500);
 }

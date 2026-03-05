@@ -175,6 +175,11 @@ const ui_events = {
     });
     document.getElementById('settingsBtn')?.addEventListener('click', () => ui.actions.toggleSettings());
 
+    // Create category button
+    document.getElementById('createCategoryBtn')?.addEventListener('click', () => {
+      if (window.channelManager) channelManager.showCreateCategoryModal();
+    });
+
     // Close settings on outside click
     document.addEventListener('click', (e) => {
       if (ui.settingsPopover.classList.contains('open') && !ui.settingsPopover.contains(e.target) && e.target.id !== 'settingsBtn') {
@@ -195,6 +200,17 @@ const ui_events = {
     // Toolbar buttons
     document.getElementById('toggleMembersBtn')?.addEventListener('click', () => ui.actions.toggleMembers());
     document.getElementById('toggleQueueBtn')?.addEventListener('click', () => ui.actions.toggleQueue());
+    document.getElementById('toggleThreadsBtn')?.addEventListener('click', () => {
+      document.getElementById('threadPanel')?.classList.toggle('open');
+    });
+    document.getElementById('threadPanelClose')?.addEventListener('click', () => {
+      document.getElementById('threadPanel')?.classList.remove('open');
+    });
+    document.getElementById('emojiBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dummyMsgId = '_global';
+      if (window.uiChat) uiChat.showEmojiPicker(dummyMsgId, e.currentTarget);
+    });
 
     // Mobile navigation
     document.getElementById('mobileMenuBtn')?.addEventListener('click', () => ui.actions.openMobileMenu());
@@ -267,5 +283,6 @@ window.zellousDebug = { state, config, audio, message, network, ptt, queue, deaf
   await audioIO.init();
   ui_events.setup();
   osjsIntegration.wrapPtt();
+  if (window.channelManager) channelManager.initDragAndDrop();
   if (window.serverManager && !lastServer) serverManager.loadServers();
 })();
