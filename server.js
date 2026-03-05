@@ -234,11 +234,13 @@ const handlers = {
 
     const roomClients = collectRoomClients(roomId, client);
     const channels = await rooms.getChannels(roomId);
+    const categories = await rooms.getCategories(roomId);
 
     client.ws.send(pack({
       type: 'room_joined',
       roomId,
       channels,
+      categories,
       currentUsers: roomClients.map(c => ({
         id: c.id,
         username: c.username,
@@ -673,20 +675,26 @@ app.get('/api/rooms/:roomId/channels', async (req, res) => {
 });
 
 app.post('/api/rooms/:roomId/channels', async (req, res) => {
-  const { name, type } = req.body;
+  const { name, type, categoryId, position } = req.body;
   if (!name?.trim()) return res.status(400).json({ error: 'name required' });
   if (!['text', 'voice', 'threaded'].includes(type)) return res.status(400).json({ error: 'type must be text, voice, or threaded' });
   await rooms.ensureRoom(req.params.roomId);
-  const channel = await rooms.addChannel(req.params.roomId, { name: name.trim(), type });
+  const channel = await rooms.addChannel(req.params.roomId, { name: name.trim(), type, categoryId, position });
   if (!channel) return res.status(500).json({ error: 'Failed to create channel' });
   broadcast({ type: 'channel_created', channel }, null, req.params.roomId);
   res.json({ channel });
 });
 
 app.patch('/api/rooms/:roomId/channels/:channelId', async (req, res) => {
-  const { name } = req.body;
-  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
-  const channel = await rooms.updateChannel(req.params.roomId, req.params.channelId, { name: name.trim() });
+  const { name, categoryId, position } = req.body;
+  if (!name?.trim() && categoryId === undefined && position === undefined) {
+    return res.status(400).json({ error: 'name, categoryId, or position required' });
+  }
+  const updates = {};
+  if (name?.trim()) updates.name = name.trim();
+  if (categoryId !== undefined) updates.categoryId = categoryId;
+  if (position !== undefined) updates.position = position;
+  const channel = await rooms.updateChannel(req.params.roomId, req.params.channelId, updates);
   if (!channel) return res.status(404).json({ error: 'Channel not found' });
   broadcast({ type: 'channel_updated', channel }, null, req.params.roomId);
   res.json({ channel });
@@ -697,6 +705,60 @@ app.delete('/api/rooms/:roomId/channels/:channelId', async (req, res) => {
   if (!ok) return res.status(404).json({ error: 'Channel not found' });
   broadcast({ type: 'channel_deleted', channelId: req.params.channelId }, null, req.params.roomId);
   res.json({ success: true });
+});
+
+app.post('/api/rooms/:roomId/channels/reorder', async (req, res) => {
+  const { categoryId, orderedIds } = req.body;
+  if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds array required' });
+  const channels = await rooms.reorderChannels(req.params.roomId, categoryId, orderedIds);
+  if (!channels) return res.status(404).json({ error: 'Room not found' });
+  broadcast({ type: 'channels_reordered', categoryId, channels }, null, req.params.roomId);
+  res.json({ channels });
+});
+
+// Category CRUD endpoints
+app.get('/api/rooms/:roomId/categories', async (req, res) => {
+  const categories = await rooms.getCategories(req.params.roomId);
+  res.json({ categories });
+});
+
+app.post('/api/rooms/:roomId/categories', async (req, res) => {
+  const { name, position } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  await rooms.ensureRoom(req.params.roomId);
+  const category = await rooms.addCategory(req.params.roomId, { name: name.trim(), position });
+  if (!category) return res.status(500).json({ error: 'Failed to create category' });
+  broadcast({ type: 'category_created', category }, null, req.params.roomId);
+  res.json({ category });
+});
+
+app.patch('/api/rooms/:roomId/categories/:categoryId', async (req, res) => {
+  const { name, position, collapsed } = req.body;
+  const updates = {};
+  if (name?.trim()) updates.name = name.trim();
+  if (position !== undefined) updates.position = position;
+  if (collapsed !== undefined) updates.collapsed = collapsed;
+  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'name, position, or collapsed required' });
+  const category = await rooms.updateCategory(req.params.roomId, req.params.categoryId, updates);
+  if (!category) return res.status(404).json({ error: 'Category not found' });
+  broadcast({ type: 'category_updated', category }, null, req.params.roomId);
+  res.json({ category });
+});
+
+app.delete('/api/rooms/:roomId/categories/:categoryId', async (req, res) => {
+  const ok = await rooms.deleteCategory(req.params.roomId, req.params.categoryId);
+  if (!ok) return res.status(404).json({ error: 'Category not found' });
+  broadcast({ type: 'category_deleted', categoryId: req.params.categoryId }, null, req.params.roomId);
+  res.json({ success: true });
+});
+
+app.post('/api/rooms/:roomId/categories/reorder', async (req, res) => {
+  const { orderedIds } = req.body;
+  if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds array required' });
+  const categories = await rooms.reorderCategories(req.params.roomId, orderedIds);
+  if (!categories) return res.status(404).json({ error: 'Room not found' });
+  broadcast({ type: 'categories_reordered', categories }, null, req.params.roomId);
+  res.json({ categories });
 });
 
 app.post('/api/servers', optionalAuth, async (req, res) => {
