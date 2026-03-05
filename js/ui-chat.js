@@ -7,29 +7,22 @@ const mentionify = (text, selfId) => {
 };
 
 const uiChat = {
-  messages() {
-    if (!ui.chatMessagesInner) return;
-    const sysMessages = state.messages || [];
-    if (!sysMessages.length || (chat?.messages||[]).length > 0) return;
-    ui.chatMessagesInner.innerHTML = sysMessages.map(m =>
-      `<div class="msg-system"><span class="msg-system-icon">→</span>${escHtml(m.text)} <span class="msg-timestamp">${m.time}</span></div>`
-    ).join('');
-    ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
-  },
+  messages() { this.render(); },
 
   render() {
     if (!ui.chatMessagesInner) return;
     const chatMsgs = chat?.messages || [];
     const sysMsgs = (state.messages || []).map(m => ({
       id: m.id, type: 'system', text: m.text,
-      timestamp: new Date(m.time || Date.now()).getTime() || Date.now(),
+      timestamp: typeof m.time === 'number' ? m.time : Date.now(),
     }));
     const merged = [...chatMsgs, ...sysMsgs].sort((a, b) => (a.timestamp||0) - (b.timestamp||0));
     if (!merged.length) {
       ui.chatMessagesInner.innerHTML = '<div class="empty-state">No messages yet. Be the first to say something!</div>';
       return;
     }
-    const wasAtBottom = ui.chatMessages.scrollHeight - ui.chatMessages.scrollTop - ui.chatMessages.clientHeight < 80;
+    const scrollPos = ui.chatMessages.scrollHeight - ui.chatMessages.scrollTop - ui.chatMessages.clientHeight;
+    const wasAtBottom = scrollPos < 100 || ui.chatMessages.scrollHeight === 0;
     let html = '', lastUser = null, lastTime = 0;
 
     merged.forEach(m => {
@@ -47,19 +40,10 @@ const uiChat = {
       const editedBadge = m.edited ? '<span class="msg-edited">(edited)</span>' : '';
       const canEdit = String(m.userId) === String(state.userId);
 
-      const actions = `<div class="msg-actions">
-        <button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">😊</button>
-        <button class="msg-action-btn" data-reply="${m.id}" title="Reply">${window.getIcon ? getIcon('reply') : '↩'}</button>
-        ${canEdit ? `<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${window.getIcon ? getIcon('edit') : '✏'}</button>` : ''}
-        <button class="msg-action-btn" data-pin="${m.id}" title="Pin">${window.getIcon ? getIcon('pin') : '📌'}</button>
-        ${canEdit ? `<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${window.getIcon ? getIcon('delete') : '🗑'}</button>` : ''}
-      </div>`;
+      const ic = (k, fb) => window.getIcon ? getIcon(k) : fb;
+      const actions = `<div class="msg-actions"><button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">😊</button><button class="msg-action-btn" data-reply="${m.id}" title="Reply">${ic('reply','↩')}</button>${canEdit?`<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${ic('edit','✏')}</button>`:''}<button class="msg-action-btn" data-pin="${m.id}" title="Pin">${ic('pin','📌')}</button>${canEdit?`<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${ic('delete','🗑')}</button>`:''}</div>`;
 
-      const replyHtml = m.replyTo ? `<div class="msg-reply-bar">
-        <div class="msg-reply-avatar" style="background:${getAvatarColor(m.replyTo.userId)}">${getInitial(m.replyTo.username||'')}</div>
-        <span class="msg-reply-name" style="color:${getAvatarColor(m.replyTo.userId)}">@${escHtml(m.replyTo.username||'User')}</span>
-        <span class="msg-reply-content">${escHtml((m.replyTo.content||'').substring(0,80))}</span>
-      </div>` : '';
+      const replyHtml = m.replyTo ? `<div class="msg-reply-bar"><div class="msg-reply-avatar" style="background:${getAvatarColor(m.replyTo.userId)}">${getInitial(m.replyTo.username||'')}</div><span class="msg-reply-name" style="color:${getAvatarColor(m.replyTo.userId)}">@${escHtml(m.replyTo.username||'User')}</span><span class="msg-reply-content">${escHtml((m.replyTo.content||'').substring(0,80))}</span></div>` : '';
 
       let contentHtml = '';
       if (m.type === 'image') contentHtml = chat?.createImagePreview ? chat.createImagePreview(m) : '';
@@ -93,27 +77,23 @@ const uiChat = {
   },
 
   _bindActions() {
-    ui.chatMessagesInner.querySelectorAll('[data-message-id]').forEach(el => {
-      el.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        const msg = chat?.messages?.find(m => m.id === el.dataset.messageId);
-        if (msg) chat.showMessageContextMenu(msg, e.clientX, e.clientY);
-      });
+    const el = ui.chatMessagesInner;
+    el.addEventListener('contextmenu', (e) => {
+      const row = e.target.closest('[data-message-id]');
+      if (!row) return;
+      e.preventDefault();
+      const msg = chat?.messages?.find(m => m.id === row.dataset.messageId);
+      if (msg) this.showContextMenu(msg, e.clientX, e.clientY);
     });
-    ui.chatMessagesInner.querySelectorAll('[data-reply]').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); this.startReply(btn.dataset.reply); });
-    });
-    ui.chatMessagesInner.querySelectorAll('[data-edit]').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); this.startEdit(btn.dataset.edit); });
-    });
-    ui.chatMessagesInner.querySelectorAll('[data-delete]').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); chat?.deleteMessage(btn.dataset.delete); });
-    });
-    ui.chatMessagesInner.querySelectorAll('[data-react]').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); this.showEmojiPicker(btn.dataset.react, btn); });
-    });
-    ui.chatMessagesInner.querySelectorAll('.reaction-pill').forEach(pill => {
-      pill.addEventListener('click', (e) => { e.stopPropagation(); chat?.toggleReaction?.(pill.dataset.msg, pill.dataset.reactEmoji); });
+    el.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      e.stopPropagation();
+      if (btn.dataset.reply) this.startReply(btn.dataset.reply);
+      else if (btn.dataset.edit) this.startEdit(btn.dataset.edit);
+      else if (btn.dataset.delete) chat?.deleteMessage(btn.dataset.delete);
+      else if (btn.dataset.react) this.showEmojiPicker(btn.dataset.react, btn);
+      else if (btn.dataset.reactEmoji) chat?.toggleReaction?.(btn.dataset.msg, btn.dataset.reactEmoji);
     });
   },
 
@@ -180,11 +160,40 @@ const uiChat = {
     picker.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
     picker.style.left = rect.left + 'px';
     document.body.appendChild(picker);
-    picker.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
-      chat?.toggleReaction?.(msgId, b.dataset.emoji); picker.remove();
-    }));
+    picker.addEventListener('click', (e) => { const b = e.target.closest('[data-emoji]'); if (b) { chat?.toggleReaction?.(msgId, b.dataset.emoji); picker.remove(); } });
     setTimeout(() => document.addEventListener('click', () => picker.remove(), { once: true }), 0);
-  }
+  },
+
+  showContextMenu(msg, x, y) {
+    this.hideContextMenu();
+    const isOwn = msg.userId === state.userId;
+    if (!isOwn) return;
+    const menu = document.createElement('div');
+    menu.id = 'messageContextMenu';
+    menu.className = 'context-menu';
+    menu.style.cssText = `position:fixed;top:${y}px;left:${x}px;z-index:2500`;
+    menu.innerHTML = `<div class="context-menu-item" data-action="edit">Edit</div>
+      <div class="context-menu-item danger" data-action="delete">Delete</div>`;
+    document.body.appendChild(menu);
+    const rect = menu.getBoundingClientRect();
+    if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
+    if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
+    menu.addEventListener('click', async (e) => {
+      const action = e.target.dataset.action;
+      this.hideContextMenu();
+      if (action === 'delete' && confirm('Delete this message?')) {
+        try { await chat.deleteMessage(msg.id); } catch (err) {}
+      } else if (action === 'edit') {
+        this.startEdit(msg.id);
+      }
+    });
+    const close = (e) => {
+      if (!menu.contains(e.target)) { this.hideContextMenu(); document.removeEventListener('click', close); }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  },
+
+  hideContextMenu() { document.getElementById('messageContextMenu')?.remove(); }
 };
 
 window.uiChat = uiChat;

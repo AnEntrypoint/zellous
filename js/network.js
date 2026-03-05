@@ -103,9 +103,9 @@ const message = {
       network._pendingRoomId = null;
       state.roomId = m.roomId;
       state.messages = [];
+      state.chatMessages = [];
       const srv = (state.servers || []).find(s => s.id === m.roomId);
       const roomLabel = srv ? srv.name : m.roomId;
-      message.add(`Joined room: ${roomLabel}`);
       const members = m.currentUsers.map(u => ({ id: u.id, username: u.username, online: true, isBot: u.isBot, isAuthenticated: u.isAuthenticated }));
       const selfName = state.currentUser?.displayName || state.currentUser?.username || 'You';
       members.unshift({ id: state.userId, username: selfName, online: true, isAuthenticated: state.isAuthenticated });
@@ -117,13 +117,11 @@ const message = {
       const cur = state.currentChannel;
       const match = channels.find(c => c.id === cur?.id);
       state.currentChannel = match || channels[0] || { id: 'general', type: 'text', name: 'general' };
-      m.currentUsers.forEach(u => message.add(`${u.username} is online`, null, u.id, u.username));
       ui.render.channels?.();
       ui.render.channelView?.();
       ui.render.members?.();
       const ch = state.currentChannel;
-      if (ch?.type === 'text') {
-        state.chatMessages = [];
+      if (ch?.type === 'text' || ch?.type === 'announcement') {
         network.send({ type: 'get_messages', limit: 50, channelId: ch.id });
       }
     },
@@ -353,7 +351,7 @@ const message = {
 
   add: (text, audioData = null, userId = null, username = null) => {
     const id = Date.now() + Math.random();
-    const m = { id, text, time: new Date().toLocaleTimeString(), userId, username };
+    const m = { id, text, time: Date.now(), userId, username };
     if (audioData?.length) {
       m.hasAudio = true;
       const history = new Map(state.audioHistory);

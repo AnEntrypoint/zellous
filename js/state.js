@@ -1,10 +1,9 @@
-import { signal, computed } from '@preact/signals';
+import { signal } from '@preact/signals';
 
 const getRoomFromURL = () => new URLSearchParams(window.location.search).get('room') || 'lobby';
 const config = { chunkSize: 4096, sampleRate: 48000 };
 
 const state = {
-  // Audio state
   isSpeaking: signal(false),
   audioContext: signal(null),
   mediaStream: signal(null),
@@ -38,14 +37,12 @@ const state = {
   ownAudioChunks: signal([]),
   recentlyEndedSpeakers: signal(new Set()),
 
-  // VAD state
   vadEnabled: signal(false),
   vadThreshold: signal(0.15),
   vadSilenceDelay: signal(1500),
   vadSilenceTimer: signal(null),
   vadAnalyser: signal(null),
 
-  // Webcam state
   webcamEnabled: signal(false),
   webcamStream: signal(null),
   webcamRecorder: signal(null),
@@ -56,86 +53,71 @@ const state = {
   liveVideoChunks: signal(null),
   liveVideoInterval: signal(null),
 
-  // Device state
   inputDeviceId: signal(null),
   outputDeviceId: signal(null),
   inputDevices: signal([]),
   outputDevices: signal([]),
 
-  // Chat state
   chatMessages: signal([]),
   chatInputValue: signal(''),
 
-  // Auth state
   isAuthenticated: signal(false),
   currentUser: signal(null),
 
-  // File browser state
   currentFilePath: signal(''),
   fileList: signal([]),
 
-  // UI state
   activePanel: signal('main'),
   showAuthModal: signal(false),
   showSettingsModal: signal(false),
 
-  // Connection state
   isConnected: signal(false),
   connectionStatus: signal('Connecting...'),
 
-  // User directory
   users: signal(new Map()),
 
-  // Channel state
   currentChannel: signal({ id: 'general', type: 'text', name: 'general' }),
   channels: signal([]),
   categories: signal([]),
   collapsedCategories: signal(new Set()),
 
-  // LiveKit state
   voiceConnected: signal(false),
   voiceChannelName: signal(''),
   voiceParticipants: signal([]),
   livekitRoom: signal(null),
   micMuted: signal(false),
 
-  // LiveKit connection quality & resilience
   voiceConnectionQuality: signal('unknown'),
   voiceConnectionState: signal('disconnected'),
   voiceReconnectAttempts: signal(0),
 
-  // Data channel transport
   dataChannelAvailable: signal(false),
   useDataChannel: signal(false),
 
-  // Voice deafen (separate from threaded isDeafened)
   voiceDeafened: signal(false),
 
-  // Member list
   roomMembers: signal([]),
 
-  // UI panels
   membersVisible: signal(true),
   queueVisible: signal(true),
   settingsOpen: signal(false),
 
-  // Server/guild state
   servers: signal([]),
   currentServerId: signal(null),
 };
 
-// Create a proxy that makes signals transparent to legacy code
+const _isSignal = (v) => v !== null && typeof v === 'object' && 'value' in v && typeof v.subscribe === 'function';
+
 const stateProxy = new Proxy(state, {
   get: (target, prop) => {
-    const value = target[prop];
-    // Return .value for signals, otherwise return the property
-    return value?.value !== undefined ? value.value : value;
+    const entry = target[prop];
+    if (_isSignal(entry)) return entry.value;
+    return entry;
   },
   set: (target, prop, val) => {
-    const signal = target[prop];
-    // If it's a signal, set .value; otherwise set directly
-    if (signal?.value !== undefined) {
-      signal.value = val;
+    const entry = target[prop];
+    if (_isSignal(entry)) {
+      entry.value = val;
     } else {
       target[prop] = val;
     }
@@ -144,7 +126,7 @@ const stateProxy = new Proxy(state, {
 });
 
 window.state = stateProxy;
-window.stateSignals = state; // Keep raw signals accessible if needed
+window.stateSignals = state;
 window.config = config;
 
 export { state, config };

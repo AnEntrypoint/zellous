@@ -167,6 +167,7 @@ body {
   flex-direction: row;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -950,6 +951,7 @@ body {
 
 .chat-input-wrapper {
   padding: 0 16px 24px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
   flex-shrink: 0;
 }
 
@@ -2412,6 +2414,7 @@ select option {
   /* Chat input padding adjustments */
   .chat-input-wrapper {
     padding: 0 8px 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 
   /* Messages padding adjustments */
@@ -3567,4 +3570,52 @@ select option {
 
 .reaction-pill.reacted .reaction-count {
   color: var(--brand-500);
+}
+
+/* --------------------------------------------------------------------------
+   38. Connection Reconnecting Banner
+   -------------------------------------------------------------------------- */
+
+.reconnect-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--status-warning);
+  color: #fff;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 16px;
+  transform: translateY(-100%);
+  transition: transform 0.2s ease;
+  pointer-events: none;
+}
+
+.reconnect-banner.visible {
+  transform: translateY(0);
+}
+
+/* --------------------------------------------------------------------------
+   39. Touch and Swipe Improvements
+   -------------------------------------------------------------------------- */
+
+.channel-sidebar {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chat-messages {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.member-list {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.drawer-overlay {
+  touch-action: none;
 }

@@ -80,59 +80,26 @@ const uiVoice = {
       return;
     }
     const qDot = (q) => q && q !== 'unknown' ? `<span class="quality-dot ${q}" title="${q}"></span>` : '';
-    const turnOrder = state.voiceTurnOrder || [];
-    const currentSpeaker = turnOrder[0];
     ui.voiceGrid.innerHTML = participants.map(p => {
       const spk = (state.activeSpeakers||new Set()).has(p.identity) || p.isSpeaking ? ' speaking' : '';
-      const isMyTurn = currentSpeaker === p.identity;
-      const turnStyle = isMyTurn ? ' style="box-shadow:0 0 0 4px var(--brand-500)"' : '';
       return `<div class="voice-tile">
-        <div class="voice-tile-avatar${spk}"${turnStyle} style="background:${getAvatarColor(p.identity)}">${getInitial(p.identity)}</div>
+        <div class="voice-tile-avatar${spk}" style="background:${getAvatarColor(p.identity)}">${getInitial(p.identity)}</div>
         <div class="voice-tile-name">${escHtml(p.identity)}${qDot(p.connectionQuality)}</div>
-        ${isMyTurn ? '<div class="voice-tile-status" style="color:var(--brand-500);font-size:11px">Speaking Now</div>' : ''}
-        ${p.isMuted ? '<div class="voice-tile-muted">🔇 Muted</div>' : ''}
+        ${p.isMuted ? '<div class="voice-tile-muted">🔇</div>' : ''}
       </div>`;
     }).join('');
   },
 
-  renderTurnOrder() {
-    const banner = document.getElementById('voiceTurnBanner');
-    const orderBar = document.getElementById('voiceTurnOrder');
-    if (!banner || !orderBar) return;
-    const participants = state.voiceParticipants || [];
-    const myName = state.currentUser?.displayName || state.currentUser?.username || '';
-    const turnOrder = state.voiceTurnOrder || [];
-    const currentSpeaker = turnOrder[0] || (state.activeSpeakers?.size > 0 ? [...state.activeSpeakers][0] : null);
-
-    if (!state.voiceConnected || !participants.length) {
-      banner.style.display = 'none'; orderBar.style.display = 'none'; return;
-    }
-    const isMyTurn = currentSpeaker === myName || (myName && state.isSpeaking);
-    banner.style.display = 'flex';
-    banner.className = `voice-turn-banner${isMyTurn ? ' your-turn' : ''}`;
-    banner.innerHTML = `<div class="voice-turn-dot"></div>
-      ${isMyTurn ? '<strong>Your Turn to Speak</strong>' : currentSpeaker ? `<strong>${escHtml(currentSpeaker)}</strong> is speaking` : 'Waiting for speaker'}`;
-
-    if (turnOrder.length > 1) {
-      orderBar.style.display = 'flex';
-      orderBar.innerHTML = '<span style="font-size:12px;color:var(--text-muted);margin-right:4px">Next:</span>' +
-        turnOrder.slice(1, 6).map(name => {
-          const isMe = name === myName;
-          return `<div class="voice-turn-chip${isMe ? ' yours' : ''}">
-            <div class="voice-turn-avatar" style="background:${getAvatarColor(name)}">${getInitial(name)}</div>
-            ${escHtml(name)}
-          </div>`;
-        }).join('');
-    } else { orderBar.style.display = 'none'; }
-  },
-
   renderQueue() {
     if (!ui.audioQueueView) return;
-    const all = [...Array.from(state.activeSegments.values()), ...state.audioQueue];
+    const activeSegs = Array.from(stateSignals.activeSegments.value.values());
+    const queued = stateSignals.audioQueue.value;
+    const all = [...activeSegs, ...queued];
     if (!all.length) { ui.audioQueueView.innerHTML = '<div class="empty-state">Queue empty</div>'; return; }
-    let html = state.activeSpeakers.size > 0 && !state.skipLiveAudio
+    const speakers = stateSignals.activeSpeakers.value;
+    let html = speakers.size > 0 && !state.skipLiveAudio
       ? '<button class="skip-btn" id="skipLiveBtn">Skip Live</button>'
-      : (state.skipLiveAudio && state.activeSpeakers.size > 0 ? '<button class="skip-btn resume" id="resumeLiveBtn">Resume Live</button>' : '');
+      : (state.skipLiveAudio && speakers.size > 0 ? '<button class="skip-btn resume" id="resumeLiveBtn">Resume Live</button>' : '');
     all.forEach(s => {
       const replaying = state.replayingSegmentId === s.id;
       const icon = replaying ? '🔊' : { recording:'🔴', queued:'⏸', playing:'▶', played:'✓' }[s.status] || '•';
