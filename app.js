@@ -36,20 +36,22 @@ const audioIO = {
     state.outputDeviceId = deviceId;
     if (state.audioContext.destination.setSinkId) await state.audioContext.destination.setSinkId(deviceId);
   },
-  setupRecording: () => {
+  setupRecording: async () => {
     audio.initEncoder();
-    state.scriptProcessor = state.audioContext.createScriptProcessor(config.chunkSize, 1, 1);
+    if (state.workletNode) { try { state.workletNode.disconnect(); } catch (e) {} }
+    await state.audioContext.audioWorklet.addModule('js/audio-processor.js');
     const source = state.audioContext.createMediaStreamSource(state.mediaStream);
-    state.scriptProcessor.onaudioprocess = (e) => {
+    const worklet = new AudioWorkletNode(state.audioContext, 'audio-capture', { processorOptions: { chunkSize: config.chunkSize } });
+    worklet.port.onmessage = (e) => {
       if (state.isSpeaking && state.audioEncoder) {
-        const samples = e.inputBuffer.getChannelData(0);
+        const samples = e.data;
         const d = new AudioData({ format: 'f32-planar', sampleRate: config.sampleRate, numberOfFrames: samples.length, numberOfChannels: 1, timestamp: performance.now() * 1000, data: samples });
         state.audioEncoder.encode(d);
         d.close();
       }
     };
-    source.connect(state.scriptProcessor);
-    state.scriptProcessor.connect(state.audioContext.destination);
+    source.connect(worklet);
+    state.workletNode = worklet;
   }
 };
 

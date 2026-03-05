@@ -261,6 +261,16 @@ body {
   flex-shrink: 0;
 }
 
+.server-icon.dragging {
+  opacity: 0.4;
+  transform: scale(0.9);
+}
+
+.server-icon.drag-over {
+  outline: 2px solid var(--brand);
+  transform: scale(1.1);
+}
+
 /* --------------------------------------------------------------------------
    7. Channel Sidebar
    -------------------------------------------------------------------------- */

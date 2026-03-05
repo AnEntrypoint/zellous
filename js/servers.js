@@ -77,10 +77,30 @@ const serverManager = {
     } catch (e) { console.warn('[Servers] Channel load failed:', e.message); }
   },
 
+  _getOrder() {
+    try { return JSON.parse(localStorage.getItem('zellous_serverOrder') || '[]'); } catch { return []; }
+  },
+
+  _saveOrder(ids) {
+    localStorage.setItem('zellous_serverOrder', JSON.stringify(ids));
+  },
+
+  _sortedServers() {
+    const srvs = state.servers || [];
+    const order = serverManager._getOrder();
+    if (!order.length) return srvs;
+    const indexed = new Map(order.map((id, i) => [id, i]));
+    return [...srvs].sort((a, b) => {
+      const ai = indexed.has(a.id) ? indexed.get(a.id) : Infinity;
+      const bi = indexed.has(b.id) ? indexed.get(b.id) : Infinity;
+      return ai - bi;
+    });
+  },
+
   renderList() {
     const container = document.getElementById('serverIcons');
     if (!container) return;
-    const srvs = state.servers || [];
+    const srvs = serverManager._sortedServers();
     const current = state.currentServerId;
     const colors = ['#5865f2', '#57f287', '#feb347', '#fe7168', '#9b59b6', '#1abc9c', '#e67e22', '#e74c3c'];
 
@@ -89,11 +109,11 @@ const serverManager = {
       const active = s.id === current ? ' active' : '';
       const color = s.iconColor || colors[s.name.length % colors.length];
       const initial = (s.name || '?')[0].toUpperCase();
-      html += `<div class="server-icon${active}" data-server="${s.id}" title="${s.name}" style="background:${active ? '' : color}">
+      html += `<div class="server-icon${active}" draggable="true" data-server="${s.id}" title="${s.name}" style="background:${active ? '' : color}">
         <div class="server-pill"></div>${initial}
       </div>`;
     });
-    html += `<div class="server-separator"></div>
+    html += `<div class="server-separator" id="serverSeparator"></div>
       <div class="server-icon add-server" id="addServerBtn" title="Add a Server">
         <div class="server-pill"></div>+
       </div>`;
@@ -109,6 +129,48 @@ const serverManager = {
       el.addEventListener('click', () => serverManager.switchTo(el.dataset.server));
     });
     document.getElementById('addServerBtn')?.addEventListener('click', () => serverManager.showCreateModal());
+    serverManager._initDragDrop(container);
+  },
+
+  _initDragDrop(container) {
+    let dragId = null;
+
+    container.addEventListener('dragstart', (e) => {
+      const el = e.target.closest('[data-server]');
+      if (!el) return;
+      dragId = el.dataset.server;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(() => el.classList.add('dragging'), 0);
+    });
+
+    container.addEventListener('dragend', (e) => {
+      container.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      dragId = null;
+    });
+
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const target = e.target.closest('[data-server]');
+      container.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      if (target && target.dataset.server !== dragId) target.classList.add('drag-over');
+    });
+
+    container.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const target = e.target.closest('[data-server]');
+      if (!target || !dragId || target.dataset.server === dragId) return;
+      const srvs = serverManager._sortedServers();
+      const ids = srvs.map(s => s.id);
+      const fromIdx = ids.indexOf(dragId);
+      const toIdx = ids.indexOf(target.dataset.server);
+      if (fromIdx === -1 || toIdx === -1) return;
+      ids.splice(fromIdx, 1);
+      ids.splice(toIdx, 0, dragId);
+      serverManager._saveOrder(ids);
+      serverManager.renderList();
+    });
   },
 
   showCreateModal() {

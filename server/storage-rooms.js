@@ -32,15 +32,10 @@ const rooms = {
     let meta;
     try {
       meta = JSON.parse(await fs.readFile(metaPath, 'utf8'));
-      if (!meta.channels) {
-        meta.channels = [...DEFAULT_CHANNELS];
-      }
-      if (!meta.categories) {
-        meta.categories = [...DEFAULT_CATEGORIES];
-      }
-      if (!meta.channels || !meta.categories) {
-        await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
-      }
+      let needsSave = false;
+      if (!meta.channels) { meta.channels = [...DEFAULT_CHANNELS]; needsSave = true; }
+      if (!meta.categories) { meta.categories = [...DEFAULT_CATEGORIES]; needsSave = true; }
+      if (needsSave) await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
     } catch {
       meta = {
         id: roomId,
