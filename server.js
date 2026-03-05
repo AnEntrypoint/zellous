@@ -28,7 +28,7 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ noServer: true });
 
 app.use(cors({
   origin: true, // Allow all origins for iframe embedding
@@ -54,12 +54,11 @@ function createLiveKitProxy() {
   app.use((req, res, next) => {
     if (!req.path.startsWith(proxyPath)) return next();
 
-    const targetPath = req.path.slice(proxyPath.length) || '/';
-    const targetUrl = `http://127.0.0.1:${LK_HTTP_PORT}${targetPath}`;
+    const suffix = req.url.slice(proxyPath.length) || '/';
     const options = {
       hostname: '127.0.0.1',
       port: LK_HTTP_PORT,
-      path: targetPath,
+      path: suffix,
       method: req.method,
       headers: {
         ...req.headers,
@@ -70,17 +69,13 @@ function createLiveKitProxy() {
     };
 
     const proxyReq = http.request(options, (proxyRes) => {
-      if (proxyRes.statusCode === 404) {
-        res.status(404).json({ error: 'Not found' });
-        return;
-      }
       res.writeHead(proxyRes.statusCode, proxyRes.headers);
       proxyRes.pipe(res, { end: true });
     });
 
     proxyReq.on('error', (e) => {
       logger.error('[LiveKit Proxy] HTTP:', e.message);
-      res.status(502).json({ error: 'LiveKit unavailable' });
+      if (!res.headersSent) res.status(502).json({ error: 'LiveKit unavailable' });
     });
 
     req.pipe(proxyReq, { end: true });
@@ -88,82 +83,57 @@ function createLiveKitProxy() {
 }
 
 function createLiveKitWebSocketProxy() {
+  const lkWss = new WebSocketServer({ noServer: true, perMessageDeflate: false });
+
   server.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
-    if (!url.pathname.startsWith('/livekit')) return;
-    const targetPath = url.pathname.slice('/livekit'.length) || '/';
-    const targetUrl = `ws://127.0.0.1:${LK_WS_PORT}${targetPath}${url.search}`;
-    const targetSocket = new WebSocket(targetUrl, {
-      headers: { 'x-forwarded-for': socket.remoteAddress || '' },
-      perMessageDeflate: false,
-    });
-    targetSocket.on('open', () => {
-      const wsKey = request.headers['sec-websocket-key'];
-      const accept = require('crypto').createHash('sha1')
-        .update(wsKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
-        .digest('base64');
-      socket.write(
-        'HTTP/1.1 101 Switching Protocols\r\n' +
-        'Upgrade: websocket\r\nConnection: Upgrade\r\n' +
-        `Sec-WebSocket-Accept: ${accept}\r\n\r\n`
-      );
-      targetSocket.on('message', (data, isBinary) => {
-        if (socket.writable) {
-          const buf = isBinary ? data : Buffer.from(data);
-          const frame = buildWsFrame(buf, isBinary);
-          socket.write(frame);
+    if (!url.pathname.startsWith('/livekit')) {
+      wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
+      return;
+    }
+
+    lkWss.handleUpgrade(request, socket, head, (clientWs) => {
+      const targetPath = url.pathname.slice('/livekit'.length) || '/';
+      const targetUrl = `ws://127.0.0.1:${LK_WS_PORT}${targetPath}${url.search}`;
+      const targetWs = new WebSocket(targetUrl, {
+        headers: { 'x-forwarded-for': socket.remoteAddress || '' },
+        perMessageDeflate: false,
+      });
+
+      targetWs.on('open', () => {
+        targetWs.on('message', (data, isBinary) => {
+          if (clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(data, { binary: isBinary });
+          }
+        });
+        targetWs.on('close', (code, reason) => {
+          if (clientWs.readyState === WebSocket.OPEN) clientWs.close(code, reason);
+        });
+        targetWs.on('error', (e) => {
+          logger.error('[LiveKit WS] Target:', e.message);
+          if (clientWs.readyState === WebSocket.OPEN) clientWs.close(1011);
+        });
+      });
+
+      clientWs.on('message', (data, isBinary) => {
+        if (targetWs.readyState === WebSocket.OPEN) {
+          targetWs.send(data, { binary: isBinary });
         }
       });
-      targetSocket.on('close', () => socket.end());
-      targetSocket.on('error', (e) => { logger.error('[LiveKit WS] Target:', e.message); socket.end(); });
-      const parser = createWsFrameParser((payload, opcode) => {
-        if (targetSocket.readyState === WebSocket.OPEN) {
-          targetSocket.send(payload, { binary: opcode === 2 });
-        }
+      clientWs.on('close', () => {
+        if (targetWs.readyState !== WebSocket.CLOSED) targetWs.close();
       });
-      socket.on('data', parser);
-      socket.on('close', () => targetSocket.close());
-      socket.on('error', (e) => { logger.error('[LiveKit WS] Client:', e.message); targetSocket.close(); });
-    });
-    targetSocket.on('error', (e) => {
-      logger.error('[LiveKit WS] Connect error:', e.message);
-      socket.end('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+      clientWs.on('error', (e) => {
+        logger.error('[LiveKit WS] Client:', e.message);
+        if (targetWs.readyState !== WebSocket.CLOSED) targetWs.close();
+      });
+
+      targetWs.on('error', (e) => {
+        logger.error('[LiveKit WS] Connect error:', e.message);
+        if (clientWs.readyState === WebSocket.OPEN) clientWs.close(1011);
+      });
     });
   });
-}
-
-function buildWsFrame(payload, isBinary) {
-  const opcode = isBinary ? 2 : 1;
-  const len = payload.length;
-  let header;
-  if (len < 126) { header = Buffer.from([0x80 | opcode, len]); }
-  else if (len < 65536) { header = Buffer.alloc(4); header[0] = 0x80 | opcode; header[1] = 126; header.writeUInt16BE(len, 2); }
-  else { header = Buffer.alloc(10); header[0] = 0x80 | opcode; header[1] = 127; header.writeBigUInt64BE(BigInt(len), 2); }
-  return Buffer.concat([header, payload]);
-}
-
-function createWsFrameParser(onFrame) {
-  let buf = Buffer.alloc(0);
-  return (data) => {
-    buf = Buffer.concat([buf, data]);
-    while (buf.length >= 2) {
-      const opcode = buf[0] & 0x0f;
-      const masked = (buf[1] & 0x80) !== 0;
-      let payloadLen = buf[1] & 0x7f;
-      let offset = 2;
-      if (payloadLen === 126) { if (buf.length < 4) break; payloadLen = buf.readUInt16BE(2); offset = 4; }
-      else if (payloadLen === 127) { if (buf.length < 10) break; payloadLen = Number(buf.readBigUInt64BE(2)); offset = 10; }
-      if (masked) offset += 4;
-      if (buf.length < offset + payloadLen) break;
-      let payload = buf.slice(offset, offset + payloadLen);
-      if (masked) {
-        const mask = buf.slice(offset - 4, offset);
-        payload = Buffer.from(payload.map((b, i) => b ^ mask[i % 4]));
-      }
-      buf = buf.slice(offset + payloadLen);
-      if (opcode === 1 || opcode === 2) onFrame(payload, opcode);
-    }
-  };
 }
 
 
@@ -727,6 +697,7 @@ app.patch('/api/rooms/:roomId/channels/:channelId', async (req, res) => {
   if (!name?.trim() && categoryId === undefined && position === undefined) {
     return res.status(400).json({ error: 'name, categoryId, or position required' });
   }
+  await rooms.ensureRoom(req.params.roomId);
   const updates = {};
   if (name?.trim()) updates.name = name.trim();
   if (categoryId !== undefined) updates.categoryId = categoryId;
