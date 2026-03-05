@@ -123,6 +123,8 @@ const uiVoice = {
     document.getElementById('resumeLiveBtn')?.addEventListener('click', () => audio.resumeLive());
   },
 
+  renderTurnOrder() {},
+
   renderPanel() {
     if (!ui.voicePanel) return;
     ui.voicePanel.classList.toggle('visible', !!state.voiceConnected);
