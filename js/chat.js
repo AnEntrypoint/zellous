@@ -4,21 +4,25 @@ const chat = {
   get messages() { return state.chatMessages || []; },
   set messages(v) { state.chatMessages = v; },
 
-  send(content) {
+  send(content, opts = {}) {
     if (!content?.trim() || !state.ws) return;
     const trimmed = content.trim();
-    this.addMessage({
-      id: 'local-' + Date.now() + '-' + Math.random(),
+    const channelId = state.currentChannel?.id || 'general';
+    const localId = 'local-' + Date.now() + '-' + Math.random();
+    const msg = {
+      id: localId,
       type: 'text',
       userId: state.userId,
       username: state.currentUser?.displayName || state.currentUser?.username || 'You',
       content: trimmed,
       timestamp: Date.now(),
       isAuthenticated: state.isAuthenticated,
-      channelId: state.currentChannel?.id || 'general',
-      pending: true
-    });
-    network.send({ type: 'text_message', content: trimmed, channelId: state.currentChannel?.id || 'general' });
+      channelId,
+      pending: true,
+    };
+    if (opts.replyTo) msg.replyTo = opts.replyTo;
+    this.addMessage(msg);
+    network.send({ type: 'text_message', content: trimmed, channelId, replyTo: opts.replyTo || null });
   },
 
   async sendImage(file, caption = '') {
@@ -31,73 +35,42 @@ const chat = {
     reader.readAsDataURL(file);
   },
 
-  handleTextMessage(msg) {
+  _confirmMessage(existing, override) {
+    return { ...existing, id: override.id, pending: false, username: override.username,
+      timestamp: override.timestamp || existing.timestamp,
+      isAuthenticated: override.isAuthenticated,
+      ...(override.replyTo ? { replyTo: override.replyTo } : {}),
+      ...(override.metadata ? { metadata: override.metadata } : {}),
+      ...(override.edited ? { edited: true, editedAt: override.editedAt } : {}),
+    };
+  },
+
+  _resolveOrAdd(msg, type) {
     const msgChannel = msg.channelId || 'general';
     if (msgChannel !== (state.currentChannel?.id || 'general')) return;
-    const pendingIdx = this.messages.findIndex(m => 
-      m.pending && m.userId === msg.userId && m.content === msg.content
+    const now = Date.now();
+    const pendingIdx = this.messages.findIndex(m =>
+      m.pending && m.userId === msg.userId && m.content === msg.content &&
+      Math.abs((m.timestamp || now) - (msg.timestamp || now)) < 10000
     );
     if (pendingIdx !== -1) {
-      this.messages[pendingIdx] = {
-        id: msg.id,
-        type: 'text',
-        userId: msg.userId,
-        username: msg.username,
-        content: msg.content,
-        timestamp: msg.timestamp || Date.now(),
-        isAuthenticated: msg.isAuthenticated,
-        channelId: msgChannel
-      };
-      this.messages = [...this.messages];
+      const updated = [...this.messages];
+      updated[pendingIdx] = this._confirmMessage(updated[pendingIdx], { ...msg, type });
+      this.messages = updated;
     } else {
-      this.addMessage({
-        id: msg.id,
-        type: 'text',
-        userId: msg.userId,
-        username: msg.username,
-        content: msg.content,
-        timestamp: msg.timestamp || Date.now(),
-        isAuthenticated: msg.isAuthenticated,
-        channelId: msgChannel
-      });
+      const existing = this.messages.find(m => m.id === msg.id);
+      if (!existing) {
+        this.addMessage({ id: msg.id, type, userId: msg.userId, username: msg.username,
+          content: msg.content, timestamp: msg.timestamp || Date.now(),
+          metadata: msg.metadata, isAuthenticated: msg.isAuthenticated,
+          channelId: msgChannel, replyTo: msg.replyTo || null });
+      }
     }
     ui.render.chat();
   },
 
-  handleImageMessage(msg) {
-    const msgChannel = msg.channelId || 'general';
-    if (msgChannel !== (state.currentChannel?.id || 'general')) return;
-    const pendingIdx = this.messages.findIndex(m => 
-      m.pending && m.userId === msg.userId && m.content === msg.content
-    );
-    if (pendingIdx !== -1) {
-      this.messages[pendingIdx] = {
-        id: msg.id,
-        type: 'image',
-        userId: msg.userId,
-        username: msg.username,
-        content: msg.content,
-        timestamp: msg.timestamp || Date.now(),
-        metadata: msg.metadata,
-        isAuthenticated: msg.isAuthenticated,
-        channelId: msgChannel
-      };
-      this.messages = [...this.messages];
-    } else {
-      this.addMessage({
-        id: msg.id,
-        type: 'image',
-        userId: msg.userId,
-        username: msg.username,
-        content: msg.content,
-        timestamp: msg.timestamp || Date.now(),
-        metadata: msg.metadata,
-        isAuthenticated: msg.isAuthenticated,
-        channelId: msgChannel
-      });
-    }
-    ui.render.chat();
-  },
+  handleTextMessage(msg) { this._resolveOrAdd(msg, 'text'); },
+  handleImageMessage(msg) { this._resolveOrAdd(msg, 'image'); },
 
   handleFileShared(msg) {
     const msgChannel = msg.channelId || 'general';
@@ -117,12 +90,18 @@ const chat = {
 
   handleHistory(msgs, channelId) {
     if (channelId && channelId !== (state.currentChannel?.id || 'general')) return;
-    this.messages = msgs.map(m => ({
+    const serverIds = new Set(msgs.map(m => m.id));
+    const retained = this.messages.filter(m => !m.pending && !serverIds.has(m.id));
+    const incoming = msgs.map(m => ({
       id: m.id, type: m.type || 'text', userId: m.userId,
       username: m.username, content: m.content, timestamp: m.timestamp,
       metadata: m.metadata, isAuthenticated: m.isAuthenticated,
-      channelId: m.channelId || 'general'
+      channelId: m.channelId || 'general',
+      replyTo: m.replyTo || null,
+      edited: m.edited || false, editedAt: m.editedAt,
+      reactions: m.reactions || []
     }));
+    this.messages = [...retained, ...incoming].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
     ui.render.chat();
   },
 
@@ -140,8 +119,8 @@ const chat = {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   },
 
-  getImageUrl(roomId, fileId) { return `/api/rooms/${roomId}/files/${fileId}`; },
   getFileUrl(roomId, fileId) { return `/api/rooms/${roomId}/files/${fileId}`; },
+  getImageUrl(roomId, fileId) { return chat.getFileUrl(roomId, fileId); },
   isImage(mimeType) { return mimeType?.startsWith('image/'); },
 
   createImagePreview(msg) {
@@ -164,14 +143,14 @@ const chat = {
     </div>`;
   },
 
-  getFileIcon(mimeType) {
-    if (!mimeType) return '\u{1F4C4}';
-    if (mimeType.startsWith('image/')) return '\u{1F5BC}';
-    if (mimeType.startsWith('video/')) return '\u{1F3AC}';
-    if (mimeType.startsWith('audio/')) return '\u{1F3B5}';
-    if (mimeType.includes('pdf')) return '\u{1F4D5}';
-    if (mimeType.includes('zip') || mimeType.includes('tar')) return '\u{1F4E6}';
-    if (mimeType.includes('text')) return '\u{1F4DD}';
+  getFileIcon(t) {
+    if (!t) return '\u{1F4C4}';
+    if (t.startsWith('image/')) return '\u{1F5BC}';
+    if (t.startsWith('video/')) return '\u{1F3AC}';
+    if (t.startsWith('audio/')) return '\u{1F3B5}';
+    if (t.includes('pdf')) return '\u{1F4D5}';
+    if (t.includes('zip') || t.includes('tar')) return '\u{1F4E6}';
+    if (t.includes('text')) return '\u{1F4DD}';
     return '\u{1F4C4}';
   },
 
@@ -184,193 +163,31 @@ const chat = {
   openImage(url) {
     const modal = document.createElement('div');
     modal.className = 'image-modal';
-    modal.innerHTML = `<div class="image-modal-content">
-        <img src="${url}" alt="Full size image">
-        <button class="image-modal-close">&times;</button>
-      </div>`;
-    modal.onclick = (e) => {
-      if (e.target === modal || e.target.classList.contains('image-modal-close')) modal.remove();
-    };
+    modal.innerHTML = `<div class="image-modal-content"><img src="${url}" alt="Full size image"><button class="image-modal-close">&times;</button></div>`;
+    modal.onclick = (e) => { if (e.target === modal || e.target.classList.contains('image-modal-close')) modal.remove(); };
     document.body.appendChild(modal);
   },
 
   linkify(text) {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    return this.escapeHtml(text).replace(urlRegex, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+    const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+    return text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${this.escapeHtml(url)}</a>`);
   },
 
-  async deleteMessage(messageId) {
-    const res = await fetch(`/api/rooms/${state.roomId}/messages/${messageId}`, {
-      method: 'DELETE',
-      headers: auth?.getToken ? { Authorization: 'Bearer ' + auth.getToken() } : {}
-    });
-    if (!res.ok) {
-      const e = await res.json();
-      throw new Error(e.error);
-    }
+  _authHeaders(json) {
+    const h = auth?.getToken ? { Authorization: 'Bearer ' + auth.getToken() } : {};
+    return json ? { ...h, 'Content-Type': 'application/json' } : h;
+  },
+
+  async deleteMessage(id) {
+    const r = await fetch(`/api/rooms/${state.roomId}/messages/${id}`, { method: 'DELETE', headers: this._authHeaders() });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
     return true;
   },
 
-  async editMessage(messageId, newContent) {
-    const res = await fetch(`/api/rooms/${state.roomId}/messages/${messageId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(auth?.getToken ? { Authorization: 'Bearer ' + auth.getToken() } : {})
-      },
-      body: JSON.stringify({ content: newContent })
-    });
-    if (!res.ok) {
-      const e = await res.json();
-      throw new Error(e.error);
-    }
+  async editMessage(id, content) {
+    const r = await fetch(`/api/rooms/${state.roomId}/messages/${id}`, { method: 'PATCH', headers: this._authHeaders(true), body: JSON.stringify({ content }) });
+    if (!r.ok) { const e = await r.json(); throw new Error(e.error); }
     return true;
   },
 
-  showMessageContextMenu(msg, x, y) {
-    chat.hideMessageContextMenu();
-    const isOwnMessage = msg.userId === state.userId;
-    const menu = document.createElement('div');
-    menu.id = 'messageContextMenu';
-    menu.className = 'context-menu';
-    menu.style.cssText = `position:fixed;top:${y}px;left:${x}px;z-index:2500`;
-    
-    let items = '';
-    if (isOwnMessage) {
-      items += `<div class="context-menu-item" data-action="edit">Edit</div>`;
-      items += `<div class="context-menu-item danger" data-action="delete">Delete</div>`;
-    }
-    
-    if (!items) return;
-    menu.innerHTML = items;
-    document.body.appendChild(menu);
-
-    const rect = menu.getBoundingClientRect();
-    if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
-    if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
-
-    menu.addEventListener('click', async (e) => {
-      const action = e.target.dataset.action;
-      chat.hideMessageContextMenu();
-      if (action === 'delete') {
-        if (confirm('Delete this message?')) {
-          try {
-            await chat.deleteMessage(msg.id);
-          } catch (err) {
-            console.warn('[Chat] Delete failed:', err.message);
-          }
-        }
-      } else if (action === 'edit') {
-        chat.showEditInput(msg);
-      }
-    });
-
-    const close = (e) => {
-      if (!menu.contains(e.target)) {
-        chat.hideMessageContextMenu();
-        document.removeEventListener('click', close);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', close), 0);
-  },
-
-  hideMessageContextMenu() {
-    document.getElementById('messageContextMenu')?.remove();
-  },
-
-  showEditInput(msg) {
-    const existing = document.getElementById('messageEditInput');
-    if (existing) existing.remove();
-
-    const msgEl = document.querySelector(`[data-message-id="${msg.id}"]`);
-    if (!msgEl) return;
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.id = 'messageEditInput';
-    input.className = 'chat-input';
-    input.value = msg.content;
-    input.style.cssText = 'width:100%;margin-top:4px';
-
-    const container = document.createElement('div');
-    container.style.cssText = 'padding:8px;background:#2f3136;border-radius:4px;margin:4px 0';
-
-    const saveBtn = document.createElement('button');
-    saveBtn.textContent = 'Save';
-    saveBtn.className = 'modal-btn';
-    saveBtn.style.cssText = 'margin-right:4px';
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.textContent = 'Cancel';
-    cancelBtn.className = 'modal-btn secondary';
-
-    const buttonRow = document.createElement('div');
-    buttonRow.style.cssText = 'margin-top:4px';
-    buttonRow.appendChild(saveBtn);
-    buttonRow.appendChild(cancelBtn);
-
-    container.appendChild(input);
-    container.appendChild(buttonRow);
-
-    msgEl.querySelector('.msg-content')?.replaceWith(container);
-    input.focus();
-    input.select();
-
-    const cleanup = () => {
-      chat.renderMessage(msg);
-      document.removeEventListener('click', handleOutside);
-    };
-
-    const handleOutside = (e) => {
-      if (!container.contains(e.target)) {
-        cleanup();
-      }
-    };
-
-    saveBtn.addEventListener('click', async () => {
-      const newContent = input.value.trim();
-      if (newContent && newContent !== msg.content) {
-        try {
-          await chat.editMessage(msg.id, newContent);
-        } catch (err) {
-          console.warn('[Chat] Edit failed:', err.message);
-        }
-      }
-      cleanup();
-    });
-
-    cancelBtn.addEventListener('click', cleanup);
-    setTimeout(() => document.addEventListener('click', handleOutside), 0);
-  },
-
-  renderMessage(msg) {
-    const isOwn = msg.userId === state.userId;
-    const time = formatTime(msg.timestamp);
-    const avatarColor = getAvatarColor(msg.userId);
-    const initial = (msg.username || '?')[0].toUpperCase();
-    const content = msg.type === 'text' ? chat.linkify(msg.content) : chat.escapeHtml(msg.content || '');
-    const editedBadge = msg.edited ? '<span class="msg-edited">(edited)</span>' : '';
-    const pendingBadge = msg.pending ? '<span class="msg-pending">...</span>' : '';
-
-    let extra = '';
-    if (msg.type === 'image' && msg.metadata) {
-      extra = chat.createImagePreview(msg);
-    } else if (msg.type === 'file' && msg.metadata) {
-      extra = chat.createFileAttachment(msg);
-    }
-
-    return `<div class="msg" data-message-id="${msg.id}">
-      <div class="msg-avatar" style="background:${avatarColor}">${initial}</div>
-      <div class="msg-body">
-        <div class="msg-header">
-          <span class="msg-author">${chat.escapeHtml(msg.username)}</span>
-          <span class="msg-timestamp">${time}</span>
-          ${pendingBadge}
-          ${editedBadge}
-        </div>
-        <div class="msg-content">${content}</div>
-        ${extra}
-      </div>
-    </div>`;
-  }
 };

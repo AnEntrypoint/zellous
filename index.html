@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/discord.css">
 </head>
 <body>
+  <div class="reconnect-banner" id="reconnectBanner">Reconnecting...</div>
   <div class="app">
     <!-- SERVER LIST -->
     <div class="server-list" id="serverList">
@@ -115,8 +116,6 @@
 
       <!-- VOICE CHANNEL VIEW -->
       <div class="voice-view" id="voiceView">
-        <div class="voice-turn-banner" id="voiceTurnBanner" style="display:none"></div>
-        <div class="voice-turn-order" id="voiceTurnOrder" style="display:none"></div>
         <div class="voice-grid" id="voiceGrid"></div>
         <div class="voice-controls" id="voiceControlsBar">
           <button class="voice-ctrl-btn" id="voiceMicBtn" title="Toggle Mic">&#127908;</button>
@@ -380,6 +379,9 @@
       window.stateSignals.roomMembers.value;
       window.stateSignals.micMuted.value;
       window.stateSignals.voiceDeafened.value;
+
+      const banner = document.getElementById('reconnectBanner');
+      if (banner) banner.classList.toggle('visible', !window.stateSignals.isConnected.value);
 
       if (window.ui?.render) {
         try { window.ui.render.all?.(); } catch (e) {}

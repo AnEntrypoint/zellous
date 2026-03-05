@@ -30,7 +30,7 @@ const queue = {
     });
     decoder.configure({ codec: 'opus', sampleRate: config.sampleRate, numberOfChannels: 1 });
     segment.chunks.forEach((c, i) => { try { decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: i * 20000, data: c })); } catch (e) {} });
-    decoder.flush().then(() => { queue.playSamples(segment); decoder.close(); }).catch(() => { decoder.close(); queue.markAsPlayed(segment.id); });
+    decoder.flush().then(() => { queue.playSamples(segment); try { decoder.close(); } catch(e) {} }).catch(() => { try { decoder.close(); } catch(e) {} queue.markAsPlayed(segment.id); });
   },
   playSamples: (s) => {
     if (!s.decodedSamples.length) { queue.markAsPlayed(s.id); return; }

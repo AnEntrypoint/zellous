@@ -65,6 +65,7 @@ const vad = {
     vad.stopMonitoring();
     if (state.isSpeaking) ptt.stop();
   },
+  _rafHandle: null,
   startMonitoring: () => {
     if (!state.audioContext || !state.mediaStream) return;
     if (!state.vadAnalyser) {
@@ -75,22 +76,25 @@ const vad = {
     }
     const data = new Uint8Array(state.vadAnalyser.frequencyBinCount);
     const check = () => {
-      if (!state.vadEnabled) return;
+      if (!state.vadEnabled) { vad._rafHandle = null; return; }
       state.vadAnalyser.getByteFrequencyData(data);
       let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
       const rms = Math.sqrt(sum / data.length) / 255;
-      ui.vadMeter.style.width = (rms * 100) + '%';
+      if (ui.vadMeter) ui.vadMeter.style.width = (rms * 100) + '%';
       if (rms > state.vadThreshold) {
         if (state.vadSilenceTimer) { clearTimeout(state.vadSilenceTimer); state.vadSilenceTimer = null; }
         if (!state.isSpeaking) ptt.start();
       } else if (state.isSpeaking && !state.vadSilenceTimer) {
         state.vadSilenceTimer = setTimeout(() => { if (state.vadEnabled && state.isSpeaking) ptt.stop(); state.vadSilenceTimer = null; }, state.vadSilenceDelay);
       }
-      requestAnimationFrame(check);
+      vad._rafHandle = requestAnimationFrame(check);
     };
-    check();
+    vad._rafHandle = requestAnimationFrame(check);
   },
-  stopMonitoring: () => { if (state.vadSilenceTimer) { clearTimeout(state.vadSilenceTimer); state.vadSilenceTimer = null; } },
+  stopMonitoring: () => {
+    if (vad._rafHandle) { cancelAnimationFrame(vad._rafHandle); vad._rafHandle = null; }
+    if (state.vadSilenceTimer) { clearTimeout(state.vadSilenceTimer); state.vadSilenceTimer = null; }
+  },
   setThreshold: (v) => { state.vadThreshold = v / 100; ui.vadThresholdMarker.style.left = v + '%'; }
 };
 window.ptt = ptt;

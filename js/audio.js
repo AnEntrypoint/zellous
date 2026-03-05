@@ -40,20 +40,34 @@ const audio = {
     state.audioSources.set(userId, { gainNode });
     state.playbackState.set(userId, 'playing');
     if (!state.scheduledPlaybackTime.has(userId)) state.scheduledPlaybackTime.set(userId, state.audioContext.currentTime + 0.05);
+    const sourcesMap = stateSignals.audioSources.value;
     const interval = setInterval(() => {
-      if (!state.audioSources.has(userId)) { clearInterval(interval); return; }
-      const q = state.audioBuffers.get(userId);
-      if (!q?.length) { if (!state.activeSpeakers.has(userId)) { state.audioSources.delete(userId); state.audioBuffers.delete(userId); state.playbackState.delete(userId); state.scheduledPlaybackTime.delete(userId); clearInterval(interval); } return; }
+      const sources = stateSignals.audioSources.value;
+      if (!sources.has(userId)) { clearInterval(interval); return; }
+      const q = stateSignals.audioBuffers.value.get(userId);
+      const speakers = stateSignals.activeSpeakers.value;
+      if (!q?.length) {
+        if (!speakers.has(userId)) {
+          const s = stateSignals.audioSources.value;
+          const b = stateSignals.audioBuffers.value;
+          const pb = stateSignals.playbackState.value;
+          const spt = stateSignals.scheduledPlaybackTime.value;
+          s.delete(userId); b.delete(userId); pb.delete(userId); spt.delete(userId);
+          clearInterval(interval);
+        }
+        return;
+      }
       const data = q.shift();
       const buf = state.audioContext.createBuffer(1, data.length, config.sampleRate);
       buf.getChannelData(0).set(data);
       const src = state.audioContext.createBufferSource();
       src.buffer = buf;
       src.connect(gainNode);
-      let t = state.scheduledPlaybackTime.get(userId);
-      if (t < state.audioContext.currentTime) t = state.audioContext.currentTime;
+      const spt = stateSignals.scheduledPlaybackTime.value;
+      let t = spt.get(userId);
+      if (!t || t < state.audioContext.currentTime) t = state.audioContext.currentTime;
       src.start(t);
-      state.scheduledPlaybackTime.set(userId, t + data.length / config.sampleRate);
+      spt.set(userId, t + data.length / config.sampleRate);
     }, 20);
   },
   pause: () => {
