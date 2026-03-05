@@ -89,6 +89,8 @@ const state = {
   // Channel state
   currentChannel: signal({ id: 'general', type: 'text', name: 'general' }),
   channels: signal([]),
+  categories: signal([]),
+  collapsedCategories: signal(new Set()),
 
   // LiveKit state
   voiceConnected: signal(false),

@@ -111,7 +111,9 @@ const message = {
       members.unshift({ id: state.userId, username: selfName, online: true, isAuthenticated: state.isAuthenticated });
       state.roomMembers = members;
       const channels = m.channels || [];
+      const categories = m.categories || [];
       state.channels = channels;
+      state.categories = categories;
       const cur = state.currentChannel;
       const match = channels.find(c => c.id === cur?.id);
       state.currentChannel = match || channels[0] || { id: 'general', type: 'text', name: 'general' };
@@ -168,6 +170,33 @@ const message = {
         state.currentChannel = channels[0];
         ui.render.channelView?.();
       }
+      ui.render.channels?.();
+    },
+    channels_reordered: (m) => {
+      state.channels = m.channels;
+      ui.render.channels?.();
+    },
+
+    category_created: (m) => {
+      const categories = [...state.categories, m.category];
+      state.categories = categories;
+      ui.render.channels?.();
+    },
+    category_updated: (m) => {
+      const categories = state.categories.map(c => c.id === m.category.id ? { ...c, ...m.category } : c);
+      state.categories = categories;
+      ui.render.channels?.();
+    },
+    category_deleted: (m) => {
+      const categories = state.categories.filter(c => c.id !== m.categoryId);
+      state.categories = categories;
+      state.channels = state.channels.map(ch => 
+        ch.categoryId === m.categoryId ? { ...ch, categoryId: null } : ch
+      );
+      ui.render.channels?.();
+    },
+    categories_reordered: (m) => {
+      state.categories = m.categories;
       ui.render.channels?.();
     },
 

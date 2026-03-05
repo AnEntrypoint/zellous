@@ -22,3 +22,5 @@ data/servers/
 ux-audit-screenshots/
 bin/
 livekit.yaml
+
+.code-search/
