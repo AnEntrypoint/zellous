@@ -19,7 +19,7 @@ const network = {
       network._pendingRoomId = state.roomId;
       network.send({ type: 'join_room', roomId: state.roomId });
     };
-    ws.onmessage = (e) => message.handle(msgpackr.unpack(new Uint8Array(e.data)));
+    ws.onmessage = (e) => { try { message.handle(msgpackr.unpack(new Uint8Array(e.data))); } catch (_) {} };
     ws.onerror = () => {
       state.connectionStatus = 'Error';
       state.isConnected = false;

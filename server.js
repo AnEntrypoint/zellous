@@ -1,6 +1,6 @@
 import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
-import { createServer } from 'http';
+import http, { createServer } from 'http';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { pack, unpack } from 'msgpackr';
@@ -90,43 +90,80 @@ function createLiveKitProxy() {
 function createLiveKitWebSocketProxy() {
   server.on('upgrade', (request, socket, head) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
-    if (url.pathname.startsWith('/livekit')) {
-      const targetPath = url.pathname.slice('/livekit'.length) || '/';
-      const targetUrl = `ws://127.0.0.1:${LK_WS_PORT}${targetPath}${url.search}`;
-
-      const targetSocket = new WebSocket(targetUrl, {
-        headers: {
-          'x-forwarded-for': socket.remoteAddress || '',
-        },
+    if (!url.pathname.startsWith('/livekit')) return;
+    const targetPath = url.pathname.slice('/livekit'.length) || '/';
+    const targetUrl = `ws://127.0.0.1:${LK_WS_PORT}${targetPath}${url.search}`;
+    const targetSocket = new WebSocket(targetUrl, {
+      headers: { 'x-forwarded-for': socket.remoteAddress || '' },
+      perMessageDeflate: false,
+    });
+    targetSocket.on('open', () => {
+      const wsKey = request.headers['sec-websocket-key'];
+      const accept = require('crypto').createHash('sha1')
+        .update(wsKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+        .digest('base64');
+      socket.write(
+        'HTTP/1.1 101 Switching Protocols\r\n' +
+        'Upgrade: websocket\r\nConnection: Upgrade\r\n' +
+        `Sec-WebSocket-Accept: ${accept}\r\n\r\n`
+      );
+      targetSocket.on('message', (data, isBinary) => {
+        if (socket.writable) {
+          const buf = isBinary ? data : Buffer.from(data);
+          const frame = buildWsFrame(buf, isBinary);
+          socket.write(frame);
+        }
       });
-
-      targetSocket.on('open', () => {
-        socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n');
-        targetSocket.on('message', (data) => {
-          if (socket.writable) socket.write(data);
-        });
-        targetSocket.on('close', () => socket.end());
-        targetSocket.on('error', (e) => {
-          logger.error('[LiveKit WS] Target error:', e.message);
-          socket.end();
-        });
-
-        socket.on('data', (data) => {
-          if (targetSocket.readyState === 1) targetSocket.send(data);
-        });
-        socket.on('close', () => targetSocket.close());
-        socket.on('error', (e) => {
-          logger.error('[LiveKit WS] Client error:', e.message);
-          targetSocket.close();
-        });
+      targetSocket.on('close', () => socket.end());
+      targetSocket.on('error', (e) => { logger.error('[LiveKit WS] Target:', e.message); socket.end(); });
+      const parser = createWsFrameParser((payload, opcode) => {
+        if (targetSocket.readyState === WebSocket.OPEN) {
+          targetSocket.send(payload, { binary: opcode === 2 });
+        }
       });
-
-      targetSocket.on('error', (e) => {
-        logger.error('[LiveKit WS] Connect error:', e.message);
-        socket.end('HTTP/1.1 502 Bad Gateway\r\n\r\n');
-      });
-    }
+      socket.on('data', parser);
+      socket.on('close', () => targetSocket.close());
+      socket.on('error', (e) => { logger.error('[LiveKit WS] Client:', e.message); targetSocket.close(); });
+    });
+    targetSocket.on('error', (e) => {
+      logger.error('[LiveKit WS] Connect error:', e.message);
+      socket.end('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+    });
   });
+}
+
+function buildWsFrame(payload, isBinary) {
+  const opcode = isBinary ? 2 : 1;
+  const len = payload.length;
+  let header;
+  if (len < 126) { header = Buffer.from([0x80 | opcode, len]); }
+  else if (len < 65536) { header = Buffer.alloc(4); header[0] = 0x80 | opcode; header[1] = 126; header.writeUInt16BE(len, 2); }
+  else { header = Buffer.alloc(10); header[0] = 0x80 | opcode; header[1] = 127; header.writeBigUInt64BE(BigInt(len), 2); }
+  return Buffer.concat([header, payload]);
+}
+
+function createWsFrameParser(onFrame) {
+  let buf = Buffer.alloc(0);
+  return (data) => {
+    buf = Buffer.concat([buf, data]);
+    while (buf.length >= 2) {
+      const opcode = buf[0] & 0x0f;
+      const masked = (buf[1] & 0x80) !== 0;
+      let payloadLen = buf[1] & 0x7f;
+      let offset = 2;
+      if (payloadLen === 126) { if (buf.length < 4) break; payloadLen = buf.readUInt16BE(2); offset = 4; }
+      else if (payloadLen === 127) { if (buf.length < 10) break; payloadLen = Number(buf.readBigUInt64BE(2)); offset = 10; }
+      if (masked) offset += 4;
+      if (buf.length < offset + payloadLen) break;
+      let payload = buf.slice(offset, offset + payloadLen);
+      if (masked) {
+        const mask = buf.slice(offset - 4, offset);
+        payload = Buffer.from(payload.map((b, i) => b ^ mask[i % 4]));
+      }
+      buf = buf.slice(offset + payloadLen);
+      if (opcode === 1 || opcode === 2) onFrame(payload, opcode);
+    }
+  };
 }
 
 
@@ -916,7 +953,7 @@ app.get('/api/livekit/token', optionalAuth, async (req, res) => {
     const { AccessToken } = await getLkSdk();
     const roomName = `zellous-${channel}`;
     const token = new AccessToken(cfg.apiKey, cfg.apiSecret, { identity, ttl: '6h' });
-    token.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true, canPublishData: true });
+    token.addGrant({ roomJoin: true, roomCreate: true, room: roomName, canPublish: true, canSubscribe: true, canPublishData: true });
     const jwt = await token.toJwt();
 
     const iceServers = buildIceServers(cfg);
