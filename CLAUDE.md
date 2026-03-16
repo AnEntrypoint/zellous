@@ -3,20 +3,29 @@
 ## Architecture Overview
 
 ### Storage Layer
-- `server/db.js` — Busybase-backed storage adapter. All tables use all-lowercase column names (vectordb SQL constraint). Exports: `initialize, startCleanup, stopCleanup, users, sessions, rooms, messages, media, files, servers, bots` and utilities (`generateId, shortId, hashPassword, verifyPassword, generateApiKey, hashApiKey`).
+- `server/db.js` — Re-export shim; all implementation is in `server/db/`. Same public surface: `initialize, startCleanup, stopCleanup, users, sessions, rooms, messages, media, files, servers, bots` and utilities.
+- `server/db/index.js` — Wires together domain modules via a shared `ctx` object (db getter, config getter, dataRoot getter, row/rows helpers).
+- `server/db/users.js` — User CRUD, authentication, device management.
+- `server/db/sessions.js` — Session lifecycle, validation, expiry cleanup.
+- `server/db/rooms.js` — Room metadata, channels, categories, cleanup scheduling.
+- `server/db/messages.js` — Message save/get/edit/remove (filesystem JSON files).
+- `server/db/media.js` — Audio/video chunk recording sessions.
+- `server/db/files.js` — File storage, metadata, recursive lookup.
+- `server/db/servers.js` — Server CRUD, membership, roles.
+- `server/db/bots.js` — Bot CRUD, API key management.
+- `server/db/utils.js` — Shared crypto utilities: `generateId, shortId, hashPassword, verifyPassword, generateApiKey, hashApiKey, tryParse`.
 - Storage auto-selects embedded mode (in-process LanceDB) when no `BUSYBASE_URL` is set, or HTTP mode when it is set.
 
 ### Column Name Constraint
-All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `ownerid`, `displayname`, etc.) because LanceDB SQL parser normalizes unquoted identifiers to lowercase. The `db.js` adapter maps between lowercase storage keys and camelCase public API. Breaking this pattern causes silent filter failures.
+All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `ownerid`, `displayname`, etc.) because LanceDB SQL parser normalizes unquoted identifiers to lowercase. The db modules map between lowercase storage keys and camelCase public API. Breaking this pattern causes silent filter failures.
 
 ### Server Modules (server/)
-- `config.js` — `createConfig(overrides)` merging env vars with defaults. Single source of truth for all config.
-- `db.js` — Busybase storage adapter (see above)
+- `config.js` — `createConfig(overrides)` merging env vars with defaults. Single source of truth for all config. Used by `server.js` — no direct `process.env` reads in server.js.
 - `auth-ops.js` — All auth operations: register, login, logout, session management, password change, WS auth
 - `bot-middleware.js` — Bot API key authentication middleware
 - `utils.js` — `responses` (HTTP response helpers) and `validators` (input validation)
-- `handlers.js` — Handler registry (registerHandler/getHandler)
-- `ws-handler.js` — WebSocket connection lifecycle and message dispatch
+- `handlers.js` — Handler registry (registerHandler/getHandler). All built-in WS handlers are registered here at startup; external plugins use the same registry.
+- `ws-handler.js` — WebSocket connection lifecycle. All handlers (built-in and plugins) dispatched via single `getHandler(msg.type)` lookup.
 - `bot-handlers.js` — Bot WebSocket message handlers
 - `bot-websocket.js` — BotConnection class
 - `livekit.js` — LiveKit binary management, config, ICE servers
@@ -35,16 +44,19 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 - `index.js` — Package entry: `ZellousCore`, `createDefaultHandlers`, `createZellousInstance`
 
 ### Client Modules (js/)
-- `state.js` (45L) - Config, state object, room URL parsing
-- `auth.js` (140L) - Login persistence, session management, device tracking
-- `ui.js` (270L) - DOM references, render functions, UI actions
-- `chat.js` (120L) - Text messaging, image preview, file attachments
-- `files.js` (110L) - File upload/download, drag-drop, clipboard paste
-- `audio.js` (117L) - Opus encoding/decoding, playback, pause/resume
-- `queue.js` (95L) - Audio segment queue, replay, download
-- `network.js` (180L) - WebSocket, message handlers
-- `ptt.js` (89L) - PTT, deafen, VAD
-- `webcam.js` (67L) - Webcam capture/playback
+- `state.js` — Config, state object, room URL parsing
+- `auth.js` — Login persistence, session management, device tracking
+- `api.js` — Shared `apiRequest(method, url, body)` fetch helper (reads auth token at call time)
+- `channels-api.js` — Channel/category API calls using `apiRequest`; exposes `window.channelApi`
+- `channels-ui.js` — Channel/category modals, context menus, drag-and-drop; exposes `window.channelManager`
+- `ui.js` — DOM references, render functions, UI actions
+- `chat.js` — Text messaging, image preview, file attachments
+- `files.js` — File upload/download, drag-drop, clipboard paste
+- `audio.js` — Opus encoding/decoding, playback, pause/resume
+- `queue.js` — Audio segment queue, replay, download
+- `network.js` — WebSocket, message handlers
+- `ptt.js` — PTT, deafen, VAD
+- `webcam.js` — Webcam capture/playback
 
 ## Package Exports
 ```

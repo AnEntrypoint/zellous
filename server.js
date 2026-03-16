@@ -8,6 +8,7 @@ import { pack } from 'msgpackr';
 import cors from 'cors';
 import logger from '@sequentialos/sequential-logging';
 
+import { createConfig } from './server/config.js';
 import { initialize, startCleanup, stopCleanup } from './server/db.js';
 import { optionalAuth } from './server/auth-ops.js';
 import { BotConnection } from './server/bot-websocket.js';
@@ -21,8 +22,7 @@ import { makeBotsRouter, makeBotRoomsRouter } from './server/routes-bots.js';
 import { registerHandler } from './server/handlers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const config = createConfig();
 const ROOMS_UI_DIR = join(__dirname, 'rooms-ui');
 
 const app = express();
@@ -30,10 +30,10 @@ const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: config.maxBodySize }));
 app.use((req, res, next) => {
   res.removeHeader('X-Frame-Options');
-  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://os.247420.xyz https://*.247420.xyz http://localhost:* http://127.0.0.1:*");
+  res.setHeader('Content-Security-Policy', `frame-ancestors ${config.frameAncestors}`);
   next();
 });
 app.use(express.static(__dirname));
@@ -44,7 +44,7 @@ const state = {
   counter: 0,
   roomUsers: new Map(),
   mediaSessions: new Map(),
-  config: { pingInterval: parseInt(process.env.PING_INTERVAL || '30000') }
+  config: { pingInterval: config.pingInterval },
 };
 
 const broadcast = (msg, exclude = null, roomId = null) => {
@@ -62,7 +62,7 @@ app.use('/api/rooms', makeBotRoomsRouter(state, broadcast));
 app.use('/api/rooms', makeRoomsRouter(state, broadcast));
 app.use('/api/servers', makeServersRouter(broadcast));
 app.use('/api/bots', makeBotsRouter(broadcast));
-app.use('/api/livekit', makeTokenRouter(`${process.env.HOST || 'localhost'}:${PORT}`));
+app.use('/api/livekit', makeTokenRouter(`${config.host}:${config.port}`));
 
 const safeRoomType = (n) => (!n || /[^a-zA-Z0-9_-]/.test(n)) ? null : n;
 
@@ -101,7 +101,7 @@ app.get('/room-type/:typeName/*', async (req, res) => {
 });
 
 const startServer = async () => {
-  await initialize();
+  await initialize(config);
   await initializeLiveKit();
   makeHttpProxy(app);
   makeWsProxy(server, wss);
@@ -118,8 +118,8 @@ const startServer = async () => {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  server.listen(PORT, HOST, () => {
-    logger.info(`[Zellous] Server running on http://${HOST}:${PORT}`);
+  server.listen(config.port, config.host, () => {
+    logger.info(`[Zellous] Server running on http://${config.host}:${config.port}`);
   });
 };
 
