@@ -213,6 +213,43 @@ window.fileTransfer
 - **10-minute session storage after room empty**
 - **OS.js desktop integration**
 
+## Nostr Mode
+
+A serverless, opt-in alternative transport using public Nostr relays. Zero changes to the main app — only used when a custom room page explicitly loads the adapter.
+
+### Files
+- `js/nostr-adapter.js` — drop-in replacement for `js/sdk.js` implementing the same interface
+- `rooms-ui/nostr-chat/index.html` — example standalone room that works with no server
+
+### Usage
+```html
+<script type="module">
+  import sdk from '/js/nostr-adapter.js';
+  await sdk.auth.login();        // NIP-07 extension, nsec paste, or auto-generate
+  sdk.connect('my-room');        // subscribes to Nostr relays for this room
+  sdk.messaging.send('hello');   // publishes NIP-28 kind 42 channel message
+  sdk.on('text_message', fn);    // fires on incoming messages
+</script>
+```
+
+### NIPs implemented
+- **NIP-07**: browser extension signing (Alby, nos2x) — preferred auth
+- **NIP-28**: public chat channels — kind 40 (create), kind 42 (message)
+- **NIP-19**: nsec/npub encoding for key import/export
+
+### Auth fallback chain
+1. NIP-07 extension (`window.nostr.getPublicKey()`)
+2. Paste nsec private key
+3. Auto-generate keypair (stored in localStorage)
+
+### Relays
+Default: `wss://relay.damus.io`, `wss://relay.nostr.band`, `wss://nos.lol`
+
+### Constraints
+- Audio PTT is a no-op in Nostr mode (WebRTC signaling not yet implemented)
+- File upload embeds as base64 in message content (small files only)
+- No server required — static file hosting + public relays is sufficient
+
 ## Dependencies
 - express, ws, msgpackr, cors (server)
 - msgpackr.min.js (client, bundled)

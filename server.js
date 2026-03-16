@@ -2,7 +2,8 @@ import express from 'express';
 import { WebSocketServer, WebSocket } from 'ws';
 import http, { createServer } from 'http';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, normalize, extname } from 'path';
+import { promises as fsp } from 'fs';
 import { pack, unpack } from 'msgpackr';
 import cors from 'cors';
 import logger from '@sequentialos/sequential-logging';
@@ -24,6 +25,7 @@ import {
   getLkSdk, getConfig as getLkConfig, buildIceServers,
   initializeLiveKit, stopLivekitServer
 } from './server/livekit.js';
+import { registerHandler, getHandler } from './server/handlers.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -505,7 +507,7 @@ wss.on('connection', async (ws, req) => {
   ws.on('message', async (data) => {
     try {
       const msg = unpack(Buffer.isBuffer(data) ? data : Buffer.from(data));
-      const handler = handlers[msg.type];
+      const handler = handlers[msg.type] || getHandler(msg.type);
       if (handler) {
         await handler(client, msg);
       }
@@ -947,6 +949,69 @@ app.get('/api/livekit/token', optionalAuth, async (req, res) => {
 });
 
 
+const ROOMS_UI_DIR = join(__dirname, 'rooms-ui');
+
+const safeRoomType = (typeName) => {
+  if (!typeName || /[^a-zA-Z0-9_-]/.test(typeName)) return null;
+  return typeName;
+};
+
+app.get('/api/room-types', async (req, res) => {
+  try {
+    const entries = await fsp.readdir(ROOMS_UI_DIR, { withFileTypes: true });
+    const types = entries.filter(e => e.isDirectory() && safeRoomType(e.name)).map(e => e.name);
+    res.json({ types });
+  } catch {
+    res.json({ types: [] });
+  }
+});
+
+app.get('/room-assets/:typeName/*', async (req, res) => {
+  const typeName = safeRoomType(req.params.typeName);
+  if (!typeName) return res.status(400).json({ error: 'Invalid room type name' });
+  const suffix = req.params[0] || '';
+  const normalized = normalize(suffix);
+  if (normalized.startsWith('..') || normalized.includes('/..')) {
+    return res.status(400).json({ error: 'Invalid path' });
+  }
+  const filePath = join(ROOMS_UI_DIR, typeName, normalized);
+  try {
+    await fsp.access(filePath);
+    res.sendFile(filePath);
+  } catch {
+    res.status(404).json({ error: 'File not found' });
+  }
+});
+
+app.get('/room-type/:typeName', async (req, res) => {
+  const typeName = safeRoomType(req.params.typeName);
+  if (!typeName) return res.status(400).json({ error: 'Invalid room type name' });
+  const htmlPath = join(ROOMS_UI_DIR, typeName, 'index.html');
+  try {
+    await fsp.access(htmlPath);
+    res.sendFile(htmlPath);
+  } catch {
+    res.sendFile(join(__dirname, 'index.html'));
+  }
+});
+
+app.get('/room-type/:typeName/*', async (req, res) => {
+  const typeName = safeRoomType(req.params.typeName);
+  if (!typeName) return res.status(400).json({ error: 'Invalid room type name' });
+  const suffix = req.params[0] || '';
+  const normalized = normalize(suffix);
+  if (normalized.startsWith('..') || normalized.includes('/..')) {
+    return res.status(400).json({ error: 'Invalid path' });
+  }
+  const filePath = join(ROOMS_UI_DIR, typeName, normalized);
+  try {
+    await fsp.access(filePath);
+    res.sendFile(filePath);
+  } catch {
+    res.status(404).json({ error: 'File not found' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
@@ -986,4 +1051,4 @@ const startServer = async () => {
 
 startServer().catch(console.error);
 
-export { app, server, state, broadcast };
+export { app, server, state, broadcast, registerHandler };
