@@ -18,22 +18,30 @@ import makeAuthRouter from './server/routes-auth.js';
 import makeRoomsRouter from './server/routes-rooms.js';
 import makeServersRouter from './server/routes-servers.js';
 import { makeBotsRouter, makeBotRoomsRouter } from './server/routes-bots.js';
-import { registerHandler } from './server/handlers.js';
+import { registerHandler, getHandlers } from './server/handlers.js';
+import { useMiddleware } from './server/middleware.js';
+import { loadPlugins } from './server/plugin-loader.js';
+import { errorMiddleware } from './server/errors.js';
+import { getConfig, watchConfig } from './server/config.js';
+import { EventEmitter } from 'events';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = process.env.PORT || 3000;
-const HOST = process.env.HOST || '0.0.0.0';
+const config = getConfig();
+const PORT = config.port;
+const HOST = config.host;
 const ROOMS_UI_DIR = join(__dirname, 'rooms-ui');
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
+const eventBus = new EventEmitter();
+eventBus.setMaxListeners(0);
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: config.maxBodySize }));
 app.use((req, res, next) => {
   res.removeHeader('X-Frame-Options');
-  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://os.247420.xyz https://*.247420.xyz http://localhost:* http://127.0.0.1:*");
+  res.setHeader('Content-Security-Policy', `frame-ancestors ${config.frameAncestors}`);
   next();
 });
 app.use(express.static(__dirname));
@@ -44,7 +52,7 @@ const state = {
   counter: 0,
   roomUsers: new Map(),
   mediaSessions: new Map(),
-  config: { pingInterval: parseInt(process.env.PING_INTERVAL || '30000') }
+  config: { pingInterval: config.pingInterval },
 };
 
 const broadcast = (msg, exclude = null, roomId = null) => {
@@ -100,13 +108,22 @@ app.get('/room-type/:typeName/*', async (req, res) => {
   catch { res.status(404).json({ error: 'File not found' }); }
 });
 
+app.use(errorMiddleware);
+
 const startServer = async () => {
-  await initialize();
+  await initialize(config);
   await initializeLiveKit();
   makeHttpProxy(app);
   makeWsProxy(server, wss);
   setupWebSocket(wss, state, BotConnection);
   startCleanup();
+
+  const plugins = await loadPlugins(app, eventBus, config.pluginsDir);
+
+  watchConfig((newConfig) => {
+    state.config.pingInterval = newConfig.pingInterval;
+    logger.info('[Config] Reloaded');
+  });
 
   const shutdown = async () => {
     logger.info('[Server] Shutting down...');
@@ -119,10 +136,19 @@ const startServer = async () => {
   process.on('SIGTERM', shutdown);
 
   server.listen(PORT, HOST, () => {
-    logger.info(`[Zellous] Server running on http://${HOST}:${PORT}`);
+    const storageMode = config.busybaseUrl ? `remote (${config.busybaseUrl})` : 'embedded (LanceDB)';
+    const livekitStatus = process.env.LIVEKIT_URL ? `external (${process.env.LIVEKIT_URL})` : 'local (auto-managed)';
+    logger.info([
+      `[Zellous] Server ready`,
+      `  [CONFIG] url:     http://${HOST}:${PORT}`,
+      `  [CONFIG] storage: ${storageMode}`,
+      `  [CONFIG] livekit: ${livekitStatus}`,
+      `  [CONFIG] data:    ${config.dataDir}`,
+      `  [CONFIG] plugins: ${plugins.length} loaded`,
+    ].join('\n'));
   });
 };
 
 startServer().catch(console.error);
 
-export { app, server, state, broadcast, registerHandler };
+export { app, server, state, broadcast, registerHandler, useMiddleware, eventBus };

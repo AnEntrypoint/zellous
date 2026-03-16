@@ -6,19 +6,37 @@
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
+    "./client": "./lib/index.js",
     "./core": "./lib/zellous-core.js",
     "./handlers": "./lib/default-handlers.js",
     "./handlers/media": "./lib/handlers-media.js",
     "./handlers/messaging": "./lib/handlers-messaging.js",
+    "./storage": "./lib/storage-adapter.js",
     "./server": "./server.js",
     "./db": "./server/db.js",
     "./auth": "./server/auth-ops.js",
-    "./config": "./server/config.js"
+    "./config": "./server/config.js",
+    "./errors": "./server/errors.js",
+    "./middleware": "./server/middleware.js",
+    "./event-bus": "./server/event-bus.js",
+    "./plugins": "./server/plugin-loader.js"
   },
+  "files": [
+    "lib/",
+    "server/",
+    "server.js",
+    "plugins/example.js",
+    "README.md",
+    "CHANGELOG.md",
+    "package.json"
+  ],
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon",
     "lib": "node lib/index.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "keywords": [
     "collaboration",
