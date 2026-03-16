@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nostr Chat</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f1a;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;height:100vh}
+#header{padding:.75rem 1rem;background:#1a1a2e;font-size:1rem;font-weight:600;color:#f59e0b;border-bottom:1px solid #3d2c00}
+#messages{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.5rem}
+.msg{background:#1a1a2e;border-radius:8px;padding:.5rem .75rem;word-break:break-word}
+.msg-meta{font-size:.7rem;color:#f59e0b;margin-bottom:.2rem;font-family:monospace}
+.msg-self{align-self:flex-end;background:#3d2c00}
+#input-row{display:flex;gap:.5rem;padding:.75rem;background:#1a1a2e;border-top:1px solid #3d2c00}
+#msg-input{flex:1;background:#0f0f1a;border:1px solid #3d2c00;border-radius:8px;padding:.5rem .75rem;color:#e0e0e0;font-size:1rem}
+#send-btn{background:#f59e0b;color:#0f0f1a;border:none;border-radius:8px;padding:.5rem 1rem;font-weight:600;cursor:pointer}
+#overlay{position:fixed;inset:0;background:#0f0f1a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;padding:2rem}
+.ttl{color:#f59e0b;font-size:1.3rem;font-weight:700}
+.sub{color:#888;font-size:.85rem;text-align:center;max-width:300px;line-height:1.5}
+.btn{border:none;border-radius:8px;padding:.7rem 1.5rem;font-weight:600;cursor:pointer;width:100%;max-width:300px}
+.btn-a{background:#f59e0b;color:#0f0f1a}
+.btn-b{background:#1a1a2e;color:#f59e0b;border:1px solid #f59e0b}
+#nsec{background:#1a1a2e;border:1px solid #3d2c00;border-radius:8px;padding:.6rem 1rem;color:#e0e0e0;font-size:.85rem;width:100%;max-width:300px;font-family:monospace}
+#err{color:#f87171;font-size:.8rem}
+#keyinfo{font-size:.7rem;color:#666;font-family:monospace;word-break:break-all;max-width:300px;text-align:center}
+.or{color:#444;font-size:.75rem}
+</style>
+</head>
+<body>
+<div id="header">⚡ Nostr Chat &mdash; <span id="room-label"></span></div>
+<div id="messages"></div>
+<div id="input-row">
+  <input type="text" id="msg-input" placeholder="Sign in to send messages..." autocomplete="off" disabled>
+  <button id="send-btn" disabled>Send</button>
+</div>
+<div id="overlay">
+  <div class="ttl">⚡ Nostr Chat</div>
+  <div class="sub">Serverless chat over public Nostr relays. No server, no account — your keys are your identity.</div>
+  <button class="btn btn-a" id="nip07-btn">Connect with Nostr Extension</button>
+  <div class="or">— or —</div>
+  <input type="text" id="nsec" placeholder="nsec1... (your private key)">
+  <button class="btn btn-b" id="nsec-btn">Use Private Key</button>
+  <div class="or">— or —</div>
+  <button class="btn btn-b" id="gen-btn">Generate New Key</button>
+  <div id="err"></div>
+  <div id="keyinfo"></div>
+</div>
+<script type="module">
+import sdk from '/js/nostr-adapter.js';
+const p=new URLSearchParams(location.search),room=p.get('room')||'nostr-general';
+document.getElementById('room-label').textContent=room;
+const msgs=document.getElementById('messages'),inp=document.getElementById('msg-input'),snd=document.getElementById('send-btn'),ov=document.getElementById('overlay'),err=document.getElementById('err'),ki=document.getElementById('keyinfo');
+let myPk=null;
+async function login(opts){err.textContent='';const r=await sdk.auth.login(opts);if(r.error){err.textContent=r.error;return;}myPk=r.user.id;if(r.generated)ki.textContent='New key generated. Save your nsec to restore access later.';ov.style.display='none';inp.disabled=false;snd.disabled=false;sdk.connect(room);}
+document.getElementById('nip07-btn').onclick=()=>login({});
+document.getElementById('nsec-btn').onclick=()=>login({nsec:document.getElementById('nsec').value.trim()});
+document.getElementById('gen-btn').onclick=()=>login({generate:true});
+snd.onclick=send;inp.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}};
+function send(){const c=inp.value.trim();if(!c)return;sdk.messaging.send(c);inp.value='';}
+sdk.on('text_message',msg=>{const self=msg.userId===myPk;const d=document.createElement('div');d.className='msg'+(self?' msg-self':'');d.innerHTML='<div class="msg-meta">'+esc(msg.username||msg.userId.slice(0,12))+'&nbsp;&middot;&nbsp;'+new Date(msg.timestamp).toLocaleTimeString()+'</div>'+esc(msg.content);msgs.appendChild(d);msgs.scrollTop=msgs.scrollHeight;});
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+if(localStorage.getItem('nostr_privkey')||localStorage.getItem('nostr_pubkey'))login({});
+</script>
+</body>
+</html>
