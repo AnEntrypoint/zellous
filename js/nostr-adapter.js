@@ -73,6 +73,12 @@ class NostrAdapter {
         return { error: 'Invalid nsec key' };
       }
     }
+    if (opts.generate) {
+      this._privkey = generateSecretKey();
+      this._pubkey = getPublicKey(this._privkey);
+      this._persistKey();
+      return { user: { id: this._pubkey, username: this._displayName() }, generated: true };
+    }
     if (window.nostr) {
       try {
         this._pubkey = await window.nostr.getPublicKey();
