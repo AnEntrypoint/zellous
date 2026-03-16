@@ -8,7 +8,12 @@
     ".": "./lib/index.js",
     "./core": "./lib/zellous-core.js",
     "./handlers": "./lib/default-handlers.js",
-    "./server": "./server.js"
+    "./handlers/media": "./lib/handlers-media.js",
+    "./handlers/messaging": "./lib/handlers-messaging.js",
+    "./server": "./server.js",
+    "./db": "./server/db.js",
+    "./auth": "./server/auth-ops.js",
+    "./config": "./server/config.js"
   },
   "scripts": {
     "start": "node server.js",
@@ -28,9 +33,8 @@
     "video"
   ],
   "dependencies": {
-    "@sequentialos/async-patterns": "^1.0.0",
     "@sequentialos/sequential-logging": "^1.0.0",
-    "@sequentialos/timestamp-utilities": "^1.0.0",
+    "busybase": "file:../busybase",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "livekit-server-sdk": "^2.15.0",

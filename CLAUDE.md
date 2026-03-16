@@ -2,10 +2,37 @@
 
 ## Architecture Overview
 
+### Storage Layer
+- `server/db.js` — Busybase-backed storage adapter. All tables use all-lowercase column names (vectordb SQL constraint). Exports: `initialize, startCleanup, stopCleanup, users, sessions, rooms, messages, media, files, servers, bots` and utilities (`generateId, shortId, hashPassword, verifyPassword, generateApiKey, hashApiKey`).
+- Storage auto-selects embedded mode (in-process LanceDB) when no `BUSYBASE_URL` is set, or HTTP mode when it is set.
+
+### Column Name Constraint
+All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `ownerid`, `displayname`, etc.) because LanceDB SQL parser normalizes unquoted identifiers to lowercase. The `db.js` adapter maps between lowercase storage keys and camelCase public API. Breaking this pattern causes silent filter failures.
+
 ### Server Modules (server/)
-- `storage.js` - Filesystem-based persistence for users, sessions, rooms, messages, media, files
-- `auth.js` - Authentication middleware, user management, multi-device support
-- `bot-api.js` - Bot connectivity API (REST + simplified WebSocket)
+- `config.js` — `createConfig(overrides)` merging env vars with defaults. Single source of truth for all config.
+- `db.js` — Busybase storage adapter (see above)
+- `auth-ops.js` — All auth operations: register, login, logout, session management, password change, WS auth
+- `bot-middleware.js` — Bot API key authentication middleware
+- `utils.js` — `responses` (HTTP response helpers) and `validators` (input validation)
+- `handlers.js` — Handler registry (registerHandler/getHandler)
+- `ws-handler.js` — WebSocket connection lifecycle and message dispatch
+- `bot-handlers.js` — Bot WebSocket message handlers
+- `bot-websocket.js` — BotConnection class
+- `livekit.js` — LiveKit binary management, config, ICE servers
+- `routes-auth.js` — Express Router for `/api/auth/*` and `/api/user/*`
+- `routes-rooms.js` — Express Router for `/api/rooms/*` (user-facing)
+- `routes-servers.js` — Express Router for `/api/servers/*`
+- `routes-bots.js` — Bot CRUD (`makeBotsRouter`) and bot room access (`makeBotRoomsRouter`)
+- `routes-livekit.js` — LiveKit HTTP proxy, WS proxy, token endpoint
+
+### Client SDK (lib/)
+- `zellous-core.js` — `ZellousCore` EventEmitter class: client/room/broadcast management
+- `room-manager.js` — Pure room join/leave/query functions used by ZellousCore
+- `default-handlers.js` — Composes auth + room + media + messaging handlers
+- `handlers-media.js` — Audio/video stream handlers
+- `handlers-messaging.js` — Text/file/image message handlers
+- `index.js` — Package entry: `ZellousCore`, `createDefaultHandlers`, `createZellousInstance`
 
 ### Client Modules (js/)
 - `state.js` (45L) - Config, state object, room URL parsing
@@ -19,74 +46,29 @@
 - `ptt.js` (89L) - PTT, deafen, VAD
 - `webcam.js` (67L) - Webcam capture/playback
 
-### OS.js Integration (osjs/)
-- `main.js` - OS.js application wrapper (iframe-based)
-- `main.css` - Application styling
-- `metadata.json` - Package metadata
-
-## Data Directory Structure
-
+## Package Exports
 ```
-data/
-  users/                    # User accounts
-    {userId}.json          # User profile & auth
-    _index.json            # Username -> userId mapping
-  sessions/                 # Active sessions
-    {sessionId}.json       # Session data with devices
-  rooms/                    # Room data & artifacts
-    {roomId}/
-      meta.json            # Room metadata
-      messages/            # Text messages band
-        {timestamp}-{id}.json
-      media/               # Media band (audio/video chunks)
-        {timestamp}-{userId}/
-          meta.json
-          audio.opus
-          video.webm
-      files/               # Files band (user uploads)
-        images/            # Auto-organized images
-        {customPath}/      # User-defined structure
-  bots/                    # Bot configurations
-    {botId}.json
-  cleanup.json             # Tracks rooms for 10-min cleanup
+'@sequentialos/zellous'            → lib/index.js
+'@sequentialos/zellous/core'       → lib/zellous-core.js
+'@sequentialos/zellous/handlers'   → lib/default-handlers.js
+'@sequentialos/zellous/handlers/media'     → lib/handlers-media.js
+'@sequentialos/zellous/handlers/messaging' → lib/handlers-messaging.js
+'@sequentialos/zellous/server'     → server.js
+'@sequentialos/zellous/db'         → server/db.js
+'@sequentialos/zellous/auth'       → server/auth-ops.js
+'@sequentialos/zellous/config'     → server/config.js
 ```
 
-## Message Protocol
-
-### Client -> Server
-```javascript
-{ type: 'join_room', roomId }
-{ type: 'authenticate', token }
-{ type: 'audio_start' }
-{ type: 'audio_chunk', data: Uint8Array }
-{ type: 'audio_end' }
-{ type: 'video_chunk', data: Uint8Array }
-{ type: 'text_message', content }
-{ type: 'image_message', filename, data: base64, caption }
-{ type: 'file_upload_complete', filename, data: base64, path, description }
-{ type: 'set_username', username }
-{ type: 'get_messages', limit, before }
-{ type: 'get_files', path }
-```
-
-### Server -> Client
-```javascript
-{ type: 'connection_established', clientId, user }
-{ type: 'auth_success', user }
-{ type: 'auth_failed', error }
-{ type: 'room_joined', roomId, currentUsers }
-{ type: 'speaker_joined', userId, user }
-{ type: 'speaker_left', userId, user }
-{ type: 'audio_data', userId, data }
-{ type: 'video_chunk', userId, data }
-{ type: 'text_message', id, userId, username, content, timestamp }
-{ type: 'image_message', id, userId, username, content, metadata, timestamp }
-{ type: 'file_shared', id, userId, username, content, metadata, timestamp }
-{ type: 'message_history', messages }
-{ type: 'file_list', files, path }
-{ type: 'user_joined', user, userId }
-{ type: 'user_left', userId }
-```
+## Configuration (Environment Variables)
+- `PORT` — HTTP server port (default: 3000)
+- `HOST` — Bind address (default: 0.0.0.0)
+- `DATA_DIR` — Data directory (default: ./data)
+- `BUSYBASE_URL` — If set, use remote busybase HTTP mode; otherwise use embedded LanceDB
+- `BUSYBASE_KEY` — API key for remote busybase (default: local)
+- `PING_INTERVAL` — WebSocket ping interval ms (default: 30000)
+- `SESSION_TTL` — Session lifetime ms (default: 7 days)
+- `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` — External LiveKit; if absent, auto-downloads livekit-server binary
+- `LIVEKIT_TURN_URL`, `LIVEKIT_TURN_USERNAME`, `LIVEKIT_TURN_CREDENTIAL` — TURN server config
 
 ## REST API Endpoints
 
@@ -110,18 +92,89 @@ data/
 - `GET /api/rooms` - List active rooms
 - `GET /api/rooms/:roomId` - Get room info & users
 - `GET /api/rooms/:roomId/messages` - Get message history
+- `DELETE /api/rooms/:roomId/messages/:messageId` - Delete message
+- `PATCH /api/rooms/:roomId/messages/:messageId` - Edit message
 - `GET /api/rooms/:roomId/files` - List files
 - `GET /api/rooms/:roomId/files/:fileId` - Download file
+- `GET/POST/PATCH/DELETE /api/rooms/:roomId/channels` - Channel CRUD
+- `POST /api/rooms/:roomId/channels/reorder` - Reorder channels
+- `GET/POST/PATCH/DELETE /api/rooms/:roomId/categories` - Category CRUD
+- `POST /api/rooms/:roomId/categories/reorder` - Reorder categories
 
-### Bot API
+### Servers
+- `POST /api/servers` - Create server
+- `GET /api/servers` - List servers
+- `GET /api/servers/:serverId` - Get server
+- `PATCH /api/servers/:serverId` - Update server
+- `DELETE /api/servers/:serverId` - Delete server
+- `POST /api/servers/:serverId/join` - Join server
+- `POST /api/servers/:serverId/leave` - Leave server
+- `POST /api/servers/:serverId/kick/:userId` - Kick user
+- `POST /api/servers/:serverId/ban/:userId` - Ban user
+- `PATCH /api/servers/:serverId/roles/:userId` - Set role
+
+### Bot API (requires `Authorization: Bot <key>`)
 - `POST /api/bots` - Create bot (user auth required)
 - `GET /api/bots` - List user's bots
-- `GET /api/bots/:botId` - Get bot info (bot auth)
+- `GET /api/bots/:botId` - Get bot info
 - `PATCH /api/bots/:botId` - Update bot
 - `DELETE /api/bots/:botId` - Delete bot
 - `POST /api/bots/:botId/regenerate-key` - Regenerate API key
 - `POST /api/rooms/:roomId/messages` - Bot send message
+- `GET /api/rooms/:roomId/messages` - Bot get messages
 - `POST /api/rooms/:roomId/files` - Bot upload file
+- `GET /api/rooms/:roomId/files` - Bot list files
+- `GET /api/rooms/:roomId/files/:fileId` - Bot download file
+
+### LiveKit
+- `GET /api/livekit/token?channel=&identity=` - Get voice token
+- `/livekit/*` - HTTP proxy to local livekit-server
+- `ws://.../livekit/*` - WebSocket proxy to local livekit-server
+
+## WebSocket Message Protocol
+
+### Client -> Server
+```javascript
+{ type: 'join_room', roomId }
+{ type: 'authenticate', token }
+{ type: 'audio_start' }
+{ type: 'audio_chunk', data: Uint8Array }
+{ type: 'audio_end' }
+{ type: 'video_chunk', data: Uint8Array }
+{ type: 'text_message', content, channelId }
+{ type: 'image_message', filename, data: base64, caption, channelId }
+{ type: 'file_upload_start', filename, size, uploadId }
+{ type: 'file_upload_complete', filename, data: base64, path, description, channelId }
+{ type: 'set_username', username }
+{ type: 'edit_message', messageId, content }
+{ type: 'get_messages', limit, before, channelId }
+{ type: 'get_files', path }
+```
+
+### Server -> Client
+```javascript
+{ type: 'connection_established', clientId, user }
+{ type: 'auth_success', user }
+{ type: 'auth_failed', error }
+{ type: 'room_joined', roomId, channels, categories, currentUsers }
+{ type: 'user_joined', user, userId, isBot, isAuthenticated }
+{ type: 'user_left', userId }
+{ type: 'speaker_joined', userId, user }
+{ type: 'speaker_left', userId, user }
+{ type: 'audio_data', userId, data }
+{ type: 'video_chunk', userId, data }
+{ type: 'text_message', id, userId, username, content, timestamp }
+{ type: 'image_message', id, userId, username, content, metadata, timestamp }
+{ type: 'file_shared', id, userId, username, content, metadata, timestamp }
+{ type: 'message_history', messages, channelId }
+{ type: 'file_list', files, path }
+{ type: 'message_updated', messageId, content, edited, editedAt }
+{ type: 'message_deleted', messageId }
+{ type: 'channel_created/updated/deleted', channel/channelId }
+{ type: 'channels_reordered', channels }
+{ type: 'category_created/updated/deleted', category/categoryId }
+{ type: 'user_kicked/banned', userId, serverId }
+```
 
 ## Bot WebSocket Protocol
 
@@ -144,125 +197,24 @@ Connect to: `ws://server/api/bot/ws`
 { type: 'auth_success', botId, name }
 { type: 'auth_error', error }
 { type: 'joined', roomId, users }
-{ type: 'text', userId, username, content, timestamp }
-{ type: 'audio_start', userId, username }
-{ type: 'audio_chunk', userId, data }
-{ type: 'audio_end', userId }
-{ type: 'file', userId, username, filename, fileId, size }
 { type: 'error', error }
 ```
-
-## Session Storage & Cleanup
-
-- Sessions stored in filesystem (not RAM) at `data/sessions/`
-- Room data persists for 10 minutes after last user leaves
-- Cleanup scheduled in `data/cleanup.json`
-- On server restart, all scheduled cleanups are processed
-- Expired sessions automatically deleted
 
 ## Audio Pipeline
 - Codec: Opus via WebCodecs API (24kbps, 48kHz, mono)
 - Chunk size: 4096 samples (~85ms)
 - Binary transport: msgpackr
 
-## State Properties
-isSpeaking, audioContext, mediaStream, scriptProcessor, audioBuffers, audioSources,
-playbackState, pausedAudioBuffer, pausedBuffers, masterVolume, activeSpeakers, messages,
-audioHistory, recordingAudio, audioEncoder, audioDecoders, scheduledPlaybackTime, ws,
-userId, roomId, audioQueue, activeSegments, currentSegmentId, replayingSegmentId,
-replayGainNode, replayTimeout, skipLiveAudio, currentLiveSpeaker, isDeafened, nextSegmentId,
-ownAudioChunks, vadEnabled, vadThreshold, vadSilenceDelay, vadSilenceTimer, vadAnalyser,
-webcamEnabled, webcamStream, webcamRecorder, webcamResolution, webcamFps, ownVideoChunks,
-incomingVideoChunks, liveVideoChunks, liveVideoInterval, inputDeviceId, outputDeviceId,
-chatMessages, chatInputValue, isAuthenticated, currentUser, currentFilePath, fileList,
-activePanel, showAuthModal, showSettingsModal
-
-## Debug Console
-```javascript
-window.zellousDebug
-window.state
-window.ui
-window.audio
-window.queue
-window.network
-window.ptt
-window.deafen
-window.vad
-window.webcam
-window.auth
-window.chat
-window.fileTransfer
-```
-
-## Features
-- PTT with recording indicator
-- VAD with threshold control
-- Audio queue with sequential playback
-- Replay/download audio segments as WAV
-- WebM video streaming with VP9/VP8
-- Device selection (mic/speaker)
-- Volume control
-- Deafen mode
-- Room isolation via URL param (?room=name)
-- Mobile-responsive with hamburger menu
-- **User authentication with login persistence**
-- **Multi-device support with device management**
-- **Text messaging with image display**
-- **File transfers with custom folder structure**
-- **Bot/client connectivity API**
-- **10-minute session storage after room empty**
-- **OS.js desktop integration**
-
 ## Nostr Mode
-
-A serverless, opt-in alternative transport using public Nostr relays. Zero changes to the main app — only used when a custom room page explicitly loads the adapter.
-
-### Files
-- `js/nostr-adapter.js` — drop-in replacement for `js/sdk.js` implementing the same interface
-- `rooms-ui/nostr-chat/index.html` — example standalone room that works with no server
-
-### Usage
-```html
-<script type="module">
-  import sdk from '/js/nostr-adapter.js';
-  await sdk.auth.login();        // NIP-07 extension, nsec paste, or auto-generate
-  sdk.connect('my-room');        // subscribes to Nostr relays for this room
-  sdk.messaging.send('hello');   // publishes NIP-28 kind 42 channel message
-  sdk.on('text_message', fn);    // fires on incoming messages
-</script>
-```
-
-### NIPs implemented
-- **NIP-07**: browser extension signing (Alby, nos2x) — preferred auth
-- **NIP-28**: public chat channels — kind 40 (create), kind 42 (message)
-- **NIP-19**: nsec/npub encoding for key import/export
-
-### Auth fallback chain
-1. NIP-07 extension (`window.nostr.getPublicKey()`)
-2. Paste nsec private key
-3. Auto-generate keypair (stored in localStorage)
-
-### Relays
-Default: `wss://relay.damus.io`, `wss://relay.nostr.band`, `wss://nos.lol`
-
-### Constraints
-- Audio PTT is a no-op in Nostr mode (WebRTC signaling not yet implemented)
-- File upload embeds as base64 in message content (small files only)
-- No server required — static file hosting + public relays is sufficient
+Serverless alternative transport using public Nostr relays. Files: `js/nostr-adapter.js`, `rooms-ui/nostr-chat/index.html`.
 
 ## Dependencies
 - express, ws, msgpackr, cors (server)
+- busybase (storage — local embedded or remote HTTP)
+- livekit-server-sdk (voice rooms)
 - msgpackr.min.js (client, bundled)
 
 ## Deploy
 ```bash
 npm install && npm start
-```
-
-## OS.js Integration
-```bash
-cd osjs
-npm install
-npm run build
-# Copy dist/ to OS.js packages directory
 ```
