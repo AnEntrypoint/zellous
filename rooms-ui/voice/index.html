@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice Room</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans', sans-serif; background: #313338; color: #dbdee1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 24px; }
+    h1 { font-size: 20px; color: #f2f3f5; }
+    #speakerList { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; min-height: 60px; }
+    .speaker { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .speaker-avatar { width: 52px; height: 52px; border-radius: 50%; background: #5865f2; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; border: 3px solid transparent; transition: border-color 0.1s; }
+    .speaker-avatar.speaking { border-color: #23a55a; }
+    .speaker-name { font-size: 12px; color: #b5bac1; }
+    #pttBtn { padding: 16px 40px; border-radius: 8px; border: none; background: #5865f2; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; user-select: none; transition: background 0.1s; }
+    #pttBtn.active { background: #23a55a; }
+    #status { font-size: 13px; color: #80848e; }
+    #loginArea { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+    input { background: #1e1f22; border: 1px solid #3f4147; border-radius: 4px; color: #dbdee1; padding: 8px 12px; font-size: 14px; width: 220px; }
+    button.sm { padding: 8px 20px; border-radius: 6px; border: none; background: #5865f2; color: #fff; font-size: 14px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>Voice Room</h1>
+  <div id="loginArea">
+    <input id="usernameInput" placeholder="Username" autocomplete="username">
+    <input id="passwordInput" type="password" placeholder="Password" autocomplete="current-password">
+    <button class="sm" id="loginBtn">Join</button>
+  </div>
+  <div id="voiceArea" style="display:none;flex-direction:column;align-items:center;gap:20px">
+    <div id="speakerList"></div>
+    <button id="pttBtn">Hold to Talk</button>
+    <div id="status">Connected</div>
+  </div>
+  <script src="/js/sdk.js"></script>
+  <script>
+    const sdk = window.ZellousSDK;
+    const roomId = new URLSearchParams(location.search).get('room') || 'voice';
+    const loginArea = document.getElementById('loginArea');
+    const voiceArea = document.getElementById('voiceArea');
+    const speakerList = document.getElementById('speakerList');
+    const pttBtn = document.getElementById('pttBtn');
+    const status = document.getElementById('status');
+    const speakers = new Map();
+
+    function renderSpeakers() {
+      speakerList.innerHTML = '';
+      speakers.forEach((s, id) => {
+        const div = document.createElement('div');
+        div.className = 'speaker';
+        div.innerHTML = `<div class="speaker-avatar${s.speaking ? ' speaking' : ''}">${(s.name||'?')[0].toUpperCase()}</div><div class="speaker-name">${s.name||id}</div>`;
+        speakerList.appendChild(div);
+      });
+    }
+
+    sdk.on('room_joined', ({ currentUsers }) => {
+      (currentUsers || []).forEach(u => speakers.set(u.userId, { name: u.displayName || u.username, speaking: false }));
+      renderSpeakers();
+    });
+    sdk.on('user_joined', ({ userId, user }) => { speakers.set(userId, { name: user?.displayName || user?.username || userId, speaking: false }); renderSpeakers(); });
+    sdk.on('user_left', ({ userId }) => { speakers.delete(userId); renderSpeakers(); });
+    sdk.on('speaker_joined', ({ userId, user }) => { const s = speakers.get(userId) || { name: user?.displayName || userId }; s.speaking = true; speakers.set(userId, s); renderSpeakers(); });
+    sdk.on('speaker_left', ({ userId }) => { const s = speakers.get(userId); if (s) { s.speaking = false; renderSpeakers(); } });
+
+    pttBtn.addEventListener('mousedown', () => { sdk.audio.startPTT(); pttBtn.classList.add('active'); });
+    pttBtn.addEventListener('mouseup', () => { sdk.audio.stopPTT(); pttBtn.classList.remove('active'); });
+    pttBtn.addEventListener('touchstart', (e) => { e.preventDefault(); sdk.audio.startPTT(); pttBtn.classList.add('active'); });
+    pttBtn.addEventListener('touchend', (e) => { e.preventDefault(); sdk.audio.stopPTT(); pttBtn.classList.remove('active'); });
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      const u = document.getElementById('usernameInput').value.trim();
+      const p = document.getElementById('passwordInput').value;
+      if (!u) return;
+      const r = await sdk.auth.login(u, p);
+      if (r.token || r.user) {
+        loginArea.style.display = 'none';
+        voiceArea.style.display = 'flex';
+        sdk.connect(roomId);
+      } else {
+        alert(r.error || 'Login failed');
+      }
+    });
+  </script>
+</body>
+</html>
