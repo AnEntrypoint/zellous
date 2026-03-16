@@ -1,7 +1,7 @@
 import { pack, unpack } from 'msgpackr';
 import { rooms, messages, media, files } from './db.js';
 import { authenticateWebSocket } from './auth-ops.js';
-import { getHandler } from './handlers.js';
+import { registerHandler, getHandler } from './handlers.js';
 import logger from '@sequentialos/sequential-logging';
 
 const createClient = (ws, id, user = null) => ({
@@ -124,7 +124,7 @@ const makeHandlers = (state) => ({
 });
 
 const setupWebSocket = (wss, state, BotConnection) => {
-  const handlers = makeHandlers(state);
+  for (const [type, fn] of Object.entries(makeHandlers(state))) registerHandler(type, fn);
 
   const pingInterval = setInterval(() => {
     for (const client of state.clients.values()) {
@@ -157,7 +157,7 @@ const setupWebSocket = (wss, state, BotConnection) => {
     ws.on('message', async (data) => {
       try {
         const msg = unpack(Buffer.isBuffer(data) ? data : Buffer.from(data));
-        const handler = handlers[msg.type] || getHandler(msg.type);
+        const handler = getHandler(msg.type);
         if (handler) await handler(client, msg);
       } catch (e) { logger.error('[WS] Message error:', e.message); }
     });
