@@ -8,12 +8,7 @@
     ".": "./lib/index.js",
     "./core": "./lib/zellous-core.js",
     "./handlers": "./lib/default-handlers.js",
-    "./handlers/media": "./lib/handlers-media.js",
-    "./handlers/messaging": "./lib/handlers-messaging.js",
-    "./server": "./server.js",
-    "./db": "./server/db.js",
-    "./auth": "./server/auth-ops.js",
-    "./config": "./server/config.js"
+    "./server": "./server.js"
   },
   "scripts": {
     "start": "node server.js",
@@ -33,12 +28,19 @@
     "video"
   ],
   "dependencies": {
+    "@preact/signals": "2.8.1",
+    "@preact/signals-core": "1.13.0",
+    "@sequentialos/async-patterns": "^1.0.0",
     "@sequentialos/sequential-logging": "^1.0.0",
-    "busybase": "^1.0.0",
+    "@sequentialos/timestamp-utilities": "^1.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
+    "htm": "3.1.1",
+    "livekit-client": "2.17.2",
     "livekit-server-sdk": "^2.15.0",
     "msgpackr": "^1.11.5",
+    "preact": "10.28.4",
+    "puppeteer": "^24.37.3",
     "ws": "^8.14.2"
   },
   "devDependencies": {
