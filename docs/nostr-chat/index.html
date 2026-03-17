@@ -600,7 +600,11 @@ async function initNostr() {
   window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt };
 }
 
-initNostr().catch(console.error);
+function _runWhenReady(fn) {
+  if (window.appReady) { fn(); return; }
+  const t = setInterval(() => { if (window.appReady) { clearInterval(t); fn(); } }, 50);
+}
+_runWhenReady(() => initNostr().catch(console.error));
 </script>
 </body>
 </html>
