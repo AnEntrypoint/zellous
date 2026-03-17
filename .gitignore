@@ -26,3 +26,5 @@ livekit.yaml
 
 .code-search/
 .gm-stop-verified
+test-imports.js
+verify-assets.js

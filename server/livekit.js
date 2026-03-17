@@ -205,7 +205,7 @@ function getConfig() {
 }
 
 function buildIceServers(cfg) {
-  const servers = [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }];
+  const servers = [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.nextcloud.com:443'] }];
   if (cfg.turnUrl && cfg.turnUsername && cfg.turnCredential) {
     servers.push({ urls: [cfg.turnUrl], username: cfg.turnUsername, credential: cfg.turnCredential });
   }
