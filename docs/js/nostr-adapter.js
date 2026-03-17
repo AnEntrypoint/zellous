@@ -1,7 +1,7 @@
 import { generateSecretKey, getPublicKey, finalizeEvent, SimplePool } from 'https://esm.sh/nostr-tools@2';
 import { nip19 } from 'https://esm.sh/nostr-tools@2';
 
-const RELAYS = ['wss://relay.damus.io', 'wss://relay.nostr.band', 'wss://nos.lol'];
+const RELAYS = ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://relay.snort.social', 'wss://nos.lol', 'wss://relay.olas.app', 'wss://nostr.mom'];
 
 class NostrAdapter {
   constructor() {
