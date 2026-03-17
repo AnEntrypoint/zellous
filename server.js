@@ -1,51 +1,161 @@
 import express from 'express';
-import { WebSocketServer } from 'ws';
-import { createServer } from 'http';
+import { WebSocketServer, WebSocket } from 'ws';
+import http, { createServer } from 'http';
 import { fileURLToPath } from 'url';
-import { dirname, join, normalize } from 'path';
-import { promises as fsp } from 'fs';
-import { pack } from 'msgpackr';
+import { dirname, join } from 'path';
+import { pack, unpack } from 'msgpackr';
 import cors from 'cors';
 import logger from '@sequentialos/sequential-logging';
 
-import { createConfig } from './server/config.js';
-import { initialize, startCleanup, stopCleanup } from './server/db.js';
-import { optionalAuth } from './server/auth-ops.js';
-import { BotConnection } from './server/bot-websocket.js';
-import { initializeLiveKit, stopLivekitServer } from './server/livekit.js';
-import { makeHttpProxy, makeWsProxy, makeTokenRouter } from './server/routes-livekit.js';
-import { setupWebSocket } from './server/ws-handler.js';
-import makeAuthRouter from './server/routes-auth.js';
-import makeRoomsRouter from './server/routes-rooms.js';
-import makeServersRouter from './server/routes-servers.js';
-import { makeBotsRouter, makeBotRoomsRouter } from './server/routes-bots.js';
-import { registerHandler } from './server/handlers.js';
+import {
+  initialize, rooms, messages, media, files, servers,
+  startCleanup, stopCleanup, DATA_ROOT
+} from './server/storage.js';
+import {
+  optionalAuth, requireAuth, authenticateWebSocket,
+  register, login, logout, logoutAll,
+  getActiveSessions, getDevices, removeDevice,
+  updateSettings, updateDisplayName, changePassword
+} from './server/auth.js';
+import {
+  bots, BotConnection, setupBotApiRoutes
+} from './server/bot-api.js';
+import {
+  getLkSdk, getConfig as getLkConfig, buildIceServers,
+  initializeLiveKit, stopLivekitServer
+} from './server/livekit.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const config = createConfig();
-const ROOMS_UI_DIR = join(__dirname, 'rooms-ui');
-
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json({ limit: config.maxBodySize }));
+app.use(cors({
+  origin: true, // Allow all origins for iframe embedding
+  credentials: true
+}));
+app.use(express.json({ limit: '50mb' }));
+
 app.use((req, res, next) => {
   res.removeHeader('X-Frame-Options');
-  res.setHeader('Content-Security-Policy', `frame-ancestors ${config.frameAncestors}`);
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://os.247420.xyz https://*.247420.xyz http://localhost:* http://127.0.0.1:*");
   next();
 });
+
 app.use(express.static(__dirname));
 app.use(optionalAuth);
+
+const LK_HTTP_PORT = 7882;
+const LK_WS_PORT = 7882;
+
+function createLiveKitProxy() {
+  const proxyPath = '/livekit';
+
+  app.use((req, res, next) => {
+    if (!req.path.startsWith(proxyPath)) return next();
+
+    const suffix = req.url.slice(proxyPath.length) || '/';
+    const options = {
+      hostname: '127.0.0.1',
+      port: LK_HTTP_PORT,
+      path: suffix,
+      method: req.method,
+      headers: {
+        ...req.headers,
+        host: '127.0.0.1:' + LK_HTTP_PORT,
+        'x-forwarded-for': req.ip || req.connection.remoteAddress,
+        'x-forwarded-proto': req.protocol,
+      },
+    };
+
+    const proxyReq = http.request(options, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res, { end: true });
+    });
+
+    proxyReq.on('error', (e) => {
+      logger.error('[LiveKit Proxy] HTTP:', e.message);
+      if (!res.headersSent) res.status(502).json({ error: 'LiveKit unavailable' });
+    });
+
+    req.pipe(proxyReq, { end: true });
+  });
+}
+
+function createLiveKitWebSocketProxy() {
+  const lkWss = new WebSocketServer({ noServer: true, perMessageDeflate: false });
+
+  server.on('upgrade', (request, socket, head) => {
+    const url = new URL(request.url, `http://${request.headers.host}`);
+    if (!url.pathname.startsWith('/livekit')) {
+      wss.handleUpgrade(request, socket, head, (ws) => wss.emit('connection', ws, request));
+      return;
+    }
+
+    lkWss.handleUpgrade(request, socket, head, (clientWs) => {
+      const targetPath = url.pathname.slice('/livekit'.length) || '/';
+      const targetUrl = `ws://127.0.0.1:${LK_WS_PORT}${targetPath}${url.search}`;
+      const targetWs = new WebSocket(targetUrl, {
+        headers: { 'x-forwarded-for': socket.remoteAddress || '' },
+        perMessageDeflate: false,
+      });
+
+      targetWs.on('open', () => {
+        targetWs.on('message', (data, isBinary) => {
+          if (clientWs.readyState === WebSocket.OPEN) {
+            clientWs.send(data, { binary: isBinary });
+          }
+        });
+        targetWs.on('close', (code, reason) => {
+          if (clientWs.readyState === WebSocket.OPEN) clientWs.close(code, reason);
+        });
+        targetWs.on('error', (e) => {
+          logger.error('[LiveKit WS] Target:', e.message);
+          if (clientWs.readyState === WebSocket.OPEN) clientWs.close(1011);
+        });
+      });
+
+      clientWs.on('message', (data, isBinary) => {
+        if (targetWs.readyState === WebSocket.OPEN) {
+          targetWs.send(data, { binary: isBinary });
+        }
+      });
+      clientWs.on('close', () => {
+        if (targetWs.readyState !== WebSocket.CLOSED) targetWs.close();
+      });
+      clientWs.on('error', (e) => {
+        logger.error('[LiveKit WS] Client:', e.message);
+        if (targetWs.readyState !== WebSocket.CLOSED) targetWs.close();
+      });
+
+      targetWs.on('error', (e) => {
+        logger.error('[LiveKit WS] Connect error:', e.message);
+        if (clientWs.readyState === WebSocket.OPEN) clientWs.close(1011);
+      });
+    });
+  });
+}
+
 
 const state = {
   clients: new Map(),
   counter: 0,
-  roomUsers: new Map(),
-  mediaSessions: new Map(),
-  config: { pingInterval: config.pingInterval },
+  roomUsers: new Map(), // roomId -> Set of client ids
+  mediaSessions: new Map() // clientId -> current media session id
 };
+
+const createClient = (ws, id, user = null) => ({
+  id,
+  ws,
+  username: user?.displayName || `User${id}`,
+  userId: user?.id || null,
+  sessionId: null,
+  speaking: false,
+  roomId: 'lobby',
+  isBot: false,
+  isAuthenticated: !!user
+});
+
 
 const broadcast = (msg, exclude = null, roomId = null) => {
   const data = pack(msg);
@@ -55,74 +165,881 @@ const broadcast = (msg, exclude = null, roomId = null) => {
     }
   }
 };
-state.broadcast = broadcast;
 
-app.use('/api/auth', makeAuthRouter());
-app.use('/api/rooms', makeBotRoomsRouter(state, broadcast));
-app.use('/api/rooms', makeRoomsRouter(state, broadcast));
-app.use('/api/servers', makeServersRouter(broadcast));
-app.use('/api/bots', makeBotsRouter(broadcast));
-app.use('/api/livekit', makeTokenRouter(`${config.host}:${config.port}`));
+const collectRoomClients = (roomId, exclude = null) => {
+  const result = [];
+  for (const c of state.clients.values()) {
+    if (c.roomId === roomId && c !== exclude) result.push(c);
+  }
+  return result;
+};
 
-const safeRoomType = (n) => (!n || /[^a-zA-Z0-9_-]/.test(n)) ? null : n;
 
-app.get('/api/room-types', async (req, res) => {
+const joinRoom = async (client, roomId) => {
+  const oldRoomId = client.roomId;
+
+  if (oldRoomId && oldRoomId !== roomId && state.roomUsers.has(oldRoomId)) {
+    state.roomUsers.get(oldRoomId).delete(client.id);
+    broadcast({ type: 'user_left', userId: client.id }, client, oldRoomId);
+    const oldCount = state.roomUsers.get(oldRoomId).size;
+    await rooms.setUserCount(oldRoomId, oldCount);
+    if (oldCount === 0) {
+      state.roomUsers.delete(oldRoomId);
+      await rooms.scheduleCleanup(oldRoomId);
+    }
+  }
+
+  client.roomId = roomId;
+  if (!state.roomUsers.has(roomId)) {
+    state.roomUsers.set(roomId, new Set());
+    await rooms.cancelCleanup(roomId);
+  }
+  state.roomUsers.get(roomId).add(client.id);
+
+  await rooms.ensureRoom(roomId);
+  await rooms.setUserCount(roomId, state.roomUsers.get(roomId).size);
+};
+
+const leaveRoom = async (client) => {
+  const roomId = client.roomId;
+  if (roomId && state.roomUsers.has(roomId)) {
+    state.roomUsers.get(roomId).delete(client.id);
+    const count = state.roomUsers.get(roomId).size;
+    await rooms.setUserCount(roomId, count);
+
+    if (count === 0) {
+      state.roomUsers.delete(roomId);
+      await rooms.scheduleCleanup(roomId);
+    }
+  }
+};
+
+
+const handlers = {
+  authenticate: async (client, msg) => {
+    const auth = await authenticateWebSocket(msg.token);
+    if (auth) {
+      client.userId = auth.user.id;
+      client.username = auth.user.displayName;
+      client.sessionId = auth.session.id;
+      client.isAuthenticated = true;
+      client.ws.send(pack({
+        type: 'auth_success',
+        user: auth.user
+      }));
+    } else {
+      client.ws.send(pack({
+        type: 'auth_failed',
+        error: 'Invalid or expired token'
+      }));
+    }
+  },
+
+  join_room: async (client, msg) => {
+    const roomId = msg.roomId || 'lobby';
+    await joinRoom(client, roomId);
+
+    const roomClients = collectRoomClients(roomId, client);
+    const channels = await rooms.getChannels(roomId);
+    const categories = await rooms.getCategories(roomId);
+
+    client.ws.send(pack({
+      type: 'room_joined',
+      roomId,
+      channels,
+      categories,
+      currentUsers: roomClients.map(c => ({
+        id: c.id,
+        username: c.username,
+        isBot: c.isBot,
+        isAuthenticated: c.isAuthenticated
+      }))
+    }));
+
+    broadcast({
+      type: 'user_joined',
+      user: client.username,
+      userId: client.id,
+      isBot: client.isBot,
+      isAuthenticated: client.isAuthenticated
+    }, client, roomId);
+  },
+
+  audio_start: async (client) => {
+    client.speaking = true;
+    const mediaSessionId = await media.createSession(client.roomId, client.id, client.username);
+    state.mediaSessions.set(client.id, mediaSessionId);
+    broadcast({
+      type: 'speaker_joined',
+      user: client.username,
+      userId: client.id
+    }, null, client.roomId);
+  },
+
+  audio_chunk: (client, msg) => {
+    broadcast({
+      type: 'audio_data',
+      userId: client.id,
+      data: msg.data
+    }, client, client.roomId);
+    const mediaSessionId = state.mediaSessions.get(client.id);
+    if (mediaSessionId) {
+      media.saveChunk(client.roomId, client.id, 'audio', msg.data, mediaSessionId).catch(() => {});
+    }
+  },
+
+  audio_end: async (client) => {
+    client.speaking = false;
+    const mediaSessionId = state.mediaSessions.get(client.id);
+    if (mediaSessionId) {
+      await media.endSession(client.roomId, mediaSessionId);
+      state.mediaSessions.delete(client.id);
+    }
+    broadcast({
+      type: 'speaker_left',
+      userId: client.id,
+      user: client.username
+    }, null, client.roomId);
+  },
+
+  video_chunk: (client, msg) => {
+    broadcast({
+      type: 'video_chunk',
+      userId: client.id,
+      data: msg.data
+    }, client, client.roomId);
+    const mediaSessionId = state.mediaSessions.get(client.id);
+    if (mediaSessionId) {
+      media.saveChunk(client.roomId, client.id, 'video', msg.data, mediaSessionId).catch(() => {});
+    }
+  },
+
+  text_message: async (client, msg) => {
+    const channelId = msg.channelId || 'general';
+    const msgData = await messages.save(client.roomId, {
+      userId: client.id,
+      username: client.username,
+      type: 'text',
+      content: msg.content,
+      channelId
+    });
+
+    broadcast({
+      ...msgData,
+      type: 'text_message',
+      isAuthenticated: client.isAuthenticated
+    }, null, client.roomId);
+  },
+
+  image_message: async (client, msg) => {
+    const channelId = msg.channelId || 'general';
+    const imageBuffer = Buffer.from(msg.data, 'base64');
+    const fileMeta = await files.save(
+      client.roomId,
+      client.id,
+      msg.filename || 'image.png',
+      imageBuffer,
+      'images'
+    );
+
+    const msgData = await messages.save(client.roomId, {
+      userId: client.id,
+      username: client.username,
+      type: 'image',
+      content: msg.caption || '',
+      channelId,
+      metadata: {
+        fileId: fileMeta.id,
+        filename: fileMeta.originalName,
+        size: fileMeta.size,
+        mimeType: fileMeta.mimeType
+      }
+    });
+
+    broadcast({
+      ...msgData,
+      type: 'image_message',
+      isAuthenticated: client.isAuthenticated
+    }, null, client.roomId);
+  },
+
+  file_upload_start: async (client, msg) => {
+    broadcast({
+      type: 'file_upload_started',
+      userId: client.id,
+      username: client.username,
+      filename: msg.filename,
+      size: msg.size,
+      uploadId: msg.uploadId
+    }, null, client.roomId);
+  },
+
+  file_upload_chunk: async (client, msg) => {
+  },
+
+  file_upload_complete: async (client, msg) => {
+    const channelId = msg.channelId || 'general';
+    const fileBuffer = Buffer.from(msg.data, 'base64');
+    const fileMeta = await files.save(
+      client.roomId,
+      client.id,
+      msg.filename,
+      fileBuffer,
+      msg.path || ''
+    );
+
+    const msgData = await messages.save(client.roomId, {
+      userId: client.id,
+      username: client.username,
+      type: 'file',
+      content: msg.description || '',
+      channelId,
+      metadata: {
+        fileId: fileMeta.id,
+        filename: fileMeta.originalName,
+        size: fileMeta.size,
+        mimeType: fileMeta.mimeType,
+        path: fileMeta.path
+      }
+    });
+
+    broadcast({
+      ...msgData,
+      type: 'file_shared',
+      isAuthenticated: client.isAuthenticated
+    }, client, client.roomId);
+  },
+
+  set_username: async (client, msg) => {
+    client.username = msg.username;
+    broadcast({
+      type: 'user_updated',
+      userId: client.id,
+      username: msg.username
+    }, null, client.roomId);
+  },
+
+  edit_message: async (client, msg) => {
+    const messageId = msg.messageId;
+    const newContent = msg.content;
+    if (!messageId || !newContent?.trim()) return;
+
+    const existing = await messages.getById(client.roomId, messageId);
+    if (!existing) return;
+    if (existing.userId !== client.id && !client.isAuthenticated) return;
+
+    const updated = await messages.update(client.roomId, messageId, { content: newContent.trim() });
+    if (updated) {
+      broadcast({
+        type: 'message_updated',
+        messageId,
+        content: updated.content,
+        edited: true,
+        editedAt: updated.editedAt
+      }, null, client.roomId);
+    }
+  },
+
+  get_messages: async (client, msg) => {
+    const channelId = msg.channelId || 'general';
+    const msgs = await messages.getRecent(client.roomId, msg.limit || 50, msg.before, channelId);
+    client.ws.send(pack({
+      type: 'message_history',
+      messages: msgs,
+      channelId
+    }));
+  },
+
+  get_files: async (client, msg) => {
+    const fileList = await files.list(client.roomId, msg.path || '');
+    client.ws.send(pack({
+      type: 'file_list',
+      files: fileList,
+      path: msg.path || ''
+    }));
+  }
+};
+
+
+const PING_INTERVAL = 30000;
+const pingInterval = setInterval(() => {
+  for (const client of state.clients.values()) {
+    if (client._alive === false) {
+      client.ws.terminate();
+      continue;
+    }
+    client._alive = false;
+    client.ws.ping();
+  }
+}, PING_INTERVAL);
+wss.on('close', () => clearInterval(pingInterval));
+
+wss.on('connection', async (ws, req) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const isBot = url.pathname === '/api/bot/ws';
+
+  if (isBot) {
+    const botConn = new BotConnection(ws, broadcast, state);
+    ws.on('message', (data) => botConn.handleMessage(data));
+    ws.on('close', () => botConn.cleanup());
+    return;
+  }
+
+  const clientId = ++state.counter;
+  const token = url.searchParams.get('token');
+
+  let user = null;
+  if (token) {
+    const auth = await authenticateWebSocket(token);
+    if (auth) {
+      user = auth.user;
+    }
+  }
+
+  const client = createClient(ws, clientId, user);
+  client._alive = true;
+  state.clients.set(ws, client);
+
+  ws.on('pong', () => { client._alive = true; });
+
+  ws.on('message', async (data) => {
+    try {
+      const msg = unpack(Buffer.isBuffer(data) ? data : Buffer.from(data));
+      const handler = handlers[msg.type];
+      if (handler) {
+        await handler(client, msg);
+      }
+    } catch (e) {
+      logger.error('[WS] Message error:', e.message);
+    }
+  });
+
+  ws.on('close', async () => {
+    if (client.speaking === true) {
+      broadcast({
+        type: 'speaker_left',
+        userId: clientId,
+        user: client.username
+      }, null, client.roomId);
+    }
+    await leaveRoom(client);
+    state.clients.delete(ws);
+    broadcast({
+      type: 'user_left',
+      userId: clientId
+    }, null, client.roomId);
+  });
+
+  ws.send(pack({
+    type: 'connection_established',
+    clientId,
+    user: user ? { id: user.id, username: user.username, displayName: user.displayName } : null
+  }));
+});
+
+
+app.post('/api/auth/register', async (req, res) => {
+  const { username, password, displayName } = req.body;
+  const result = await register(username, password, displayName);
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password, deviceName, userAgent } = req.body;
+  const result = await login(username, password, { name: deviceName, userAgent });
+  if (result.error) {
+    return res.status(401).json(result);
+  }
+  res.json(result);
+});
+
+app.post('/api/auth/logout', requireAuth, async (req, res) => {
+  await logout(req.session.id);
+  res.json({ success: true });
+});
+
+app.post('/api/auth/logout-all', requireAuth, async (req, res) => {
+  const count = await logoutAll(req.user.id);
+  res.json({ success: true, sessionsInvalidated: count });
+});
+
+app.get('/api/user', requireAuth, async (req, res) => {
+  res.json({ user: req.user });
+});
+
+app.patch('/api/user', requireAuth, async (req, res) => {
+  const { displayName, settings } = req.body;
+  const updates = {};
+
+  if (displayName) {
+    const result = await updateDisplayName(req.user.id, displayName);
+    if (result.error) {
+      return res.status(400).json(result);
+    }
+    updates.displayName = result.displayName;
+  }
+
+  if (settings) {
+    updates.settings = await updateSettings(req.user.id, settings);
+  }
+
+  res.json(updates);
+});
+
+app.post('/api/user/change-password', requireAuth, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const result = await changePassword(req.user.id, currentPassword, newPassword);
+  if (result.error) {
+    return res.status(400).json(result);
+  }
+  res.json(result);
+});
+
+app.get('/api/sessions', requireAuth, async (req, res) => {
+  const sessions = await getActiveSessions(req.user.id);
+  res.json({ sessions });
+});
+
+app.get('/api/devices', requireAuth, async (req, res) => {
+  const devices = await getDevices(req.user.id);
+  res.json({ devices });
+});
+
+app.delete('/api/devices/:deviceId', requireAuth, async (req, res) => {
+  await removeDevice(req.user.id, req.params.deviceId);
+  res.json({ success: true });
+});
+
+app.get('/api/rooms', async (req, res) => {
+  const roomList = [];
+  for (const [roomId, users] of state.roomUsers.entries()) {
+    roomList.push({
+      id: roomId,
+      userCount: users.size
+    });
+  }
+  res.json({ rooms: roomList });
+});
+
+app.get('/api/rooms/:roomId', async (req, res) => {
+  const roomId = req.params.roomId;
+  const users = Array.from(state.clients.values())
+    .filter(c => c.roomId === roomId)
+    .map(c => ({
+      id: c.id,
+      username: c.username,
+      speaking: c.speaking,
+      isBot: c.isBot,
+      isAuthenticated: c.isAuthenticated
+    }));
+
+  const meta = await rooms.getMeta(roomId);
+
+  res.json({
+    roomId,
+    users,
+    userCount: users.length,
+    meta
+  });
+});
+
+app.get('/api/rooms/:roomId/files', async (req, res) => {
+  const fileList = await files.list(req.params.roomId, req.query.path || '');
+  res.json({ files: fileList });
+});
+
+app.get('/api/rooms/:roomId/files/:fileId', async (req, res) => {
+  const file = await files.get(req.params.roomId, req.params.fileId);
+  if (!file) {
+    return res.status(404).json({ error: 'File not found' });
+  }
+
+  const { promises: fs } = await import('fs');
+  const data = await fs.readFile(file.filepath);
+
+  res.set('Content-Type', file.meta?.mimeType || 'application/octet-stream');
+  res.set('Content-Disposition', `attachment; filename="${file.meta?.originalName || 'download'}"`);
+  res.send(data);
+});
+
+app.get('/api/rooms/:roomId/messages', async (req, res) => {
+  const msgs = await messages.getRecent(
+    req.params.roomId,
+    parseInt(req.query.limit) || 50,
+    req.query.before ? parseInt(req.query.before) : null,
+    req.query.channelId || null
+  );
+  res.json({ messages: msgs });
+});
+
+// Channel CRUD endpoints
+app.get('/api/rooms/:roomId/channels', async (req, res) => {
+  const channels = await rooms.getChannels(req.params.roomId);
+  res.json({ channels });
+});
+
+app.post('/api/rooms/:roomId/channels', async (req, res) => {
+  const { name, type, categoryId, position } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  if (!['text', 'voice', 'threaded'].includes(type)) return res.status(400).json({ error: 'type must be text, voice, or threaded' });
+  await rooms.ensureRoom(req.params.roomId);
+  const channel = await rooms.addChannel(req.params.roomId, { name: name.trim(), type, categoryId, position });
+  if (!channel) return res.status(500).json({ error: 'Failed to create channel' });
+  broadcast({ type: 'channel_created', channel }, null, req.params.roomId);
+  res.json({ channel });
+});
+
+app.patch('/api/rooms/:roomId/channels/:channelId', async (req, res) => {
+  const { name, categoryId, position } = req.body;
+  if (!name?.trim() && categoryId === undefined && position === undefined) {
+    return res.status(400).json({ error: 'name, categoryId, or position required' });
+  }
+  await rooms.ensureRoom(req.params.roomId);
+  const updates = {};
+  if (name?.trim()) updates.name = name.trim();
+  if (categoryId !== undefined) updates.categoryId = categoryId;
+  if (position !== undefined) updates.position = position;
+  const channel = await rooms.updateChannel(req.params.roomId, req.params.channelId, updates);
+  if (!channel) return res.status(404).json({ error: 'Channel not found' });
+  broadcast({ type: 'channel_updated', channel }, null, req.params.roomId);
+  res.json({ channel });
+});
+
+app.delete('/api/rooms/:roomId/channels/:channelId', async (req, res) => {
+  const ok = await rooms.deleteChannel(req.params.roomId, req.params.channelId);
+  if (!ok) return res.status(404).json({ error: 'Channel not found' });
+  broadcast({ type: 'channel_deleted', channelId: req.params.channelId }, null, req.params.roomId);
+  res.json({ success: true });
+});
+
+app.post('/api/rooms/:roomId/channels/reorder', async (req, res) => {
+  const { categoryId, orderedIds } = req.body;
+  if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds array required' });
+  const channels = await rooms.reorderChannels(req.params.roomId, categoryId, orderedIds);
+  if (!channels) return res.status(404).json({ error: 'Room not found' });
+  broadcast({ type: 'channels_reordered', categoryId, channels }, null, req.params.roomId);
+  res.json({ channels });
+});
+
+// Category CRUD endpoints
+app.get('/api/rooms/:roomId/categories', async (req, res) => {
+  const categories = await rooms.getCategories(req.params.roomId);
+  res.json({ categories });
+});
+
+app.post('/api/rooms/:roomId/categories', async (req, res) => {
+  const { name, position } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  await rooms.ensureRoom(req.params.roomId);
+  const category = await rooms.addCategory(req.params.roomId, { name: name.trim(), position });
+  if (!category) return res.status(500).json({ error: 'Failed to create category' });
+  broadcast({ type: 'category_created', category }, null, req.params.roomId);
+  res.json({ category });
+});
+
+app.patch('/api/rooms/:roomId/categories/:categoryId', async (req, res) => {
+  const { name, position, collapsed } = req.body;
+  const updates = {};
+  if (name?.trim()) updates.name = name.trim();
+  if (position !== undefined) updates.position = position;
+  if (collapsed !== undefined) updates.collapsed = collapsed;
+  if (Object.keys(updates).length === 0) return res.status(400).json({ error: 'name, position, or collapsed required' });
+  const category = await rooms.updateCategory(req.params.roomId, req.params.categoryId, updates);
+  if (!category) return res.status(404).json({ error: 'Category not found' });
+  broadcast({ type: 'category_updated', category }, null, req.params.roomId);
+  res.json({ category });
+});
+
+app.delete('/api/rooms/:roomId/categories/:categoryId', async (req, res) => {
+  const ok = await rooms.deleteCategory(req.params.roomId, req.params.categoryId);
+  if (!ok) return res.status(404).json({ error: 'Category not found' });
+  broadcast({ type: 'category_deleted', categoryId: req.params.categoryId }, null, req.params.roomId);
+  res.json({ success: true });
+});
+
+app.post('/api/rooms/:roomId/categories/reorder', async (req, res) => {
+  const { orderedIds } = req.body;
+  if (!Array.isArray(orderedIds)) return res.status(400).json({ error: 'orderedIds array required' });
+  const categories = await rooms.reorderCategories(req.params.roomId, orderedIds);
+  if (!categories) return res.status(404).json({ error: 'Room not found' });
+  broadcast({ type: 'categories_reordered', categories }, null, req.params.roomId);
+  res.json({ categories });
+});
+
+app.post('/api/servers', optionalAuth, async (req, res) => {
+  const { name, iconColor } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  const userId = req.user?.id || 'anon';
+  const username = req.user?.displayName || req.user?.username || 'Anonymous';
+  const srv = await servers.create({ name: name.trim(), ownerId: userId, ownerName: username, iconColor });
+  await rooms.ensureRoom(srv.id);
+  res.json({ server: srv });
+});
+
+app.get('/api/servers', optionalAuth, async (req, res) => {
+  const userId = req.user?.id;
+  const list = userId ? await servers.listForUser(userId) : await servers.listAll();
+  res.json({ servers: list });
+});
+
+app.get('/api/servers/:serverId', async (req, res) => {
+  const meta = await servers.getMeta(req.params.serverId);
+  if (!meta) return res.status(404).json({ error: 'Server not found' });
+  res.json({ server: meta });
+});
+
+app.patch('/api/servers/:serverId', optionalAuth, async (req, res) => {
+  const meta = await servers.getMeta(req.params.serverId);
+  if (!meta) return res.status(404).json({ error: 'Server not found' });
+  const userId = req.user?.id;
+  const role = meta.members.find(m => m.userId === userId)?.role;
+  if (!role || !['owner', 'admin'].includes(role)) return res.status(403).json({ error: 'Insufficient permissions' });
+  const updates = {};
+  if (req.body.name) updates.name = req.body.name.trim();
+  if (req.body.iconColor) updates.iconColor = req.body.iconColor;
+  const updated = await servers.updateMeta(req.params.serverId, updates);
+  res.json({ server: updated });
+});
+
+app.delete('/api/servers/:serverId', optionalAuth, async (req, res) => {
+  const meta = await servers.getMeta(req.params.serverId);
+  if (!meta) return res.status(404).json({ error: 'Server not found' });
+  if (meta.ownerId !== req.user?.id) return res.status(403).json({ error: 'Only owner can delete' });
+  await servers.remove(req.params.serverId);
+  res.json({ success: true });
+});
+
+app.post('/api/servers/:serverId/join', optionalAuth, async (req, res) => {
+  const userId = req.user?.id || 'anon-' + Date.now();
+  const username = req.user?.displayName || req.user?.username || 'Guest';
+  const result = await servers.join(req.params.serverId, userId, username);
+  if (!result) return res.status(404).json({ error: 'Server not found or banned' });
+  res.json({ server: result });
+});
+
+app.post('/api/servers/:serverId/leave', optionalAuth, async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) return res.status(401).json({ error: 'Auth required' });
+  const ok = await servers.leave(req.params.serverId, userId);
+  if (!ok) return res.status(400).json({ error: 'Cannot leave (owner or not found)' });
+  res.json({ success: true });
+});
+
+app.post('/api/servers/:serverId/kick/:userId', optionalAuth, async (req, res) => {
+  const meta = await servers.getMeta(req.params.serverId);
+  if (!meta) return res.status(404).json({ error: 'Server not found' });
+  const callerRole = meta.members.find(m => m.userId === req.user?.id)?.role;
+  if (!callerRole || !['owner', 'admin', 'moderator'].includes(callerRole)) return res.status(403).json({ error: 'Insufficient permissions' });
+  const target = meta.members.find(m => m.userId === req.params.userId);
+  if (!target) return res.status(404).json({ error: 'User not in server' });
+  if (target.role === 'owner') return res.status(403).json({ error: 'Cannot kick owner' });
+  await servers.leave(req.params.serverId, req.params.userId);
+  broadcast({ type: 'user_kicked', userId: req.params.userId, serverId: req.params.serverId }, null, req.params.serverId);
+  res.json({ success: true });
+});
+
+app.post('/api/servers/:serverId/ban/:userId', optionalAuth, async (req, res) => {
+  const meta = await servers.getMeta(req.params.serverId);
+  if (!meta) return res.status(404).json({ error: 'Server not found' });
+  const callerRole = meta.members.find(m => m.userId === req.user?.id)?.role;
+  if (!callerRole || !['owner', 'admin'].includes(callerRole)) return res.status(403).json({ error: 'Insufficient permissions' });
+  const target = meta.members.find(m => m.userId === req.params.userId);
+  if (target?.role === 'owner') return res.status(403).json({ error: 'Cannot ban owner' });
+  if (!meta.bans) meta.bans = [];
+  if (!meta.bans.includes(req.params.userId)) meta.bans.push(req.params.userId);
+  meta.members = meta.members.filter(m => m.userId !== req.params.userId);
+  await servers.updateMeta(req.params.serverId, { members: meta.members, bans: meta.bans });
+  broadcast({ type: 'user_banned', userId: req.params.userId, serverId: req.params.serverId }, null, req.params.serverId);
+  res.json({ success: true });
+});
+
+app.patch('/api/servers/:serverId/roles/:userId', optionalAuth, async (req, res) => {
+  const meta = await servers.getMeta(req.params.serverId);
+  if (!meta) return res.status(404).json({ error: 'Server not found' });
+  const callerRole = meta.members.find(m => m.userId === req.user?.id)?.role;
+  if (!callerRole || !['owner', 'admin'].includes(callerRole)) return res.status(403).json({ error: 'Insufficient permissions' });
+  const { role } = req.body;
+  if (!['admin', 'moderator', 'member'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+  const ok = await servers.setMemberRole(req.params.serverId, req.params.userId, role);
+  if (!ok) return res.status(404).json({ error: 'User not found' });
+  res.json({ success: true });
+});
+
+app.delete('/api/rooms/:roomId/messages/:messageId', optionalAuth, async (req, res) => {
+  const deleted = await messages.remove(req.params.roomId, req.params.messageId);
+  if (!deleted) return res.status(404).json({ error: 'Message not found' });
+  broadcast({ type: 'message_deleted', messageId: req.params.messageId }, null, req.params.roomId);
+  res.json({ success: true });
+});
+
+app.patch('/api/rooms/:roomId/messages/:messageId', optionalAuth, async (req, res) => {
+  const { content } = req.body;
+  if (!content?.trim()) return res.status(400).json({ error: 'Content required' });
+
+  const existing = await messages.getById(req.params.roomId, req.params.messageId);
+  if (!existing) return res.status(404).json({ error: 'Message not found' });
+
+  if (req.user) {
+    if (existing.userId !== req.user.id) {
+      const meta = await servers.getMeta(req.params.roomId);
+      const role = meta?.members?.find(m => m.userId === req.user.id)?.role;
+      if (!role || !['owner', 'admin', 'moderator'].includes(role)) {
+        return res.status(403).json({ error: 'Not authorized' });
+      }
+    }
+  } else if (!req.session?.clientId || existing.userId !== req.session.clientId) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  const updated = await messages.update(req.params.roomId, req.params.messageId, { content: content.trim() });
+  if (!updated) return res.status(500).json({ error: 'Update failed' });
+
+  broadcast({
+    type: 'message_updated',
+    messageId: req.params.messageId,
+    content: updated.content,
+    edited: true,
+    editedAt: updated.editedAt
+  }, null, req.params.roomId);
+
+  res.json({ success: true, message: updated });
+});
+
+setupBotApiRoutes(app, state, broadcast);
+
+app.get('/api/livekit/token', optionalAuth, async (req, res) => {
+  const { channel, identity, forceRelay } = req.query;
+  if (!channel || !identity) return res.status(400).json({ error: 'channel and identity required' });
+  if (identity.length > 128 || channel.length > 64) return res.status(400).json({ error: 'identity or channel too long' });
+
+  const cfg = getLkConfig();
+  if (!cfg.url || !cfg.apiKey || !cfg.apiSecret) {
+    return res.status(503).json({ error: 'LiveKit not configured' });
+  }
+
   try {
-    const entries = await fsp.readdir(ROOMS_UI_DIR, { withFileTypes: true });
-    res.json({ types: entries.filter(e => e.isDirectory() && safeRoomType(e.name)).map(e => e.name) });
-  } catch { res.json({ types: [] }); }
+    const { AccessToken } = await getLkSdk();
+    const roomName = `zellous-${channel}`;
+    const token = new AccessToken(cfg.apiKey, cfg.apiSecret, { identity, ttl: '6h' });
+    token.addGrant({ roomJoin: true, roomCreate: true, room: roomName, canPublish: true, canSubscribe: true, canPublishData: true });
+    const jwt = await token.toJwt();
+
+    const iceServers = buildIceServers(cfg);
+    const hasTurn = iceServers.length > 1;
+    let rtcConfig = undefined;
+    if (hasTurn) {
+      rtcConfig = { iceServers };
+      if (forceRelay === 'true') rtcConfig = { iceServers, iceTransportPolicy: 'relay' };
+    }
+
+    const proto = req.headers['x-forwarded-proto'] === 'https' ? 'wss' : 'ws';
+    const reqHost = req.headers.host || `${req.hostname || 'localhost'}:${PORT}`;
+    const clientUrl = `${proto}://${reqHost}/livekit`;
+
+    res.json({ token: jwt, url: clientUrl, rtcConfig });
+  } catch (e) {
+    logger.error('[LiveKit] Token generation failed:', e.message);
+    res.status(500).json({ error: 'Failed to generate voice token' });
+  }
 });
 
-app.get('/room-assets/:typeName/*', async (req, res) => {
-  const typeName = safeRoomType(req.params.typeName);
-  if (!typeName) return res.status(400).json({ error: 'Invalid room type name' });
-  const normalized = normalize(req.params[0] || '');
-  if (normalized.startsWith('..') || normalized.includes('/..')) return res.status(400).json({ error: 'Invalid path' });
-  try { await fsp.access(join(ROOMS_UI_DIR, typeName, normalized)); res.sendFile(join(ROOMS_UI_DIR, typeName, normalized)); }
-  catch { res.status(404).json({ error: 'File not found' }); }
+
+const nostrRateMap = new Map();
+const NOSTR_RATE_LIMIT = 20;
+const NOSTR_RATE_WINDOW = 60000;
+
+function checkNostrRate(ip) {
+  const now = Date.now();
+  for (const [k, v] of nostrRateMap) {
+    if (v.resetAt < now) nostrRateMap.delete(k);
+  }
+  const entry = nostrRateMap.get(ip) || { count: 0, resetAt: now + NOSTR_RATE_WINDOW };
+  if (entry.count >= NOSTR_RATE_LIMIT) return false;
+  entry.count++;
+  nostrRateMap.set(ip, entry);
+  return true;
+}
+
+app.get('/api/nostr/ping', (req, res) => {
+  res.json({ ok: true });
 });
 
-app.get('/room-type/:typeName', async (req, res) => {
-  const typeName = safeRoomType(req.params.typeName);
-  if (!typeName) return res.status(400).json({ error: 'Invalid room type name' });
-  const htmlPath = join(ROOMS_UI_DIR, typeName, 'index.html');
-  try { await fsp.access(htmlPath); res.sendFile(htmlPath); }
-  catch { res.sendFile(join(__dirname, 'index.html')); }
+app.get('/api/nostr/livekit-token', async (req, res) => {
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  if (!checkNostrRate(ip)) return res.status(429).json({ error: 'Rate limit exceeded' });
+
+  const { channel, identity } = req.query;
+  if (!channel || !identity) return res.status(400).json({ error: 'channel and identity required' });
+  if (!/^[0-9a-f]{64}$/.test(identity)) return res.status(400).json({ error: 'identity must be 64-char hex string' });
+
+  const cfg = getLkConfig();
+  if (!cfg.url || !cfg.apiKey || !cfg.apiSecret) {
+    return res.status(503).json({ error: 'LiveKit not configured' });
+  }
+
+  try {
+    const { AccessToken } = await getLkSdk();
+    const roomName = `zellous-${channel}`;
+    const token = new AccessToken(cfg.apiKey, cfg.apiSecret, { identity, ttl: '6h' });
+    token.addGrant({ roomJoin: true, roomCreate: true, room: roomName, canPublish: true, canSubscribe: true, canPublishData: true });
+    const jwt = await token.toJwt();
+
+    const iceServers = buildIceServers(cfg);
+    const hasTurn = iceServers.length > 1;
+    let rtcConfig = undefined;
+    if (hasTurn) rtcConfig = { iceServers };
+
+    const proto = req.headers['x-forwarded-proto'] === 'https' ? 'wss' : 'ws';
+    const reqHost = req.headers.host || `${req.hostname || 'localhost'}:${PORT}`;
+    const clientUrl = `${proto}://${reqHost}/livekit`;
+
+    res.json({ url: clientUrl, token: jwt, rtcConfig });
+  } catch (e) {
+    logger.error('[Nostr] Token generation failed:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/room-type/:typeName/*', async (req, res) => {
-  const typeName = safeRoomType(req.params.typeName);
-  if (!typeName) return res.status(400).json({ error: 'Invalid room type name' });
-  const normalized = normalize(req.params[0] || '');
-  if (normalized.startsWith('..') || normalized.includes('/..')) return res.status(400).json({ error: 'Invalid path' });
-  const filePath = join(ROOMS_UI_DIR, typeName, normalized);
-  try { await fsp.access(filePath); res.sendFile(filePath); }
-  catch { res.status(404).json({ error: 'File not found' }); }
-});
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 
 const startServer = async () => {
-  await initialize(config);
+  await initialize();
   await initializeLiveKit();
-  makeHttpProxy(app);
-  makeWsProxy(server, wss);
-  setupWebSocket(wss, state, BotConnection);
+
+  createLiveKitProxy();
+  createLiveKitWebSocketProxy();
+
   startCleanup();
 
   const shutdown = async () => {
-    logger.info('[Server] Shutting down...');
+    logger.info('\n[Server] Shutting down...');
     stopLivekitServer();
     stopCleanup();
-    for (const client of state.clients.values()) client.ws.close();
-    server.close(() => { logger.info('[Server] Closed'); process.exit(0); });
+    clearInterval(pingInterval);
+
+    for (const client of state.clients.values()) {
+      client.ws.close();
+    }
+
+    server.close(() => {
+      logger.info('[Server] Closed');
+      process.exit(0);
+    });
   };
+
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
 
-  server.listen(config.port, config.host, () => {
-    logger.info(`[Zellous] Server running on http://${config.host}:${config.port}`);
+  server.listen(PORT, HOST, () => {
+    logger.info(`[Zellous] Server running on http://${HOST}:${PORT}`);
+    logger.info(`[Zellous] Data directory: ${DATA_ROOT}`);
   });
 };
 
 startServer().catch(console.error);
 
-export { app, server, state, broadcast, registerHandler };
+export { app, server, state, broadcast };
