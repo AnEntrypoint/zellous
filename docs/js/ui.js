@@ -87,10 +87,13 @@ ui.render = {
   voicePanel() { if (window.uiVoice) uiVoice.renderPanel(); },
   authStatus() {
     if (!ui.userPanelName) return;
-    if (state.isAuthenticated && state.currentUser) {
-      const name = state.currentUser.displayName || state.currentUser.username;
+    const nostrUser = window.auth?.user;
+    const isLoggedIn = (state.isAuthenticated && state.currentUser) || (nostrUser && state.nostrPubkey);
+    if (isLoggedIn) {
+      const user = state.currentUser || nostrUser;
+      const name = user.displayName || user.username;
       ui.userPanelName.textContent = name;
-      ui.userPanelTag.textContent = '@' + state.currentUser.username;
+      ui.userPanelTag.textContent = state.nostrPubkey ? window.auth.npubShort(state.nostrPubkey) : '@' + user.username;
       const node = ui.userPanelAvatar?.childNodes[0];
       if (node?.nodeType === 3) node.textContent = getInitial(name);
       ui.userStatusDot?.classList.add('online');
@@ -107,13 +110,18 @@ ui.render = {
 ui.actions = {
   switchChannel(channel) {
     state.currentChannel = channel;
+    state.currentChannelId = channel.id;
     state.messages = [];
     ui.render.channels();
     ui.render.channelView();
     if (channel.type === 'text' || channel.type === 'announcement') {
       state.chatMessages = [];
       ui.render.chat();
-      network.send({ type: 'get_messages', limit: 50, channelId: channel.id });
+      if (window.chat?.loadHistory) {
+        chat.loadHistory(channel.id);
+      } else {
+        network.send({ type: 'get_messages', limit: 50, channelId: channel.id });
+      }
     }
     if (channel.type === 'voice' && !state.voiceConnected && window.lk) {
       lk.connect(channel.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' });
@@ -125,6 +133,10 @@ ui.actions = {
   },
   showAuthModal() {
     if (!ui.authModal) return;
+    if (document.getElementById('nostrConnectView')) {
+      if (window.auth?.showModal) auth.showModal();
+      return;
+    }
     ui.authModal.classList.add('open');
     if (ui.authError) ui.authError.style.display = 'none';
     const logged = auth?.isLoggedIn?.();

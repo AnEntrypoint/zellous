@@ -15,4 +15,5 @@
   raw.nostrRelayStatus = sig(new Map());
   raw.nostrProfile = sig(null);
   raw.nostrSubscriptions = sig(new Map());
+  raw.currentChannelId = sig(null);
 })();
