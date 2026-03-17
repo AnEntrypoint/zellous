@@ -177,5 +177,4 @@ const auth = {
   }
 };
 
-auth.init();
 window.auth = auth;
