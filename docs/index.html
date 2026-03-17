@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zellous - Nostr Chat</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0f0f1a;color:#e0e0e0;font-family:system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:1.5rem}
+h1{color:#f59e0b;font-size:2rem;font-weight:700}
+p{color:#888;max-width:480px;text-align:center;line-height:1.6}
+a.btn{display:inline-block;background:#f59e0b;color:#0f0f1a;text-decoration:none;padding:.75rem 2rem;border-radius:8px;font-weight:700;font-size:1rem}
+a.btn:hover{background:#d97706}
+.rooms{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:.5rem}
+a.room{background:#1a1a2e;border:1px solid #3d2c00;color:#f59e0b;text-decoration:none;padding:.4rem 1rem;border-radius:6px;font-size:.85rem;font-family:monospace}
+a.room:hover{background:#3d2c00}
+.note{font-size:.75rem;color:#444;max-width:400px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+<h1>Zellous Nostr Chat</h1>
+<p>Serverless public chat over Nostr relays. No server required, no account needed. Your Nostr keys are your identity.</p>
+<a class="btn" href="nostr-chat/">Open Chat</a>
+<div class="rooms">
+  <a class="room" href="nostr-chat/?room=general">general</a>
+  <a class="room" href="nostr-chat/?room=dev">dev</a>
+  <a class="room" href="nostr-chat/?room=random">random</a>
+</div>
+<p class="note">Messages are published to public Nostr relays (damus.io, nostr.band, nos.lol). Anyone with the same room name can read and post.</p>
+</body>
+</html>
