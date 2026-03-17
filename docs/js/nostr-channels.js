@@ -14,7 +14,7 @@ var channelManager = {
     return state.nostrPubkey && state.currentServerId && state.nostrPubkey === state.currentServerId.split(':')[0];
   },
 
-  loadChannels: function(serverId) {
+  loadChannels: function(serverId, onReady) {
     var parts = serverId.split(':');
     var ownerPubkey = parts[0];
     var dTag = 'zellous-channels:' + serverId;
@@ -31,6 +31,7 @@ var channelManager = {
       },
       function() {
         if (!state.channels.length) channelManager._setDefaults();
+        if (onReady) onReady();
       }
     );
   },

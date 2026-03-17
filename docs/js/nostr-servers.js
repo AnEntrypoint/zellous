@@ -65,7 +65,6 @@ var serverManager = {
         localStorage.setItem('zn_joined_servers', JSON.stringify(joined));
       }
     } catch (e) {}
-    if (window.channelManager) channelManager.loadChannels(serverId);
     if (!state.servers.find(function(s) { return s.id === serverId; })) {
       state.servers = state.servers.concat([{ id: serverId, name: serverId.slice(0, 8), iconColor: '#5865F2' }]);
       serverManager._persistServers();
@@ -78,16 +77,21 @@ var serverManager = {
     state.chatMessages = [];
     state.channels = [];
     state.categories = [];
-    if (window.channelManager) await channelManager.loadChannels(serverId);
-    setTimeout(function() {
-      var firstText = (state.channels || []).find(function(c) { return c.type === 'text'; });
-      if (firstText) {
-        state.currentChannelId = firstText.id;
-        if (window.chat) chat.loadHistory(firstText.id);
-      }
-      ui.render.all();
-    }, 500);
     localStorage.setItem('zn_lastServer', serverId);
+    if (window.channelManager) {
+      await new Promise(function(resolve) {
+        var done = false;
+        var finish = function() { if (!done) { done = true; resolve(); } };
+        channelManager.loadChannels(serverId, finish);
+        setTimeout(finish, 3000);
+      });
+    }
+    var firstText = (state.channels || []).find(function(c) { return c.type === 'text'; });
+    if (firstText) {
+      state.currentChannelId = firstText.id;
+      if (window.chat) chat.loadHistory(firstText.id);
+    }
+    ui.render.all();
   },
 
   _persistServers: function() {
