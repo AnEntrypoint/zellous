@@ -28,7 +28,7 @@ const audioIO = {
       if (deviceId) c.audio.deviceId = { exact: deviceId };
       state.mediaStream = await navigator.mediaDevices.getUserMedia(c);
       state.inputDeviceId = deviceId || state.mediaStream.getAudioTracks()[0]?.getSettings()?.deviceId;
-      audioIO.setupRecording();
+      await audioIO.setupRecording();
       await audioIO.enumerateDevices();
     } catch (e) { console.warn('Microphone denied'); }
   },
@@ -39,6 +39,7 @@ const audioIO = {
   setupRecording: async () => {
     audio.initEncoder();
     if (state.workletNode) { try { state.workletNode.disconnect(); } catch (e) {} }
+    await state.audioContext.resume();
     await state.audioContext.audioWorklet.addModule('js/audio-processor.js');
     const source = state.audioContext.createMediaStreamSource(state.mediaStream);
     const worklet = new AudioWorkletNode(state.audioContext, 'audio-capture', { processorOptions: { chunkSize: config.chunkSize } });
