@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Nostr Chat</title>
+<title>Nostr Chat - Zellous</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0f0f1a;color:#e0e0e0;font-family:system-ui,sans-serif;display:flex;flex-direction:column;height:100vh}
@@ -28,26 +28,26 @@ body{background:#0f0f1a;color:#e0e0e0;font-family:system-ui,sans-serif;display:f
 </style>
 </head>
 <body>
-<div id="header">⚡ Nostr Chat &mdash; <span id="room-label"></span></div>
+<div id="header">Nostr Chat &mdash; <span id="room-label"></span></div>
 <div id="messages"></div>
 <div id="input-row">
   <input type="text" id="msg-input" placeholder="Sign in to send messages..." autocomplete="off" disabled>
   <button id="send-btn" disabled>Send</button>
 </div>
 <div id="overlay">
-  <div class="ttl">⚡ Nostr Chat</div>
-  <div class="sub">Serverless chat over public Nostr relays. No server, no account — your keys are your identity.</div>
+  <div class="ttl">Nostr Chat</div>
+  <div class="sub">Serverless chat over public Nostr relays. No server, no account &mdash; your keys are your identity.</div>
   <button class="btn btn-a" id="nip07-btn">Connect with Nostr Extension</button>
-  <div class="or">— or —</div>
+  <div class="or">or</div>
   <input type="text" id="nsec" placeholder="nsec1... (your private key)">
   <button class="btn btn-b" id="nsec-btn">Use Private Key</button>
-  <div class="or">— or —</div>
+  <div class="or">or</div>
   <button class="btn btn-b" id="gen-btn">Generate New Key</button>
   <div id="err"></div>
   <div id="keyinfo"></div>
 </div>
 <script type="module">
-import sdk from '../../js/nostr-adapter.js';
+import sdk from '../js/nostr-adapter.js';
 const p=new URLSearchParams(location.search),room=p.get('room')||'nostr-general';
 document.getElementById('room-label').textContent=room;
 const msgs=document.getElementById('messages'),inp=document.getElementById('msg-input'),snd=document.getElementById('send-btn'),ov=document.getElementById('overlay'),err=document.getElementById('err'),ki=document.getElementById('keyinfo');
