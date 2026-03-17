@@ -2,6 +2,28 @@
 
 A production-ready Push-to-Talk application with Opus codec, dynamic rooms, audio replay, and real-time multi-user support.
 
+## Nostr Mode (GitHub Pages / Serverless)
+
+A static build using public Nostr relays as transport is available at `docs/` and deployed via GitHub Pages.
+
+No server is required. Users connect with a Nostr extension (NIP-07), a private key (`nsec1...`), or generate a new ephemeral key.
+
+**GitHub Pages URL:** `https://<org>.github.io/zellous/`
+
+**Local preview:**
+```bash
+# Open docs/index.html in a browser (file:// or any static file server)
+python3 -m http.server --directory docs 8080
+# Visit http://localhost:8080
+```
+
+**Source files:**
+- `docs/index.html` — landing page with room links
+- `docs/nostr-chat/index.html` — chat UI
+- `docs/js/nostr-adapter.js` — Nostr transport adapter (mirrored from `js/nostr-adapter.js`)
+
+Messages are published as NIP-28 channel messages (kind 42) to public relays: damus.io, nostr.band, nos.lol.
+
 ## Quick Start
 
 **Local Development:**
