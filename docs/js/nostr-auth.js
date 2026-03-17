@@ -13,6 +13,14 @@ const auth = {
     try {
       state.nostrPrivkey = auth._hex2b(skHex);
       state.nostrPubkey = pkHex;
+      const short = auth.npubShort(pkHex);
+      const nameEl = document.getElementById('userPanelName');
+      const tagEl = document.getElementById('userPanelTag');
+      const avatarEl = document.getElementById('userPanelAvatar');
+      if (nameEl) nameEl.textContent = short;
+      if (tagEl) tagEl.textContent = short;
+      if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = short[0].toUpperCase(); }
+      document.getElementById('userStatusDot')?.classList.add('online');
       return true;
     } catch { return false; }
   },
@@ -61,6 +69,13 @@ const auth = {
     state.nostrPubkey = '';
     state.nostrPrivkey = null;
     state.nostrProfile = null;
+    const nameEl = document.getElementById('userPanelName');
+    const tagEl = document.getElementById('userPanelTag');
+    const avatarEl = document.getElementById('userPanelAvatar');
+    if (nameEl) nameEl.textContent = 'Not logged in';
+    if (tagEl) tagEl.textContent = 'Click to login';
+    if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = '?'; }
+    document.getElementById('userStatusDot')?.classList.remove('online');
     if (window.nostrNet?.disconnect) nostrNet.disconnect();
   },
 
@@ -102,6 +117,14 @@ const auth = {
     if (lv) lv.style.display = 'flex';
     const err = document.getElementById('nostrAuthError');
     if (err) err.textContent = '';
+    const short = auth.npubShort(state.nostrPubkey);
+    const nameEl = document.getElementById('userPanelName');
+    const tagEl = document.getElementById('userPanelTag');
+    const avatarEl = document.getElementById('userPanelAvatar');
+    if (nameEl) nameEl.textContent = state.nostrProfile?.name || short;
+    if (tagEl) tagEl.textContent = short;
+    if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = (state.nostrProfile?.name || short)[0].toUpperCase(); }
+    document.getElementById('userStatusDot')?.classList.add('online');
     document.dispatchEvent(new CustomEvent('nostr:login'));
     setTimeout(() => auth.hideModal(), 1000);
   },
