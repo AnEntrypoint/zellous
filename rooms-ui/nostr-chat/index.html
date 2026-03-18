@@ -8,18 +8,18 @@
   <script type="importmap">
   {
     "imports": {
-      "htm": "/vendor/htm.js",
-      "preact": "/vendor/preact.mjs",
-      "preact/hooks": "/vendor/preact-hooks.mjs",
-      "@preact/signals": "/vendor/preact-signals.mjs",
-      "@preact/signals-core": "/vendor/signals-core.mjs",
-      "livekit-client": "/vendor/livekit-client.mjs",
-      "nostr-tools": "/vendor/nostr-tools.mjs"
+      "htm": "../../vendor/htm.js",
+      "preact": "../../vendor/preact.mjs",
+      "preact/hooks": "../../vendor/preact-hooks.mjs",
+      "@preact/signals": "../../vendor/preact-signals.mjs",
+      "@preact/signals-core": "../../vendor/signals-core.mjs",
+      "livekit-client": "../../vendor/livekit-client.mjs",
+      "nostr-tools": "../../vendor/nostr-tools.mjs"
     }
   }
   </script>
-  <link rel="stylesheet" href="/vendor/fonts.css">
-  <link rel="stylesheet" href="/css/discord.css">
+  <link rel="stylesheet" href="../../vendor/fonts.css">
+  <link rel="stylesheet" href="../../css/discord.css">
 </head>
 <body>
   <div class="reconnect-banner" id="reconnectBanner">No relay connected. Reconnecting...</div>
@@ -296,7 +296,7 @@
 
   <input type="file" class="hidden-input" id="fileInput" multiple autocomplete="off">
 
-  <script src="/msgpackr.min.js"></script>
+  <script src="../../msgpackr.min.js"></script>
   <script type="module">
     import { signal, computed, effect } from '@preact/signals';
 
@@ -304,31 +304,31 @@
     window.__computed = computed;
     window.__effect = effect;
 
-    const { state, config } = await import('/js/state.js');
+    const { state, config } = await import('../../js/state.js');
 
     import * as NostrTools from 'nostr-tools';
     window.NostrTools = NostrTools;
 
     const scripts = [
-      '/js/nostr-state-patch.js',
-      '/js/nostr-auth.js',
-      '/js/icons.js',
-      '/js/ui.js',
-      '/js/ui-channels.js',
-      '/js/ui-chat.js',
-      '/js/ui-voice.js',
-      '/js/audio.js',
-      '/js/queue.js',
-      '/js/nostr-chat.js',
-      '/js/files.js',
-      '/js/nostr-channels.js',
-      '/js/threads.js',
-      '/js/nostr-servers.js',
-      '/js/moderation.js',
-      '/js/nostr-network.js',
-      '/js/ptt.js',
-      '/js/webcam.js',
-      '/app.js'
+      '../../js/nostr-state-patch.js',
+      '../../js/nostr-auth.js',
+      '../../js/icons.js',
+      '../../js/ui.js',
+      '../../js/ui-channels.js',
+      '../../js/ui-chat.js',
+      '../../js/ui-voice.js',
+      '../../js/audio.js',
+      '../../js/queue.js',
+      '../../js/nostr-chat.js',
+      '../../js/files.js',
+      '../../js/nostr-channels.js',
+      '../../js/threads.js',
+      '../../js/nostr-servers.js',
+      '../../js/moderation.js',
+      '../../js/nostr-network.js',
+      '../../js/ptt.js',
+      '../../js/webcam.js',
+      '../../app.js'
     ];
 
     for (const src of scripts) {
