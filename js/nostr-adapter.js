@@ -1,5 +1,4 @@
-import { generateSecretKey, getPublicKey, finalizeEvent, SimplePool } from 'https://esm.sh/nostr-tools@2';
-import { nip19 } from 'https://esm.sh/nostr-tools@2';
+import { generateSecretKey, getPublicKey, finalizeEvent, SimplePool, nip19 } from 'https://esm.sh/nostr-tools@2';
 
 const RELAYS = ['wss://relay.damus.io', 'wss://relay.nostr.band', 'wss://nos.lol'];
 
