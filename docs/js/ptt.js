@@ -9,7 +9,8 @@ const ptt = {
     webcam.hidePlayback();
     state.ownAudioChunks = [];
     state.ownVideoChunks = [];
-    if (state.userId) queue.addSegment(state.userId, 'You', true);
+    const pttId = state.userId || state.nostrPubkey;
+    if (pttId) queue.addSegment(pttId, 'You', true);
     if (state.webcamEnabled) webcam.startCapture();
     network.sendAudio({ type: 'audio_start' });
   },
@@ -21,10 +22,11 @@ const ptt = {
     webcam.stopCapture();
     if (state.audioEncoder?.state === 'configured') try { await state.audioEncoder.flush(); } catch (e) {}
     network.sendAudio({ type: 'audio_end' });
-    if (state.userId) {
-      const s = state.activeSegments.get(state.userId);
+    const pttId = state.userId || state.nostrPubkey;
+    if (pttId) {
+      const s = state.activeSegments.get(pttId);
       if (s) { s.chunks = [...state.ownAudioChunks]; s.videoChunks = [...state.ownVideoChunks]; }
-      queue.completeSegment(state.userId);
+      queue.completeSegment(pttId);
     }
     audio.resumeAll();
     queue.resumePlayback();
