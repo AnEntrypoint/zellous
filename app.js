@@ -267,23 +267,25 @@ window.osjsIntegration = osjsIntegration;
 window.zellousDebug = { state, config, audio, message, network, ptt, queue, deafen, vad, webcam, lk };
 
 (async () => {
-  const lastServer = localStorage.getItem('zellous_lastServer');
-  if (lastServer) {
-    state.currentServerId = lastServer;
-    state.roomId = lastServer;
-    if (window.serverManager) {
-      await serverManager.loadServers();
-      await serverManager.switchTo(lastServer);
+  if (!window.__nostrMode) {
+    const lastServer = localStorage.getItem('zellous_lastServer');
+    if (lastServer) {
+      state.currentServerId = lastServer;
+      state.roomId = lastServer;
+      if (window.serverManager) {
+        await serverManager.loadServers();
+        await serverManager.switchTo(lastServer);
+      } else {
+        network.connect();
+      }
     } else {
       network.connect();
+      if (window.serverManager) serverManager.loadServers();
     }
-  } else {
-    network.connect();
-    if (window.serverManager) serverManager.loadServers();
+    ui.render.channels();
+    ui.render.channelView();
+    ui.render.authStatus();
   }
-  ui.render.channels();
-  ui.render.channelView();
-  ui.render.authStatus();
   ui_events.setup();
   osjsIntegration.wrapPtt();
   if (window.channelManager) channelManager.initDragAndDrop();

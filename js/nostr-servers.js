@@ -78,16 +78,20 @@ var serverManager = {
     state.chatMessages = [];
     state.channels = [];
     state.categories = [];
-    if (window.channelManager) await channelManager.loadChannels(serverId);
-    setTimeout(function() {
+    if (serverId) localStorage.setItem('zn_lastServer', serverId);
+    else localStorage.removeItem('zn_lastServer');
+    if (window.channelManager && serverId) await channelManager.loadChannels(serverId);
+    var selectFirstChannel = function() {
       var firstText = (state.channels || []).find(function(c) { return c.type === 'text'; });
-      if (firstText) {
+      if (firstText && state.currentChannelId !== firstText.id) {
         state.currentChannelId = firstText.id;
+        state.currentChannel = firstText;
         if (window.chat) chat.loadHistory(firstText.id);
       }
       ui.render.all();
-    }, 500);
-    localStorage.setItem('zn_lastServer', serverId);
+    };
+    setTimeout(selectFirstChannel, 500);
+    setTimeout(selectFirstChannel, 2000);
   },
 
   _persistServers: function() {

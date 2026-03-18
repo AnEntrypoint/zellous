@@ -77,8 +77,9 @@ var serverManager = {
     state.chatMessages = [];
     state.channels = [];
     state.categories = [];
-    localStorage.setItem('zn_lastServer', serverId);
-    if (window.channelManager) {
+    if (serverId) localStorage.setItem('zn_lastServer', serverId);
+    else localStorage.removeItem('zn_lastServer');
+    if (window.channelManager && serverId) {
       await new Promise(function(resolve) {
         var done = false;
         var finish = function() { if (!done) { done = true; resolve(); } };
