@@ -38,10 +38,12 @@ const uiChat = {
       const color = getAvatarColor(m.userId);
       const pendingAttr = m.pending ? ' style="opacity:0.6"' : '';
       const editedBadge = m.edited ? '<span class="msg-edited">(edited)</span>' : '';
-      const canEdit = String(m.userId) === String(state.userId);
+      const selfId = state.userId || state.nostrPubkey;
+      const canEdit = selfId && String(m.userId) === String(selfId) && !state.nostrPubkey;
 
       const ic = (k, fb) => window.getIcon ? getIcon(k) : fb;
-      const actions = `<div class="msg-actions"><button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">😊</button><button class="msg-action-btn" data-reply="${m.id}" title="Reply">${ic('reply','↩')}</button>${canEdit?`<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${ic('edit','✏')}</button>`:''}<button class="msg-action-btn" data-pin="${m.id}" title="Pin">${ic('pin','📌')}</button>${canEdit?`<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${ic('delete','🗑')}</button>`:''}</div>`;
+      const canDelete = selfId && String(m.userId) === String(selfId);
+      const actions = `<div class="msg-actions"><button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">😊</button><button class="msg-action-btn" data-reply="${m.id}" title="Reply">${ic('reply','↩')}</button>${canEdit?`<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${ic('edit','✏')}</button>`:''}<button class="msg-action-btn" data-pin="${m.id}" title="Pin">${ic('pin','📌')}</button>${canDelete?`<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${ic('delete','🗑')}</button>`:''}</div>`;
 
       const replyHtml = m.replyTo ? `<div class="msg-reply-bar"><div class="msg-reply-avatar" style="background:${getAvatarColor(m.replyTo.userId)}">${getInitial(m.replyTo.username||'')}</div><span class="msg-reply-name" style="color:${getAvatarColor(m.replyTo.userId)}">@${escHtml(m.replyTo.username||'User')}</span><span class="msg-reply-content">${escHtml((m.replyTo.content||'').substring(0,80))}</span></div>` : '';
 
@@ -126,7 +128,8 @@ const uiChat = {
 
   startEdit(msgId) {
     const msg = chat?.messages?.find(m => m.id === msgId);
-    if (!msg || String(msg.userId) !== String(state.userId)) return;
+    const _selfId = state.userId || state.nostrPubkey;
+    if (!msg || String(msg.userId) !== String(_selfId) || state.nostrPubkey) return;
     const el = ui.chatMessagesInner?.querySelector(`[data-message-id="${msgId}"]`);
     const content = el?.querySelector('.msg-content');
     if (!content) return;
@@ -138,12 +141,7 @@ const uiChat = {
       ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
       ta.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') { this.render(); return; }
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          const newContent = ta.value.trim();
-          if (newContent && newContent !== orig) chat.editMessage(msgId, newContent);
-          else this.render();
-        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); const nc = ta.value.trim(); if (nc && nc !== orig) chat.editMessage(msgId, nc); else this.render(); }
       });
     }
     document.getElementById(`cancelEdit_${msgId}`)?.addEventListener('click', () => this.render());
@@ -166,26 +164,23 @@ const uiChat = {
 
   showContextMenu(msg, x, y) {
     this.hideContextMenu();
-    const isOwn = msg.userId === state.userId;
+    const _self = state.userId || state.nostrPubkey;
+    const isOwn = _self && msg.userId === _self;
     if (!isOwn) return;
     const menu = document.createElement('div');
     menu.id = 'messageContextMenu';
     menu.className = 'context-menu';
     menu.style.cssText = `position:fixed;top:${y}px;left:${x}px;z-index:2500`;
-    menu.innerHTML = `<div class="context-menu-item" data-action="edit">Edit</div>
+    menu.innerHTML = `${!state.nostrPubkey ? '<div class="context-menu-item" data-action="edit">Edit</div>' : ''}
       <div class="context-menu-item danger" data-action="delete">Delete</div>`;
     document.body.appendChild(menu);
     const rect = menu.getBoundingClientRect();
     if (rect.right > window.innerWidth) menu.style.left = (window.innerWidth - rect.width - 8) + 'px';
     if (rect.bottom > window.innerHeight) menu.style.top = (window.innerHeight - rect.height - 8) + 'px';
     menu.addEventListener('click', async (e) => {
-      const action = e.target.dataset.action;
-      this.hideContextMenu();
-      if (action === 'delete' && confirm('Delete this message?')) {
-        try { await chat.deleteMessage(msg.id); } catch (err) {}
-      } else if (action === 'edit') {
-        this.startEdit(msg.id);
-      }
+      const action = e.target.dataset.action; this.hideContextMenu();
+      if (action === 'delete' && confirm('Delete this message?')) { try { await chat.deleteMessage(msg.id); } catch (err) {} }
+      else if (action === 'edit') { this.startEdit(msg.id); }
     });
     const close = (e) => {
       if (!menu.contains(e.target)) { this.hideContextMenu(); document.removeEventListener('click', close); }
