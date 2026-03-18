@@ -88,8 +88,9 @@ var serverManager = {
       });
     }
     var firstText = (state.channels || []).find(function(c) { return c.type === 'text'; });
-    if (firstText) {
+    if (firstText && state.currentChannelId !== firstText.id) {
       state.currentChannelId = firstText.id;
+      state.currentChannel = firstText;
       if (window.chat) chat.loadHistory(firstText.id);
     }
     ui.render.all();
