@@ -7,7 +7,12 @@ const fileTransfer = {
 
   // Upload file
   async upload(file, customPath = '', description = '') {
-    if (!file || !state.ws) return null;
+    if (!file) return null;
+    if (!state.ws) {
+      if (typeof ui !== 'undefined' && ui.showToast) ui.showToast('File upload is not supported in Nostr mode');
+      else console.warn('File upload is not supported in Nostr mode');
+      return null;
+    }
 
     if (file.size > this.maxFileSize) {
       throw new Error(`File too large. Maximum size is ${this.formatSize(this.maxFileSize)}`);

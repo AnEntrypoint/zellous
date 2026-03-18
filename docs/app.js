@@ -39,7 +39,7 @@ const audioIO = {
   setupRecording: async () => {
     audio.initEncoder();
     if (state.workletNode) { try { state.workletNode.disconnect(); } catch (e) {} }
-    await state.audioContext.audioWorklet.addModule('js/audio-processor.js');
+    await state.audioContext.audioWorklet.addModule((window.__appBase || '') + 'js/audio-processor.js');
     const source = state.audioContext.createMediaStreamSource(state.mediaStream);
     const worklet = new AudioWorkletNode(state.audioContext, 'audio-capture', { processorOptions: { chunkSize: config.chunkSize } });
     worklet.port.onmessage = (e) => {
@@ -266,23 +266,25 @@ window.osjsIntegration = osjsIntegration;
 window.zellousDebug = { state, config, audio, message, network, ptt, queue, deafen, vad, webcam, lk };
 
 (async () => {
-  const lastServer = localStorage.getItem('zellous_lastServer');
-  if (lastServer) {
-    state.currentServerId = lastServer;
-    state.roomId = lastServer;
-    if (window.serverManager) {
-      await serverManager.loadServers();
-      await serverManager.switchTo(lastServer);
+  if (!window.__nostrMode) {
+    const lastServer = localStorage.getItem('zellous_lastServer');
+    if (lastServer) {
+      state.currentServerId = lastServer;
+      state.roomId = lastServer;
+      if (window.serverManager) {
+        await serverManager.loadServers();
+        await serverManager.switchTo(lastServer);
+      } else {
+        network.connect();
+      }
     } else {
       network.connect();
+      if (window.serverManager) serverManager.loadServers();
     }
-  } else {
-    network.connect();
-    if (window.serverManager) serverManager.loadServers();
+    ui.render.channels();
+    ui.render.channelView();
+    ui.render.authStatus();
   }
-  ui.render.channels();
-  ui.render.channelView();
-  ui.render.authStatus();
   ui_events.setup();
   osjsIntegration.wrapPtt();
   if (window.channelManager) channelManager.initDragAndDrop();
