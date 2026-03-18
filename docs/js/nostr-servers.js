@@ -77,8 +77,9 @@ var serverManager = {
     state.chatMessages = [];
     state.channels = [];
     state.categories = [];
-    localStorage.setItem('zn_lastServer', serverId);
-    if (window.channelManager) {
+    if (serverId) localStorage.setItem('zn_lastServer', serverId);
+    else localStorage.removeItem('zn_lastServer');
+    if (window.channelManager && serverId) {
       await new Promise(function(resolve) {
         var done = false;
         var finish = function() { if (!done) { done = true; resolve(); } };
@@ -87,8 +88,9 @@ var serverManager = {
       });
     }
     var firstText = (state.channels || []).find(function(c) { return c.type === 'text'; });
-    if (firstText) {
+    if (firstText && state.currentChannelId !== firstText.id) {
       state.currentChannelId = firstText.id;
+      state.currentChannel = firstText;
       if (window.chat) chat.loadHistory(firstText.id);
     }
     ui.render.all();

@@ -165,6 +165,9 @@ const auth = {
 
     on('nostrLogoutBtn', () => { auth.logout(); auth.showModal(); });
 
+    const modal = document.getElementById('authModal');
+    if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) auth.hideModal(); });
+
     const avatarArea = document.querySelector('.user-avatar, .username-area, [data-action="show-auth"]');
     if (avatarArea) avatarArea.addEventListener('click', () => auth.showModal());
   },

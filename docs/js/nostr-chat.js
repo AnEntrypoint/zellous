@@ -11,10 +11,11 @@ const chat = {
     if (!auth.isLoggedIn() || !state.currentChannelId) return;
     const trimmed = content.trim();
     if (!trimmed) return;
+    const relayHint = (state.nostrRelays || [])[0] || '';
     const template = {
       kind: 42,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [['e', state.currentChannelId, 'wss://relay.primal.net', 'root']],
+      tags: [['e', state.currentChannelId, relayHint, 'root']],
       content: trimmed,
     };
     const signedEvent = await auth.sign(template);
