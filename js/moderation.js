@@ -7,6 +7,7 @@ const moderation = {
   },
 
   async kickUser(serverId, userId) {
+    if (state.nostrPubkey) throw new Error('Not supported in Nostr mode');
     const res = await fetch(`/api/servers/${serverId}/kick/${userId}`, {
       method: 'POST', headers: this._headers()
     });
@@ -15,6 +16,7 @@ const moderation = {
   },
 
   async banUser(serverId, userId) {
+    if (state.nostrPubkey) throw new Error('Not supported in Nostr mode');
     const res = await fetch(`/api/servers/${serverId}/ban/${userId}`, {
       method: 'POST', headers: this._headers()
     });
@@ -23,6 +25,7 @@ const moderation = {
   },
 
   async setRole(serverId, userId, role) {
+    if (state.nostrPubkey) throw new Error('Not supported in Nostr mode');
     const res = await fetch(`/api/servers/${serverId}/roles/${userId}`, {
       method: 'PATCH', headers: this._headers(),
       body: JSON.stringify({ role })
@@ -40,7 +43,7 @@ const moderation = {
     menu.style.cssText = `position:fixed;top:${y}px;left:${x}px;z-index:2500`;
 
     let items = '';
-    if (serverId) {
+    if (serverId && !state.nostrPubkey) {
       items += `<div class="context-menu-item" data-action="role-mod">Set Moderator</div>`;
       items += `<div class="context-menu-item" data-action="role-admin">Set Admin</div>`;
       items += `<div class="context-menu-item" data-action="role-member">Set Member</div>`;

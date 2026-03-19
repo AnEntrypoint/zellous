@@ -60,6 +60,7 @@ const uiChannels = {
     ui.channelList.innerHTML = html;
     this._bind();
     if (window.channelManager?.initDragAndDrop) channelManager.initDragAndDrop();
+    if (window.threadManager?.updateFromChannels) threadManager.updateFromChannels();
   },
 
   _bind() {
