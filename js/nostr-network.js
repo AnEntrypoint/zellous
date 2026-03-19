@@ -125,7 +125,12 @@ var nostrNet = {
     }
   },
 
+  _normSubId: function(subId) {
+    return subId.length > 64 ? subId.slice(0, 64) : subId;
+  },
+
   subscribe: function(subId, filters, onEvent, onEose) {
+    subId = nostrNet._normSubId(subId);
     nostrNet.subs.set(subId, { filters: filters, onEvent: onEvent, onEose: onEose, relays: new Set() });
 
     nostrNet.relays.forEach(function(relay, url) {
@@ -141,6 +146,7 @@ var nostrNet = {
   },
 
   unsubscribe: function(subId) {
+    subId = nostrNet._normSubId(subId);
     nostrNet.relays.forEach(function(relay) {
       if (relay.ws && relay.ws.readyState === 1 && relay.subIds.has(subId)) {
         relay.ws.send(JSON.stringify(['CLOSE', subId]));
