@@ -309,34 +309,37 @@
     import * as NostrTools from 'nostr-tools';
     window.NostrTools = NostrTools;
 
+    const base = new URL('../../', import.meta.url).href;
+    window.__appBase = base;
     window.__nostrMode = true;
 
     const scripts = [
-      '../../js/nostr-state-patch.js',
-      '../../js/nostr-auth.js',
-      '../../js/icons.js',
-      '../../js/ui.js',
-      '../../js/ui-channels.js',
-      '../../js/ui-chat.js',
-      '../../js/ui-voice.js',
-      '../../js/audio.js',
-      '../../js/queue.js',
-      '../../js/nostr-chat.js',
-      '../../js/files.js',
-      '../../js/nostr-channels.js',
-      '../../js/threads.js',
-      '../../js/nostr-servers.js',
-      '../../js/moderation.js',
-      '../../js/nostr-network.js',
-      '../../js/ptt.js',
-      '../../js/webcam.js',
-      '../../app.js'
+      'js/nostr-state-patch.js',
+      'js/nostr-auth.js',
+      'js/icons.js',
+      'js/ui.js',
+      'js/ui-channels.js',
+      'js/ui-chat.js',
+      'js/ui-voice.js',
+      'js/audio.js',
+      'js/queue.js',
+      'js/nostr-chat.js',
+      'js/files.js',
+      'js/nostr-channels.js',
+      'js/nostr-channels-ui.js',
+      'js/threads.js',
+      'js/nostr-servers.js',
+      'js/moderation.js',
+      'js/nostr-network.js',
+      'js/ptt.js',
+      'js/webcam.js',
+      'app.js'
     ];
 
     for (const src of scripts) {
       await new Promise((resolve, reject) => {
         const s = document.createElement('script');
-        s.src = src;
+        s.src = base + src;
         s.onload = resolve;
         s.onerror = reject;
         document.head.appendChild(s);
@@ -450,7 +453,8 @@ const lk = {
     try {
       const params = new URLSearchParams({ channel: channelName, identity: username });
       if (opts.forceRelay) params.set('forceRelay', 'true');
-      const res = await fetch(`/api/nostr/livekit-token?${params}`);
+      const tokenBase = localStorage.getItem('zellous_livekit_token_url') || '/api/nostr/livekit-token';
+      const res = await fetch(`${tokenBase}?${params}`);
       if (!res.ok) { const err = await res.json().catch(() => ({ error: 'HTTP ' + res.status })); throw new Error(err.error || 'Token request failed'); }
       const data = await res.json();
       await lk._import();
@@ -473,12 +477,12 @@ const lk = {
       if (ui.voicePanel) ui.voicePanel.classList.add('visible');
       if (ui.voicePanelChannel) ui.voicePanelChannel.textContent = channelName;
     } catch (e) {
-      console.warn('[LiveKit] Connect failed:', e.message);
+      console.warn('[LiveKit] Voice unavailable in serverless mode:', e.message);
       state.voiceConnected = false;
       state.voiceConnectionState = 'disconnected';
       state.voiceConnectionQuality = 'unknown';
       state.dataChannelAvailable = false;
-      message.add('Voice failed: ' + e.message);
+      message.add('Voice unavailable in serverless mode');
     }
   },
 
@@ -601,7 +605,11 @@ async function initNostr() {
   window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt };
 }
 
-initNostr().catch(console.error);
+function _runWhenReady(fn) {
+  if (window.appReady) { fn(); return; }
+  const t = setInterval(() => { if (window.appReady) { clearInterval(t); fn(); } }, 50);
+}
+_runWhenReady(() => initNostr().catch(console.error));
 </script>
 </body>
 </html>

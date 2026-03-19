@@ -1,13 +1,6 @@
 const profiles = new Map();
 const fetching = new Set();
 
-async function _hexChannelId(channelId, serverId) {
-  var input = (serverId || '') + ':' + channelId;
-  var buf = new TextEncoder().encode(input);
-  var hash = await crypto.subtle.digest('SHA-256', buf);
-  return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-}
-
 const chat = {
   activeChannelId: null,
 

@@ -82,7 +82,12 @@ var serverManager = {
     if (window.channelManager && serverId) {
       await new Promise(function(resolve) {
         var done = false;
-        var finish = function() { if (!done) { done = true; resolve(); } };
+        var finish = function() {
+          if (done) return;
+          done = true;
+          if (!(state.channels || []).length) channelManager._setDefaults();
+          resolve();
+        };
         channelManager.loadChannels(serverId, finish);
         setTimeout(finish, 3000);
       });
