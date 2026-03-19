@@ -74,7 +74,7 @@ const chIcon = (type) => {
 };
 
 ui.render = {
-  all() { this.channels(); this.members(); this.chat(); this.queue(); this.authStatus(); this.channelView(); this.voicePanel(); },
+  all() { this.channels(); this.members(); this.chat(); this.queue(); this.authStatus(); this.channelView(); this.voicePanel(); if (window.serverManager) serverManager.renderList(); },
   messages() { if (window.uiChat) uiChat.messages(); },
   speakers() { this.voiceGrid?.(); this.channels?.(); this.voiceTurnOrder?.(); },
   channels() { if (window.uiChannels) uiChannels.render(); },

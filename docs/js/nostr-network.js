@@ -37,7 +37,7 @@ var nostrNet = {
       ws = new WebSocket(url);
     } catch (e) {
       relay.status = 'error';
-      if (state.nostrRelayStatus) state.nostrRelayStatus.set(url, 'error');
+      nostrNet._updateRelayStatus(url, 'error');
       if (window.ui) ui.render.all();
       return;
     }
@@ -47,7 +47,7 @@ var nostrNet = {
     ws.onopen = function() {
       relay.status = 'connected';
       relay.reconnectDelay = 1000;
-      if (state.nostrRelayStatus) state.nostrRelayStatus.set(url, 'connected');
+      nostrNet._updateRelayStatus(url, 'connected');
       var wasConnected = state.isConnected;
       state.isConnected = true;
       if (!wasConnected && window.ui) ui.render.all();
@@ -70,13 +70,13 @@ var nostrNet = {
 
     ws.onerror = function() {
       relay.status = 'error';
-      if (state.nostrRelayStatus) state.nostrRelayStatus.set(url, 'error');
+      nostrNet._updateRelayStatus(url, 'error');
       if (window.ui) ui.render.all();
     };
 
     ws.onclose = function() {
       relay.status = 'closed';
-      if (state.nostrRelayStatus) state.nostrRelayStatus.set(url, 'error');
+      nostrNet._updateRelayStatus(url, 'error');
       var anyOpen = false;
       nostrNet.relays.forEach(function(r) {
         if (r.ws && r.ws.readyState === 1) anyOpen = true;
@@ -112,6 +112,7 @@ var nostrNet = {
       }
       if (!valid) return;
       nostrNet.seenIds.add(event.id);
+      nostrNet._trimSeenIds();
       sub = nostrNet.subs.get(subId);
       if (sub && sub.onEvent) sub.onEvent(event);
     } else if (type === 'EOSE') {
@@ -171,6 +172,19 @@ var nostrNet = {
     var open = false;
     nostrNet.relays.forEach(function(r) { if (r.ws && r.ws.readyState === 1) open = true; });
     return open;
+  },
+
+  _updateRelayStatus: function(url, status) {
+    var m = new Map(state.nostrRelayStatus || []);
+    m.set(url, status);
+    state.nostrRelayStatus = m;
+  },
+
+  _trimSeenIds: function() {
+    if (nostrNet.seenIds.size > 10000) {
+      var arr = Array.from(nostrNet.seenIds);
+      nostrNet.seenIds = new Set(arr.slice(arr.length - 5000));
+    }
   },
 
   send: function() {},

@@ -192,6 +192,7 @@ ui.actions = {
     document.getElementById('queueSidebar')?.classList.remove('open');
   }
 };
+
 window.ui = ui;
 window.getInitial = getInitial;
 window.getAvatarColor = getAvatarColor;
