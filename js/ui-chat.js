@@ -166,7 +166,7 @@ const uiChat = {
 
   showContextMenu(msg, x, y) {
     this.hideContextMenu();
-    const isOwn = msg.userId === state.userId;
+    const isOwn = msg.userId === state.userId || (state.nostrPubkey && msg.userId === state.nostrPubkey);
     if (!isOwn) return;
     const menu = document.createElement('div');
     menu.id = 'messageContextMenu';

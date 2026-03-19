@@ -78,3 +78,5 @@ export const startCleanup = (intervalMs) => {
 export const stopCleanup = () => {
   if (_cleanupInterval) { clearInterval(_cleanupInterval); _cleanupInterval = null; }
 };
+
+export const getDataRoot = () => _dataRoot;

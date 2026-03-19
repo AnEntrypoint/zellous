@@ -8,17 +8,17 @@
   <script type="importmap">
   {
     "imports": {
-      "htm": "/vendor/htm.js",
-      "preact": "/vendor/preact.mjs",
-      "preact/hooks": "/vendor/preact-hooks.mjs",
-      "@preact/signals": "/vendor/preact-signals.mjs",
-      "@preact/signals-core": "/vendor/signals-core.mjs",
-      "livekit-client": "/vendor/livekit-client.mjs",
-      "nostr-tools": "/vendor/nostr-tools.mjs"
+      "htm": "./vendor/htm.js",
+      "preact": "./vendor/preact.mjs",
+      "preact/hooks": "./vendor/preact-hooks.mjs",
+      "@preact/signals": "./vendor/preact-signals.mjs",
+      "@preact/signals-core": "./vendor/signals-core.mjs",
+      "livekit-client": "./vendor/livekit-client.mjs",
+      "nostr-tools": "./vendor/nostr-tools.mjs"
     }
   }
   </script>
-  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="./vendor/fonts.css">
   <link rel="stylesheet" href="css/discord.css">
 </head>
 <body>
@@ -296,6 +296,7 @@
 
   <input type="file" class="hidden-input" id="fileInput" multiple autocomplete="off">
 
+  <script>window.__nostrMode = true;</script>
   <script src="msgpackr.min.js"></script>
   <script type="module">
     import { signal, computed, effect } from '@preact/signals';
@@ -448,7 +449,8 @@ const lk = {
     try {
       const params = new URLSearchParams({ channel: channelName, identity: username });
       if (opts.forceRelay) params.set('forceRelay', 'true');
-      const res = await fetch(`/api/nostr/livekit-token?${params}`);
+      const tokenUrl = localStorage.getItem('zellous_livekit_token_url') || 'api/nostr/livekit-token';
+      const res = await fetch(`${tokenUrl}?${params}`);
       if (!res.ok) { const err = await res.json().catch(() => ({ error: 'HTTP ' + res.status })); throw new Error(err.error || 'Token request failed'); }
       const data = await res.json();
       await lk._import();
@@ -576,6 +578,11 @@ async function initNostr() {
   const loggedIn = auth.init();
 
   auth.bindUI();
+
+  document.addEventListener('nostr:login', () => {
+    serverManager.init();
+    ui.render.authStatus();
+  });
 
   if (loggedIn) {
     serverManager.init();
