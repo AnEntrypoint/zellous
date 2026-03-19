@@ -55,6 +55,7 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 - `audio.js` — Opus encoding/decoding, playback, pause/resume
 - `queue.js` — Audio segment queue, replay, download
 - `network.js` — WebSocket, message handlers
+- `nostr-voice.js` — Serverless voice via VDO.Ninja iframe + Nostr presence signaling; replaces `window.lk` in nostr mode
 - `ptt.js` — PTT, deafen, VAD
 - `webcam.js` — Webcam capture/playback
 
@@ -219,6 +220,17 @@ Connect to: `ws://server/api/bot/ws`
 
 ## Nostr Mode
 Serverless alternative transport using public Nostr relays. Files: `js/nostr-adapter.js`, `rooms-ui/nostr-chat/index.html`.
+
+### Nostr Voice (Serverless)
+Voice in serverless mode uses VDO.Ninja (vdo.ninja) for peer-to-peer WebRTC audio and Nostr events for presence signaling. No server required.
+
+- `js/nostr-voice.js` — Replaces the LiveKit `lk` object (`window.lk = nostrVoice`) in nostr mode
+- Media transport: VDO.Ninja hidden iframe with `&room=ID&push&audioonly&api=KEY&cleanoutput`
+- Room IDs: SHA-256 hash of `serverId:voice:channelName`, prefixed with `zellous`, truncated to 16 hex chars
+- Presence: Nostr kind 30078 events with `d` tag `zellous-voice:<roomId>`, 30s heartbeat, 90s expiry
+- Controls: iframe postMessage API — `{action:"mute"}`, `{action:"unmute"}`, `{action:"speaker",value:bool}`
+- VDO.Ninja sends back `guest-connected`/`guest-disconnected` events via postMessage
+- Interface matches `lk.*` API: `connect(channelName)`, `disconnect()`, `toggleMic()`, `toggleDeafen()`, `toggleCamera()`, `updateParticipants()`, `isDataChannelReady()`
 
 ## Dependencies
 - express, ws, msgpackr, cors (server)
