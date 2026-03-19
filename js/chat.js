@@ -191,3 +191,5 @@ const chat = {
   },
 
 };
+
+window.chat = chat;

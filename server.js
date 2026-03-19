@@ -8,18 +8,24 @@ import cors from 'cors';
 import logger from '@sequentialos/sequential-logging';
 
 import {
-  initialize, rooms, messages, media, files, servers,
-  startCleanup, stopCleanup, DATA_ROOT
-} from './server/storage.js';
+  initialize, rooms, messages, media, files, servers, bots,
+  startCleanup, stopCleanup, getDataRoot
+} from './server/db.js';
 import {
   optionalAuth, requireAuth, authenticateWebSocket,
   register, login, logout, logoutAll,
   getActiveSessions, getDevices, removeDevice,
   updateSettings, updateDisplayName, changePassword
-} from './server/auth.js';
-import {
-  bots, BotConnection, setupBotApiRoutes
-} from './server/bot-api.js';
+} from './server/auth-ops.js';
+import { BotConnection } from './server/bot-websocket.js';
+import { makeBotsRouter, makeBotRoomsRouter } from './server/routes-bots.js';
+
+const setupBotApiRoutes = (app, state, broadcast) => {
+  app.use('/api/bots', makeBotsRouter(broadcast));
+  app.use('/api/bot-rooms', makeBotRoomsRouter(state, broadcast));
+};
+
+const DATA_ROOT = { toString: () => getDataRoot() || './data' };
 import {
   getLkSdk, getConfig as getLkConfig, buildIceServers,
   initializeLiveKit, stopLivekitServer

@@ -8,16 +8,16 @@
   <script type="importmap">
   {
     "imports": {
-      "htm": "/vendor/htm.js",
-      "preact": "/vendor/preact.mjs",
-      "preact/hooks": "/vendor/preact-hooks.mjs",
-      "@preact/signals": "/vendor/preact-signals.mjs",
-      "@preact/signals-core": "/vendor/signals-core.mjs",
-      "livekit-client": "/vendor/livekit-client.mjs"
+      "htm": "./vendor/htm.js",
+      "preact": "./vendor/preact.mjs",
+      "preact/hooks": "./vendor/preact-hooks.mjs",
+      "@preact/signals": "./vendor/preact-signals.mjs",
+      "@preact/signals-core": "./vendor/signals-core.mjs",
+      "livekit-client": "./vendor/livekit-client.mjs"
     }
   }
   </script>
-  <link rel="stylesheet" href="/vendor/fonts.css">
+  <link rel="stylesheet" href="./vendor/fonts.css">
   <link rel="stylesheet" href="css/discord.css">
 </head>
 <body>
@@ -334,7 +334,7 @@
     const scripts = [
       'js/auth.js', 'js/icons.js', 'js/ui.js', 'js/ui-channels.js', 'js/ui-chat.js', 'js/ui-voice.js',
       'js/audio.js', 'js/queue.js',
-      'js/chat.js', 'js/files.js', 'js/channels.js', 'js/threads.js', 'js/servers.js',
+      'js/chat.js', 'js/files.js', 'js/api.js', 'js/channels-api.js', 'js/channels-ui.js', 'js/threads.js', 'js/servers.js',
       'js/moderation.js', 'js/network.js', 'js/ptt.js',
       'js/webcam.js', 'js/livekit.js', 'app.js'
     ];
