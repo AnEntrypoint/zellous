@@ -1,6 +1,13 @@
 const profiles = new Map();
 const fetching = new Set();
 
+async function _hexChannelId(channelId, serverId) {
+  var input = (serverId || '') + ':' + channelId;
+  var buf = new TextEncoder().encode(input);
+  var hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
 const chat = {
   activeChannelId: null,
 
@@ -11,11 +18,12 @@ const chat = {
     if (!auth.isLoggedIn() || !state.currentChannelId) return;
     const trimmed = content.trim();
     if (!trimmed) return;
+    const chanHex = await _hexChannelId(state.currentChannelId, state.currentServerId);
     const relayHint = (state.nostrRelays || [])[0] || '';
     const template = {
       kind: 42,
       created_at: Math.floor(Date.now() / 1000),
-      tags: [['e', state.currentChannelId, relayHint, 'root']],
+      tags: [['e', chanHex, relayHint, 'root']],
       content: trimmed,
     };
     const signedEvent = await auth.sign(template);
@@ -29,23 +37,28 @@ const chat = {
   },
 
   async loadHistory(channelId) {
-    if (chat.activeChannelId) nostrNet.unsubscribe('chat-' + chat.activeChannelId);
+    if (chat.activeChannelId) {
+      nostrNet.unsubscribe('chat-' + chat.activeChannelId);
+      nostrNet.unsubscribe('chat-live-' + chat.activeChannelId);
+    }
     chat.activeChannelId = channelId;
     state.chatMessages = [];
+    const chanHex = await _hexChannelId(channelId, state.currentServerId);
     const collected = [];
     nostrNet.subscribe(
       'chat-' + channelId,
-      [{ kinds: [42], '#e': [channelId], limit: 50 }],
+      [{ kinds: [42], '#e': [chanHex], limit: 50 }],
       function(event) { collected.push(chat._eventToMsg(event)); },
       function() {
         collected.sort(function(a, b) { return a.timestamp - b.timestamp; });
         state.chatMessages = collected;
+        chat._updateMembers(collected);
         ui.render.all();
       }
     );
     nostrNet.subscribe(
       'chat-live-' + channelId,
-      [{ kinds: [42], '#e': [channelId], since: Math.floor(Date.now() / 1000) }],
+      [{ kinds: [42], '#e': [chanHex], since: Math.floor(Date.now() / 1000) }],
       function(event) { chat._addMessage(chat._eventToMsg(event)); },
       function() {}
     );
@@ -67,7 +80,18 @@ const chat = {
     const current = state.chatMessages ? state.chatMessages.slice() : [];
     current.push(msg);
     state.chatMessages = current;
+    chat._updateMembers(current);
     ui.render.all();
+  },
+
+  _updateMembers(msgs) {
+    const seen = new Map();
+    (msgs || []).forEach(function(m) {
+      if (m.userId && !seen.has(m.userId)) seen.set(m.userId, m.username || chat.resolveProfile(m.userId));
+    });
+    state.roomMembers = Array.from(seen.entries()).map(function([id, username]) {
+      return { id, username, online: true };
+    });
   },
 
   async deleteMessage(id) {
@@ -113,6 +137,7 @@ const chat = {
       function() {
         nostrNet.unsubscribe('profile-' + pubkey);
         fetching.delete(pubkey);
+        chat._updateMembers(state.chatMessages);
         ui.render.all();
       }
     );

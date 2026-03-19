@@ -9,12 +9,19 @@ var DEFAULT_CHANNELS = [
   { id: 'general-voice', name: 'General', type: 'voice', categoryId: 'voice', position: 0 }
 ];
 
+async function _hexChannelId(channelId, serverId) {
+  var input = (serverId || '') + ':' + channelId;
+  var buf = new TextEncoder().encode(input);
+  var hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
 var channelManager = {
   isOwner: function() {
     return state.nostrPubkey && state.currentServerId && state.nostrPubkey === state.currentServerId.split(':')[0];
   },
 
-  loadChannels: function(serverId) {
+  loadChannels: function(serverId, onReady) {
     var parts = serverId.split(':');
     var ownerPubkey = parts[0];
     var dTag = 'zellous-channels:' + serverId;
@@ -31,6 +38,7 @@ var channelManager = {
       },
       function() {
         if (!state.channels.length) channelManager._setDefaults();
+        if (onReady) onReady();
       }
     );
   },
