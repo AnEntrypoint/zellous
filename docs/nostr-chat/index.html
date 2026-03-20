@@ -331,6 +331,7 @@
       'js/nostr-servers.js',
       'js/moderation.js',
       'js/nostr-network.js',
+      'js/nostr-voice.js',
       'js/ptt.js',
       'js/webcam.js',
       'app.js'
@@ -602,7 +603,7 @@ async function initNostr() {
     }
   }
 
-  window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt };
+  window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt, nostrVoice };
 }
 
 function _runWhenReady(fn) {
