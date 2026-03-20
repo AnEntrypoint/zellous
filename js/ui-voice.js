@@ -73,10 +73,12 @@ const uiVoice = {
         <div style="font-size:20px;font-weight:700;color:var(--header-primary)">${ch ? escHtml(ch.name) : 'Voice'}</div>
         <div style="font-size:14px">Click to join voice channel</div>
       </div>`;
-      ui.voiceGrid.querySelector('.voice-join-prompt')?.addEventListener('click', () => {
-        if (!ch || ch.type !== 'voice') return;
-        if (window.lk) lk.connect(ch.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' });
-      });
+      ui.voiceGrid.onclick = (e) => {
+        if (!e.target.closest('.voice-join-prompt')) return;
+        const cur = state.currentChannel;
+        if (!cur || cur.type !== 'voice') return;
+        if (window.lk) window.lk.connect(cur.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' });
+      };
       return;
     }
     const qDot = (q) => q && q !== 'unknown' ? `<span class="quality-dot ${q}" title="${q}"></span>` : '';
