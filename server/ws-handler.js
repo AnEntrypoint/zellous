@@ -3,6 +3,7 @@ import { rooms, messages, media, files } from './db.js';
 import { authenticateWebSocket } from './auth-ops.js';
 import { registerHandler, getHandler } from './handlers.js';
 import logger from '@sequentialos/sequential-logging';
+import { createConnectionActor } from './connection-machine.js';
 
 const createClient = (ws, id, user = null) => ({
   id, ws,
@@ -49,6 +50,7 @@ const makeHandlers = (state) => ({
       client.userId = auth.user.id; client.username = auth.user.displayName;
       client.sessionId = auth.session.id; client.isAuthenticated = true;
       client.ws.send(pack({ type: 'auth_success', user: auth.user }));
+      client._machine?.send({ type: 'AUTHENTICATE' });
     } else {
       client.ws.send(pack({ type: 'auth_failed', error: 'Invalid or expired token' }));
     }
@@ -151,6 +153,8 @@ const setupWebSocket = (wss, state, BotConnection) => {
     if (token) { const auth = await authenticateWebSocket(token); if (auth) user = auth.user; }
 
     const client = createClient(ws, clientId, user);
+    client._machine = createConnectionActor();
+    if (user) client._machine.send({ type: 'AUTHENTICATE' });
     state.clients.set(ws, client);
     ws.on('pong', () => { client._alive = true; });
 
@@ -163,6 +167,7 @@ const setupWebSocket = (wss, state, BotConnection) => {
     });
 
     ws.on('close', async () => {
+      client._machine?.send({ type: 'DISCONNECT' });
       if (client.speaking) state.broadcast({ type: 'speaker_left', userId: clientId, user: client.username }, null, client.roomId);
       await leaveRoom(client, state);
       state.clients.delete(ws);
