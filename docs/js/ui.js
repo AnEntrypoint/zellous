@@ -190,6 +190,15 @@ ui.actions = {
     ui.channelSidebar?.classList.remove('open'); ui.drawerOverlay?.classList.remove('open');
     document.getElementById('memberList')?.classList.remove('open');
     document.getElementById('queueSidebar')?.classList.remove('open');
+  },
+  showToast(msg, duration) {
+    document.getElementById('uiToast')?.remove();
+    const el = document.createElement('div');
+    el.id = 'uiToast';
+    el.textContent = msg;
+    el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#23272a;color:#fff;padding:8px 18px;border-radius:6px;z-index:9999;font-size:14px;pointer-events:none;opacity:1;transition:opacity 0.3s';
+    document.body.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 350); }, duration || 2000);
   }
 };
 

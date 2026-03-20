@@ -49,7 +49,7 @@ var channelManager = {
     state.channels = DEFAULT_CHANNELS.map(function(c) { return Object.assign({}, c); });
     state.categories = DEFAULT_CATEGORIES.map(function(c) { return Object.assign({}, c); });
     ui.render.all();
-    if (channelManager.isOwner()) channelManager._publishChannelList();
+    if (channelManager.isOwner()) channelManager._publishChannelList().catch(function(e) { console.warn('[nostr-channels] publish defaults failed:', e.message); });
   },
 
   _publishChannelList: async function() {
