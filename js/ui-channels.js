@@ -105,6 +105,15 @@ const uiChannels = {
         channelManager?.showContextMenu(btn.dataset.settings, e.clientX, e.clientY);
       });
     });
+    ui.channelList.querySelectorAll('[data-invite]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!state.currentServerId) return;
+        const url = location.origin + location.pathname + '?room=' + encodeURIComponent(state.currentServerId);
+        try { navigator.clipboard.writeText(url); } catch (_) {}
+        if (window.ui?.showToast) ui.showToast('Invite link copied!');
+      });
+    });
   },
 
   renderView() {

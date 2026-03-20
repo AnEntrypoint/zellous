@@ -33,11 +33,17 @@ var serverManager = {
     var serverId = event.pubkey + ':' + dTag[1];
     var name = nameTag ? nameTag[1] : serverId.slice(0, 8);
     var iconColor = colorTag ? colorTag[1] : '#5865F2';
-    if (!state.servers.find(function(s) { return s.id === serverId; })) {
+    var existing = state.servers.find(function(s) { return s.id === serverId; });
+    if (existing) {
+      existing.name = name;
+      existing.iconColor = iconColor;
+      existing.ownerId = event.pubkey;
+      state.servers = state.servers.slice();
+    } else {
       state.servers = state.servers.concat([{ id: serverId, name: name, iconColor: iconColor, ownerId: event.pubkey }]);
-      serverManager._persistServers();
-      ui.render.all();
     }
+    serverManager._persistServers();
+    ui.render.all();
   },
 
   create: async function(name, iconColor) {
@@ -141,6 +147,9 @@ var serverManager = {
     if (!container) return;
     var srvs = serverManager._sortedServers();
     var current = state.currentServerId;
+    var currentServer = current && srvs.find(function(s) { return s.id === current; });
+    var headerEl = document.getElementById('serverHeaderName');
+    if (headerEl) headerEl.textContent = currentServer ? currentServer.name : 'Zellous';
     var colors = ['#5865f2', '#57f287', '#feb347', '#fe7168', '#9b59b6', '#1abc9c', '#e67e22', '#e74c3c'];
     var html = '';
     srvs.forEach(function(s) {

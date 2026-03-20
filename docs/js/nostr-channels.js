@@ -29,6 +29,8 @@ var channelManager = {
       'channels-' + serverId,
       [{ kinds: [30078], authors: [ownerPubkey], '#d': [dTag] }],
       function(event) {
+        var hasTag = event.tags && event.tags.some(function(t) { return t[0] === 'd' && t[1] === dTag; });
+        if (!hasTag) return;
         try {
           var data = JSON.parse(event.content);
           state.channels = data.channels || [];
@@ -47,6 +49,7 @@ var channelManager = {
     state.channels = DEFAULT_CHANNELS.map(function(c) { return Object.assign({}, c); });
     state.categories = DEFAULT_CATEGORIES.map(function(c) { return Object.assign({}, c); });
     ui.render.all();
+    if (channelManager.isOwner()) channelManager._publishChannelList();
   },
 
   _publishChannelList: async function() {
