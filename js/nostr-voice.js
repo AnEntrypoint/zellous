@@ -16,7 +16,8 @@ var nostrVoice = {
     state.voiceConnectionState = 'connecting';
     try {
       nostrVoice._roomId = await nostrVoice._deriveRoomId(channelName);
-      nostrVoice._localStream = await navigator.mediaDevices.getUserMedia({audio:true});
+      nostrVoice._localStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+      state.mediaStream = nostrVoice._localStream;
       nostrVoice._participants.clear();
       nostrVoice._participants.set('local',{identity:nostrVoice._displayName(),isSpeaking:false,isMuted:false,isLocal:true,hasVideo:false,connectionQuality:'good'});
       state.voiceConnected=true; state.voiceConnectionState='connected'; state.voiceConnectionQuality='good';
@@ -37,6 +38,7 @@ var nostrVoice = {
     nostrVoice._publishPresence('leave'); nostrVoice._stopHeartbeat();
     nostrVoice._peers.forEach((_,pk)=>nostrVoice._closePeer(pk)); nostrVoice._peers.clear();
     if(nostrVoice._localStream){nostrVoice._localStream.getTracks().forEach(t=>t.stop());nostrVoice._localStream=null;}
+    state.mediaStream=null;
     if(nostrVoice._roomId){nostrNet.unsubscribe('voice-presence-'+nostrVoice._roomId);nostrNet.unsubscribe('voice-signals-'+nostrVoice._roomId);}
     nostrVoice._participants.clear(); nostrVoice._roomId=''; nostrVoice._channelName='';
     state.voiceConnected=false; state.voiceConnectionState='disconnected'; state.voiceConnectionQuality='unknown';
@@ -48,6 +50,7 @@ var nostrVoice = {
 
   _closePeer(pubkey) {
     var peer=nostrVoice._peers.get(pubkey); if(!peer) return;
+    if(peer.iceTimer) clearTimeout(peer.iceTimer);
     try{peer.pc?.close();}catch(e){}
     if(peer.audioEl){peer.audioEl.srcObject=null;peer.audioEl.remove();}
     nostrVoice._peers.delete(pubkey);
@@ -76,7 +79,7 @@ var nostrVoice = {
 
   _maybeConnect(peerPubkey) {
     if(!peerPubkey||peerPubkey===state.nostrPubkey||nostrVoice._peers.has(peerPubkey)) return;
-    var peer={pc:null,audioEl:null,bufferedCandidates:[],remoteDescSet:false};
+    var peer={pc:null,audioEl:null,bufferedCandidates:[],remoteDescSet:false,iceTimer:null};
     nostrVoice._peers.set(peerPubkey,peer);
     var pc=new RTCPeerConnection({iceServers:nostrVoice._iceServers}); peer.pc=pc;
     if(nostrVoice._localStream) nostrVoice._localStream.getTracks().forEach(t=>pc.addTrack(t,nostrVoice._localStream));
@@ -88,9 +91,15 @@ var nostrVoice = {
     pc.onicegatheringstatechange=function(){
       if(pc.iceGatheringState==='complete'&&peer.bufferedCandidates.length){nostrVoice._publishSignal(peerPubkey,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}
     };
-    pc.onconnectionstatechange=function(){if(pc.connectionState==='failed'||pc.connectionState==='closed') nostrVoice._closePeer(peerPubkey);};
+    pc.onconnectionstatechange=function(){
+      if(pc.connectionState==='connected'){var p=nostrVoice._participants.get('nostr-'+peerPubkey.slice(0,12));if(p){p.connectionQuality='good';nostrVoice.updateParticipants();}}
+      if(pc.connectionState==='failed'||pc.connectionState==='closed') nostrVoice._closePeer(peerPubkey);
+    };
     if(state.nostrPubkey>peerPubkey)
-      pc.createOffer().then(o=>pc.setLocalDescription(o).then(()=>nostrVoice._publishSignal(peerPubkey,'offer',o))).catch(e=>console.warn('[nostr-voice] offer:',e));
+      pc.createOffer().then(o=>pc.setLocalDescription(o).then(()=>{
+        nostrVoice._publishSignal(peerPubkey,'offer',o);
+        peer.iceTimer=setTimeout(()=>{if(peer.bufferedCandidates.length&&pc.iceGatheringState!=='complete'){nostrVoice._publishSignal(peerPubkey,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}},4000);
+      })).catch(e=>console.warn('[nostr-voice] offer:',e));
   },
 
   _handleSignal(event) {
@@ -102,7 +111,10 @@ var nostrVoice = {
     var drainBuf=()=>{peer.bufferedCandidates.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));peer.bufferedCandidates=[];};
     if(data.type==='offer'&&pc.signalingState==='stable')
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();return pc.createAnswer();})
-        .then(a=>pc.setLocalDescription(a).then(()=>nostrVoice._publishSignal(from,'answer',a))).catch(e=>console.warn('[nostr-voice] answer:',e));
+        .then(a=>pc.setLocalDescription(a).then(()=>{
+          nostrVoice._publishSignal(from,'answer',a);
+          peer.iceTimer=setTimeout(()=>{if(peer.bufferedCandidates.length&&pc.iceGatheringState!=='complete'){nostrVoice._publishSignal(from,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}},4000);
+        })).catch(e=>console.warn('[nostr-voice] answer:',e));
     else if(data.type==='answer'&&pc.signalingState==='have-local-offer')
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();}).catch(e=>console.warn('[nostr-voice] set-answer:',e));
     else if(data.type==='ice'){
@@ -116,7 +128,7 @@ var nostrVoice = {
     if(!nostrVoice._roomId||!state.nostrPubkey) return;
     var base='zellous-rtc:'+nostrVoice._roomId+':'+state.nostrPubkey;
     nostrNet.subscribe('voice-signals-'+nostrVoice._roomId,
-      [{kinds:[30078],'#d':[base+':sdp',base+':ice'],since:nostrVoice._joinTs-10}],
+      [{kinds:[30078],'#d':[base+':sdp',base+':ice'],since:nostrVoice._joinTs-60}],
       nostrVoice._handleSignal,()=>{});
   },
 
@@ -160,6 +172,8 @@ var nostrVoice = {
           if(data.action==='leave'){nostrVoice._participants.delete(shortId);nostrVoice._closePeer(event.pubkey);}
           else if(!nostrVoice._participants.has(shortId)){
             nostrVoice._participants.set(shortId,{identity:data.name||auth.npubShort(event.pubkey),isSpeaking:false,isMuted:false,isLocal:false,hasVideo:false,connectionQuality:'connecting'});
+            nostrVoice._maybeConnect(event.pubkey);
+          } else if(!nostrVoice._peers.has(event.pubkey)){
             nostrVoice._maybeConnect(event.pubkey);
           }
           nostrVoice.updateParticipants();
