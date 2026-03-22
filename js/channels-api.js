@@ -1,8 +1,8 @@
 const channelApi = {
   roomUrl: () => `/api/rooms/${state.roomId}`,
 
-  async create(name, type, categoryId) {
-    return (await apiRequest('POST', `${this.roomUrl()}/channels`, { name, type, categoryId })).channel;
+  async create(name, type, categoryId, extras = {}) {
+    return (await apiRequest('POST', `${this.roomUrl()}/channels`, { name, type, categoryId, ...extras })).channel;
   },
   async rename(channelId, name) {
     return (await apiRequest('PATCH', `${this.roomUrl()}/channels/${channelId}`, { name })).channel;

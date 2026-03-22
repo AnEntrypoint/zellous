@@ -124,8 +124,10 @@ const uiChannels = {
     ui.voiceView.style.display = 'none';
     ui.threadedView.style.display = 'none';
     if (forumView) forumView.style.display = 'none';
+    const pageView = document.getElementById('pageView');
+    if (pageView) pageView.style.display = 'none';
 
-    const iconMap = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread' };
+    const iconMap = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread', page:'link', game:'game' };
     if (ui.chatHeaderIcon) {
       ui.chatHeaderIcon.innerHTML = window.getIcon ? getIcon(iconMap[ch.type]||'text') : ({text:'#',voice:'🔊',threaded:'📋',announcement:'📢',forum:'💬'}[ch.type]||'#');
     }
@@ -142,6 +144,14 @@ const uiChannels = {
       ui.threadedView.style.display = 'flex';
     } else if (ch.type === 'forum' && forumView) {
       forumView.style.display = 'flex';
+    } else if ((ch.type === 'page' || ch.type === 'game') && pageView) {
+      const frame = document.getElementById('pageViewFrame');
+      if (frame) {
+        const src = ch.type === 'page' ? (ch.url || '') : (ch.path ? '/rooms-ui/' + ch.path + '/index.html' : '');
+        if (src) frame.src = src;
+        else frame.src = 'about:blank';
+      }
+      pageView.style.display = 'flex';
     } else {
       ui.chatArea.style.display = 'flex';
       if (ui.chatInput) ui.chatInput.placeholder = `Message #${ch.name}`;
