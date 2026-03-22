@@ -6,11 +6,12 @@ const makeRouter = (broadcast) => {
   const router = Router();
 
   router.post('/', optionalAuth, async (req, res) => {
-    const { name, iconColor } = req.body;
+    const { name, iconColor, type, url } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+    if (type && !['community', 'page'].includes(type)) return res.status(400).json({ error: 'type must be community or page' });
     const userId = req.user?.id || 'anon';
     const username = req.user?.displayName || req.user?.username || 'Anonymous';
-    const srv = await servers.create({ name: name.trim(), ownerId: userId, ownerName: username, iconColor });
+    const srv = await servers.create({ name: name.trim(), ownerId: userId, ownerName: username, iconColor, type: type || 'community', url: url || null });
     await rooms.ensureRoom(srv.id);
     res.json({ server: srv });
   });
@@ -35,6 +36,8 @@ const makeRouter = (broadcast) => {
     const updates = {};
     if (req.body.name) updates.name = req.body.name.trim();
     if (req.body.iconColor) updates.iconColor = req.body.iconColor;
+    if (req.body.type !== undefined) updates.type = req.body.type;
+    if (req.body.url !== undefined) updates.url = req.body.url;
     res.json({ server: await servers.updateMeta(req.params.serverId, updates) });
   });
 

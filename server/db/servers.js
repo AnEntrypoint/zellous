@@ -9,10 +9,10 @@ export const makeServers = (ctx) => ({
     if (!ex) await ctx.db().from('serverindex').insert({ id: '_init', name: '', ownerid: '' });
   },
 
-  async create({ name, ownerId, ownerName, iconColor }) {
+  async create({ name, ownerId, ownerName, iconColor, type, url }) {
     const id = shortId();
     await fsp.mkdir(join(ctx.dataRoot(), 'servers', id), { recursive: true });
-    const meta = { id, name, iconColor: iconColor || '#5865f2', ownerId, createdAt: Date.now(), members: [{ userId: ownerId, username: ownerName, role: 'owner', joinedAt: Date.now() }] };
+    const meta = { id, name, iconColor: iconColor || '#5865f2', type: type || 'community', url: url || null, ownerId, createdAt: Date.now(), members: [{ userId: ownerId, username: ownerName, role: 'owner', joinedAt: Date.now() }] };
     await fsp.writeFile(join(ctx.dataRoot(), 'servers', id, 'meta.json'), JSON.stringify(meta, null, 2));
     await ctx.db().from('serverindex').insert({ id, name, ownerid: ownerId });
     return meta;
@@ -40,7 +40,7 @@ export const makeServers = (ctx) => ({
   async listForUser(userId) {
     const all = await this.listAll();
     const metas = await Promise.all(all.map(s => this.getMeta(s.id)));
-    return metas.filter(m => m?.members?.some(mb => mb.userId === userId)).map(m => ({ id: m.id, name: m.name, iconColor: m.iconColor, ownerId: m.ownerId, memberCount: m.members.length }));
+    return metas.filter(m => m?.members?.some(mb => mb.userId === userId)).map(m => ({ id: m.id, name: m.name, iconColor: m.iconColor, type: m.type || 'community', url: m.url || null, ownerId: m.ownerId, memberCount: m.members.length }));
   },
 
   async join(serverId, userId, username) {
