@@ -43,15 +43,32 @@ const popMenu = (id, x, y, items, onAction) => {
 
 const channelManager = {
   showCreateModal(type, categoryId) {
-    showModal('channelCreateModal', modalBox(400, 'Create Channel',
-      sel('Channel Type', '<option value="text">Text</option><option value="voice">Voice</option><option value="threaded">Threaded</option>') +
+    const urlFieldId = 'chUrlFieldRow';
+    const m = showModal('channelCreateModal', modalBox(400, 'Create Channel',
+      sel('Channel Type', '<option value="text">Text</option><option value="voice">Voice</option><option value="threaded">Threaded</option><option value="forum">Forum</option><option value="page">Page (embed URL)</option><option value="game">Game (rooms-ui path)</option>') +
       inp('Channel Name', '', 'new-channel', 40) +
+      `<div class="modal-field" id="${urlFieldId}" style="display:none"><label class="modal-label" id="chUrlLabel">URL</label><input type="text" class="modal-input" name="channel_url" placeholder="https://example.com"></div>` +
       sel('Category', `<option value="">No Category</option>${catOpts(categoryId)}`),
-      'Create Channel'), (m) => withBtn(m, () => {
-        const name = m.querySelector('[name=channel_name]').value.trim();
+      'Create Channel'), (modal) => withBtn(modal, () => {
+        const name = modal.querySelector('[name=channel_name]').value.trim();
+        const chType = modal.querySelector('[name=channel_type]').value;
+        const chUrl = modal.querySelector('[name=channel_url]')?.value.trim();
         if (!name) throw new Error('Channel name is required');
-        return channelApi.create(name, m.querySelector('[name=channel_type]').value, m.querySelector('[name=category]').value || null);
+        if ((chType === 'page' || chType === 'game') && !chUrl) throw new Error('URL/path is required for this channel type');
+        const extras = {};
+        if (chType === 'page') extras.url = chUrl;
+        if (chType === 'game') extras.path = chUrl;
+        return channelApi.create(name, chType, modal.querySelector('[name=category]').value || null, extras);
       }));
+    const typeEl = m.querySelector('[name=channel_type]');
+    const urlRow = m.querySelector(`#${urlFieldId}`);
+    const urlLabel = m.querySelector('#chUrlLabel');
+    typeEl.addEventListener('change', () => {
+      const t = typeEl.value;
+      const show = t === 'page' || t === 'game';
+      if (urlRow) urlRow.style.display = show ? 'block' : 'none';
+      if (urlLabel) urlLabel.textContent = t === 'game' ? 'Path (e.g. default)' : 'URL';
+    });
   },
 
   showCreateCategoryModal() {

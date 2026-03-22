@@ -10,12 +10,12 @@ const serverManager = {
     } catch (e) { console.warn('[Servers] Load failed:', e.message); }
   },
 
-  async create(name, iconColor) {
+  async create(name, iconColor, type = 'community', url = null) {
     const token = auth?.getToken();
     const res = await fetch('/api/servers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
-      body: JSON.stringify({ name, iconColor })
+      body: JSON.stringify({ name, iconColor, type, url })
     });
     if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
     const data = await res.json();
@@ -40,19 +40,47 @@ const serverManager = {
     state.currentChannel = { id: 'general', type: 'text', name: 'general' };
     state.chatMessages = [];
     state.roomMembers = [];
-    ui.render.channels?.();
+
+    const srv = serverId ? state.servers.find(s => s.id === serverId) : null;
+    const srvType = srv?.type || 'community';
+
     if (serverId) {
-      const srv = state.servers.find(s => s.id === serverId);
-      if (srv) ui.serverHeader.textContent = srv.name;
+      if (srv) {
+        const headerNameEl = document.getElementById('serverHeaderName');
+        if (headerNameEl) headerNameEl.textContent = srv.name;
+        else if (ui.serverHeader) ui.serverHeader.textContent = srv.name;
+      }
       state.roomId = serverId;
     } else {
-      ui.serverHeader.textContent = 'Zellous';
+      const headerNameEl = document.getElementById('serverHeaderName');
+      if (headerNameEl) headerNameEl.textContent = 'Zellous';
+      else if (ui.serverHeader) ui.serverHeader.textContent = 'Zellous';
       state.roomId = new URLSearchParams(window.location.search).get('room') || 'lobby';
     }
+
     if (state.voiceConnected && window.lk) lk.disconnect();
-    network.switchRoom(state.roomId);
-    serverManager.renderList();
-    serverManager.loadChannels(state.roomId);
+
+    const sidebar = document.getElementById('channelSidebar');
+    const mainContent = document.getElementById('mainContent');
+    const pageView = document.getElementById('pageView');
+    const pageFrame = document.getElementById('pageViewFrame');
+
+    if (srvType === 'page' && srv?.url) {
+      if (sidebar) sidebar.style.display = 'none';
+      if (pageView) { pageView.style.display = 'flex'; pageView.style.flex = '1'; }
+      if (pageFrame) pageFrame.src = srv.url;
+      serverManager.renderList();
+    } else {
+      if (sidebar) sidebar.style.display = '';
+      if (pageView) pageView.style.display = 'none';
+      if (pageFrame) pageFrame.src = 'about:blank';
+      serverManager.renderList();
+      if (srvType !== 'page') {
+        network.switchRoom(state.roomId);
+        serverManager.loadChannels(state.roomId);
+        ui.render.channels?.();
+      }
+    }
   },
 
   async loadChannels(roomId) {
@@ -188,6 +216,17 @@ const serverManager = {
           <input type="text" class="modal-input" id="newServerName" placeholder="My Server" maxlength="40" autofocus>
         </div>
         <div class="modal-field">
+          <label class="modal-label">Server Type</label>
+          <select class="modal-input" id="newServerType">
+            <option value="community">Community (channels + chat)</option>
+            <option value="page">Page (embed a URL)</option>
+          </select>
+        </div>
+        <div class="modal-field" id="serverUrlField" style="display:none">
+          <label class="modal-label">Page URL</label>
+          <input type="url" class="modal-input" id="newServerUrl" placeholder="https://example.com">
+        </div>
+        <div class="modal-field">
           <label class="modal-label">Icon Color</label>
           <div class="color-picker" id="serverColorPicker" style="display:flex;gap:6px;flex-wrap:wrap"></div>
         </div>
@@ -212,11 +251,18 @@ const serverManager = {
     });
 
     modal.querySelector('#newServerName').focus();
+    modal.querySelector('#newServerType').addEventListener('change', (e) => {
+      const urlField = document.getElementById('serverUrlField');
+      if (urlField) urlField.style.display = e.target.value === 'page' ? 'block' : 'none';
+    });
     modal.querySelector('#createServerForm').addEventListener('submit', async () => {
       const name = document.getElementById('newServerName').value.trim();
+      const sType = document.getElementById('newServerType').value;
+      const sUrl = document.getElementById('newServerUrl').value.trim();
       if (!name) return;
+      if (sType === 'page' && !sUrl) { document.getElementById('newServerUrl').focus(); return; }
       try {
-        const srv = await serverManager.create(name, selectedColor);
+        const srv = await serverManager.create(name, selectedColor, sType, sUrl || null);
         modal.remove();
         serverManager.switchTo(srv.id);
       } catch (e) { console.warn('[Server] Create failed:', e.message); }

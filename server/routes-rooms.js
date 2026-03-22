@@ -60,23 +60,25 @@ const makeRouter = (state, broadcast) => {
   });
 
   router.post('/:roomId/channels', async (req, res) => {
-    const { name, type, categoryId, position } = req.body;
+    const { name, type, categoryId, position, url, path: chPath } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: 'name required' });
-    if (!['text', 'voice', 'threaded'].includes(type)) return res.status(400).json({ error: 'type must be text, voice, or threaded' });
+    if (!['text', 'voice', 'threaded', 'page', 'game', 'forum'].includes(type)) return res.status(400).json({ error: 'type must be text, voice, threaded, page, game, or forum' });
     await rooms.ensureRoom(req.params.roomId);
-    const channel = await rooms.addChannel(req.params.roomId, { name: name.trim(), type, categoryId, position });
+    const channel = await rooms.addChannel(req.params.roomId, { name: name.trim(), type, categoryId, position, url: url || null, path: chPath || null });
     if (!channel) return res.status(500).json({ error: 'Failed to create channel' });
     broadcast({ type: 'channel_created', channel }, null, req.params.roomId);
     res.json({ channel });
   });
 
   router.patch('/:roomId/channels/:channelId', async (req, res) => {
-    const { name, categoryId, position } = req.body;
+    const { name, categoryId, position, url, path: chPath } = req.body;
     const updates = {};
     if (name?.trim()) updates.name = name.trim();
     if (categoryId !== undefined) updates.categoryId = categoryId;
     if (position !== undefined) updates.position = position;
-    if (!Object.keys(updates).length) return res.status(400).json({ error: 'name, categoryId, or position required' });
+    if (url !== undefined) updates.url = url;
+    if (chPath !== undefined) updates.path = chPath;
+    if (!Object.keys(updates).length) return res.status(400).json({ error: 'name, categoryId, position, url, or path required' });
     const channel = await rooms.updateChannel(req.params.roomId, req.params.channelId, updates);
     if (!channel) return res.status(404).json({ error: 'Channel not found' });
     broadcast({ type: 'channel_updated', channel }, null, req.params.roomId);

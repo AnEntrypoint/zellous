@@ -68,8 +68,8 @@ const formatTime = (ts) => {
   return d.toLocaleDateString() + ' ' + time;
 };
 const chIcon = (type) => {
-  if (!window.getIcon) return { text:'#', voice:'🔊', threaded:'📋', announcement:'📢', forum:'💬', thread:'🧵' }[type] || '#';
-  const map = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread', stage:'stage' };
+  if (!window.getIcon) return { text:'#', voice:'🔊', threaded:'📋', announcement:'📢', forum:'💬', thread:'🧵', page:'🔗', game:'🎮' }[type] || '#';
+  const map = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread', stage:'stage', page:'link', game:'game' };
   return getIcon(map[type] || 'text');
 };
 
