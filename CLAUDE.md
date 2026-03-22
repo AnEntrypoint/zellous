@@ -11,7 +11,7 @@
 - `server/db/messages.js` — Message save/get/edit/remove (filesystem JSON files).
 - `server/db/media.js` — Audio/video chunk recording sessions.
 - `server/db/files.js` — File storage, metadata, recursive lookup.
-- `server/db/servers.js` — Server CRUD, membership, roles.
+- `server/db/servers.js` — Server CRUD, membership, roles. Supports `type` (`community`|`page`) and `url` fields for pluggable server views.
 - `server/db/bots.js` — Bot CRUD, API key management.
 - `server/db/utils.js` — Shared crypto utilities: `generateId, shortId, hashPassword, verifyPassword, generateApiKey, hashApiKey, tryParse`.
 - Storage auto-selects embedded mode (in-process LanceDB) when no `BUSYBASE_URL` is set, or HTTP mode when it is set.
@@ -30,8 +30,8 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 - `bot-websocket.js` — BotConnection class
 - `livekit.js` — LiveKit binary management, config, ICE servers
 - `routes-auth.js` — Express Router for `/api/auth/*` and `/api/user/*`
-- `routes-rooms.js` — Express Router for `/api/rooms/*` (user-facing)
-- `routes-servers.js` — Express Router for `/api/servers/*`
+- `routes-rooms.js` — Express Router for `/api/rooms/*` (user-facing). Channel types: `text`, `voice`, `threaded`, `page`, `game`, `forum`; page/game channels store `url`/`path`.
+- `routes-servers.js` — Express Router for `/api/servers/*`. Accepts `type` (`community`|`page`) and `url` on create/update.
 - `routes-bots.js` — Bot CRUD (`makeBotsRouter`) and bot room access (`makeBotRoomsRouter`)
 - `routes-livekit.js` — LiveKit HTTP proxy, WS proxy, token endpoint
 
@@ -47,8 +47,8 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 - `state.js` — Config, state object, room URL parsing
 - `auth.js` — Login persistence, session management, device tracking
 - `api.js` — Shared `apiRequest(method, url, body)` fetch helper (reads auth token at call time)
-- `channels-api.js` — Channel/category API calls using `apiRequest`; exposes `window.channelApi`
-- `channels-ui.js` — Channel/category modals, context menus, drag-and-drop; exposes `window.channelManager`
+- `channels-api.js` — Channel/category API calls using `apiRequest`; exposes `window.channelApi`. `create()` accepts optional `extras` object for `url`/`path` fields.
+- `channels-ui.js` — Channel/category modals, context menus, drag-and-drop; exposes `window.channelManager`. Channel creation supports page/game types with URL/path inputs.
 - `ui.js` — DOM references, render functions, UI actions
 - `chat.js` — Text messaging, image preview, file attachments
 - `files.js` — File upload/download, drag-drop, clipboard paste
@@ -58,6 +58,7 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 - `nostr-voice.js` — Serverless voice via native WebRTC + Nostr signaling; replaces `window.lk` in nostr mode
 - `ptt.js` — PTT, deafen, VAD
 - `webcam.js` — Webcam capture/playback
+- `servers.js` — Server list management; `switchTo()` handles `page`-type servers by showing a full-area iframe embed, hiding channel sidebar.
 
 ## Package Exports
 ```
@@ -109,13 +110,13 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 - `PATCH /api/rooms/:roomId/messages/:messageId` - Edit message
 - `GET /api/rooms/:roomId/files` - List files
 - `GET /api/rooms/:roomId/files/:fileId` - Download file
-- `GET/POST/PATCH/DELETE /api/rooms/:roomId/channels` - Channel CRUD
+- `GET/POST/PATCH/DELETE /api/rooms/:roomId/channels` - Channel CRUD (types: `text`, `voice`, `threaded`, `page`, `game`, `forum`; page/game accept `url`/`path` in body)
 - `POST /api/rooms/:roomId/channels/reorder` - Reorder channels
 - `GET/POST/PATCH/DELETE /api/rooms/:roomId/categories` - Category CRUD
 - `POST /api/rooms/:roomId/categories/reorder` - Reorder categories
 
 ### Servers
-- `POST /api/servers` - Create server
+- `POST /api/servers` - Create server (optional `type`: `community`|`page`, `url` for page type)
 - `GET /api/servers` - List servers
 - `GET /api/servers/:serverId` - Get server
 - `PATCH /api/servers/:serverId` - Update server
