@@ -106,13 +106,13 @@ export const makeRooms = (ctx) => ({
     return meta.categories;
   },
 
-  async addChannel(roomId, { name, type, permissions, categoryId, position }) {
+  async addChannel(roomId, { name, type, permissions, categoryId, position, url, path }) {
     const meta = await this.getMeta(roomId);
     if (!meta) return null;
     const chs = meta.channels || [];
     const id = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-') + '-' + shortId().slice(0, 4);
     const maxPos = chs.filter(c => c.categoryId === categoryId).reduce((m, c) => Math.max(m, c.position || 0), -1);
-    const channel = { id, type: type || 'text', name, permissions: permissions || null, categoryId: categoryId || null, position: position !== undefined ? position : maxPos + 1 };
+    const channel = { id, type: type || 'text', name, permissions: permissions || null, categoryId: categoryId || null, position: position !== undefined ? position : maxPos + 1, url: url || null, path: path || null };
     chs.push(channel);
     await this.updateMeta(roomId, { channels: chs });
     return channel;
@@ -127,6 +127,8 @@ export const makeRooms = (ctx) => ({
     if (updates.permissions !== undefined) ch.permissions = updates.permissions;
     if (updates.categoryId !== undefined) ch.categoryId = updates.categoryId;
     if (updates.position !== undefined) ch.position = updates.position;
+    if (updates.url !== undefined) ch.url = updates.url;
+    if (updates.path !== undefined) ch.path = updates.path;
     await this.updateMeta(roomId, { channels: meta.channels });
     return ch;
   },
