@@ -75,7 +75,12 @@ var nostrVoice = {
 
   toggleCamera(){message.add('Camera not available in voice-only mode');},
 
-  _iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}],
+  _iceServers:[
+    {urls:'stun:stun.l.google.com:19302'},
+    {urls:'stun:stun1.l.google.com:19302'},
+    {urls:'stun:stun.cloudflare.com:3478'},
+    {urls:'stun:stun.nextcloud.com:443'},
+  ],
 
   _maybeConnect(peerPubkey) {
     if(!peerPubkey||peerPubkey===state.nostrPubkey||nostrVoice._peers.has(peerPubkey)) return;
