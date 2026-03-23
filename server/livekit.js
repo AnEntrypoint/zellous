@@ -73,7 +73,7 @@ function generateDevConfig() {
     'rtc:',
     '  port_range_start: 50000',
     '  port_range_end: 50200',
-    '  use_external_ip: false',
+    '  use_external_ip: true',
     '  tcp_port: 7883',
     'keys:',
     `  ${apiKey}: ${apiSecret}`,
@@ -84,6 +84,16 @@ function generateDevConfig() {
   writeFileSync(CONFIG_PATH, yaml);
   logger.info('[LiveKit] Generated dev config at livekit.yaml');
   return { apiKey, apiSecret };
+}
+
+function patchExistingConfig() {
+  if (!existsSync(CONFIG_PATH)) return;
+  const content = readFileSync(CONFIG_PATH, 'utf-8');
+  if (content.includes('use_external_ip: false')) {
+    const patched = content.replace('use_external_ip: false', 'use_external_ip: true');
+    writeFileSync(CONFIG_PATH, patched);
+    logger.info('[LiveKit] Patched livekit.yaml: use_external_ip set to true for cross-internet connectivity');
+  }
 }
 
 async function isLivekitRunning() {
@@ -215,6 +225,7 @@ function buildIceServers(cfg) {
 async function initialize() {
   const cfg = getConfig();
   if (!process.env.LIVEKIT_URL) {
+    patchExistingConfig();
     await startLivekitServer();
   }
   logger.info(`[LiveKit] Config: url=${cfg.url} apiKey=${cfg.apiKey}`);
