@@ -3256,10 +3256,12 @@ select option {
 }
 
 .server-header-chevron {
-  font-size: 14px;
+  width: 16px;
+  height: 16px;
   color: var(--text-muted);
-  transition: transform var(--transition-fast);
+  transition: color var(--transition-fast);
   flex-shrink: 0;
+  display: block;
 }
 
 .server-header:hover .server-header-chevron {
@@ -3628,4 +3630,84 @@ select option {
 
 .drawer-overlay {
   touch-action: none;
+}
+
+
+/* ==========================================================================
+   60. Button SVG Icons (stroke-based, iconoir style)
+   ========================================================================== */
+
+/* Generic SVG icon inside buttons */
+.btn-svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* Larger icons for voice controls */
+.voice-ctrl-btn .btn-svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Larger icon for attach button */
+.attach-btn .btn-svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Icon in ctrl-btn (threaded view buttons with text) */
+.ctrl-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+.ctrl-btn .btn-svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Voice panel header dot indicator */
+.voice-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 6px;
+}
+
+/* Ensure voice panel header is flex-aligned */
+.voice-panel-header {
+  display: flex;
+  align-items: center;
+}
+
+/* Channel action buttons contain ch-icon spans — fix sizing */
+.channel-action-btn .ch-icon {
+  width: 16px;
+  height: 16px;
+}
+.channel-action-btn .ch-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Thread panel close button fix */
+.thread-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure mobile hamburger and members btn are flex */
+.mobile-hamburger,
+.mobile-members-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

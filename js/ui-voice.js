@@ -69,7 +69,7 @@ const uiVoice = {
     const ch = state.currentChannel;
     if (!state.voiceConnected && !participants.length) {
       ui.voiceGrid.innerHTML = `<div class="empty-state voice-join-prompt" style="cursor:pointer;flex-direction:column;gap:12px">
-        ${window.getIcon ? getIcon('voiceAlt') : '🔊'}
+        ${window.getIcon ? getIcon('voiceAlt') : '<svg style="width:48px;height:48px;opacity:.4"><use href="#icon-speaker"/></svg>'}
         <div style="font-size:20px;font-weight:700;color:var(--header-primary)">${ch ? escHtml(ch.name) : 'Voice'}</div>
         <div style="font-size:14px">Click to join voice channel</div>
       </div>`;
@@ -87,7 +87,7 @@ const uiVoice = {
       return `<div class="voice-tile">
         <div class="voice-tile-avatar${spk}" style="background:${getAvatarColor(p.identity)}">${getInitial(p.identity)}</div>
         <div class="voice-tile-name">${escHtml(p.identity)}${qDot(p.connectionQuality)}</div>
-        ${p.isMuted ? '<div class="voice-tile-muted">🔇</div>' : ''}
+        ${p.isMuted ? `<div class="voice-tile-muted">${window.getIcon ? getIcon('micOff') : '<svg class="btn-svg" style="width:16px;height:16px"><use href="#icon-mic-off"/></svg>'}</div>` : ''}
       </div>`;
     }).join('');
   },
@@ -104,12 +104,12 @@ const uiVoice = {
       : (state.skipLiveAudio && speakers.size > 0 ? '<button class="skip-btn resume" id="resumeLiveBtn">Resume Live</button>' : '');
     all.forEach(s => {
       const replaying = state.replayingSegmentId === s.id;
-      const icon = replaying ? '🔊' : { recording:'🔴', queued:'⏸', playing:'▶', played:'✓' }[s.status] || '•';
+      const icon = replaying ? '▶' : { recording:'●', queued:'⏸', playing:'▶', played:'✓' }[s.status] || '•';
       const clickable = s.chunks.length > 0 && s.status !== 'recording';
       html += `<div class="queue-item ${s.status}${replaying ? ' replaying' : ''}">
         <span class="queue-icon">${icon}</span>
         <div class="queue-info">
-          <div class="queue-name">${escHtml(s.username)}${s.isOwnAudio ? ' (You)' : ''}${s.videoChunks?.length ? ' 📹' : ''}</div>
+          <div class="queue-name">${escHtml(s.username)}${s.isOwnAudio ? ' (You)' : ''}${s.videoChunks?.length ? ' [vid]' : ''}</div>
           <div class="queue-meta">${s.timestamp.toLocaleTimeString()} · ${s.chunks.length} chunks</div>
         </div>
         ${clickable ? `<div class="queue-actions">
