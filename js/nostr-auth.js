@@ -22,7 +22,7 @@ const auth = {
       if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = short[0].toUpperCase(); }
       document.getElementById('userStatusDot')?.classList.add('online');
       return true;
-    } catch { return false; }
+    } catch(e) { console.error("[nostr-auth] error:", e); return false; }
   },
 
   generateKey() {
@@ -48,7 +48,7 @@ const auth = {
       state.nostrPrivkey = sk;
       state.nostrPubkey = pk;
       return true;
-    } catch { return false; }
+    } catch(e) { console.error("[nostr-auth] error:", e); return false; }
   },
 
   async loginWithExtension() {
@@ -160,7 +160,7 @@ const auth = {
 
     on('copyNpubBtn', () => {
       const pk = state.nostrPubkey;
-      if (pk) navigator.clipboard.writeText(window.NostrTools.nip19.npubEncode(pk)).catch(() => {});
+      if (pk) navigator.clipboard.writeText(window.NostrTools.nip19.npubEncode(pk)).catch(e => console.error("[nostr-auth] error:", e));
     });
 
     on('nostrLogoutBtn', () => { auth.logout(); auth.showModal(); });

@@ -167,7 +167,7 @@ const fileTransfer = {
       const res = await fetch(`/api/rooms/${state.roomId}/files?path=${encodeURIComponent(path)}`);
       const data = await res.json();
       return data.files || [];
-    } catch {
+    } catch(e) { console.error("[files] error:", e);
       return [];
     }
   },

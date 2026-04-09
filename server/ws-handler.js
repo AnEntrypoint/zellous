@@ -72,7 +72,7 @@ const makeHandlers = (state) => ({
   audio_chunk: (client, msg) => {
     state.broadcast({ type: 'audio_data', userId: client.id, data: msg.data }, client, client.roomId);
     const sid = state.mediaSessions.get(client.id);
-    if (sid) media.saveChunk(client.roomId, client.id, 'audio', msg.data, sid).catch(() => {});
+    if (sid) media.saveChunk(client.roomId, client.id, 'audio', msg.data, sid).catch((e) => logger.error('[WS] audio_chunk save error:', e.message));
   },
   audio_end: async (client) => {
     client.speaking = false;
@@ -83,7 +83,7 @@ const makeHandlers = (state) => ({
   video_chunk: (client, msg) => {
     state.broadcast({ type: 'video_chunk', userId: client.id, data: msg.data }, client, client.roomId);
     const sid = state.mediaSessions.get(client.id);
-    if (sid) media.saveChunk(client.roomId, client.id, 'video', msg.data, sid).catch(() => {});
+    if (sid) media.saveChunk(client.roomId, client.id, 'video', msg.data, sid).catch((e) => logger.error('[WS] video_chunk save error:', e.message));
   },
   text_message: async (client, msg) => {
     const msgData = await messages.save(client.roomId, { userId: client.id, username: client.username, type: 'text', content: msg.content, channelId: msg.channelId || 'general' });

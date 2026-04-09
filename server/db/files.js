@@ -11,11 +11,11 @@ const findFileRecursive = async (dir, fileId) => {
       const fp = join(dir, e.name);
       if (e.isDirectory()) { const f = await findFileRecursive(fp, fileId); if (f) return f; }
       else if (e.name.startsWith(fileId) && !e.name.endsWith('.meta.json')) {
-        let meta = null; try { meta = JSON.parse(await fsp.readFile(`${fp}.meta.json`, 'utf8')); } catch {}
+        let meta = null; try { meta = JSON.parse(await fsp.readFile(`${fp}.meta.json`, 'utf8')); } catch(e) { console.error("[db/files] error:", e); }
         return { filepath: fp, meta };
       }
     }
-  } catch {}
+  } catch(e) { console.error("[db/files] error:", e); }
   return null;
 };
 
@@ -38,7 +38,7 @@ export const makeFiles = (ctx) => ({
   async list(roomId, path = '') {
     const dir = join(ctx.dataRoot(), 'rooms', roomId, 'files', path);
     const result = [];
-    try { for (const e of await fsp.readdir(dir, { withFileTypes: true })) { if (e.isDirectory()) result.push({ type: 'directory', name: e.name }); else if (e.name.endsWith('.meta.json')) { try { result.push({ type: 'file', ...JSON.parse(await fsp.readFile(join(dir, e.name), 'utf8')) }); } catch {} } } } catch {}
+    try { for (const e of await fsp.readdir(dir, { withFileTypes: true })) { if (e.isDirectory()) result.push({ type: 'directory', name: e.name }); else if (e.name.endsWith('.meta.json')) { try { result.push({ type: 'file', ...JSON.parse(await fsp.readFile(join(dir, e.name), 'utf8')) }); } catch(e) { console.error("[db/files] error:", e); } } } } catch(e) { console.error("[db/files] error:", e); }
     return result;
   },
 

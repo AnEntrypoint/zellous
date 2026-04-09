@@ -43,6 +43,6 @@ export const makeSessions = (ctx) => ({
   async deleteExpired() {
     const now = Date.now();
     const expired = ctx.rows(await ctx.db().from('sessions').select().lte('expiresat', now));
-    for (const s of expired) { try { await ctx.db().from('sessions').delete().eq('id', s.id); } catch {} }
+    for (const s of expired) { try { await ctx.db().from('sessions').delete().eq('id', s.id); } catch(e) { console.error("[db/sessions] error:", e); } }
   },
 });

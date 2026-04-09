@@ -68,7 +68,7 @@ class NostrAdapter {
         this._pubkey = getPublicKey(this._privkey);
         this._persistKey();
         return { user: { id: this._pubkey, username: this._displayName() } };
-      } catch {
+      } catch(e) { console.error("[nostr-adapter] error:", e);
         return { error: 'Invalid nsec key' };
       }
     }
@@ -84,7 +84,7 @@ class NostrAdapter {
         this._privkey = null;
         localStorage.setItem('nostr_pubkey', this._pubkey);
         return { user: { id: this._pubkey, username: this._displayName() } };
-      } catch {
+      } catch(e) { console.error("[nostr-adapter] error:", e);
         return { error: 'NIP-07 extension denied access' };
       }
     }
@@ -185,8 +185,8 @@ class NostrAdapter {
   }
 
   _emit(event, data) {
-    (this._listeners[event] || []).forEach(fn => { try { fn(data); } catch {} });
-    (this._listeners['*'] || []).forEach(fn => { try { fn(data); } catch {} });
+    (this._listeners[event] || []).forEach(fn => { try { fn(data); } catch(e) { console.error("[nostr-adapter] error:", e); } });
+    (this._listeners['*'] || []).forEach(fn => { try { fn(data); } catch(e) { console.error("[nostr-adapter] error:", e); } });
   }
 }
 

@@ -8,7 +8,12 @@
     ".": "./lib/index.js",
     "./core": "./lib/zellous-core.js",
     "./handlers": "./lib/default-handlers.js",
-    "./server": "./server.js"
+    "./handlers/media": "./lib/handlers-media.js",
+    "./handlers/messaging": "./lib/handlers-messaging.js",
+    "./server": "./server.js",
+    "./db": "./server/db.js",
+    "./auth": "./server/auth-ops.js",
+    "./config": "./server/config.js"
   },
   "scripts": {
     "start": "bun run server.js",

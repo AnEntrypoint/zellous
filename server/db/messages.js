@@ -19,7 +19,7 @@ export const makeMessages = (ctx) => ({
       const result = [];
       for (const file of fileList) {
         if (result.length >= limit) break;
-        try { const msg = JSON.parse(await fsp.readFile(join(msgDir, file), 'utf8')); if (!channelId || (msg.channelId || 'general') === channelId) result.push(msg); } catch {}
+        try { const msg = JSON.parse(await fsp.readFile(join(msgDir, file), 'utf8')); if (!channelId || (msg.channelId || 'general') === channelId) result.push(msg); } catch(e) { console.error("[db/messages] error:", e); }
       }
       return result.reverse();
     } catch { return []; }
@@ -27,12 +27,12 @@ export const makeMessages = (ctx) => ({
 
   async getById(roomId, messageId) {
     const msgDir = join(ctx.dataRoot(), 'rooms', roomId, 'messages');
-    try { for (const f of await fsp.readdir(msgDir)) { if (f.includes(messageId)) return JSON.parse(await fsp.readFile(join(msgDir, f), 'utf8')); } } catch {}
+    try { for (const f of await fsp.readdir(msgDir)) { if (f.includes(messageId)) return JSON.parse(await fsp.readFile(join(msgDir, f), 'utf8')); } } catch(e) { console.error("[db/messages] error:", e); }
     return null;
   },
 
   async remove(roomId, messageId) {
-    try { for (const f of await fsp.readdir(join(ctx.dataRoot(), 'rooms', roomId, 'messages'))) { if (f.includes(messageId)) { await fsp.unlink(join(ctx.dataRoot(), 'rooms', roomId, 'messages', f)); return true; } } } catch {}
+    try { for (const f of await fsp.readdir(join(ctx.dataRoot(), 'rooms', roomId, 'messages'))) { if (f.includes(messageId)) { await fsp.unlink(join(ctx.dataRoot(), 'rooms', roomId, 'messages', f)); return true; } } } catch(e) { console.error("[db/messages] error:", e); }
     return false;
   },
 
@@ -47,7 +47,7 @@ export const makeMessages = (ctx) => ({
           return updated;
         }
       }
-    } catch {}
+    } catch(e) { console.error("[db/messages] error:", e); }
     return null;
   },
 });

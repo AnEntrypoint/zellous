@@ -52,7 +52,7 @@ const webcam = {
         const old = ui.videoPlaybackVideo.src;
         ui.videoPlaybackVideo.src = URL.createObjectURL(new Blob(c, { type: 'video/webm' }));
         ui.videoPlaybackVideo.currentTime = Math.max(0, ui.videoPlaybackVideo.duration - 0.5) || 0;
-        ui.videoPlaybackVideo.play().catch(() => {});
+        ui.videoPlaybackVideo.play().catch(e => console.error("[webcam] error:", e));
         if (old?.startsWith('blob:')) URL.revokeObjectURL(old);
       }, 1000);
     }

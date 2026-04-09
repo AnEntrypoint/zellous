@@ -55,7 +55,7 @@ export const makeRooms = (ctx) => ({
 
   async cleanup(roomId) {
     await ctx.db().from('rooms').delete().eq('id', roomId);
-    try { await fsp.rm(join(ctx.dataRoot(), 'rooms', roomId), { recursive: true, force: true }); } catch {}
+    try { await fsp.rm(join(ctx.dataRoot(), 'rooms', roomId), { recursive: true, force: true }); } catch(e) { console.error("[db/rooms] error:", e); }
     logger.info(`[DB] Cleaned up room: ${roomId}`);
   },
 

@@ -24,7 +24,6 @@ const uiChat = {
     const scrollPos = ui.chatMessages.scrollHeight - ui.chatMessages.scrollTop - ui.chatMessages.clientHeight;
     const wasAtBottom = scrollPos < 100 || ui.chatMessages.scrollHeight === 0;
     let html = '', lastUser = null, lastTime = 0;
-
     merged.forEach(m => {
       if (m.type === 'system') {
         lastUser = null; lastTime = 0;
@@ -58,7 +57,6 @@ const uiChat = {
       const reactionsHtml = m.reactions?.length ? `<div class="msg-reactions">${m.reactions.map(r =>
         `<button class="reaction-pill${r.users?.includes(state.userId) ? ' reacted' : ''}" data-react-emoji="${r.emoji}" data-msg="${m.id}">${r.emoji} <span class="reaction-count">${r.users?.length||1}</span></button>`
       ).join('')}</div>` : '';
-
       if (!sameUser) {
         html += `<div class="msg-group" data-message-id="${m.id}" data-user-id="${m.userId}"${pendingAttr}>
           ${actions}<div class="msg-avatar" style="background:${color}">${getInitial(username)}</div>
@@ -72,7 +70,6 @@ const uiChat = {
       }
       lastUser = m.userId; lastTime = m.timestamp;
     });
-
     ui.chatMessagesInner.innerHTML = html;
     if (wasAtBottom) ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
     this._bindActions();

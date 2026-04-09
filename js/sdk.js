@@ -3,7 +3,7 @@
   try {
     const m = window.msgpackr;
     pack = m.pack; unpack = m.unpack;
-  } catch {
+  } catch(e) { console.error("[sdk] error:", e);
     pack = JSON.stringify; unpack = JSON.parse;
   }
 
@@ -54,7 +54,7 @@
           const msg = typeof e.data === 'string' ? JSON.parse(e.data) : unpack(new Uint8Array(e.data));
           this._emit(msg.type, msg);
           this._emit('*', msg);
-        } catch {}
+        } catch(e) { console.error("[sdk] error:", e); }
       };
       this._ws.onclose = () => {
         this._emit('disconnected', {});
@@ -97,7 +97,7 @@
       }
       try {
         this._ws.send(pack(msg));
-      } catch {}
+      } catch(e) { console.error("[sdk] error:", e); }
     }
 
     _flushQueue() {
@@ -108,7 +108,7 @@
 
     _emit(event, data) {
       const fns = this._listeners[event] || [];
-      fns.forEach(fn => { try { fn(data); } catch {} });
+      fns.forEach(fn => { try { fn(data); } catch(e) { console.error("[sdk] error:", e); } });
     }
 
     async _apiGet(path) {

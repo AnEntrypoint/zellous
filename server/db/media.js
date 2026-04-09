@@ -24,7 +24,7 @@ export const makeMedia = (ctx) => {
         const m = JSON.parse(await fsp.readFile(p, 'utf8'));
         m.endedAt = Date.now();
         await fsp.writeFile(p, JSON.stringify(m, null, 2));
-      } catch {}
+      } catch(e) { console.error("[db/media] error:", e); }
     },
   };
 };

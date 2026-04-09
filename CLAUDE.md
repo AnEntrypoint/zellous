@@ -2,6 +2,9 @@
 
 ## Architecture Overview
 
+### Entry Point
+- `server.js` — 98-line orchestrator. Imports and mounts all router modules, initializes DB, LiveKit, WebSocket handler. Exports `app`, `server`, `state`, `broadcast`.
+
 ### Storage Layer
 - `server/db.js` — Re-export shim; all implementation is in `server/db/`. Same public surface: `initialize, startCleanup, stopCleanup, users, sessions, rooms, messages, media, files, servers, bots` and utilities.
 - `server/db/index.js` — Wires together domain modules via a shared `ctx` object (db getter, config getter, dataRoot getter, row/rows helpers).
@@ -28,11 +31,13 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 - `ws-handler.js` — WebSocket connection lifecycle. All handlers (built-in and plugins) dispatched via single `getHandler(msg.type)` lookup.
 - `bot-handlers.js` — Bot WebSocket message handlers
 - `bot-websocket.js` — BotConnection class
-- `livekit.js` — LiveKit binary management, config, ICE servers
-- `routes-auth.js` — Express Router for `/api/auth/*` and `/api/user/*`
+- `livekit.js` — LiveKit config, ICE servers, SDK lazy-load, initialize/stop exports
+- `livekit-binary.js` — LiveKit binary download, spawn, process management
+- `routes-auth.js` — Named exports `authRouter` (for `/api/auth/*`) and `userRouter` (for `/api/user/*`, `/api/sessions`, `/api/devices`)
 - `routes-rooms.js` — Express Router for `/api/rooms/*` (user-facing). Channel types: `text`, `voice`, `threaded`, `page`, `game`, `forum`; page/game channels store `url`/`path`.
 - `routes-servers.js` — Express Router for `/api/servers/*`. Accepts `type` (`community`|`page`) and `url` on create/update.
 - `routes-bots.js` — Bot CRUD (`makeBotsRouter`) and bot room access (`makeBotRoomsRouter`)
+- `routes-nostr.js` — Express Router for `/api/nostr/*` (ping, livekit-token with rate limiting)
 - `routes-livekit.js` — LiveKit HTTP proxy, WS proxy, token endpoint
 
 ### Client SDK (lib/)
@@ -45,20 +50,25 @@ All data stored in vectordb/LanceDB uses all-lowercase column names (`userid`, `
 
 ### Client Modules (js/)
 - `state.js` — Config, state object, room URL parsing
-- `auth.js` — Login persistence, session management, device tracking
+- `auth.js` — Login persistence, session management, core auth (register/login/logout)
+- `auth-account.js` — Account management: sessions, devices, display name, settings, password change
 - `api.js` — Shared `apiRequest(method, url, body)` fetch helper (reads auth token at call time)
 - `channels-api.js` — Channel/category API calls using `apiRequest`; exposes `window.channelApi`. `create()` accepts optional `extras` object for `url`/`path` fields.
 - `channels-ui.js` — Channel/category modals, context menus, drag-and-drop; exposes `window.channelManager`. Channel creation supports page/game types with URL/path inputs.
+- `ui-helpers.js` — Shared utilities: getInitial, getAvatarColor, escHtml, formatTime, chIcon
 - `ui.js` — DOM references, render functions, UI actions
 - `chat.js` — Text messaging, image preview, file attachments
 - `files.js` — File upload/download, drag-drop, clipboard paste
 - `audio.js` — Opus encoding/decoding, playback, pause/resume
 - `queue.js` — Audio segment queue, replay, download
-- `network.js` — WebSocket, message handlers
+- `network.js` — WebSocket connection, send/receive, message object skeleton
+- `network-handlers.js` — Connection, room, channel, category message handlers
+- `network-media.js` — Audio, video, text, file message handlers
 - `nostr-voice.js` — Serverless voice via native WebRTC + Nostr signaling; replaces `window.lk` in nostr mode
 - `ptt.js` — PTT, deafen, VAD
 - `webcam.js` — Webcam capture/playback
-- `servers.js` — Server list management; `switchTo()` handles `page`-type servers by showing a full-area iframe embed, hiding channel sidebar.
+- `servers.js` — Server list management, API, switching, channels
+- `servers-ui.js` — Server list rendering, drag-and-drop, create modal; `switchTo()` handles `page`-type servers by showing a full-area iframe embed, hiding channel sidebar.
 
 ## Package Exports
 ```

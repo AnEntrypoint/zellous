@@ -51,7 +51,7 @@ var nostrVoice = {
   _closePeer(pubkey) {
     var peer=nostrVoice._peers.get(pubkey); if(!peer) return;
     if(peer.iceTimer) clearTimeout(peer.iceTimer);
-    try{peer.pc?.close();}catch(e){}
+    try{peer.pc?.close();}catch(e){ console.error("[nostr-voice] cleanup error:", e); }
     if(peer.audioEl){peer.audioEl.srcObject=null;peer.audioEl.remove();}
     nostrVoice._peers.delete(pubkey);
   },
@@ -113,7 +113,7 @@ var nostrVoice = {
     if(!nostrVoice._peers.has(from)) nostrVoice._maybeConnect(from);
     var peer=nostrVoice._peers.get(from); if(!peer) return;
     var pc=peer.pc;
-    var drainBuf=()=>{peer.bufferedCandidates.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));peer.bufferedCandidates=[];};
+    var drainBuf=()=>{peer.bufferedCandidates.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(e=>console.error("[nostr-voice] ice:",e)));peer.bufferedCandidates=[];};
     if(data.type==='offer'&&pc.signalingState==='stable')
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();return pc.createAnswer();})
         .then(a=>pc.setLocalDescription(a).then(()=>{
@@ -124,7 +124,7 @@ var nostrVoice = {
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();}).catch(e=>console.warn('[nostr-voice] set-answer:',e));
     else if(data.type==='ice'){
       var cands=Array.isArray(data.data)?data.data:[data.data];
-      if(peer.remoteDescSet) cands.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}));
+      if(peer.remoteDescSet) cands.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(e=>console.error("[nostr-voice] ice:",e)));
       else peer.bufferedCandidates.push(...cands);
     }
   },
@@ -182,7 +182,7 @@ var nostrVoice = {
             nostrVoice._maybeConnect(event.pubkey);
           }
           nostrVoice.updateParticipants();
-        } catch(e){}
+        } catch(e){ console.error("[nostr-voice] cleanup error:", e); }
       },()=>{});
   },
 
