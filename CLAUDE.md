@@ -19,7 +19,7 @@ Zellous is a fully serverless voice and chat app using public Nostr relays. No b
 - `nostr-state-patch.js` — Patches state signals for nostr mode
 - `nostr-network.js` — Nostr relay connection, event pub/sub (relay management, subscribe, publish)
 - `nostr-message.js` — `message` object: add system messages, dispatch to handlers
-- `nostr-fsm.js` — Finite state machine factory (`makeFSM`) for connection lifecycle
+- `nostr-fsm.js` — XState v5 machines (`voiceMachine`, `peerMachine`) via `XState.createMachine`. See XState section below.
 - `nostr-voice.js` — Voice session FSM, connect/disconnect, presence heartbeat, mic/deafen controls
 - `nostr-voice-rtc.js` — WebRTC peer management: `maybeConnect`, ICE gathering, offer/answer exchange, `handleSignal`, `publish`
 - `nostr-chat.js` — Chat over Nostr events
@@ -92,3 +92,25 @@ Hub forwarding uses `sender.replaceTrack(receiver.track)` — Chrome and Firefox
 ### Debug surfaces
 - `window.__debugNet` — relay latency per relay
 - `nostr-voice.js.__debug` — includes SFU state (hub election result, forwarding map)
+
+## XState v5 Integration
+
+XState v5 is vendored at `docs/vendor/xstate/es2022/` with proxy at `docs/vendor/xstate.mjs`.
+
+### Loading pattern (docs/nostr-chat/index.html)
+1. importmap entry: `"xstate": "../vendor/xstate.mjs"`
+2. type="module" script block assigns: `import {createMachine,createActor} from 'xstate'; window.XState = {createMachine,createActor}`
+3. Classic scripts access via `window.XState.createMachine`, `window.XState.createActor`
+
+### Actor API in classic scripts
+- Create actor: `XState.createActor(machine)`, then `actor.start()`
+- Send events: `actor.send({type:'eventName'})` — NOT `actor.send('eventName')`
+- Check state: `actor.getSnapshot().matches('stateName')` — NOT `actor.is()`
+- Can check: `actor.getSnapshot().can({type:'eventName'})` — NOT `actor.can()`
+- Get state value: `actor.getSnapshot().value` — NOT `actor.state`
+- Subscribe: `actor.subscribe(snap => { /* snap.value is current state */ })`
+- **Important**: subscribe() does NOT fire on `actor.start()` — only on transitions
+
+## Windows / CRLF Caveat
+
+On Windows, git may store `docs/nostr-chat/index.html` with CRLF line endings. When doing string replacements via `exec:nodejs`, use `\r\n` in regex patterns if `\n` alone doesn't match.
