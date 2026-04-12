@@ -133,7 +133,34 @@ const ui_events = {
     if (rnnoiseToggle) {
       const stored = localStorage.getItem('zellous_rnnoise');
       rnnoiseToggle.checked = stored === null ? true : stored === 'true';
-      rnnoiseToggle.addEventListener('change', (e) => { localStorage.setItem('zellous_rnnoise', e.target.checked ? 'true' : 'false'); });
+      rnnoiseToggle.addEventListener('change', async (e) => {
+        localStorage.setItem('zellous_rnnoise', e.target.checked ? 'true' : 'false');
+        // Hot-swap the track on all active peer connections
+        if (!window.nostrVoice || !state.voiceConnected) return;
+        const nv = window.nostrVoice;
+        const rawStream = state.mediaStream;
+        if (!rawStream) return;
+        let newStream;
+        if (e.target.checked) {
+          newStream = await nv._applyRnnoise(rawStream);
+        } else {
+          // disconnect rnnoise graph, revert to raw
+          if (nv._rnnoiseSource) { try { nv._rnnoiseSource.disconnect(); } catch(_) {} nv._rnnoiseSource = null; }
+          if (nv._rnnoiseNode)   { try { nv._rnnoiseNode.disconnect();   } catch(_) {} nv._rnnoiseNode   = null; }
+          newStream = rawStream;
+        }
+        nv._localStream = newStream;
+        const newTrack = newStream.getAudioTracks()[0];
+        if (!newTrack) return;
+        nv._peers.forEach((peer) => {
+          if (!peer.pc) return;
+          peer.pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === 'audio') {
+              sender.replaceTrack(newTrack).catch(() => {});
+            }
+          });
+        });
+      });
     }
 
     // Mic monitor: show live raw vs processed levels when settings popover is open
