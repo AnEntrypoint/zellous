@@ -1,3 +1,10 @@
+## [2026-04-12] redesign-css
+- Replace Discord-clone CSS with original minimal dark design
+- New color palette: slate-based dark (#0f1117 base, #1a1d27 panels, #6c63ff accent)
+- No --bg-primary: #313338 — all Discord variables replaced
+- Responsive breakpoints at 480px, 768px, 1024px
+- All component classes preserved; context menu, modal, toast styles present
+
 # Changelog
 
 ## [2.0.0] - 2025-11-24 - Modular Architecture Refactor
