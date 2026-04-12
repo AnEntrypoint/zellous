@@ -1,3 +1,4 @@
+window.__voiceRetrySchedule = window.__voiceRetrySchedule || {};
 var nostrVoiceRtc = {
   _iceServers:[
     {urls:'stun:stun.l.google.com:19302'},
@@ -30,6 +31,7 @@ var nostrVoiceRtc = {
   maybeConnect(peerPubkey) {
     var nv=nostrVoice;
     if(!peerPubkey||peerPubkey===state.nostrPubkey||nv._peers.has(peerPubkey)) return;
+    nostrVoiceRtc.cancelReconnect(peerPubkey);
     var fsm=XState.createActor(nostrFsm.peerMachine);
     fsm.subscribe(function(snap){var p=nv._peers.get(peerPubkey);if(p)p.state=snap.value;});
     fsm.start();
@@ -83,11 +85,12 @@ var nostrVoiceRtc = {
       if(peer.failCount<=1&&state.nostrPubkey>peerPubkey){
         fsm.send({type:'restart'}); pc.restartIce();
         pc.createOffer({iceRestart:true}).then(o=>pc.setLocalDescription(o).then(()=>nv._publishSignal(peerPubkey,'offer',o))).catch(()=>nv._closePeer(peerPubkey));
-      } else { nv._closePeer(peerPubkey); }
+      } else { nv._closePeer(peerPubkey); nostrVoiceRtc.scheduleReconnect(peerPubkey, peer.failCount); }
     };
     pc.onconnectionstatechange=function(){
       if(pc.connectionState==='connected'){
-        peer.failCount=0; if(fsm.getSnapshot().can({type:'recv_answer'})) fsm.send({type:'recv_answer'});
+        peer.failCount=0; nostrVoiceRtc.cancelReconnect(peerPubkey);
+        if(fsm.getSnapshot().can({type:'recv_answer'})) fsm.send({type:'recv_answer'});
         if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
         nostrVoiceRtc._applyAudioHints(pc);
         var pKey='nostr-'+peerPubkey.slice(0,12);
@@ -150,40 +153,35 @@ var nostrVoiceRtc = {
 };
 window.nostrVoiceRtc = nostrVoiceRtc;
 
-nostrVoiceRtc.scheduleReconnect = nostrVoiceRtc.scheduleReconnect || function(pk) { setTimeout(function(){ if(!nostrVoice._peers.has(pk)) nostrVoiceRtc.maybeConnect(pk); }, 2000); };
+nostrVoiceRtc.cancelReconnect = function(pk) {
+  var e=window.__voiceRetrySchedule[pk]; if(e){clearTimeout(e.timer);delete window.__voiceRetrySchedule[pk];}
+};
+nostrVoiceRtc.scheduleReconnect = function(pk, attempt) {
+  var a=attempt||0; if(a>=6) return;
+  nostrVoiceRtc.cancelReconnect(pk);
+  var timer=setTimeout(function(){
+    delete window.__voiceRetrySchedule[pk];
+    var nv=nostrVoice; if(!nv._peers.has(pk)&&nv._roomId) nostrVoiceRtc.maybeConnect(pk);
+  }, Math.min(Math.pow(2,a)*2000,30000));
+  window.__voiceRetrySchedule[pk]={attempt:a,timer:timer};
+  if(window.__debug&&window.__debug.voice) window.__debug.voice.retrySchedule=window.__voiceRetrySchedule;
+};
 
-var _healDebounce = null;
-var _pagehidden = false;
-var _BAD_STATES = { disconnected: 1, failed: 1, closed: 1 };
-
-function _healPeers() {
-  if(_healDebounce) { clearTimeout(_healDebounce); _healDebounce = null; }
-  _healDebounce = setTimeout(function() {
-    _healDebounce = null;
-    var nv = nostrVoice;
-    if(!nv._roomId) return;
-    nostrVoiceRtc.scheduleReconnect = nostrVoiceRtc.scheduleReconnect || function(pk) { setTimeout(function(){ if(!nv._peers.has(pk)) nostrVoiceRtc.maybeConnect(pk); }, 2000); };
-    nv._peers.forEach(function(peer, pk) {
-      if(_BAD_STATES[peer.pc && peer.pc.connectionState]) {
-        nv._closePeer(pk);
-        nostrVoiceRtc.scheduleReconnect(pk, 0);
-      }
-    });
-  }, 500);
+var _healDebounce=null,_pagehidden=false,_BAD={disconnected:1,failed:1,closed:1};
+function _healPeers(){
+  if(_healDebounce){clearTimeout(_healDebounce);_healDebounce=null;}
+  _healDebounce=setTimeout(function(){
+    _healDebounce=null; var nv=nostrVoice; if(!nv._roomId) return;
+    nv._peers.forEach(function(peer,pk){if(_BAD[peer.pc&&peer.pc.connectionState]){nv._closePeer(pk);nostrVoiceRtc.scheduleReconnect(pk,0);}});
+  },500);
 }
-
-document.addEventListener('visibilitychange', function() {
-  if(document.visibilityState === 'hidden') { _pagehidden = true; return; }
-  if(_pagehidden) { _pagehidden = false; _healPeers(); }
+document.addEventListener('visibilitychange',function(){
+  if(document.visibilityState==='hidden'){_pagehidden=true;return;}
+  if(_pagehidden){_pagehidden=false;_healPeers();}
 });
-
-window.addEventListener('online', function() {
-  var nv = nostrVoice;
-  if(!nv._roomId) return;
-  if(window.nostrNet && nostrNet.reconnectAll) nostrNet.reconnectAll();
+window.addEventListener('online',function(){
+  var nv=nostrVoice; if(!nv._roomId) return;
+  if(window.nostrNet&&nostrNet.reconnectAll) nostrNet.reconnectAll();
   _healPeers();
 });
-
-window.addEventListener('pageshow', function(ev) {
-  if(ev.persisted || _pagehidden) { _pagehidden = false; _healPeers(); }
-});
+window.addEventListener('pageshow',function(ev){if(ev.persisted||_pagehidden){_pagehidden=false;_healPeers();}});

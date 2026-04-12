@@ -1,4 +1,12 @@
 
+## [2026-04-12] peer-retry-unlimited
+- Replace failCount<=1 ICE restart cap with exponential backoff up to 6 attempts then give up
+- Add scheduleReconnect(pk, attempt): delay=min(2^attempt*2000,30000)ms, skips if attempt>=6
+- Add cancelReconnect(pk): clears timer and removes from __voiceRetrySchedule
+- cancelReconnect called in maybeConnect entry (presence event cancels pending retry)
+- cancelReconnect + failCount reset on connectionState=connected
+- window.__voiceRetrySchedule tracks all pending retries; exposed via window.__debug.voice.retrySchedule
+
 ## [2026-04-12] peer-track-ended-recovery
 - Attach track.onended handler in ontrack: triggers doIceRestart if FSM=connected
 - Add 5s stall interval per peer: detects all-ended srcObject tracks while FSM=connected, triggers doIceRestart once via trackEndedRestart flag
