@@ -135,6 +135,67 @@ const ui_events = {
       rnnoiseToggle.checked = stored === null ? true : stored === 'true';
       rnnoiseToggle.addEventListener('change', (e) => { localStorage.setItem('zellous_rnnoise', e.target.checked ? 'true' : 'false'); });
     }
+
+    // Mic monitor: show live raw vs processed levels when settings popover is open
+    let _micMonitorRaf = null;
+    let _micMonitorRawCtx = null, _micMonitorRawAnalyser = null;
+    let _micMonitorProcCtx = null, _micMonitorProcAnalyser = null;
+    const _startMicMonitor = () => {
+      const rawBar = document.getElementById('micRawBar');
+      const procBar = document.getElementById('micProcessedBar');
+      const monitor = document.getElementById('micMonitor');
+      if (!rawBar || !procBar || !monitor) return;
+      const rawStream = state.mediaStream;
+      const procStream = window.nostrVoice?._rnnoiseDest?.stream;
+      if (!rawStream) { monitor.style.display = 'none'; return; }
+      monitor.style.display = 'block';
+      // build analysers
+      if (!_micMonitorRawCtx || _micMonitorRawCtx.state === 'closed') {
+        _micMonitorRawCtx = new AudioContext();
+      }
+      if (!_micMonitorRawAnalyser) {
+        _micMonitorRawAnalyser = _micMonitorRawCtx.createAnalyser();
+        _micMonitorRawAnalyser.fftSize = 256;
+        _micMonitorRawCtx.createMediaStreamSource(rawStream).connect(_micMonitorRawAnalyser);
+      }
+      if (procStream && !_micMonitorProcAnalyser) {
+        if (!_micMonitorProcCtx || _micMonitorProcCtx.state === 'closed') _micMonitorProcCtx = new AudioContext();
+        _micMonitorProcAnalyser = _micMonitorProcCtx.createAnalyser();
+        _micMonitorProcAnalyser.fftSize = 256;
+        _micMonitorProcCtx.createMediaStreamSource(procStream).connect(_micMonitorProcAnalyser);
+      }
+      const data = new Uint8Array(_micMonitorRawAnalyser.frequencyBinCount);
+      const tick = () => {
+        if (!ui.settingsPopover?.classList.contains('open')) { _micMonitorRaf = null; return; }
+        _micMonitorRawAnalyser.getByteFrequencyData(data);
+        let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
+        rawBar.style.width = Math.min(100, Math.sqrt(sum / data.length) / 255 * 400) + '%';
+        if (_micMonitorProcAnalyser) {
+          _micMonitorProcAnalyser.getByteFrequencyData(data);
+          let s2 = 0; for (let i = 0; i < data.length; i++) s2 += data[i] * data[i];
+          procBar.style.width = Math.min(100, Math.sqrt(s2 / data.length) / 255 * 400) + '%';
+          procBar.parentElement.parentElement.previousElementSibling.children[1].style.opacity = '1';
+        } else {
+          procBar.style.width = '0%';
+          procBar.parentElement.parentElement.previousElementSibling.children[1].style.opacity = '0.3';
+        }
+        _micMonitorRaf = requestAnimationFrame(tick);
+      };
+      if (!_micMonitorRaf) _micMonitorRaf = requestAnimationFrame(tick);
+    };
+    const _stopMicMonitor = () => {
+      if (_micMonitorRaf) { cancelAnimationFrame(_micMonitorRaf); _micMonitorRaf = null; }
+      _micMonitorRawAnalyser = null; _micMonitorProcAnalyser = null;
+      if (_micMonitorRawCtx) { _micMonitorRawCtx.close().catch(() => {}); _micMonitorRawCtx = null; }
+      if (_micMonitorProcCtx) { _micMonitorProcCtx.close().catch(() => {}); _micMonitorProcCtx = null; }
+    };
+    // toggleSettings runs first (toggling .open), so .contains('open') reflects new state here
+    document.getElementById('settingsBtn')?.addEventListener('click', () => {
+      setTimeout(() => {
+        if (ui.settingsPopover?.classList.contains('open')) _startMicMonitor();
+        else _stopMicMonitor();
+      }, 0);
+    });
   }
 };
 

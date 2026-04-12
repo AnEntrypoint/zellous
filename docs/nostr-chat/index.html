@@ -289,6 +289,20 @@
       <span class="ctrl-label" style="flex:1;min-width:auto">Noise Suppression</span>
       <label class="toggle-switch"><input type="checkbox" id="rnnoiseToggle" autocomplete="off" checked><span class="toggle-slider"></span></label>
     </div>
+    <div id="micMonitor" style="margin-bottom:12px;display:none">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">Raw</span>
+        <span style="font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">Processed</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="flex:1;height:6px;background:var(--bg-surface);border-radius:3px;overflow:hidden">
+          <div id="micRawBar" style="height:100%;width:0%;background:var(--text-muted);border-radius:3px;transition:width 0.05s"></div>
+        </div>
+        <div style="flex:1;height:6px;background:var(--bg-surface);border-radius:3px;overflow:hidden">
+          <div id="micProcessedBar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.05s"></div>
+        </div>
+      </div>
+    </div>
     <div class="ctrl-row" style="margin-bottom:12px">
       <span class="ctrl-label" style="flex:1;min-width:auto">Data Channel</span>
       <label class="toggle-switch"><input type="checkbox" id="dataChannelToggle" autocomplete="off"><span class="toggle-slider"></span></label>
@@ -596,25 +610,16 @@ async function initNostr() {
 
   await nostrNet.connect();
 
-  const loggedIn = auth.init();
+  if (!auth.init()) {
+    auth.generateKey();
+    auth._afterLogin();
+  }
 
   auth.bindUI();
 
-  if (loggedIn) {
-    serverManager.init();
-    if (roomParam) {
-      serverManager.showJoinPreview(roomParam, () => serverManager.join(roomParam));
-    }
-  } else {
-    auth.showModal();
-    if (roomParam) {
-      document.addEventListener('nostr:login', async () => {
-        serverManager.init();
-        serverManager.showJoinPreview(roomParam, () => serverManager.join(roomParam));
-      }, { once: true });
-    } else {
-      document.addEventListener('nostr:login', () => serverManager.init(), { once: true });
-    }
+  serverManager.init();
+  if (roomParam) {
+    serverManager.showJoinPreview(roomParam, () => serverManager.join(roomParam));
   }
 
   window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt, nostrVoice };
