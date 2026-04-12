@@ -74,3 +74,21 @@ Static site — no build step required.
 ```bash
 npx serve docs
 ```
+
+## Nostr Voice SFU (nostr-voice-sfu.js)
+
+Hub election: peer with lowest average RTT to all others becomes hub. RTT scores are carried inside kind 30078 heartbeat presence events so every peer can build a full RTT matrix. Topology switches mesh→star at 3+ peers.
+
+Hub forwarding uses `sender.replaceTrack(receiver.track)` — Chrome and Firefox both accept a remote `MediaStreamTrack` directly; no insertable streams required.
+
+### WebRTC browser caveats (discovered empirically)
+
+- **RTT from getStats**: filter by `type === 'candidate-pair' && state === 'succeeded'`; field is `currentRoundTripTime` in seconds.
+- **playoutDelayHint**: `RTCRtpReceiver.playoutDelayHint` is Chrome 87+ only, Firefox partial — always set inside `try/catch`.
+- **FEC/RED**: on by default for Opus in Chrome; no action needed.
+- **DTX**: cannot be reliably disabled via `setParameters` in Chrome 120+; skip DTX control entirely.
+- **SDP munging**: deprecated for codec params in Chrome 120+; do not use.
+
+### Debug surfaces
+- `window.__debugNet` — relay latency per relay
+- `nostr-voice.js.__debug` — includes SFU state (hub election result, forwarding map)
