@@ -16,8 +16,12 @@ var nostrVoice = {
     state.voiceConnectionState = 'connecting';
     try {
       nostrVoice._roomId = await nostrVoice._deriveRoomId(channelName);
-      nostrVoice._localStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-      state.mediaStream = nostrVoice._localStream;
+      if(state.mediaStream&&state.mediaStream.getAudioTracks().some(t=>t.readyState==='live')){
+        nostrVoice._localStream=state.mediaStream;
+      } else {
+        nostrVoice._localStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+        state.mediaStream=nostrVoice._localStream;
+      }
       nostrVoice._participants.clear();
       nostrVoice._participants.set('local',{identity:nostrVoice._displayName(),isSpeaking:false,isMuted:false,isLocal:true,hasVideo:false,connectionQuality:'good'});
       state.voiceConnected=true; state.voiceConnectionState='connected'; state.voiceConnectionQuality='good';
@@ -37,8 +41,8 @@ var nostrVoice = {
   async disconnect() {
     nostrVoice._publishPresence('leave'); nostrVoice._stopHeartbeat();
     nostrVoice._peers.forEach((_,pk)=>nostrVoice._closePeer(pk)); nostrVoice._peers.clear();
-    if(nostrVoice._localStream){nostrVoice._localStream.getTracks().forEach(t=>t.stop());nostrVoice._localStream=null;}
-    state.mediaStream=null;
+    if(nostrVoice._localStream&&nostrVoice._localStream!==state.mediaStream){nostrVoice._localStream.getTracks().forEach(t=>t.stop());}
+    nostrVoice._localStream=null;
     if(nostrVoice._roomId){nostrNet.unsubscribe('voice-presence-'+nostrVoice._roomId);nostrNet.unsubscribe('voice-signals-'+nostrVoice._roomId);}
     nostrVoice._participants.clear(); nostrVoice._roomId=''; nostrVoice._channelName='';
     state.voiceConnected=false; state.voiceConnectionState='disconnected'; state.voiceConnectionQuality='unknown';
