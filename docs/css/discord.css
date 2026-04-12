@@ -444,6 +444,19 @@ body {
 .voice-user.speaking { color: var(--status-positive); }
 .voice-user.speaking .voice-user-avatar { box-shadow: 0 0 0 2px var(--status-positive); }
 
+.channel-item.voice-active { color: var(--status-positive); }
+.channel-item.voice-connecting { color: var(--text-muted); }
+.voice-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--text-faint);
+  border-top-color: var(--text-normal);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .voice-panel {
   display: none;
   flex-direction: column;

@@ -1,3 +1,17 @@
+## [2026-04-12] voice-channel-click
+- Clicking a voice channel immediately calls lk.connect() — no separate join button
+- Clicking the active voice channel calls lk.disconnect()
+- Channel item shows spinner animation during connecting state
+- Removed "Click to join voice channel" overlay from voice view grid
+
+## [2026-04-12] remove-self-hosted
+- Deleted server/ directory (all server-side modules)
+- Deleted lib/ directory (server SDK wrappers)
+- Deleted server.js, livekit.yaml, nixpacks.toml, nodemon.json, keep-alive.sh
+- Deleted server-mode-only js files: network.js, auth.js, auth-account.js, network-handlers.js, network-media.js, api.js, channels-api.js, channels-ui.js, chat.js, livekit.js, servers.js, servers-ui.js, ui-helpers.js
+- Removed server deps from package.json: busybase, cors, express, livekit-server-sdk, ws, msgpackr
+- docs/nostr-chat still works — all script imports verified present
+
 ## [2026-04-12] redesign-css
 - Replace Discord-clone CSS with original minimal dark design
 - New color palette: slate-based dark (#0f1117 base, #1a1d27 panels, #6c63ff accent)

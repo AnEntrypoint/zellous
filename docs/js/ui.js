@@ -123,8 +123,12 @@ ui.actions = {
         network.send({ type: 'get_messages', limit: 50, channelId: channel.id });
       }
     }
-    if (channel.type === 'voice' && !state.voiceConnected && window.lk) {
-      lk.connect(channel.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' });
+    if (channel.type === 'voice' && window.lk) {
+      if (state.voiceConnected && state.voiceChannelName === channel.name) {
+        lk.disconnect();
+      } else if (!state.voiceConnected) {
+        lk.connect(channel.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' });
+      }
     }
     ui.channelSidebar?.classList.remove('open');
     ui.drawerOverlay?.classList.remove('open');

@@ -11,8 +11,10 @@ const uiChannels = {
       const isActive = current.id === c.id;
       const icon = chIcon(c.type);
       const isVoiceConnected = c.type === 'voice' && state.voiceConnected && state.voiceChannelName === c.name;
-      html += `<div class="channel-item${isActive ? ' active' : ''}" data-channel="${c.id}" data-type="${c.type}" draggable="true">
+      const isVoiceConnecting = c.type === 'voice' && state.voiceConnectionState === 'connecting' && state.voiceChannelName === c.name;
+      html += `<div class="channel-item${isActive ? ' active' : ''}${isVoiceConnected ? ' voice-active' : ''}${isVoiceConnecting ? ' voice-connecting' : ''}" data-channel="${c.id}" data-type="${c.type}" draggable="true">
         ${icon}
+        ${isVoiceConnecting ? '<span class="voice-spinner" title="Connecting…"></span>' : ''}
         <span class="channel-name">${escHtml(c.name)}</span>
         <span class="channel-mention-badge" style="display:none"></span>
         <div class="channel-actions">

@@ -68,17 +68,13 @@ const uiVoice = {
     const participants = state.voiceParticipants || [];
     const ch = state.currentChannel;
     if (!state.voiceConnected && !participants.length) {
-      ui.voiceGrid.innerHTML = `<div class="empty-state voice-join-prompt" style="cursor:pointer;flex-direction:column;gap:12px">
+      const isConnecting = state.voiceConnectionState === 'connecting';
+      ui.voiceGrid.innerHTML = `<div class="empty-state" style="flex-direction:column;gap:12px">
         ${window.getIcon ? getIcon('voiceAlt') : '🔊'}
         <div style="font-size:20px;font-weight:700;color:var(--header-primary)">${ch ? escHtml(ch.name) : 'Voice'}</div>
-        <div style="font-size:14px">Click to join voice channel</div>
+        ${isConnecting ? '<div style="font-size:14px;color:var(--text-muted)">Connecting…</div>' : ''}
       </div>`;
-      ui.voiceGrid.onclick = (e) => {
-        if (!e.target.closest('.voice-join-prompt')) return;
-        const cur = state.currentChannel;
-        if (!cur || cur.type !== 'voice') return;
-        if (window.lk) window.lk.connect(cur.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' });
-      };
+      ui.voiceGrid.onclick = null;
       return;
     }
     const qDot = (q) => q && q !== 'unknown' ? `<span class="quality-dot ${q}" title="${q}"></span>` : '';
