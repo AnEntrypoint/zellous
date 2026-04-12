@@ -10,15 +10,18 @@ Zellous is a fully serverless voice and chat app using public Nostr relays. No b
 - Loads all other scripts from `docs/js/` via base URL resolution
 
 ### Client Modules (docs/js/)
-- `ui.js` — DOM references, render functions, UI actions. `switchChannel` triggers `lk.connect()` on voice channel click; clicking active voice channel calls `lk.disconnect()`
+- `ui.js` — DOM references and render dispatch functions
+- `ui-actions.js` — `ui.actions`: `switchChannel` (triggers `lk.connect()` on voice click; disconnect on re-click), auth modal, chat send, file upload, mobile drawer
 - `ui-channels.js` — Channel list render. Shows spinner on `.voice-connecting` state, `.voice-active` on connected voice channel
 - `ui-voice.js` — Voice grid render. No join overlay — grid renders immediately on channel switch
 - `ui-chat.js` — Chat message rendering, emoji reactions
 - `nostr-auth.js` — Nostr key management (nsec/npub), NIP-07 extension support
 - `nostr-state-patch.js` — Patches state signals for nostr mode
-- `nostr-network.js` — Nostr relay connection, event pub/sub
-- `nostr-fsm.js` — Finite state machine for connection lifecycle
-- `nostr-voice.js` — Serverless voice via native WebRTC + Nostr signaling; replaces `window.lk`
+- `nostr-network.js` — Nostr relay connection, event pub/sub (relay management, subscribe, publish)
+- `nostr-message.js` — `message` object: add system messages, dispatch to handlers
+- `nostr-fsm.js` — Finite state machine factory (`makeFSM`) for connection lifecycle
+- `nostr-voice.js` — Voice session FSM, connect/disconnect, presence heartbeat, mic/deafen controls
+- `nostr-voice-rtc.js` — WebRTC peer management: `maybeConnect`, ICE gathering, offer/answer exchange, `handleSignal`, `publish`
 - `nostr-chat.js` — Chat over Nostr events
 - `nostr-channels.js` — Channel management via Nostr
 - `nostr-channels-ui.js` — Channel modals, context menus, drag-and-drop
@@ -36,10 +39,16 @@ Zellous is a fully serverless voice and chat app using public Nostr relays. No b
 ### Shared State Module (js/)
 - `js/state.js` — Config, state object, room URL parsing. Loaded via `../js/state.js` in index.html
 
+### CSS Design
+- `docs/css/discord.css` — Original minimal dark design (not Discord clone)
+- Key vars: `--bg-base: #0f1117`, `--bg-surface: #1a1d27`, `--bg-raised: #252836`, `--accent: #6c63ff`
+- Mobile: server list is fixed bottom horizontal bar at `<768px` with `env(safe-area-inset-bottom)`
+- Touch targets min 44px on all interactive elements
+
 ### Nostr Voice (Serverless)
 Voice uses native WebRTC mesh with Nostr kind 30078 events as signaling channel.
 
-- `nostr-voice.js` — Sets `window.lk = nostrVoice` in nostr mode
+- `nostr-voice.js` + `nostr-voice-rtc.js` — Together set `window.lk = nostrVoice`
 - Media transport: native `RTCPeerConnection` + `getUserMedia({audio:true})`; remote audio via `new Audio()` elements
 - Signaling: kind 30078 events with `d` tag `zellous-rtc:<roomId>:<toPubkey>:sdp` (offer/answer) and `:ice` (batched ICE candidates)
 - Initiator rule: peer with lexicographically higher pubkey creates the offer
