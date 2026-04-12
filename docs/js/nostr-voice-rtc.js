@@ -47,6 +47,21 @@ var nostrVoiceRtc = {
       if(!peer.audioEl){peer.audioEl=new Audio();peer.audioEl.autoplay=true;peer.audioEl.muted=state.voiceDeafened;document.body.appendChild(peer.audioEl);}
       peer.audioEl.srcObject=ev.streams[0];
       try { ev.receiver.playoutDelayHint=0.02; } catch(e) {}
+      ev.track.onended=function(){
+        if(!peer.fsm.getSnapshot().matches('connected')) return;
+        if(window.__debug) window.__debug['rtc-track-ended-'+peerPubkey.slice(0,8)]=Date.now();
+        doIceRestart();
+      };
+      if(!peer._stallInterval) peer._stallInterval=setInterval(function(){
+        if(!peer.audioEl||!peer.audioEl.srcObject) return;
+        if(!peer.fsm.getSnapshot().matches('connected')) return;
+        if(peer.trackEndedRestart) return;
+        var allEnded=peer.audioEl.srcObject.getTracks().every(function(t){return t.readyState==='ended';});
+        if(!allEnded) return;
+        peer.trackEndedRestart=true;
+        if(window.__debug) window.__debug['rtc-stall-'+peerPubkey.slice(0,8)]=Date.now();
+        doIceRestart();
+      },5000);
     };
     pc.onicecandidate=function(ev){
       if(!ev.candidate) return;

@@ -1,4 +1,10 @@
 
+## [2026-04-12] peer-track-ended-recovery
+- Attach track.onended handler in ontrack: triggers doIceRestart if FSM=connected
+- Add 5s stall interval per peer: detects all-ended srcObject tracks while FSM=connected, triggers doIceRestart once via trackEndedRestart flag
+- Clear _stallInterval in _closePeer to prevent leaks on deliberate disconnect
+- Log recovery events to window.__debug keyed by peer pubkey prefix
+
 ## [2026-04-12] debug-voice-registry
 - Enhance nostrVoice.__debug getter: per-peer audioState, trackState, fsmState, retryAttempt, retryAt, retrySchedule fields
 - Register window.__debug as live getter object: voice → nostrVoice.__debug, net → window.__debugNet (no page refresh needed)

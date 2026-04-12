@@ -87,6 +87,7 @@ var nostrVoice = {
     var peer=nostrVoice._peers.get(pubkey); if(!peer) return;
     if(peer.iceTimer) clearTimeout(peer.iceTimer);
     if(peer.disconnectTimer) clearTimeout(peer.disconnectTimer);
+    if(peer._stallInterval) clearInterval(peer._stallInterval);
     try{peer.pc?.close();}catch(e){}
     if(peer.audioEl){peer.audioEl.srcObject=null;peer.audioEl.remove();}
     nostrVoice._peers.delete(pubkey);
