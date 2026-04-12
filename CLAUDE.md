@@ -114,3 +114,56 @@ XState v5 is vendored at `docs/vendor/xstate/es2022/` with proxy at `docs/vendor
 ## Windows / CRLF Caveat
 
 On Windows, git may store `docs/nostr-chat/index.html` with CRLF line endings. When doing string replacements via `exec:nodejs`, use `\r\n` in regex patterns if `\n` alone doesn't match.
+
+## WebRTC Voice Reliability Patterns (Empirically Discovered)
+
+The following patterns were discovered through multiple failed test runs and are critical for stable peer-to-peer voice.
+
+### 1. Perfect Negotiation (RFC 8840)
+**Problem**: Offer race conditions cause one-direction audio — offerer's audio has no receiver.  
+**Fix**: Implement politeness roles. Peer with lower pubkey = polite. On offer collision:
+- Polite: `pc.setLocalDescription({type:'rollback'})` (NOT null), then accept remote offer
+- Impolite: Ignore own offer, accept remote offer  
+**Why `{type:'rollback'}` not null**: Chrome 90+ and Firefox support this form; null is deprecated.
+
+### 2. Answerer Transceiver Gap
+**Problem**: Answerer calls `createAnswer()` before remote offer's audio track arrives; offerer's audio is silently discarded.  
+**Fix**: Before `createAnswer()`, check `pc.getTransceivers().some(t=>t.receiver.track&&t.receiver.track.kind==='audio')`. If absent, `pc.addTransceiver('audio', {recv:true})`.  
+**Why**: Answerer must have a transceiver registered before answering, or the offerer's audio receiver has nowhere to go.
+
+### 3. Hub Death Recovery
+**Problem**: In star SFU, when hub peer closes (`connectionState===closed`), rebuild waits 30s for next heartbeat.  
+**Fix**: On peer close, call `_dissolve()` immediately, then schedule `_maybeElect()` at 500ms.  
+**Why**: Don't wait for heartbeat expiry to recover hub election.
+
+### 4. Exponential Backoff Reconnect
+**Problem**: Rapid reconnect storms on transient failures; exhausts relay quota.  
+**Fix**: After `_closePeer`, delay = `Math.min(2^attempt * 2000, 30000)` (max 6 attempts). Track in `window.__voiceRetrySchedule`. Cancel on successful connect or fresh presence event.  
+**Why**: Adaptive backoff survives network hiccups without hammering relays.
+
+### 5. Mobile Recovery Pattern
+**Problem**: App backgrounding or connectivity loss leaves peers in stale state.  
+**Fix**: Three listeners at module bottom:
+- `visibilitychange` — hidden=set flag, visible=call `healPeers()`
+- `online` — call `healPeers()`
+- `pageshow` — if persisted or flag set, call `healPeers()`  
+All funnel through 500ms debounce. No-op if no active voice session (`nv._roomId` empty).  
+**Why**: Covers browser backgrounding, network reconnect, and page restoration.
+
+### 6. Track Stall Detection
+**Problem**: Remote track ends silently; peer still appears connected in UI.  
+**Fix**: Two mechanisms:
+- `track.onended` → `doIceRestart()` if FSM=connected
+- 5s interval: check `srcObject.getTracks().every(t=>t.readyState==='ended')` → restart  
+Use `peer.trackEndedRestart` flag to prevent multiple triggers.  
+**Why**: Catches both explicit track end and silent stall; prevents cascading restarts.
+
+### 7. nostrVoiceRtc Structure Pattern
+**Problem**: Methods added to object need to reference object itself; closures capture `undefined`.  
+**Fix**: Define object with all core methods, assign to `window.nostrVoiceRtc`, THEN append additional methods as properties (e.g., `nostrVoiceRtc.cancelReconnect = ...`). Event listeners at file bottom.  
+**Why**: Allows closures to reference fully-initialized object after module load.
+
+### 8. XState v5 Rollback Form
+**Problem**: Some codebases use `setLocalDescription(null)` for rollback; fails in Firefox.  
+**Fix**: Always use `pc.setLocalDescription({type:'rollback'})` when rolling back.  
+**Why**: Explicit type is the RFC 8840 standard; null is non-standard and Firefox-incompatible.
