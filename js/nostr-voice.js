@@ -174,7 +174,7 @@ var nostrVoice = {
     };
     pc.onconnectionstatechange=function(){
       if(pc.connectionState==='connected'){
-        peer.failCount=0; fsm.send('recv_answer');
+        peer.failCount=0; if(fsm.can('recv_answer')) fsm.send('recv_answer');
         if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
         nostrVoice._applyOpusCbr(pc);
         var p=nostrVoice._participants.get('nostr-'+peerPubkey.slice(0,12));
