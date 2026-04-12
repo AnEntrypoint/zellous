@@ -6,6 +6,8 @@
 - Migrate makeFSM to XState createMachine+createActor (nostr-fsm.js)
 - Add XState topology actor to nostr-voice-sfu.js (mesh/electing/star)
 - Add XState relay actor to nostr-network.js (disconnected/connecting/connected/error)
+- Migrate nostr-voice.js and nostr-voice-rtc.js to direct XState actor API (remove makeFSM wrapper)
+- Replace nostr-fsm.js with voiceMachine/peerMachine exports via window.nostrFsm
 ## [2026-04-12] sfu-mesh-rtt-optimizations
 - Add nostr-voice-sfu.js: dynamic hub election via RTT matrix, replaceTrack forwarding (no decode), dissolves mesh→star at 3+ peers, reverts to mesh at <3 peers
 - nostr-voice-rtc.js: playoutDelayHint=0.02 on receivers, maxBitrate=48kbps on senders, audio hints applied on connected and ontrack

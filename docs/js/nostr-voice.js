@@ -4,29 +4,24 @@ var nostrVoice = {
   _fsm: null,
 
   _initFSM: function() {
-    nostrVoice._fsm = makeFSM({
-      idle:         { connect: 'connecting' },
-      connecting:   { connected: 'connected', fail: 'idle' },
-      connected:    { disconnect: 'disconnecting' },
-      disconnecting:{ done: 'idle' }
-    }, 'idle', function(prev, ev, next) {
+    var actor = XState.createActor(nostrFsm.voiceMachine);
+    actor.subscribe(function(snap) {
+      var next = snap.value;
       state.voiceConnectionState = next === 'connected' ? 'connected' : next === 'idle' ? 'disconnected' : next;
       state.voiceConnected = next === 'connected';
     });
+    actor.start();
+    nostrVoice._fsm = actor;
   },
 
   _peerFSM: function(pubkey) {
-    return makeFSM({
-      new:          { offer: 'offering', recv_offer: 'answering' },
-      offering:     { recv_answer: 'connected', fail: 'new', restart: 'offering' },
-      answering:    { sent_answer: 'connected', recv_answer: 'connected', fail: 'new' },
-      connected:    { disconnect: 'reconnecting', close: 'closed' },
-      reconnecting: { offer: 'offering', recv_answer: 'connected', close: 'closed' },
-      closed:       {}
-    }, 'new', function(prev, ev, next) {
+    var actor = XState.createActor(nostrFsm.peerMachine);
+    actor.subscribe(function(snap) {
       var peer = nostrVoice._peers.get(pubkey);
-      if (peer) peer.state = next;
+      if (peer) peer.state = snap.value;
     });
+    actor.start();
+    return actor;
   },
 
   async _deriveRoomId(ch) {
@@ -38,8 +33,8 @@ var nostrVoice = {
 
   async connect(channelName) {
     if (!nostrVoice._fsm) nostrVoice._initFSM();
-    if (!nostrVoice._fsm.can('connect')) { await nostrVoice.disconnect(); }
-    nostrVoice._fsm.send('connect');
+    if (!nostrVoice._fsm.getSnapshot().can({type:'connect'})) { await nostrVoice.disconnect(); }
+    nostrVoice._fsm.send({type:'connect'});
     nostrVoice._channelName = channelName;
     nostrVoice._joinTs = Math.floor(Date.now()/1000);
     try {
@@ -52,7 +47,7 @@ var nostrVoice = {
       }
       nostrVoice._participants.clear();
       nostrVoice._participants.set('local',{identity:nostrVoice._displayName(),isSpeaking:false,isMuted:false,isLocal:true,hasVideo:false,connectionQuality:'good'});
-      nostrVoice._fsm.send('connected');
+      nostrVoice._fsm.send({type:'connected'});
       state.voiceConnectionQuality='good'; state.voiceChannelName=channelName;
       state.voiceReconnectAttempts=0; state.dataChannelAvailable=false;
       nostrVoiceRtc.subscribe(nostrVoice._roomId,state.nostrPubkey);
@@ -64,15 +59,15 @@ var nostrVoice = {
       message.add('Voice connected');
     } catch(e) {
       console.warn('[nostr-voice] connect failed:',e);
-      nostrVoice._fsm.send('fail');
+      nostrVoice._fsm.send({type:'fail'});
       message.add('Voice connection failed: '+e.message);
     }
   },
 
   async disconnect() {
-    if (!nostrVoice._fsm || nostrVoice._fsm.is('idle')) return;
-    if (!nostrVoice._fsm.can('disconnect')) return;
-    nostrVoice._fsm.send('disconnect');
+    if (!nostrVoice._fsm || nostrVoice._fsm.getSnapshot().matches('idle')) return;
+    if (!nostrVoice._fsm.getSnapshot().can({type:'disconnect'})) return;
+    nostrVoice._fsm.send({type:'disconnect'});
     nostrVoice._publishPresence('leave'); nostrVoice._stopHeartbeat();
     if(window.nostrVoiceSfu) nostrVoiceSfu.stop();
     nostrVoice._peers.forEach((_,pk)=>nostrVoice._closePeer(pk)); nostrVoice._peers.clear();
@@ -84,7 +79,7 @@ var nostrVoice = {
     state.voiceParticipants=[]; state.voiceReconnectAttempts=0;
     state.micMuted=false; state.voiceDeafened=false; state.activeSpeakers=new Set();
     if(ui.voicePanel) ui.voicePanel.classList.remove('visible');
-    nostrVoice._fsm.send('done');
+    nostrVoice._fsm.send({type:'done'});
     nostrVoice.updateParticipants();
   },
 
@@ -145,7 +140,7 @@ var nostrVoice = {
 
   _startHeartbeat() {
     nostrVoice._stopHeartbeat();
-    nostrVoice._presenceInterval=setInterval(()=>{if(nostrVoice._fsm?.is('connected')) nostrVoice._publishPresence('heartbeat');},30000);
+    nostrVoice._presenceInterval=setInterval(()=>{if(nostrVoice._fsm?.getSnapshot().matches('connected')) nostrVoice._publishPresence('heartbeat');},30000);
   },
 
   _stopHeartbeat() { if(nostrVoice._presenceInterval){clearInterval(nostrVoice._presenceInterval);nostrVoice._presenceInterval=null;} },
@@ -187,7 +182,7 @@ var nostrVoice = {
       peers.push({pubkey:pk.slice(0,12),state:peer.state,iceState:peer.pc?.iceConnectionState,conn:peer.pc?.connectionState,candidates:peer.pendingCandidates.length,buffered:peer.bufferedCandidates.length});
     });
     var sfu = window.nostrVoiceSfu ? nostrVoiceSfu.__debug : null;
-    return {fsm:nostrVoice._fsm?.state,peers:peers,participants:state.voiceParticipants,sfu:sfu};
+    return {fsm:nostrVoice._fsm?.getSnapshot().value,peers:peers,participants:state.voiceParticipants,sfu:sfu};
   }
 };
 

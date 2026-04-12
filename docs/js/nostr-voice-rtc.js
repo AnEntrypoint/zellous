@@ -30,7 +30,9 @@ var nostrVoiceRtc = {
   maybeConnect(peerPubkey) {
     var nv=nostrVoice;
     if(!peerPubkey||peerPubkey===state.nostrPubkey||nv._peers.has(peerPubkey)) return;
-    var fsm=nv._peerFSM(peerPubkey);
+    var fsm=XState.createActor(nostrFsm.peerMachine);
+    fsm.subscribe(function(snap){var p=nv._peers.get(peerPubkey);if(p)p.state=snap.value;});
+    fsm.start();
     var peer={pc:null,audioEl:null,pendingCandidates:[],bufferedCandidates:[],iceTimer:null,disconnectTimer:null,failCount:0,state:'new',fsm:fsm};
     nv._peers.set(peerPubkey,peer);
     var pc=new RTCPeerConnection({iceServers:nostrVoiceRtc._iceServers,bundlePolicy:'max-bundle'}); peer.pc=pc;
@@ -64,13 +66,13 @@ var nostrVoiceRtc = {
       if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
       peer.failCount++;
       if(peer.failCount<=1&&state.nostrPubkey>peerPubkey){
-        fsm.send('restart'); pc.restartIce();
+        fsm.send({type:'restart'}); pc.restartIce();
         pc.createOffer({iceRestart:true}).then(o=>pc.setLocalDescription(o).then(()=>nv._publishSignal(peerPubkey,'offer',o))).catch(()=>nv._closePeer(peerPubkey));
       } else { nv._closePeer(peerPubkey); }
     };
     pc.onconnectionstatechange=function(){
       if(pc.connectionState==='connected'){
-        peer.failCount=0; if(fsm.can('recv_answer')) fsm.send('recv_answer');
+        peer.failCount=0; if(fsm.getSnapshot().can({type:'recv_answer'})) fsm.send({type:'recv_answer'});
         if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
         nostrVoiceRtc._applyAudioHints(pc);
         var pKey='nostr-'+peerPubkey.slice(0,12);
@@ -80,13 +82,13 @@ var nostrVoiceRtc = {
         nv.updateParticipants();
       }
       if(pc.connectionState==='disconnected'){
-        fsm.send('disconnect'); peer.disconnectTimer=setTimeout(doIceRestart,8000);
+        fsm.send({type:'disconnect'}); peer.disconnectTimer=setTimeout(doIceRestart,8000);
       }
       if(pc.connectionState==='failed') doIceRestart();
       if(pc.connectionState==='closed') nv._closePeer(peerPubkey);
     };
     if(isOfferer){
-      fsm.send('offer');
+      fsm.send({type:'offer'});
       pc.createOffer().then(o=>pc.setLocalDescription(o).then(()=>nv._publishSignal(peerPubkey,'offer',o)))
         .catch(e=>console.warn('[nostr-voice] offer:',e));
     }
@@ -102,10 +104,10 @@ var nostrVoiceRtc = {
     var addCands=function(cands){cands.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(e=>console.error('[nostr-voice] ice:',e)));};
     var drainBuf=function(){addCands(peer.bufferedCandidates);peer.bufferedCandidates=[];};
     if(data.type==='offer'&&(pc.signalingState==='stable'||pc.signalingState==='have-remote-offer')){
-      if(fsm.can('recv_offer')) fsm.send('recv_offer');
+      if(fsm.getSnapshot().can({type:'recv_offer'})) fsm.send({type:'recv_offer'});
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();if(nv._localStream)nv._localStream.getTracks().forEach(t=>pc.addTrack(t,nv._localStream));return pc.createAnswer();})
         .then(a=>pc.setLocalDescription(a).then(()=>{
-          fsm.send('sent_answer');
+          fsm.send({type:'sent_answer'});
           nv._publishSignal(from,'answer',a);
         })).catch(e=>console.warn('[nostr-voice] answer:',e));
     } else if(data.type==='answer'&&pc.signalingState==='have-local-offer'){
