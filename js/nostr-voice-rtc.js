@@ -29,10 +29,13 @@ var nostrVoiceRtc = {
     var peer={pc:null,audioEl:null,pendingCandidates:[],bufferedCandidates:[],iceTimer:null,disconnectTimer:null,failCount:0,state:'new',fsm:fsm};
     nv._peers.set(peerPubkey,peer);
     var pc=new RTCPeerConnection({iceServers:nostrVoiceRtc._iceServers,bundlePolicy:'max-bundle'}); peer.pc=pc;
-    if(nv._localStream)
-      nv._localStream.getTracks().forEach(t=>pc.addTransceiver(t,{direction:'sendrecv',streams:[nv._localStream]}));
-    else
-      pc.addTransceiver('audio',{direction:'recvonly'});
+    var isOfferer=state.nostrPubkey>peerPubkey;
+    if(isOfferer){
+      if(nv._localStream)
+        nv._localStream.getTracks().forEach(t=>pc.addTransceiver(t,{direction:'sendrecv',streams:[nv._localStream]}));
+      else
+        pc.addTransceiver('audio',{direction:'recvonly'});
+    }
     pc.ontrack=function(ev){
       if(!peer.audioEl){peer.audioEl=new Audio();peer.audioEl.autoplay=true;peer.audioEl.muted=state.voiceDeafened;document.body.appendChild(peer.audioEl);}
       peer.audioEl.srcObject=ev.streams[0];
@@ -73,7 +76,6 @@ var nostrVoiceRtc = {
       if(pc.connectionState==='failed') doIceRestart();
       if(pc.connectionState==='closed') nv._closePeer(peerPubkey);
     };
-    var isOfferer=state.nostrPubkey>peerPubkey;
     if(isOfferer){
       fsm.send('offer');
       pc.createOffer().then(o=>pc.setLocalDescription(o).then(()=>nv._publishSignal(peerPubkey,'offer',o)))
@@ -92,7 +94,7 @@ var nostrVoiceRtc = {
     var drainBuf=function(){addCands(peer.bufferedCandidates);peer.bufferedCandidates=[];};
     if(data.type==='offer'&&(pc.signalingState==='stable'||pc.signalingState==='have-remote-offer')){
       if(fsm.can('recv_offer')) fsm.send('recv_offer');
-      pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();return pc.createAnswer();})
+      pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();if(nv._localStream)nv._localStream.getTracks().forEach(t=>pc.addTrack(t,nv._localStream));return pc.createAnswer();})
         .then(a=>pc.setLocalDescription(a).then(()=>{
           fsm.send('sent_answer');
           nv._publishSignal(from,'answer',a);
