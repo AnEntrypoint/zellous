@@ -1,8 +1,8 @@
 
 const fileTransfer = {
-  uploads: new Map(), // uploadId -> upload state
-  maxFileSize: 50 * 1024 * 1024, // 50MB max
-  chunkSize: 64 * 1024, // 64KB chunks for large files
+  uploads: new Map(),
+  maxFileSize: 50 * 1024 * 1024,
+  chunkSize: 64 * 1024,
 
   async upload(file, customPath = '', description = '') {
     if (!file) return null;
