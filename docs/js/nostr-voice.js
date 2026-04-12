@@ -181,7 +181,7 @@ var nostrVoice = {
     if(!nostrVoice._roomId||!state.nostrPubkey) return;
     var base='zellous-rtc:'+nostrVoice._roomId+':'+state.nostrPubkey;
     nostrNet.subscribe('voice-signals-'+nostrVoice._roomId,
-      [{kinds:[30078],'#d':[base+':sdp',base+':ice'],since:nostrVoice._joinTs-60}],
+      [{kinds:[30078],'#d':[base+':sdp',base+':ice']}],
       nostrVoice._handleSignal,()=>{});
   },
 
@@ -228,6 +228,11 @@ var nostrVoice = {
             nostrVoice._maybeConnect(event.pubkey);
           } else if(!nostrVoice._peers.has(event.pubkey)){
             nostrVoice._maybeConnect(event.pubkey);
+          } else {
+            var existingPeer=nostrVoice._peers.get(event.pubkey);
+            if(existingPeer&&existingPeer.pc&&existingPeer.pc.connectionState==='new'&&state.nostrPubkey>event.pubkey){
+              existingPeer.pc.createOffer().then(o=>existingPeer.pc.setLocalDescription(o).then(()=>nostrVoice._publishSignal(event.pubkey,'offer',o))).catch(()=>{});
+            }
           }
           nostrVoice.updateParticipants();
         } catch(e){}
