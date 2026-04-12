@@ -357,6 +357,8 @@
       });
     }
 
+    Object.defineProperty(window, '__debug', {get: function(){ return {get voice(){return window.nostrVoice&&window.nostrVoice.__debug;}, get net(){return window.__debugNet;}};}, configurable: true});
+
     effect(() => {
       window.stateSignals.isSpeaking.value;
       window.stateSignals.activeSpeakers.value;

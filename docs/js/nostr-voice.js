@@ -179,10 +179,14 @@ var nostrVoice = {
   get __debug() {
     var peers=[];
     nostrVoice._peers.forEach(function(peer,pk){
-      peers.push({pubkey:pk.slice(0,12),state:peer.state,iceState:peer.pc?.iceConnectionState,conn:peer.pc?.connectionState,candidates:peer.pendingCandidates.length,buffered:peer.bufferedCandidates.length});
+      var audioState=null;
+      if(peer.audioEl){audioState=peer.audioEl.ended?'ended':peer.audioEl.paused?'paused':'playing';}
+      var trackState=null;
+      if(peer.audioEl&&peer.audioEl.srcObject){var tracks=peer.audioEl.srcObject.getAudioTracks();trackState=tracks.length?tracks[0].readyState:'none';}
+      peers.push({pubkey:pk.slice(0,12),fsmState:peer.fsm?.getSnapshot().value,iceState:peer.pc?.iceConnectionState,connState:peer.pc?.connectionState,audioState:audioState,trackState:trackState,retryAttempt:peer.retryAttempt||0,retryAt:peer.retryAt||null,candidates:peer.pendingCandidates?.length??0,buffered:peer.bufferedCandidates?.length??0});
     });
-    var sfu = window.nostrVoiceSfu ? nostrVoiceSfu.__debug : null;
-    return {fsm:nostrVoice._fsm?.getSnapshot().value,peers:peers,participants:state.voiceParticipants,sfu:sfu};
+    var sfu=window.nostrVoiceSfu?nostrVoiceSfu.__debug:null;
+    return {fsm:nostrVoice._fsm?.getSnapshot().value,peers:peers,participants:state.voiceParticipants,sfu:sfu,retrySchedule:window.__voiceRetrySchedule||{}};
   }
 };
 
