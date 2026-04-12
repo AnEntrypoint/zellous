@@ -103,7 +103,7 @@ var nostrVoiceRtc = {
         fsm.send({type:'disconnect'}); peer.disconnectTimer=setTimeout(doIceRestart,8000);
       }
       if(pc.connectionState==='failed') doIceRestart();
-      if(pc.connectionState==='closed') nv._closePeer(peerPubkey);
+      if(pc.connectionState==='closed'){nv._closePeer(peerPubkey);if(window.nostrVoiceSfu&&nostrVoiceSfu._hub===peerPubkey){nostrVoiceSfu._dissolve();setTimeout(nostrVoiceSfu._maybeElect,500);}}
     };
     if(isOfferer){
       fsm.send({type:'offer'});

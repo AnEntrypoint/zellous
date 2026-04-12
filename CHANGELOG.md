@@ -1,4 +1,9 @@
 
+## [2026-04-12] sfu-hub-death-recovery
+- In onconnectionstatechange closed handler: detect hub loss via nostrVoiceSfu._hub===peerPubkey, call _dissolve() immediately, schedule _maybeElect() at 500ms
+- Add _hubLostAt timestamp field to nostrVoiceSfu, set on every _dissolve() call
+- Expose hubLostAt in nostrVoiceSfu.__debug for observability of hub loss events
+
 ## [2026-04-12] peer-retry-unlimited
 - Replace failCount<=1 ICE restart cap with exponential backoff up to 6 attempts then give up
 - Add scheduleReconnect(pk, attempt): delay=min(2^attempt*2000,30000)ms, skips if attempt>=6

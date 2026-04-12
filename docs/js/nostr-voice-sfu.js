@@ -1,6 +1,7 @@
 var nostrVoiceSfu = {
   _actor: null,
   _hub: null,
+  _hubLostAt: null,
   _rttMatrix: new Map(),
   _electionTimer: null,
   _statsInterval: null,
@@ -113,13 +114,14 @@ var nostrVoiceSfu = {
 
   _dissolve() {
     if(nostrVoiceSfu._actor) nostrVoiceSfu._actor.send({type:'dissolve'});
+    nostrVoiceSfu._hubLostAt = Date.now();
     nostrVoiceSfu._hub = null;
   },
 
   get __debug() {
     var scores = {};
     nostrVoiceSfu._rttMatrix.forEach(function(v, k) { scores[k.slice(0,12)] = v; });
-    return {mode: nostrVoiceSfu._actor ? nostrVoiceSfu._actor.getSnapshot().value : 'mesh', hub: nostrVoiceSfu._hub ? nostrVoiceSfu._hub.slice(0,12) : null, rttMatrix: scores};
+    return {mode: nostrVoiceSfu._actor ? nostrVoiceSfu._actor.getSnapshot().value : 'mesh', hub: nostrVoiceSfu._hub ? nostrVoiceSfu._hub.slice(0,12) : null, hubLostAt: nostrVoiceSfu._hubLostAt, rttMatrix: scores};
   }
 };
 window.nostrVoiceSfu = nostrVoiceSfu;
