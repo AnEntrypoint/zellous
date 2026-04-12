@@ -24,6 +24,7 @@ const uiChat = {
     const scrollPos = ui.chatMessages.scrollHeight - ui.chatMessages.scrollTop - ui.chatMessages.clientHeight;
     const wasAtBottom = scrollPos < 100 || ui.chatMessages.scrollHeight === 0;
     let html = '', lastUser = null, lastTime = 0;
+
     merged.forEach(m => {
       if (m.type === 'system') {
         lastUser = null; lastTime = 0;
@@ -42,7 +43,7 @@ const uiChat = {
       const canDelete = selfId && String(m.userId) === String(selfId);
 
       const ic = (k, fb) => window.getIcon ? getIcon(k) : fb;
-      const actions = `<div class="msg-actions"><button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">${ic('emoji','☺')}</button><button class="msg-action-btn" data-reply="${m.id}" title="Reply">${ic('reply','↩')}</button>${canEdit?`<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${ic('edit','✏')}</button>`:''}<button class="msg-action-btn" data-pin="${m.id}" title="Pin">${ic('pin','📌')}</button>${canDelete?`<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${ic('delete','🗑')}</button>`:''}</div>`;
+      const actions = `<div class="msg-actions"><button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">😊</button><button class="msg-action-btn" data-reply="${m.id}" title="Reply">${ic('reply','↩')}</button>${canEdit?`<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${ic('edit','✏')}</button>`:''}<button class="msg-action-btn" data-pin="${m.id}" title="Pin">${ic('pin','📌')}</button>${canDelete?`<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${ic('delete','🗑')}</button>`:''}</div>`;
 
       const replyHtml = m.replyTo ? `<div class="msg-reply-bar"><div class="msg-reply-avatar" style="background:${getAvatarColor(m.replyTo.userId)}">${getInitial(m.replyTo.username||'')}</div><span class="msg-reply-name" style="color:${getAvatarColor(m.replyTo.userId)}">@${escHtml(m.replyTo.username||'User')}</span><span class="msg-reply-content">${escHtml((m.replyTo.content||'').substring(0,80))}</span></div>` : '';
 
@@ -57,6 +58,7 @@ const uiChat = {
       const reactionsHtml = m.reactions?.length ? `<div class="msg-reactions">${m.reactions.map(r =>
         `<button class="reaction-pill${r.users?.includes(state.userId) ? ' reacted' : ''}" data-react-emoji="${r.emoji}" data-msg="${m.id}">${r.emoji} <span class="reaction-count">${r.users?.length||1}</span></button>`
       ).join('')}</div>` : '';
+
       if (!sameUser) {
         html += `<div class="msg-group" data-message-id="${m.id}" data-user-id="${m.userId}"${pendingAttr}>
           ${actions}<div class="msg-avatar" style="background:${color}">${getInitial(username)}</div>
@@ -70,6 +72,7 @@ const uiChat = {
       }
       lastUser = m.userId; lastTime = m.timestamp;
     });
+
     ui.chatMessagesInner.innerHTML = html;
     if (wasAtBottom) ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
     this._bindActions();
@@ -116,7 +119,7 @@ const uiChat = {
     bar.id = 'replyComposeBar';
     bar.className = 'reply-compose-bar';
     bar.innerHTML = `Replying to <span class="reply-compose-name">@${escHtml(msg.username||'User')}</span>
-      <button class="reply-compose-close" id="cancelReplyBtn"><svg style="width:14px;height:14px;display:block"><use href="#icon-close"/></svg></button>`;
+      <button class="reply-compose-close" id="cancelReplyBtn">✕</button>`;
     const wrapper = document.querySelector('.chat-input-wrapper');
     if (wrapper) wrapper.insertBefore(bar, wrapper.firstChild);
     document.getElementById('cancelReplyBtn')?.addEventListener('click', () => { ui._replyTarget = null; bar.remove(); });
