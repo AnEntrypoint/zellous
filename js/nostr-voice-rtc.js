@@ -10,14 +10,19 @@ var nostrVoiceRtc = {
     {url:'turns:openrelay.metered.ca:443',urls:'turns:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
   ],
 
-  _applyOpusCbr(pc) {
+  _applyAudioHints(pc) {
     try {
       pc.getSenders().forEach(function(sender) {
         if(!sender.track||sender.track.kind!=='audio') return;
         var params=sender.getParameters();
         if(!params.encodings||!params.encodings.length) return;
         params.encodings[0].networkPriority='high'; params.encodings[0].priority='high';
-        sender.setParameters(params).catch(()=>{});
+        params.encodings[0].maxBitrate=48000;
+        sender.setParameters(params).catch(function(){});
+      });
+      pc.getReceivers().forEach(function(recv) {
+        if(!recv.track||recv.track.kind!=='audio') return;
+        try { recv.playoutDelayHint=0.02; } catch(e) {}
       });
     } catch(e) {}
   },
@@ -39,6 +44,7 @@ var nostrVoiceRtc = {
     pc.ontrack=function(ev){
       if(!peer.audioEl){peer.audioEl=new Audio();peer.audioEl.autoplay=true;peer.audioEl.muted=state.voiceDeafened;document.body.appendChild(peer.audioEl);}
       peer.audioEl.srcObject=ev.streams[0];
+      try { ev.receiver.playoutDelayHint=0.02; } catch(e) {}
     };
     pc.onicecandidate=function(ev){
       if(!ev.candidate) return;
@@ -66,7 +72,7 @@ var nostrVoiceRtc = {
       if(pc.connectionState==='connected'){
         peer.failCount=0; if(fsm.can('recv_answer')) fsm.send('recv_answer');
         if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
-        nostrVoiceRtc._applyOpusCbr(pc);
+        nostrVoiceRtc._applyAudioHints(pc);
         var p=nv._participants.get('nostr-'+peerPubkey.slice(0,12));
         if(p){p.connectionQuality='good';nv.updateParticipants();}
       }

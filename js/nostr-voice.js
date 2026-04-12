@@ -58,6 +58,7 @@ var nostrVoice = {
       nostrVoiceRtc.subscribe(nostrVoice._roomId,state.nostrPubkey);
       nostrVoice._subscribePresence();
       nostrVoice._publishPresence('join'); nostrVoice._startHeartbeat(); nostrVoice.updateParticipants();
+      if(window.nostrVoiceSfu) nostrVoiceSfu.start();
       if(ui.voicePanel) ui.voicePanel.classList.add('visible');
       if(ui.voicePanelChannel) ui.voicePanelChannel.textContent=channelName;
       message.add('Voice connected');
@@ -73,6 +74,7 @@ var nostrVoice = {
     if (!nostrVoice._fsm.can('disconnect')) return;
     nostrVoice._fsm.send('disconnect');
     nostrVoice._publishPresence('leave'); nostrVoice._stopHeartbeat();
+    if(window.nostrVoiceSfu) nostrVoiceSfu.stop();
     nostrVoice._peers.forEach((_,pk)=>nostrVoice._closePeer(pk)); nostrVoice._peers.clear();
     if(nostrVoice._localStream&&nostrVoice._localStream!==state.mediaStream){nostrVoice._localStream.getTracks().forEach(t=>t.stop());}
     nostrVoice._localStream=null;
@@ -124,11 +126,21 @@ var nostrVoice = {
     if(window.uiChannels) uiChannels.render();
   },
 
+  _rttScores() {
+    var scores = {};
+    if(window.nostrVoiceSfu) {
+      var myScores = nostrVoiceSfu._rttMatrix.get(state.nostrPubkey);
+      if(myScores) Object.assign(scores, myScores);
+    }
+    return scores;
+  },
+
   async _publishPresence(action) {
     if(!auth.isLoggedIn()||!nostrVoice._roomId) return;
+    var rttScores = action === 'heartbeat' ? nostrVoice._rttScores() : {};
     nostrNet.publish(await auth.sign({kind:30078,created_at:Math.floor(Date.now()/1000),
       tags:[['d','zellous-voice:'+nostrVoice._roomId],['action',action],['channel',nostrVoice._channelName],['server',state.currentServerId||'']],
-      content:JSON.stringify({action,name:nostrVoice._displayName(),channel:nostrVoice._channelName,ts:Date.now()})}));
+      content:JSON.stringify({action,name:nostrVoice._displayName(),channel:nostrVoice._channelName,ts:Date.now(),rttScores})}));
   },
 
   _startHeartbeat() {
@@ -148,6 +160,7 @@ var nostrVoice = {
           var data=JSON.parse(event.content);
           if(Date.now()-(data.ts||0)>90000) return;
           var shortId='nostr-'+event.pubkey.slice(0,12);
+          if(data.rttScores && window.nostrVoiceSfu) nostrVoiceSfu.onPresenceRtt(event.pubkey, data.rttScores);
           if(data.action==='leave'){nostrVoice._participants.delete(shortId);nostrVoice._closePeer(event.pubkey);}
           else if(!nostrVoice._participants.has(shortId)){
             nostrVoice._participants.set(shortId,{identity:data.name||auth.npubShort(event.pubkey),isSpeaking:false,isMuted:false,isLocal:false,hasVideo:false,connectionQuality:'connecting'});
@@ -173,7 +186,8 @@ var nostrVoice = {
     nostrVoice._peers.forEach(function(peer,pk){
       peers.push({pubkey:pk.slice(0,12),state:peer.state,iceState:peer.pc?.iceConnectionState,conn:peer.pc?.connectionState,candidates:peer.pendingCandidates.length,buffered:peer.bufferedCandidates.length});
     });
-    return {fsm:nostrVoice._fsm?.state,peers:peers,participants:state.voiceParticipants};
+    var sfu = window.nostrVoiceSfu ? nostrVoiceSfu.__debug : null;
+    return {fsm:nostrVoice._fsm?.state,peers:peers,participants:state.voiceParticipants,sfu:sfu};
   }
 };
 

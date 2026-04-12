@@ -1,3 +1,10 @@
+## [2026-04-12] sfu-mesh-rtt-optimizations
+- Add nostr-voice-sfu.js: dynamic hub election via RTT matrix, replaceTrack forwarding (no decode), dissolves mesh→star at 3+ peers, reverts to mesh at <3 peers
+- nostr-voice-rtc.js: playoutDelayHint=0.02 on receivers, maxBitrate=48kbps on senders, audio hints applied on connected and ontrack
+- nostr-voice.js: RTT scores carried in heartbeat presence events, SFU start/stop hooked to connect/disconnect, __debug exposes SFU state
+- nostr-network.js: relay latency scoring (reqSentAt→first EVENT), window.__debugNet exposes relay latencies, condensed to 159L
+- nostr-voice-sfu.js: window.nostrVoiceSfu.__debug exposes mode/hub/rttMatrix
+
 ## [2026-04-12] context-menus-servers-invites-mobile
 - Right-click server icon shows context menu: Copy Invite Link, Edit Server (owner), Leave Server, Delete Server (owner)
 - Split nostr-servers.js UI methods into nostr-servers-ui.js (mirrors nostr-channels-ui.js pattern)
