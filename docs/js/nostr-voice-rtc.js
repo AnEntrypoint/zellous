@@ -105,7 +105,7 @@ var nostrVoiceRtc = {
     var drainBuf=function(){addCands(peer.bufferedCandidates);peer.bufferedCandidates=[];};
     if(data.type==='offer'&&(pc.signalingState==='stable'||pc.signalingState==='have-remote-offer')){
       if(fsm.getSnapshot().can({type:'recv_offer'})) fsm.send({type:'recv_offer'});
-      pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();if(nv._localStream)nv._localStream.getTracks().forEach(t=>pc.addTrack(t,nv._localStream));return pc.createAnswer();})
+      pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();var hasAudioTx=pc.getTransceivers().some(function(t){return t.receiver.track&&t.receiver.track.kind==='audio';});if(!hasAudioTx){pc.addTransceiver('audio',{direction:nv._localStream?'sendrecv':'recvonly'});}if(nv._localStream){var hasSender=pc.getSenders().some(function(s){return s.track&&s.track.kind==='audio';});if(!hasSender)nv._localStream.getTracks().forEach(function(t){pc.addTrack(t,nv._localStream);});}return pc.createAnswer();})
         .then(a=>pc.setLocalDescription(a).then(()=>{
           fsm.send({type:'sent_answer'});
           nv._publishSignal(from,'answer',a);
