@@ -28,6 +28,7 @@ var nostrNet = {
     if (existing && existing.ws && (existing.ws.readyState === 0 || existing.ws.readyState === 1)) return;
     var relay = existing || { ws: null, status: 'connecting', actor: null, reconnectDelay: 1000, failCount: 0, subIds: new Set(), latencyMs: null, _reqSentAt: null };
     relay.status = 'connecting';
+    relay.latencyMs = null;
     if(!relay.actor) relay.actor = nostrNet._makeRelayActor();
     else relay.actor.send({type:'reconnect'});
     nostrNet.relays.set(url, relay);
@@ -70,7 +71,7 @@ var nostrNet = {
       if (sustained) { relay.failCount = 0; relay.reconnectDelay = 1000; }
       else { relay.failCount = (relay.failCount || 0) + 1; relay.reconnectDelay = Math.min(relay.reconnectDelay * 2, 30000); }
       relay._openedAt = null;
-      if (relay.failCount <= 10) nostrNet._reconnect(url, relay.reconnectDelay);
+      nostrNet._reconnect(url, relay.reconnectDelay);
     };
   },
 
@@ -162,6 +163,19 @@ var nostrNet = {
 };
 window.nostrNet = nostrNet;
 window.network = nostrNet;
+
+function _healRelays() {
+  nostrNet.relays.forEach(function(relay, url) {
+    if (!relay.ws || relay.ws.readyState === 2 || relay.ws.readyState === 3) nostrNet._openRelay(url);
+  });
+}
+window.addEventListener('online', function() {
+  nostrNet.relays.forEach(function(relay) { relay.reconnectDelay = 1000; });
+  _healRelays();
+});
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') _healRelays();
+});
 window.__debugNet = { get relays() {
   var out = []; nostrNet.relays.forEach(function(r, url) { out.push({url: url, status: r.status, actorState: r.actor ? r.actor.getSnapshot().value : null, latencyMs: r.latencyMs}); }); return out;
 }};
