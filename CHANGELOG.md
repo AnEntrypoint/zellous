@@ -1,3 +1,14 @@
+## [2026-04-12] context-menus-servers-invites-mobile
+- Right-click server icon shows context menu: Copy Invite Link, Edit Server (owner), Leave Server, Delete Server (owner)
+- Split nostr-servers.js UI methods into nostr-servers-ui.js (mirrors nostr-channels-ui.js pattern)
+- Server invite URL: location.origin + ?room=serverId, copies to clipboard with toast
+- ?room= param now shows preview modal (Join Server?) before joining, fetches server name from Nostr
+- Edit Server modal for owners: rename + recolor, republishes kind 34550 event
+- Mobile: server list becomes fixed bottom horizontal bar with env(safe-area-inset-bottom) padding
+- Mobile: channel sidebar slides from left, clears bottom server bar area
+- Mobile: chat input sticky bottom, min-height 44px touch targets on all interactive elements
+- Mobile: voice controls enlarged (56px buttons), context menu items 44px touch height
+
 ## [2026-04-12] voice-channel-click
 - Clicking a voice channel immediately calls lk.connect() — no separate join button
 - Clicking the active voice channel calls lk.disconnect()

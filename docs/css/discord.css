@@ -2036,13 +2036,57 @@ select option { background: var(--bg-elevated); color: var(--text-primary); }
 }
 
 @media (max-width: 768px) {
-  .server-list { display: none; }
+  :root {
+    --mobile-server-bar-height: 60px;
+  }
+
+  .server-list {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    height: var(--mobile-server-bar-height);
+    min-width: unset;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 8px 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    border-right: none;
+    border-top: 1px solid var(--border);
+    z-index: 150;
+    gap: 8px;
+    scrollbar-width: none;
+    background: var(--bg-base);
+  }
+
+  .server-list::-webkit-scrollbar { display: none; }
+
+  #serverIcons {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .server-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .server-separator {
+    width: 1px;
+    height: 28px;
+    flex-shrink: 0;
+  }
 
   .channel-sidebar {
     position: fixed;
     left: 0;
     top: 0;
-    bottom: 0;
+    bottom: var(--mobile-server-bar-height);
     width: 85%;
     max-width: 290px;
     z-index: 200;
@@ -2066,21 +2110,48 @@ select option { background: var(--bg-elevated); color: var(--text-primary); }
     position: fixed;
     right: 0;
     top: 0;
-    bottom: 0;
+    bottom: var(--mobile-server-bar-height);
     z-index: 200;
     box-shadow: -4px 0 20px rgba(0,0,0,0.4);
   }
 
-  .main-content { width: 100%; }
+  .main-content {
+    width: 100%;
+    padding-bottom: var(--mobile-server-bar-height);
+  }
 
   .chat-input-wrapper {
     padding: 0 8px 10px;
     padding-bottom: max(10px, env(safe-area-inset-bottom));
+    position: sticky;
+    bottom: 0;
+    background: var(--bg-surface);
+  }
+
+  .chat-input-bar {
+    min-height: 44px;
+  }
+
+  .attach-btn, .input-btn, .input-icon-btn {
+    min-width: 44px;
+    min-height: 44px;
   }
 
   .msg-group { padding-left: 56px; }
   .msg-group .msg-avatar { left: 10px; }
   .msg-cont { padding-left: 56px; }
+
+  .voice-ctrl-btn {
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+  }
+
+  .voice-controls { padding: 16px; gap: 14px; }
+
+  .channel-item { height: 44px; }
+
+  .voice-panel-btn { height: 44px; }
 
   .settings-popover {
     left: 8px;
@@ -2095,6 +2166,10 @@ select option { background: var(--bg-elevated); color: var(--text-primary); }
   }
 
   .settings-popover.active, .settings-popover.open { display: block; }
+
+  .context-menu-item { padding: 10px 8px; font-size: 15px; }
+
+  .modal-overlay { padding-bottom: max(16px, calc(var(--mobile-server-bar-height) + 8px)); }
 }
 
 @media (max-width: 480px) {
