@@ -51,6 +51,7 @@ var nostrVoice = {
   _closePeer(pubkey) {
     var peer=nostrVoice._peers.get(pubkey); if(!peer) return;
     if(peer.iceTimer) clearTimeout(peer.iceTimer);
+    if(peer.disconnectTimer) clearTimeout(peer.disconnectTimer);
     try{peer.pc?.close();}catch(e){ console.error("[nostr-voice] cleanup error:", e); }
     if(peer.audioEl){peer.audioEl.srcObject=null;peer.audioEl.remove();}
     nostrVoice._peers.delete(pubkey);
@@ -80,18 +81,34 @@ var nostrVoice = {
     {urls:'stun:stun1.l.google.com:19302'},
     {urls:'stun:stun.cloudflare.com:3478'},
     {urls:'stun:stun.nextcloud.com:443'},
-    {urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
-    {urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
-    {urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
-    {urls:'turns:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+    {url:'turn:openrelay.metered.ca:80',urls:'turn:openrelay.metered.ca:80',username:'openrelayproject',credential:'openrelayproject'},
+    {url:'turn:openrelay.metered.ca:443',urls:'turn:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
+    {url:'turn:openrelay.metered.ca:443?transport=tcp',urls:'turn:openrelay.metered.ca:443?transport=tcp',username:'openrelayproject',credential:'openrelayproject'},
+    {url:'turns:openrelay.metered.ca:443',urls:'turns:openrelay.metered.ca:443',username:'openrelayproject',credential:'openrelayproject'},
   ],
+
+  _applyOpusCbr(pc) {
+    try {
+      pc.getSenders().forEach(function(sender) {
+        if(!sender.track||sender.track.kind!=='audio') return;
+        var params=sender.getParameters();
+        if(!params.encodings||!params.encodings.length) return;
+        params.encodings[0].networkPriority='high';
+        params.encodings[0].priority='high';
+        sender.setParameters(params).catch(()=>{});
+      });
+    } catch(e) {}
+  },
 
   _maybeConnect(peerPubkey) {
     if(!peerPubkey||peerPubkey===state.nostrPubkey||nostrVoice._peers.has(peerPubkey)) return;
-    var peer={pc:null,audioEl:null,bufferedCandidates:[],remoteDescSet:false,iceTimer:null,failCount:0};
+    var peer={pc:null,audioEl:null,bufferedCandidates:[],remoteDescSet:false,iceTimer:null,disconnectTimer:null,failCount:0};
     nostrVoice._peers.set(peerPubkey,peer);
     var pc=new RTCPeerConnection({iceServers:nostrVoice._iceServers,bundlePolicy:'max-bundle'}); peer.pc=pc;
-    if(nostrVoice._localStream) nostrVoice._localStream.getTracks().forEach(t=>pc.addTrack(t,nostrVoice._localStream));
+    if(nostrVoice._localStream)
+      nostrVoice._localStream.getTracks().forEach(t=>pc.addTransceiver(t,{direction:'sendrecv',streams:[nostrVoice._localStream]}));
+    else
+      pc.addTransceiver('audio',{direction:'recvonly'});
     pc.ontrack=function(ev){
       if(!peer.audioEl){peer.audioEl=new Audio();peer.audioEl.autoplay=true;peer.audioEl.muted=state.voiceDeafened;document.body.appendChild(peer.audioEl);}
       peer.audioEl.srcObject=ev.streams[0];
@@ -105,21 +122,28 @@ var nostrVoice = {
         nostrVoice._publishSignal(peerPubkey,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];
       }
     };
+    var doIceRestart=function(){
+      if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
+      peer.failCount++;
+      if(peer.failCount<=1&&state.nostrPubkey>peerPubkey){
+        pc.restartIce();
+        pc.createOffer({iceRestart:true}).then(o=>pc.setLocalDescription(o).then(()=>nostrVoice._publishSignal(peerPubkey,'offer',o))).catch(()=>nostrVoice._closePeer(peerPubkey));
+      } else {
+        nostrVoice._closePeer(peerPubkey);
+      }
+    };
     pc.onconnectionstatechange=function(){
       if(pc.connectionState==='connected'){
         peer.failCount=0;
+        if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
+        nostrVoice._applyOpusCbr(pc);
         var p=nostrVoice._participants.get('nostr-'+peerPubkey.slice(0,12));
         if(p){p.connectionQuality='good';nostrVoice.updateParticipants();}
       }
-      if(pc.connectionState==='failed'){
-        peer.failCount++;
-        if(peer.failCount<=1&&state.nostrPubkey>peerPubkey){
-          pc.restartIce();
-          pc.createOffer({iceRestart:true}).then(o=>pc.setLocalDescription(o).then(()=>nostrVoice._publishSignal(peerPubkey,'offer',o))).catch(()=>nostrVoice._closePeer(peerPubkey));
-        } else {
-          nostrVoice._closePeer(peerPubkey);
-        }
+      if(pc.connectionState==='disconnected'){
+        peer.disconnectTimer=setTimeout(doIceRestart,8000);
       }
+      if(pc.connectionState==='failed') doIceRestart();
       if(pc.connectionState==='closed') nostrVoice._closePeer(peerPubkey);
     };
     var isOfferer=state.nostrPubkey>peerPubkey;
