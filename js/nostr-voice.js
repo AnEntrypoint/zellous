@@ -88,26 +88,45 @@ var nostrVoice = {
 
   _maybeConnect(peerPubkey) {
     if(!peerPubkey||peerPubkey===state.nostrPubkey||nostrVoice._peers.has(peerPubkey)) return;
-    var peer={pc:null,audioEl:null,bufferedCandidates:[],remoteDescSet:false,iceTimer:null};
+    var peer={pc:null,audioEl:null,bufferedCandidates:[],remoteDescSet:false,iceTimer:null,failCount:0};
     nostrVoice._peers.set(peerPubkey,peer);
-    var pc=new RTCPeerConnection({iceServers:nostrVoice._iceServers}); peer.pc=pc;
+    var pc=new RTCPeerConnection({iceServers:nostrVoice._iceServers,bundlePolicy:'max-bundle'}); peer.pc=pc;
     if(nostrVoice._localStream) nostrVoice._localStream.getTracks().forEach(t=>pc.addTrack(t,nostrVoice._localStream));
     pc.ontrack=function(ev){
       if(!peer.audioEl){peer.audioEl=new Audio();peer.audioEl.autoplay=true;peer.audioEl.muted=state.voiceDeafened;document.body.appendChild(peer.audioEl);}
       peer.audioEl.srcObject=ev.streams[0];
     };
-    pc.onicecandidate=function(ev){if(ev.candidate) peer.bufferedCandidates.push(ev.candidate.toJSON());};
+    pc.onicecandidate=function(ev){
+      if(!ev.candidate) return;
+      nostrVoice._publishSignal(peerPubkey,'ice',[ev.candidate.toJSON()]);
+    };
     pc.onicegatheringstatechange=function(){
-      if(pc.iceGatheringState==='complete'&&peer.bufferedCandidates.length){nostrVoice._publishSignal(peerPubkey,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}
+      if(pc.iceGatheringState==='complete'&&peer.bufferedCandidates.length){
+        nostrVoice._publishSignal(peerPubkey,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];
+      }
     };
     pc.onconnectionstatechange=function(){
-      if(pc.connectionState==='connected'){var p=nostrVoice._participants.get('nostr-'+peerPubkey.slice(0,12));if(p){p.connectionQuality='good';nostrVoice.updateParticipants();}}
-      if(pc.connectionState==='failed'||pc.connectionState==='closed') nostrVoice._closePeer(peerPubkey);
+      if(pc.connectionState==='connected'){
+        peer.failCount=0;
+        var p=nostrVoice._participants.get('nostr-'+peerPubkey.slice(0,12));
+        if(p){p.connectionQuality='good';nostrVoice.updateParticipants();}
+      }
+      if(pc.connectionState==='failed'){
+        peer.failCount++;
+        if(peer.failCount<=1&&state.nostrPubkey>peerPubkey){
+          pc.restartIce();
+          pc.createOffer({iceRestart:true}).then(o=>pc.setLocalDescription(o).then(()=>nostrVoice._publishSignal(peerPubkey,'offer',o))).catch(()=>nostrVoice._closePeer(peerPubkey));
+        } else {
+          nostrVoice._closePeer(peerPubkey);
+        }
+      }
+      if(pc.connectionState==='closed') nostrVoice._closePeer(peerPubkey);
     };
-    if(state.nostrPubkey>peerPubkey)
+    var isOfferer=state.nostrPubkey>peerPubkey;
+    if(isOfferer)
       pc.createOffer().then(o=>pc.setLocalDescription(o).then(()=>{
         nostrVoice._publishSignal(peerPubkey,'offer',o);
-        peer.iceTimer=setTimeout(()=>{if(peer.bufferedCandidates.length&&pc.iceGatheringState!=='complete'){nostrVoice._publishSignal(peerPubkey,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}},4000);
+        peer.iceTimer=setTimeout(()=>{if(peer.bufferedCandidates.length){nostrVoice._publishSignal(peerPubkey,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}},4000);
       })).catch(e=>console.warn('[nostr-voice] offer:',e));
   },
 
@@ -117,18 +136,19 @@ var nostrVoice = {
     if(!nostrVoice._peers.has(from)) nostrVoice._maybeConnect(from);
     var peer=nostrVoice._peers.get(from); if(!peer) return;
     var pc=peer.pc;
-    var drainBuf=()=>{peer.bufferedCandidates.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(e=>console.error("[nostr-voice] ice:",e)));peer.bufferedCandidates=[];};
-    if(data.type==='offer'&&pc.signalingState==='stable')
+    var addCands=function(cands){cands.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(e=>console.error('[nostr-voice] ice:',e)));};
+    var drainBuf=function(){addCands(peer.bufferedCandidates);peer.bufferedCandidates=[];};
+    if(data.type==='offer'&&(pc.signalingState==='stable'||pc.signalingState==='have-remote-offer'))
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();return pc.createAnswer();})
         .then(a=>pc.setLocalDescription(a).then(()=>{
           nostrVoice._publishSignal(from,'answer',a);
-          peer.iceTimer=setTimeout(()=>{if(peer.bufferedCandidates.length&&pc.iceGatheringState!=='complete'){nostrVoice._publishSignal(from,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}},4000);
+          peer.iceTimer=setTimeout(()=>{if(peer.bufferedCandidates.length){nostrVoice._publishSignal(from,'ice',peer.bufferedCandidates);peer.bufferedCandidates=[];}},4000);
         })).catch(e=>console.warn('[nostr-voice] answer:',e));
     else if(data.type==='answer'&&pc.signalingState==='have-local-offer')
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();}).catch(e=>console.warn('[nostr-voice] set-answer:',e));
     else if(data.type==='ice'){
       var cands=Array.isArray(data.data)?data.data:[data.data];
-      if(peer.remoteDescSet) cands.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(e=>console.error("[nostr-voice] ice:",e)));
+      if(peer.remoteDescSet) addCands(cands);
       else peer.bufferedCandidates.push(...cands);
     }
   },
