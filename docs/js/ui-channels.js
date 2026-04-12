@@ -19,7 +19,7 @@ const uiChannels = {
         <span class="channel-mention-badge" style="display:none"></span>
         <div class="channel-actions">
           <button class="channel-action-btn" data-invite="${c.id}" title="Invite">${window.getIcon ? getIcon('invite') : '✉'}</button>
-          <button class="channel-action-btn" data-settings="${c.id}" title="Settings">${window.getIcon ? getIcon('settings') : '⚙'}</button>
+          <button class="channel-action-btn" data-settings="${c.id}" title="Settings">${window.getIcon ? getIcon('settings') : '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M10.56 1.1l-.3 1.8a7 7 0 0 0-1.54.87l-1.73-.73A1 1 0 0 0 5.8 3.3L3.9 6.6a1 1 0 0 0 .2 1.23l1.42 1.2a7.2 7.2 0 0 0 0 1.94L4.1 12.17a1 1 0 0 0-.2 1.23l1.9 3.3c.24.42.7.6 1.16.45l1.73-.73a7 7 0 0 0 1.54.87l.3 1.8c.07.5.52.87 1.02.87h3.82c.5 0 .95-.37 1.02-.87l.3-1.8a7 7 0 0 0 1.54-.87l1.73.73c.46.15.92-.03 1.16-.45l1.9-3.3a1 1 0 0 0-.2-1.23l-1.42-1.2c.05-.32.08-.65.08-.97s-.03-.65-.08-.97l1.42-1.2a1 1 0 0 0 .2-1.23l-1.9-3.3A1 1 0 0 0 17.33 3l-1.73.73a7 7 0 0 0-1.54-.87l-.3-1.8A1.02 1.02 0 0 0 12.74.23h-3.82c-.5 0-.95.37-1.02.87H10.56zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg>'}</button>
         </div>
       </div>`;
       if (isVoiceConnected) {
@@ -129,7 +129,7 @@ const uiChannels = {
 
     const iconMap = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread' };
     if (ui.chatHeaderIcon) {
-      ui.chatHeaderIcon.innerHTML = window.getIcon ? getIcon(iconMap[ch.type]||'text') : ({text:'#',voice:'🔊',threaded:'📋',announcement:'📢',forum:'💬'}[ch.type]||'#');
+      ui.chatHeaderIcon.innerHTML = window.getIcon ? getIcon(iconMap[ch.type]||'text') : '#';
     }
     ui.chatHeaderName.textContent = ch.name;
     if (ui.chatHeaderTopic) ui.chatHeaderTopic.textContent = ch.topic || '';

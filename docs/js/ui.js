@@ -68,7 +68,7 @@ const formatTime = (ts) => {
   return d.toLocaleDateString() + ' ' + time;
 };
 const chIcon = (type) => {
-  if (!window.getIcon) return { text:'#', voice:'🔊', threaded:'📋', announcement:'📢', forum:'💬', thread:'🧵' }[type] || '#';
+  if (!window.getIcon) return '#';
   const map = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread', stage:'stage' };
   return getIcon(map[type] || 'text');
 };

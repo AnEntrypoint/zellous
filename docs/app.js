@@ -129,6 +129,12 @@ const ui_events = {
     if (dcToggle) { dcToggle.checked = state.useDataChannel; dcToggle.addEventListener('change', (e) => { state.useDataChannel = e.target.checked; }); }
     const relayToggle = document.getElementById('forceRelayToggle');
     if (relayToggle) { relayToggle.checked = localStorage.getItem('zellous_forceRelay') === 'true'; relayToggle.addEventListener('change', (e) => { localStorage.setItem('zellous_forceRelay', e.target.checked ? 'true' : 'false'); }); }
+    const rnnoiseToggle = document.getElementById('rnnoiseToggle');
+    if (rnnoiseToggle) {
+      const stored = localStorage.getItem('zellous_rnnoise');
+      rnnoiseToggle.checked = stored === null ? true : stored === 'true';
+      rnnoiseToggle.addEventListener('change', (e) => { localStorage.setItem('zellous_rnnoise', e.target.checked ? 'true' : 'false'); });
+    }
   }
 };
 

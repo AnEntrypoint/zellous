@@ -31,6 +31,38 @@ var nostrVoice = {
 
   _displayName() { return state.nostrProfile?.name||(state.nostrPubkey?auth.npubShort(state.nostrPubkey):'Guest'); },
 
+  async _applyRnnoise(rawStream) {
+    try {
+      const worketUrl = new URL('../../vendor/rnnoise-worklet.js', document.baseURI).href;
+      if (!nostrVoice._rnnoiseCtx) {
+        nostrVoice._rnnoiseCtx = new AudioContext({ sampleRate: 48000 });
+        await nostrVoice._rnnoiseCtx.audioWorklet.addModule(worketUrl);
+      }
+      const ctx = nostrVoice._rnnoiseCtx;
+      if (ctx.state === 'suspended') await ctx.resume();
+      // tear down previous graph nodes if reconnecting
+      if (nostrVoice._rnnoiseSource) { try { nostrVoice._rnnoiseSource.disconnect(); } catch(e){} }
+      if (nostrVoice._rnnoiseNode) { try { nostrVoice._rnnoiseNode.disconnect(); } catch(e){} }
+      const source = ctx.createMediaStreamSource(rawStream);
+      const denoiseNode = new AudioWorkletNode(ctx, 'NoiseSuppressorWorklet');
+      const dest = ctx.createMediaStreamDestination();
+      source.connect(denoiseNode);
+      denoiseNode.connect(dest);
+      nostrVoice._rnnoiseSource = source;
+      nostrVoice._rnnoiseNode = denoiseNode;
+      nostrVoice._rnnoiseDest = dest;
+      return dest.stream;
+    } catch(e) {
+      console.warn('[nostr-voice] rnnoise unavailable, using raw stream:', e.message);
+      return rawStream;
+    }
+  },
+
+  _rnnoiseEnabled() {
+    const stored = localStorage.getItem('zellous_rnnoise');
+    return stored === null ? true : stored === 'true';
+  },
+
   async connect(channelName) {
     if (!nostrVoice._fsm) nostrVoice._initFSM();
     if (!nostrVoice._fsm.getSnapshot().can({type:'connect'})) { await nostrVoice.disconnect(); }
@@ -39,11 +71,17 @@ var nostrVoice = {
     nostrVoice._joinTs = Math.floor(Date.now()/1000);
     try {
       nostrVoice._roomId = await nostrVoice._deriveRoomId(channelName);
+      let rawStream;
       if (state.mediaStream && state.mediaStream.getAudioTracks().some(t=>t.readyState==='live')) {
-        nostrVoice._localStream = state.mediaStream;
+        rawStream = state.mediaStream;
       } else {
-        nostrVoice._localStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
-        state.mediaStream = nostrVoice._localStream;
+        rawStream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+        state.mediaStream = rawStream;
+      }
+      if (nostrVoice._rnnoiseEnabled()) {
+        nostrVoice._localStream = await nostrVoice._applyRnnoise(rawStream);
+      } else {
+        nostrVoice._localStream = rawStream;
       }
       nostrVoice._participants.clear();
       nostrVoice._participants.set('local',{identity:nostrVoice._displayName(),isSpeaking:false,isMuted:false,isLocal:true,hasVideo:false,connectionQuality:'good'});
@@ -73,6 +111,9 @@ var nostrVoice = {
     nostrVoice._peers.forEach((_,pk)=>nostrVoice._closePeer(pk)); nostrVoice._peers.clear();
     if(nostrVoice._localStream&&nostrVoice._localStream!==state.mediaStream){nostrVoice._localStream.getTracks().forEach(t=>t.stop());}
     nostrVoice._localStream=null;
+    // tear down rnnoise graph (keep ctx alive for reuse, just disconnect nodes)
+    if(nostrVoice._rnnoiseSource){try{nostrVoice._rnnoiseSource.disconnect();}catch(e){} nostrVoice._rnnoiseSource=null;}
+    if(nostrVoice._rnnoiseNode){try{nostrVoice._rnnoiseNode.disconnect();}catch(e){} nostrVoice._rnnoiseNode=null;}
     if(nostrVoice._roomId){nostrNet.unsubscribe('voice-presence-'+nostrVoice._roomId);nostrNet.unsubscribe('voice-signals-'+nostrVoice._roomId);}
     nostrVoice._participants.clear(); nostrVoice._roomId=''; nostrVoice._channelName='';
     state.voiceConnectionQuality='unknown'; state.voiceChannelName='';
@@ -95,7 +136,11 @@ var nostrVoice = {
 
   toggleMic() {
     state.micMuted=!state.micMuted;
-    if(nostrVoice._localStream) nostrVoice._localStream.getAudioTracks().forEach(t=>{t.enabled=!state.micMuted;});
+    // mute the raw mic stream (affects both direct and rnnoise-processed path)
+    const rawStream = state.mediaStream;
+    if(rawStream) rawStream.getAudioTracks().forEach(t=>{t.enabled=!state.micMuted;});
+    // also mute processed stream output tracks if rnnoise is active
+    if(nostrVoice._localStream && nostrVoice._localStream !== rawStream) nostrVoice._localStream.getAudioTracks().forEach(t=>{t.enabled=!state.micMuted;});
     var local=nostrVoice._participants.get('local'); if(local) local.isMuted=state.micMuted;
     nostrVoice.updateParticipants();
     document.getElementById('micToggleBtn')?.classList.toggle('muted',state.micMuted);
