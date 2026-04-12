@@ -8,7 +8,10 @@ Serverless voice and chat over public Nostr relays. No backend required.
 
 - Voice channels — click to join, click again to leave
 - Text chat via Nostr events
-- Server/community management
+- Server/community management with invite links (`?room=<serverId>`)
+- Right-click server icons for context menu (Copy Invite Link, Edit, Leave, Delete)
+- Join preview modal when opening an invite URL
+- Mobile-responsive layout — server list as bottom bar, slide-in channel sidebar, 44px touch targets
 - WebRTC mesh voice using Nostr signaling (no TURN server required)
 - Opus audio codec (24kbps, 48kHz)
 - Push-to-talk and VAD modes

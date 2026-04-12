@@ -22,7 +22,8 @@ Zellous is a fully serverless voice and chat app using public Nostr relays. No b
 - `nostr-chat.js` — Chat over Nostr events
 - `nostr-channels.js` — Channel management via Nostr
 - `nostr-channels-ui.js` — Channel modals, context menus, drag-and-drop
-- `nostr-servers.js` — Server (community) management via Nostr
+- `nostr-servers.js` — Server (community) management via Nostr. Core: `create`, `join`, `leave`, `delete`, `switchTo`, `renderList`. Right-click on server icon calls `showContextMenu`. `showJoinPreview(serverId, onConfirm)` shows preview modal before joining via `?room=` param
+- `nostr-servers-ui.js` — Server UI methods augmented onto serverManager: `showContextMenu`, `showEditModal`, `showJoinPreview`, `showCreateModal`. Mirrors nostr-channels-ui.js pattern. Invite URL: `location.origin + location.pathname + ?room=<serverId>`
 - `audio.js` — Opus encoding/decoding, playback, pause/resume
 - `queue.js` — Audio segment queue, replay, download
 - `files.js` — File upload/download, drag-drop, clipboard paste
