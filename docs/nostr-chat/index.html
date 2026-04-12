@@ -331,6 +331,7 @@
       'js/nostr-servers.js',
       'js/moderation.js',
       'js/nostr-network.js',
+      'js/nostr-fsm.js',
       'js/nostr-voice.js',
       'js/ptt.js',
       'js/webcam.js',
@@ -478,23 +479,20 @@ const lk = {
       if (ui.voicePanel) ui.voicePanel.classList.add('visible');
       if (ui.voicePanelChannel) ui.voicePanelChannel.textContent = channelName;
     } catch (e) {
-      console.warn('[LiveKit] Voice unavailable in serverless mode:', e.message);
-      state.voiceConnected = false;
+      console.warn('[LiveKit] falling back to nostrVoice:', e.message);
       state.voiceConnectionState = 'disconnected';
-      state.voiceConnectionQuality = 'unknown';
       state.dataChannelAvailable = false;
-      message.add('Voice unavailable in serverless mode');
+      await nostrVoice.connect(channelName);
     }
   },
 
   async disconnect() {
-    if (lk.room) { await lk.room.disconnect(); }
-    lk._resetState();
-    lk.updateParticipants();
+    if (lk.room) { await lk.room.disconnect(); lk._resetState(); lk.updateParticipants(); return; }
+    if (window.nostrVoice) nostrVoice.disconnect();
   },
 
   async toggleMic() {
-    if (!lk.room) return;
+    if (!lk.room) { if (window.nostrVoice) nostrVoice.toggleMic(); return; }
     state.micMuted = !state.micMuted;
     await lk.room.localParticipant.setMicrophoneEnabled(!state.micMuted);
     lk.updateParticipants();
@@ -503,13 +501,14 @@ const lk = {
   },
 
   async toggleCamera() {
-    if (!lk.room) return;
+    if (!lk.room) { if (window.nostrVoice) nostrVoice.toggleCamera(); return; }
     const enabled = lk.room.localParticipant.isCameraEnabled;
     await lk.room.localParticipant.setCameraEnabled(!enabled);
     lk.updateParticipants();
   },
 
   toggleDeafen() {
+    if (!lk.room) { if (window.nostrVoice) nostrVoice.toggleDeafen(); return; }
     state.voiceDeafened = !state.voiceDeafened;
     document.querySelectorAll('[id^="lk-audio-"]').forEach(el => { el.muted = state.voiceDeafened; });
     document.getElementById('deafenToggleBtn')?.classList.toggle('muted', state.voiceDeafened);
@@ -559,7 +558,7 @@ const lk = {
   _stopQuality() { if (lk._qualityInterval) { clearInterval(lk._qualityInterval); lk._qualityInterval = null; } },
 
   updateParticipants() {
-    if (!lk.room) { state.voiceParticipants = []; return; }
+    if (!lk.room) { if (window.nostrVoice) nostrVoice.updateParticipants(); else state.voiceParticipants = []; return; }
     const speakers = state.activeSpeakers || new Set();
     const local = lk.room.localParticipant;
     const participants = [{ identity: local.identity || 'You', isSpeaking: speakers.has(local.identity) || local.isSpeaking, isMuted: !local.isMicrophoneEnabled, isLocal: true, hasVideo: local.isCameraEnabled, connectionQuality: lk._mapQuality(local.connectionQuality) }];

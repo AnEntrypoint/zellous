@@ -28,7 +28,7 @@ var nostrNet = {
       return;
     }
 
-    var relay = existing || { ws: null, status: 'connecting', reconnectDelay: 1000, subIds: new Set() };
+    var relay = existing || { ws: null, status: 'connecting', reconnectDelay: 1000, failCount: 0, subIds: new Set() };
     relay.status = 'connecting';
     nostrNet.relays.set(url, relay);
 
@@ -46,7 +46,7 @@ var nostrNet = {
 
     ws.onopen = function() {
       relay.status = 'connected';
-      relay.reconnectDelay = 1000;
+      relay._openedAt = Date.now();
       nostrNet._updateRelayStatus(url, 'connected');
       var wasConnected = state.isConnected;
       state.isConnected = true;
@@ -83,8 +83,11 @@ var nostrNet = {
       });
       if (!anyOpen) state.isConnected = false;
       if (window.ui) ui.render.all();
-      nostrNet._reconnect(url, relay.reconnectDelay);
-      relay.reconnectDelay = Math.min(relay.reconnectDelay * 2, 30000);
+      var sustained = relay._openedAt && (Date.now() - relay._openedAt) > 5000;
+      if (sustained) { relay.failCount = 0; relay.reconnectDelay = 1000; }
+      else { relay.failCount = (relay.failCount || 0) + 1; relay.reconnectDelay = Math.min(relay.reconnectDelay * 2, 30000); }
+      relay._openedAt = null;
+      if (relay.failCount <= 10) nostrNet._reconnect(url, relay.reconnectDelay);
     };
   },
 

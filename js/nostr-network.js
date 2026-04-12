@@ -3,12 +3,14 @@ var nostrNet = {
   subs: new Map(),
   pendingEvents: [],
   seenIds: new Set(),
+
   connect: function() {
     var relays = (state.nostrRelays || []);
     for (var i = 0; i < relays.length; i++) {
       nostrNet._openRelay(relays[i]);
     }
   },
+
   disconnect: function() {
     nostrNet.relays.forEach(function(relay, url) {
       if (relay.ws) {
@@ -19,14 +21,17 @@ var nostrNet = {
     });
     nostrNet.relays.clear();
   },
+
   _openRelay: function(url) {
     var existing = nostrNet.relays.get(url);
     if (existing && existing.ws && (existing.ws.readyState === 0 || existing.ws.readyState === 1)) {
       return;
     }
-    var relay = existing || { ws: null, status: 'connecting', reconnectDelay: 1000, subIds: new Set() };
+
+    var relay = existing || { ws: null, status: 'connecting', reconnectDelay: 1000, failCount: 0, subIds: new Set() };
     relay.status = 'connecting';
     nostrNet.relays.set(url, relay);
+
     var ws;
     try {
       ws = new WebSocket(url);
@@ -36,32 +41,39 @@ var nostrNet = {
       if (window.ui) ui.render.all();
       return;
     }
+
     relay.ws = ws;
+
     ws.onopen = function() {
       relay.status = 'connected';
-      relay.reconnectDelay = 1000;
+      relay._openedAt = Date.now();
       nostrNet._updateRelayStatus(url, 'connected');
       var wasConnected = state.isConnected;
       state.isConnected = true;
       if (!wasConnected && window.ui) ui.render.all();
+
       nostrNet.subs.forEach(function(sub, subId) {
         var filters = sub.filters;
         var req = ['REQ', subId].concat(filters);
         ws.send(JSON.stringify(req));
         relay.subIds.add(subId);
       });
+
       nostrNet._drainPending();
     };
+
     ws.onmessage = function(e) {
       try {
         nostrNet._handleMessage(url, e.data);
       } catch (_) {}
     };
+
     ws.onerror = function() {
       relay.status = 'error';
       nostrNet._updateRelayStatus(url, 'error');
       if (window.ui) ui.render.all();
     };
+
     ws.onclose = function() {
       relay.status = 'closed';
       nostrNet._updateRelayStatus(url, 'error');
@@ -71,10 +83,14 @@ var nostrNet = {
       });
       if (!anyOpen) state.isConnected = false;
       if (window.ui) ui.render.all();
-      nostrNet._reconnect(url, relay.reconnectDelay);
-      relay.reconnectDelay = Math.min(relay.reconnectDelay * 2, 30000);
+      var sustained = relay._openedAt && (Date.now() - relay._openedAt) > 5000;
+      if (sustained) { relay.failCount = 0; relay.reconnectDelay = 1000; }
+      else { relay.failCount = (relay.failCount || 0) + 1; relay.reconnectDelay = Math.min(relay.reconnectDelay * 2, 30000); }
+      relay._openedAt = null;
+      if (relay.failCount <= 10) nostrNet._reconnect(url, relay.reconnectDelay);
     };
   },
+
   _reconnect: function(url, delay) {
     setTimeout(function() {
       var relay = nostrNet.relays.get(url);
@@ -83,6 +99,7 @@ var nostrNet = {
       nostrNet._openRelay(url);
     }, delay || 1000);
   },
+
   _handleMessage: function(url, rawData) {
     var msg = JSON.parse(rawData);
     if (!Array.isArray(msg) || msg.length < 2) return;
@@ -110,12 +127,15 @@ var nostrNet = {
       console.error('[nostr relay rejected event]', msg[1], msg[3] || '');
     }
   },
+
   _normSubId: function(subId) {
     return subId.length > 64 ? subId.slice(0, 64) : subId;
   },
+
   subscribe: function(subId, filters, onEvent, onEose) {
     subId = nostrNet._normSubId(subId);
     nostrNet.subs.set(subId, { filters: filters, onEvent: onEvent, onEose: onEose, relays: new Set() });
+
     nostrNet.relays.forEach(function(relay, url) {
       if (relay.ws && relay.ws.readyState === 1) {
         var req = ['REQ', subId].concat(filters);
@@ -124,8 +144,10 @@ var nostrNet = {
         nostrNet.subs.get(subId).relays.add(url);
       }
     });
+
     return subId;
   },
+
   unsubscribe: function(subId) {
     subId = nostrNet._normSubId(subId);
     nostrNet.relays.forEach(function(relay) {
@@ -136,6 +158,7 @@ var nostrNet = {
     });
     nostrNet.subs.delete(subId);
   },
+
   publish: function(event) {
     var sent = false;
     nostrNet.relays.forEach(function(relay) {
@@ -148,29 +171,35 @@ var nostrNet = {
       nostrNet.pendingEvents.push(event);
     }
   },
+
   _drainPending: function() {
     var pending = nostrNet.pendingEvents.splice(0);
     for (var i = 0; i < pending.length; i++) nostrNet.publish(pending[i]);
   },
+
   isConnected: function() {
     var open = false;
     nostrNet.relays.forEach(function(r) { if (r.ws && r.ws.readyState === 1) open = true; });
     return open;
   },
+
   _updateRelayStatus: function(url, status) {
     var m = new Map(state.nostrRelayStatus || []);
     m.set(url, status);
     state.nostrRelayStatus = m;
   },
+
   _trimSeenIds: function() {
     if (nostrNet.seenIds.size > 10000) {
       var arr = Array.from(nostrNet.seenIds);
       nostrNet.seenIds = new Set(arr.slice(arr.length - 5000));
     }
   },
+
   send: function() {},
   sendAudio: function() {}
 };
+
 var message = window.message || {
   handlers: {},
   handle: function(m) { var h = message.handlers[m.type]; if (h) h(m); },
@@ -181,6 +210,7 @@ var message = window.message || {
     if (window.ui) ui.render.messages();
   }
 };
+
 window.nostrNet = nostrNet;
 window.network = nostrNet;
 window.message = message;
