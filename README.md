@@ -12,7 +12,7 @@ Serverless voice and chat over public Nostr relays. No backend required.
 - Right-click server icons for context menu (Copy Invite Link, Edit, Leave, Delete)
 - Join preview modal when opening an invite URL
 - Mobile-responsive layout — server list as bottom bar, slide-in channel sidebar, 44px touch targets
-- WebRTC mesh voice using Nostr signaling (no TURN server required)
+- WebRTC mesh voice with dynamic hub election (mesh→star SFU at 3+ peers via RTT scoring)
 - Opus audio codec (24kbps, 48kHz)
 - Push-to-talk and VAD modes
 - Webcam support
@@ -41,6 +41,8 @@ Static site — `docs/` directory served via GitHub Pages.
 - `js/state.js` — shared state module (loaded as `../js/state.js`)
 
 Voice uses native WebRTC with Nostr kind 30078 events as signaling channel. No server, no STUN/TURN required for LAN; uses default browser STUN for WAN.
+
+- `docs/js/nostr-voice-sfu.js` — dynamic hub election: polls RTT via `getStats()`, elects lowest-latency peer as hub, forwards audio via `replaceTrack()` without decode/re-encode
 
 ## Browser Support
 
