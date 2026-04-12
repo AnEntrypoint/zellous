@@ -22,6 +22,31 @@ var serverManager = {
           state.servers = state.servers.concat([{ id: sid, name: sid.slice(0, 8), iconColor: '#5865F2' }]);
         }
       });
+      // Subscribe to relay to fetch real names for joined (non-owned) servers
+      var unresolved = joinedIds.filter(function(sid) {
+        // Format: pubkey:dTag — only subscribe if not already owned by us
+        var parts = sid.split(':');
+        return parts.length === 2 && parts[0] !== state.nostrPubkey;
+      });
+      if (unresolved.length) {
+        // Group by author to minimise subscriptions
+        var byAuthor = {};
+        unresolved.forEach(function(sid) {
+          var parts = sid.split(':');
+          var author = parts[0], dTag = parts[1];
+          if (!byAuthor[author]) byAuthor[author] = [];
+          byAuthor[author].push(dTag);
+        });
+        Object.keys(byAuthor).forEach(function(author) {
+          var dTags = byAuthor[author];
+          nostrNet.subscribe(
+            'joined-server-' + author.slice(0, 8),
+            [{ kinds: [34550], authors: [author], '#d': dTags }],
+            function(event) { serverManager._handleServerEvent(event); },
+            function() {}
+          );
+        });
+      }
     } catch (e) {}
   },
 

@@ -163,58 +163,71 @@ const ui_events = {
       });
     }
 
-    // Mic monitor: show live raw vs processed levels when settings popover is open
+    // Mic monitor: raw vs processed level bars in settings popover
     let _micMonitorRaf = null;
-    let _micMonitorRawCtx = null, _micMonitorRawAnalyser = null;
-    let _micMonitorProcCtx = null, _micMonitorProcAnalyser = null;
-    const _startMicMonitor = () => {
+    let _micMonitorCtx = null;
+    const _startMicMonitor = async () => {
       const rawBar = document.getElementById('micRawBar');
       const procBar = document.getElementById('micProcessedBar');
       const monitor = document.getElementById('micMonitor');
       if (!rawBar || !procBar || !monitor) return;
-      const rawStream = state.mediaStream;
-      const procStream = window.nostrVoice?._rnnoiseDest?.stream;
-      if (!rawStream) { monitor.style.display = 'none'; return; }
+
+      // Request mic if not yet available
+      let rawStream = state.mediaStream;
+      if (!rawStream || !rawStream.getAudioTracks().some(t => t.readyState === 'live')) {
+        try {
+          rawStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+          state.mediaStream = rawStream;
+        } catch (e) { monitor.style.display = 'none'; return; }
+      }
       monitor.style.display = 'block';
-      // build analysers
-      if (!_micMonitorRawCtx || _micMonitorRawCtx.state === 'closed') {
-        _micMonitorRawCtx = new AudioContext();
+
+      // Always rebuild analysers fresh (stream may have changed since last open)
+      if (_micMonitorRaf) { cancelAnimationFrame(_micMonitorRaf); _micMonitorRaf = null; }
+      if (_micMonitorCtx) { _micMonitorCtx.close().catch(() => {}); }
+      _micMonitorCtx = new AudioContext();
+
+      const rawAnalyser = _micMonitorCtx.createAnalyser();
+      rawAnalyser.fftSize = 512;
+      _micMonitorCtx.createMediaStreamSource(rawStream).connect(rawAnalyser);
+
+      // Tap the rnnoise output if active — reuse the existing rnnoise AudioContext
+      let procAnalyser = null;
+      const nv = window.nostrVoice;
+      if (nv?._rnnoiseNode && nv?._rnnoiseCtx?.state === 'running') {
+        procAnalyser = nv._rnnoiseCtx.createAnalyser();
+        procAnalyser.fftSize = 512;
+        nv._rnnoiseNode.connect(procAnalyser);
       }
-      if (!_micMonitorRawAnalyser) {
-        _micMonitorRawAnalyser = _micMonitorRawCtx.createAnalyser();
-        _micMonitorRawAnalyser.fftSize = 256;
-        _micMonitorRawCtx.createMediaStreamSource(rawStream).connect(_micMonitorRawAnalyser);
-      }
-      if (procStream && !_micMonitorProcAnalyser) {
-        if (!_micMonitorProcCtx || _micMonitorProcCtx.state === 'closed') _micMonitorProcCtx = new AudioContext();
-        _micMonitorProcAnalyser = _micMonitorProcCtx.createAnalyser();
-        _micMonitorProcAnalyser.fftSize = 256;
-        _micMonitorProcCtx.createMediaStreamSource(procStream).connect(_micMonitorProcAnalyser);
-      }
-      const data = new Uint8Array(_micMonitorRawAnalyser.frequencyBinCount);
+
+      const rawData = new Uint8Array(rawAnalyser.frequencyBinCount);
+      const procData = procAnalyser ? new Uint8Array(procAnalyser.frequencyBinCount) : null;
+      const procLabel = procBar.closest('div').previousElementSibling?.querySelector('span:last-child');
+
+      const rms = (arr) => {
+        let s = 0; for (let i = 0; i < arr.length; i++) s += arr[i] * arr[i];
+        return Math.min(100, Math.sqrt(s / arr.length) / 128 * 200);
+      };
+
       const tick = () => {
         if (!ui.settingsPopover?.classList.contains('open')) { _micMonitorRaf = null; return; }
-        _micMonitorRawAnalyser.getByteFrequencyData(data);
-        let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
-        rawBar.style.width = Math.min(100, Math.sqrt(sum / data.length) / 255 * 400) + '%';
-        if (_micMonitorProcAnalyser) {
-          _micMonitorProcAnalyser.getByteFrequencyData(data);
-          let s2 = 0; for (let i = 0; i < data.length; i++) s2 += data[i] * data[i];
-          procBar.style.width = Math.min(100, Math.sqrt(s2 / data.length) / 255 * 400) + '%';
-          procBar.parentElement.parentElement.previousElementSibling.children[1].style.opacity = '1';
+        rawAnalyser.getByteFrequencyData(rawData);
+        rawBar.style.width = rms(rawData) + '%';
+        if (procAnalyser && procData) {
+          procAnalyser.getByteFrequencyData(procData);
+          procBar.style.width = rms(procData) + '%';
+          if (procLabel) procLabel.style.opacity = '1';
         } else {
           procBar.style.width = '0%';
-          procBar.parentElement.parentElement.previousElementSibling.children[1].style.opacity = '0.3';
+          if (procLabel) procLabel.style.opacity = '0.3';
         }
         _micMonitorRaf = requestAnimationFrame(tick);
       };
-      if (!_micMonitorRaf) _micMonitorRaf = requestAnimationFrame(tick);
+      _micMonitorRaf = requestAnimationFrame(tick);
     };
     const _stopMicMonitor = () => {
       if (_micMonitorRaf) { cancelAnimationFrame(_micMonitorRaf); _micMonitorRaf = null; }
-      _micMonitorRawAnalyser = null; _micMonitorProcAnalyser = null;
-      if (_micMonitorRawCtx) { _micMonitorRawCtx.close().catch(() => {}); _micMonitorRawCtx = null; }
-      if (_micMonitorProcCtx) { _micMonitorProcCtx.close().catch(() => {}); _micMonitorProcCtx = null; }
+      if (_micMonitorCtx) { _micMonitorCtx.close().catch(() => {}); _micMonitorCtx = null; }
     };
     // toggleSettings runs first (toggling .open), so .contains('open') reflects new state here
     document.getElementById('settingsBtn')?.addEventListener('click', () => {
