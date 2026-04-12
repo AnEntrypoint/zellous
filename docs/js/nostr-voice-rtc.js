@@ -134,3 +134,41 @@ var nostrVoiceRtc = {
   }
 };
 window.nostrVoiceRtc = nostrVoiceRtc;
+
+nostrVoiceRtc.scheduleReconnect = nostrVoiceRtc.scheduleReconnect || function(pk) { setTimeout(function(){ if(!nostrVoice._peers.has(pk)) nostrVoiceRtc.maybeConnect(pk); }, 2000); };
+
+var _healDebounce = null;
+var _pagehidden = false;
+var _BAD_STATES = { disconnected: 1, failed: 1, closed: 1 };
+
+function _healPeers() {
+  if(_healDebounce) { clearTimeout(_healDebounce); _healDebounce = null; }
+  _healDebounce = setTimeout(function() {
+    _healDebounce = null;
+    var nv = nostrVoice;
+    if(!nv._roomId) return;
+    nostrVoiceRtc.scheduleReconnect = nostrVoiceRtc.scheduleReconnect || function(pk) { setTimeout(function(){ if(!nv._peers.has(pk)) nostrVoiceRtc.maybeConnect(pk); }, 2000); };
+    nv._peers.forEach(function(peer, pk) {
+      if(_BAD_STATES[peer.pc && peer.pc.connectionState]) {
+        nv._closePeer(pk);
+        nostrVoiceRtc.scheduleReconnect(pk, 0);
+      }
+    });
+  }, 500);
+}
+
+document.addEventListener('visibilitychange', function() {
+  if(document.visibilityState === 'hidden') { _pagehidden = true; return; }
+  if(_pagehidden) { _pagehidden = false; _healPeers(); }
+});
+
+window.addEventListener('online', function() {
+  var nv = nostrVoice;
+  if(!nv._roomId) return;
+  if(window.nostrNet && nostrNet.reconnectAll) nostrNet.reconnectAll();
+  _healPeers();
+});
+
+window.addEventListener('pageshow', function(ev) {
+  if(ev.persisted || _pagehidden) { _pagehidden = false; _healPeers(); }
+});
