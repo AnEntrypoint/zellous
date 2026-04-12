@@ -1,4 +1,8 @@
 
+## [2026-04-12] debug-voice-registry
+- Enhance nostrVoice.__debug getter: per-peer audioState, trackState, fsmState, retryAttempt, retryAt, retrySchedule fields
+- Register window.__debug as live getter object: voice → nostrVoice.__debug, net → window.__debugNet (no page refresh needed)
+
 ## 2026-04-12
 - Fix presence TTL 90s→300s preventing users from appearing (nostr-voice.js)
 - Upsert participant tile on WebRTC connected state (nostr-voice-rtc.js)
