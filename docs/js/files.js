@@ -1,11 +1,9 @@
-// Files module - file transfer alongside voice/video
 
 const fileTransfer = {
   uploads: new Map(), // uploadId -> upload state
   maxFileSize: 50 * 1024 * 1024, // 50MB max
   chunkSize: 64 * 1024, // 64KB chunks for large files
 
-  // Upload file
   async upload(file, customPath = '', description = '') {
     if (!file) return null;
     if (!state.ws) {
@@ -20,16 +18,13 @@ const fileTransfer = {
 
     const uploadId = Date.now() + Math.random().toString(36).slice(2);
 
-    // For small files, send directly
     if (file.size < 1024 * 1024) {
       return this.uploadSmall(file, customPath, description);
     }
 
-    // For larger files, use chunked upload
     return this.uploadChunked(file, customPath, description, uploadId);
   },
 
-  // Upload small file directly
   async uploadSmall(file, customPath, description) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -50,7 +45,6 @@ const fileTransfer = {
     });
   },
 
-  // Upload large file in chunks
   async uploadChunked(file, customPath, description, uploadId) {
     const upload = {
       id: uploadId,
@@ -64,7 +58,6 @@ const fileTransfer = {
     };
     this.uploads.set(uploadId, upload);
 
-    // Notify start
     network.send({
       type: 'file_upload_start',
       uploadId,
@@ -72,7 +65,6 @@ const fileTransfer = {
       size: file.size
     });
 
-    // Read and send chunks
     const chunks = [];
     for (let i = 0; i < upload.totalChunks; i++) {
       const start = i * this.chunkSize;
@@ -91,7 +83,6 @@ const fileTransfer = {
       }
     }
 
-    // Send complete message with all data
     const fullBase64 = await this.readFile(file);
     network.send({
       type: 'file_upload_complete',
@@ -109,7 +100,6 @@ const fileTransfer = {
     return { filename: file.name, size: file.size };
   },
 
-  // Read file as base64
   readFile(file) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -119,7 +109,6 @@ const fileTransfer = {
     });
   },
 
-  // Read chunk as base64
   readChunk(blob) {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -129,7 +118,6 @@ const fileTransfer = {
     });
   },
 
-  // Upload image from clipboard
   async uploadFromClipboard(e) {
     const items = e.clipboardData?.items;
     if (!items) return false;
@@ -146,7 +134,6 @@ const fileTransfer = {
     return false;
   },
 
-  // Handle drag and drop
   handleDrop(e) {
     e.preventDefault();
     const files = e.dataTransfer?.files;
@@ -161,7 +148,6 @@ const fileTransfer = {
     }
   },
 
-  // List files in room
   async list(path = '') {
     try {
       const res = await fetch(`/api/rooms/${state.roomId}/files?path=${encodeURIComponent(path)}`);
@@ -172,7 +158,6 @@ const fileTransfer = {
     }
   },
 
-  // Download file
   download(fileId, filename) {
     const url = `/api/rooms/${state.roomId}/files/${fileId}`;
     const a = document.createElement('a');
@@ -183,14 +168,12 @@ const fileTransfer = {
     document.body.removeChild(a);
   },
 
-  // Format file size
   formatSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   },
 
-  // Get current uploads
   getUploads() {
     return Array.from(this.uploads.values());
   }
