@@ -158,7 +158,7 @@ var nostrVoice = {
         if(event.pubkey===state.nostrPubkey) return;
         try {
           var data=JSON.parse(event.content);
-          if(Date.now()-(data.ts||0)>90000) return;
+          if(Date.now()-(data.ts||0)>300000) return;
           var shortId='nostr-'+event.pubkey.slice(0,12);
           if(data.rttScores && window.nostrVoiceSfu) nostrVoiceSfu.onPresenceRtt(event.pubkey, data.rttScores);
           if(data.action==='leave'){nostrVoice._participants.delete(shortId);nostrVoice._closePeer(event.pubkey);}

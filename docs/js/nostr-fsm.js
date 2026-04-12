@@ -1,20 +1,23 @@
 function makeFSM(transitions, initial, onTransition) {
-  var current = initial;
-  var fsm = {
-    get state() { return current; },
-    send: function(event) {
-      var t = transitions[current];
-      if (!t || !t[event]) { console.warn('[fsm] invalid:', event, 'in', current); return false; }
-      var next = typeof t[event] === 'function' ? t[event]() : t[event];
-      if (!next) return false;
-      var prev = current;
-      current = next;
-      if (onTransition) onTransition(prev, event, next);
-      return true;
-    },
-    is: function(s) { return current === s; },
-    can: function(event) { return !!(transitions[current] && transitions[current][event]); }
+  var states = {};
+  Object.keys(transitions).forEach(function(s) {
+    var on = {};
+    var evts = transitions[s];
+    if(evts) Object.keys(evts).forEach(function(ev) { on[ev] = evts[ev]; });
+    states[s] = { on: on };
+  });
+  var machine = XState.createMachine({ initial: initial, states: states });
+  var actor = XState.createActor(machine);
+  var prev = initial;
+  actor.subscribe(function(snap) {
+    if(snap.value !== prev && onTransition) { onTransition(prev, null, snap.value); prev = snap.value; }
+  });
+  actor.start();
+  return {
+    get state() { return actor.getSnapshot().value; },
+    send: function(event) { actor.send({ type: event }); },
+    is: function(s) { return actor.getSnapshot().matches(s); },
+    can: function(event) { return actor.getSnapshot().can({ type: event }); }
   };
-  return fsm;
 }
 window.makeFSM = makeFSM;

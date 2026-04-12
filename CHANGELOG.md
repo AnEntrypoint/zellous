@@ -1,3 +1,11 @@
+
+## 2026-04-12
+- Fix presence TTL 90s→300s preventing users from appearing (nostr-voice.js)
+- Upsert participant tile on WebRTC connected state (nostr-voice-rtc.js)
+- Add XState v5 to importmap + window.XState assignment (index.html)
+- Migrate makeFSM to XState createMachine+createActor (nostr-fsm.js)
+- Add XState topology actor to nostr-voice-sfu.js (mesh/electing/star)
+- Add XState relay actor to nostr-network.js (disconnected/connecting/connected/error)
 ## [2026-04-12] sfu-mesh-rtt-optimizations
 - Add nostr-voice-sfu.js: dynamic hub election via RTT matrix, replaceTrack forwarding (no decode), dissolves mesh→star at 3+ peers, reverts to mesh at <3 peers
 - nostr-voice-rtc.js: playoutDelayHint=0.02 on receivers, maxBitrate=48kbps on senders, audio hints applied on connected and ontrack

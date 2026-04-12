@@ -14,7 +14,8 @@
       "@preact/signals": "../vendor/preact-signals.mjs",
       "@preact/signals-core": "../vendor/signals-core.mjs",
       "livekit-client": "../vendor/livekit-client.mjs",
-      "nostr-tools": "../vendor/nostr-tools.mjs"
+      "nostr-tools": "../vendor/nostr-tools.mjs",
+      "xstate": "../vendor/xstate.mjs"
     }
   }
   </script>
@@ -308,6 +309,9 @@
 
     import * as NostrTools from 'nostr-tools';
     window.NostrTools = NostrTools;
+
+    import { createMachine, createActor } from 'xstate';
+    window.XState = { createMachine, createActor };
 
     const base = new URL('../', import.meta.url).href;
     window.__appBase = base;

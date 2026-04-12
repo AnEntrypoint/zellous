@@ -73,8 +73,11 @@ var nostrVoiceRtc = {
         peer.failCount=0; if(fsm.can('recv_answer')) fsm.send('recv_answer');
         if(peer.disconnectTimer){clearTimeout(peer.disconnectTimer);peer.disconnectTimer=null;}
         nostrVoiceRtc._applyAudioHints(pc);
-        var p=nv._participants.get('nostr-'+peerPubkey.slice(0,12));
-        if(p){p.connectionQuality='good';nv.updateParticipants();}
+        var pKey='nostr-'+peerPubkey.slice(0,12);
+        var p=nv._participants.get(pKey);
+        if(!p){nv._participants.set(pKey,{identity:pKey,isSpeaking:false,isMuted:false,isLocal:false,hasVideo:false,connectionQuality:'good'});}
+        else{p.connectionQuality='good';}
+        nv.updateParticipants();
       }
       if(pc.connectionState==='disconnected'){
         fsm.send('disconnect'); peer.disconnectTimer=setTimeout(doIceRestart,8000);

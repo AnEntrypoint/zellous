@@ -1,0 +1,3 @@
+/* esm.sh - xstate@5.30.0/dev */
+function o(){if(typeof globalThis<"u")return globalThis;if(typeof self<"u")return self;if(typeof window<"u")return window;if(typeof globalThis<"u")return globalThis}function t(){let e=o();if(e.__xstate__)return e.__xstate__}function i(e){if(typeof window>"u")return;let n=t();n&&n.register(e)}var f=e=>{if(typeof window>"u")return;let n=t();n&&n.register(e)};export{f as devToolsAdapter,o as getGlobal,i as registerService};
+//# sourceMappingURL=dev.mjs.map

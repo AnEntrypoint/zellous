@@ -4,7 +4,14 @@ var nostrNet = {
   pendingEvents: [],
   seenIds: new Set(),
 
-  connect: function() {
+  _makeRelayActor: function() {
+    var machine = XState.createMachine({initial:'connecting',states:{connecting:{on:{connected:'connected',fail:'error'}},connected:{on:{fail:'error',disconnect:'disconnected'}},disconnected:{on:{reconnect:'connecting'}},error:{on:{reconnect:'connecting'}}}});
+    var actor = XState.createActor(machine);
+    actor.start();
+    return actor;
+  },
+
+    connect: function() {
     var relays = (state.nostrRelays || []);
     for (var i = 0; i < relays.length; i++) nostrNet._openRelay(relays[i]);
   },
@@ -19,17 +26,19 @@ var nostrNet = {
   _openRelay: function(url) {
     var existing = nostrNet.relays.get(url);
     if (existing && existing.ws && (existing.ws.readyState === 0 || existing.ws.readyState === 1)) return;
-    var relay = existing || { ws: null, status: 'connecting', reconnectDelay: 1000, failCount: 0, subIds: new Set(), latencyMs: null, _reqSentAt: null };
+    var relay = existing || { ws: null, status: 'connecting', actor: null, reconnectDelay: 1000, failCount: 0, subIds: new Set(), latencyMs: null, _reqSentAt: null };
     relay.status = 'connecting';
+    if(!relay.actor) relay.actor = nostrNet._makeRelayActor();
+    else relay.actor.send({type:'reconnect'});
     nostrNet.relays.set(url, relay);
     var ws;
     try { ws = new WebSocket(url); } catch (e) {
-      relay.status = 'error'; nostrNet._updateRelayStatus(url, 'error');
+      relay.status = 'error'; relay.actor.send({type:'fail'}); nostrNet._updateRelayStatus(url, 'error');
       if (window.ui) ui.render.all(); return;
     }
     relay.ws = ws;
     ws.onopen = function() {
-      relay.status = 'connected'; relay._openedAt = Date.now();
+      relay.status = 'connected'; relay.actor.send({type:'connected'}); relay._openedAt = Date.now();
       nostrNet._updateRelayStatus(url, 'connected');
       var wasConnected = state.isConnected; state.isConnected = true;
       if (!wasConnected && window.ui) ui.render.all();
@@ -52,7 +61,7 @@ var nostrNet = {
       if (window.ui) ui.render.all();
     };
     ws.onclose = function() {
-      relay.status = 'closed'; nostrNet._updateRelayStatus(url, 'error');
+      relay.status = 'closed'; relay.actor.send({type:'fail'}); nostrNet._updateRelayStatus(url, 'error');
       var anyOpen = false;
       nostrNet.relays.forEach(function(r) { if (r.ws && r.ws.readyState === 1) anyOpen = true; });
       if (!anyOpen) state.isConnected = false;
@@ -154,5 +163,5 @@ var nostrNet = {
 window.nostrNet = nostrNet;
 window.network = nostrNet;
 window.__debugNet = { get relays() {
-  var out = []; nostrNet.relays.forEach(function(r, url) { out.push({url: url, status: r.status, latencyMs: r.latencyMs}); }); return out;
+  var out = []; nostrNet.relays.forEach(function(r, url) { out.push({url: url, status: r.status, actorState: r.actor ? r.actor.getSnapshot().value : null, latencyMs: r.latencyMs}); }); return out;
 }};

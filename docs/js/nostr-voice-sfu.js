@@ -1,18 +1,25 @@
 var nostrVoiceSfu = {
-  _mode: 'mesh',
+  _actor: null,
   _hub: null,
   _rttMatrix: new Map(),
   _electionTimer: null,
   _statsInterval: null,
 
-  start() {
+  _initActor() {
+    var machine = XState.createMachine({initial:'mesh',states:{mesh:{on:{elect:'electing'}},electing:{on:{elected:'star',dissolve:'mesh'}},star:{on:{dissolve:'mesh'}}}});
+    nostrVoiceSfu._actor = XState.createActor(machine);
+    nostrVoiceSfu._actor.start();
+  },
+
+    start() {
+    nostrVoiceSfu._initActor();
     nostrVoiceSfu._stopStats();
     nostrVoiceSfu._statsInterval = setInterval(nostrVoiceSfu._poll, 5000);
   },
 
   stop() {
     nostrVoiceSfu._stopStats();
-    nostrVoiceSfu._mode = 'mesh';
+    if(nostrVoiceSfu._actor) nostrVoiceSfu._actor.send({type:'dissolve'});
     nostrVoiceSfu._hub = null;
     nostrVoiceSfu._rttMatrix.clear();
   },
@@ -49,7 +56,7 @@ var nostrVoiceSfu = {
   _maybeElect() {
     var nv = nostrVoice;
     var peerCount = nv._peers.size;
-    if(peerCount < 3) { if(nostrVoiceSfu._mode !== 'mesh') nostrVoiceSfu._dissolve(); return; }
+    if(peerCount < 3) { if(nostrVoiceSfu._actor && nostrVoiceSfu._actor.getSnapshot().value !== 'mesh') nostrVoiceSfu._dissolve(); return; }
     if(nostrVoiceSfu._electionTimer) return;
     nostrVoiceSfu._electionTimer = setTimeout(function() {
       nostrVoiceSfu._electionTimer = null;
@@ -73,7 +80,7 @@ var nostrVoiceSfu = {
     if(!best) return;
     if(best !== nostrVoiceSfu._hub) {
       nostrVoiceSfu._hub = best;
-      nostrVoiceSfu._mode = 'star';
+      if(nostrVoiceSfu._actor) nostrVoiceSfu._actor.send({type:'elected'});
       if(best === state.nostrPubkey) nostrVoiceSfu._becomeHub();
       else nostrVoiceSfu._routeToHub(best);
     }
@@ -105,14 +112,14 @@ var nostrVoiceSfu = {
   },
 
   _dissolve() {
-    nostrVoiceSfu._mode = 'mesh';
+    if(nostrVoiceSfu._actor) nostrVoiceSfu._actor.send({type:'dissolve'});
     nostrVoiceSfu._hub = null;
   },
 
   get __debug() {
     var scores = {};
     nostrVoiceSfu._rttMatrix.forEach(function(v, k) { scores[k.slice(0,12)] = v; });
-    return {mode: nostrVoiceSfu._mode, hub: nostrVoiceSfu._hub ? nostrVoiceSfu._hub.slice(0,12) : null, rttMatrix: scores};
+    return {mode: nostrVoiceSfu._actor ? nostrVoiceSfu._actor.getSnapshot().value : 'mesh', hub: nostrVoiceSfu._hub ? nostrVoiceSfu._hub.slice(0,12) : null, rttMatrix: scores};
   }
 };
 window.nostrVoiceSfu = nostrVoiceSfu;
