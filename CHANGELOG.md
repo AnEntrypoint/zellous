@@ -1,4 +1,10 @@
 
+## [2026-04-12] perfect-negotiation-pattern
+- Replace signalingState-guarded offer handler with RFC 8840 perfect negotiation pattern
+- polite peer (myPubkey < peerPubkey): rolls back own offer on collision via setLocalDescription({type:'rollback'}) then chains doAnswer
+- impolite peer: silently ignores colliding offers (early return), preventing deadlock
+- Extract doAnswer() local fn: setRemoteDescription → drainBuf → transceiver setup → createAnswer → setLocalDescription → publishSignal (called from both stable and rollback paths, no duplication)
+
 ## [2026-04-12] sfu-hub-death-recovery
 - In onconnectionstatechange closed handler: detect hub loss via nostrVoiceSfu._hub===peerPubkey, call _dissolve() immediately, schedule _maybeElect() at 500ms
 - Add _hubLostAt timestamp field to nostrVoiceSfu, set on every _dissolve() call

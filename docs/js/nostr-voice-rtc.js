@@ -121,13 +121,13 @@ var nostrVoiceRtc = {
     var pc=peer.pc; var fsm=peer.fsm;
     var addCands=function(cands){cands.forEach(c=>pc.addIceCandidate(new RTCIceCandidate(c)).catch(e=>console.error('[nostr-voice] ice:',e)));};
     var drainBuf=function(){addCands(peer.bufferedCandidates);peer.bufferedCandidates=[];};
-    if(data.type==='offer'&&(pc.signalingState==='stable'||pc.signalingState==='have-remote-offer')){
-      if(fsm.getSnapshot().can({type:'recv_offer'})) fsm.send({type:'recv_offer'});
-      pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();var hasAudioTx=pc.getTransceivers().some(function(t){return t.receiver.track&&t.receiver.track.kind==='audio';});if(!hasAudioTx){pc.addTransceiver('audio',{direction:nv._localStream?'sendrecv':'recvonly'});}if(nv._localStream){var hasSender=pc.getSenders().some(function(s){return s.track&&s.track.kind==='audio';});if(!hasSender)nv._localStream.getTracks().forEach(function(t){pc.addTrack(t,nv._localStream);});}return pc.createAnswer();})
-        .then(a=>pc.setLocalDescription(a).then(()=>{
-          fsm.send({type:'sent_answer'});
-          nv._publishSignal(from,'answer',a);
-        })).catch(e=>console.warn('[nostr-voice] answer:',e));
+    var doAnswer=function(){if(fsm.getSnapshot().can({type:'recv_offer'}))fsm.send({type:'recv_offer'});return pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(function(){peer.remoteDescSet=true;drainBuf();var hasAudioTx=pc.getTransceivers().some(function(t){return t.receiver.track&&t.receiver.track.kind==='audio';});if(!hasAudioTx)pc.addTransceiver('audio',{direction:nv._localStream?'sendrecv':'recvonly'});if(nv._localStream){var hasSender=pc.getSenders().some(function(s){return s.track&&s.track.kind==='audio';});if(!hasSender)nv._localStream.getTracks().forEach(function(t){pc.addTrack(t,nv._localStream);});}return pc.createAnswer();}).then(function(a){return pc.setLocalDescription(a).then(function(){fsm.send({type:'sent_answer'});nv._publishSignal(from,'answer',a);});}).catch(function(e){console.warn('[nostr-voice] answer:',e);});};
+    if(data.type==='offer'){
+      var polite=state.nostrPubkey<from;
+      var collision=pc.signalingState!=='stable';
+      if(collision&&!polite) return;
+      if(collision&&polite){pc.setLocalDescription({type:'rollback'}).then(doAnswer).catch(function(e){console.warn('[nostr-voice] rollback:',e);});return;}
+      doAnswer();
     } else if(data.type==='answer'&&pc.signalingState==='have-local-offer'){
       pc.setRemoteDescription(new RTCSessionDescription(data.data)).then(()=>{peer.remoteDescSet=true;drainBuf();}).catch(e=>console.warn('[nostr-voice] set-answer:',e));
     } else if(data.type==='ice'){
