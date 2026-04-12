@@ -179,16 +179,16 @@ var nostrVoice = {
 
   _subscribeSignals() {
     if(!nostrVoice._roomId||!state.nostrPubkey) return;
-    var base='zellous-rtc:'+nostrVoice._roomId+':'+state.nostrPubkey;
     nostrNet.subscribe('voice-signals-'+nostrVoice._roomId,
-      [{kinds:[30078],'#d':[base+':sdp',base+':ice']}],
+      [{kinds:[30078],'#p':[state.nostrPubkey],'#r':[nostrVoice._roomId]}],
       nostrVoice._handleSignal,()=>{});
   },
 
   async _publishSignal(toPubkey,type,data) {
     if(!state.nostrPubkey||!nostrVoice._roomId) return;
+    var d='zellous-rtc:'+nostrVoice._roomId+':'+state.nostrPubkey+':'+toPubkey+':'+type+':'+(type==='ice'?Date.now():'sdp');
     nostrNet.publish(await auth.sign({kind:30078,created_at:Math.floor(Date.now()/1000),
-      tags:[['d','zellous-rtc:'+nostrVoice._roomId+':'+toPubkey+':'+(type==='ice'?'ice':'sdp')]],
+      tags:[['d',d],['p',toPubkey],['r',nostrVoice._roomId]],
       content:JSON.stringify({type,data})}));
   },
 
@@ -215,7 +215,7 @@ var nostrVoice = {
   _subscribePresence() {
     if(!nostrVoice._roomId) return;
     nostrNet.subscribe('voice-presence-'+nostrVoice._roomId,
-      [{kinds:[30078],'#d':['zellous-voice:'+nostrVoice._roomId],since:Math.floor(Date.now()/1000)-90}],
+      [{kinds:[30078],'#d':['zellous-voice:'+nostrVoice._roomId]}],
       function(event) {
         if(event.pubkey===state.nostrPubkey) return;
         try {
