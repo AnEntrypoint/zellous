@@ -253,3 +253,60 @@ Bootstrap in `docs/nostr-chat/index.html` (module script):
 - **CORS**: Static GH Pages allows all origins for reading (no issue)
 - **CSP**: If parent has strict CSP, ensure `frame-src` allows iframe origin
 - **Origin validation**: iframe should validate `message.origin` before processing incoming postMessages
+
+### postMessage API
+
+**Iframe exposes `window.__zellous.embed` object:**
+
+```javascript
+// Subscribe to events
+window.__zellous.embed.on('ready', (data) => console.log('Iframe ready'));
+window.__zellous.embed.on('user-joined', (data) => console.log('User:', data));
+
+// Call methods (from parent)
+iframe.contentWindow.postMessage({
+  type: 'getState',
+  id: 1
+}, '*');
+
+// Response arrives as
+window.addEventListener('message', (e) => {
+  if (e.data.type === 'response' && e.data.id === 1) {
+    console.log('State:', e.data.result);
+  }
+});
+```
+
+**Available methods** (parent calls via postMessage):
+- `getState()` — returns `{ user, channel, voiceConnected, isReady }`
+- `joinRoom(roomId)` — connect to voice room
+- `leaveRoom()` — disconnect voice
+- `sendMessage(text, channelId)` — send chat message
+
+**Events emitted** (iframe sends via postMessage):
+- `ready` — iframe loaded and initialized
+- `user-joined` — new peer joined voice
+- `user-left` — peer left voice
+- `message-sent` — chat message posted
+- `error` — error occurred
+
+**Message envelope**:
+```json
+{
+  "type": "methodName | eventName",
+  "version": 1,
+  "data": { },
+  "id": 123
+}
+```
+
+**Error handling**:
+```javascript
+window.addEventListener('message', (e) => {
+  if (e.data.type === 'error' && e.data.id === 123) {
+    console.error('Error:', e.data.error);
+  }
+});
+```
+
+**Example: docs/embed.html** shows full working demo with controls and event log.
