@@ -126,8 +126,11 @@ const stateProxy = new Proxy(state, {
   }
 });
 
-window.state = stateProxy;
-window.stateSignals = state;
+window.__zellous.state = stateProxy;
+window.__zellous.stateSignals = state;
 window.__zellous.config = config;
+
+window.state = window.__zellous.state;
+window.stateSignals = window.__zellous.stateSignals;
 
 export { state, config };

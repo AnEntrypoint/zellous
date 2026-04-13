@@ -818,6 +818,51 @@ function _runWhenReady(fn) {
   const t = setInterval(() => { if (window.appReady) { clearInterval(t); fn(); } }, 50);
 }
 _runWhenReady(() => initNostr().catch(console.error));
+
+window.__zellous.embed = {
+  _listeners: new Map(),
+  isReady: false,
+  on(eventType, callback) {
+    if (!this._listeners.has(eventType)) this._listeners.set(eventType, []);
+    this._listeners.get(eventType).push(callback);
+  },
+  send(eventType, data = {}) {
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: eventType, version: 1, data: data }, '*');
+    }
+  },
+  _emit(eventType, data) {
+    const callbacks = this._listeners.get(eventType) || [];
+    callbacks.forEach(cb => { try { cb(data); } catch(e) { console.error('Listener error:', e); } });
+  },
+  methods: {
+    joinRoom(roomId) { if (!window.__zellous.channels) return { error: 'Not ready' }; return { ok: true }; },
+    leaveRoom() { if (!window.__zellous.channels) return { error: 'Not ready' }; return { ok: true }; },
+    sendMessage(text, channelId) { if (!window.__zellous.chat) return { error: 'Not ready' }; return { ok: true }; },
+    getState() { return { isReady: window.appReady, user: window.__zellous.state?.currentUser, channel: window.__zellous.state?.currentChannel, voiceConnected: window.__zellous.state?.voiceConnected }; }
+  }
+};
+
+window.addEventListener('message', (e) => {
+  if (window.parent === window) return;
+  const { type, data, id } = e.data || {};
+  if (!type) return;
+  if (window.__zellous.embed.methods[type]) {
+    try {
+      const result = window.__zellous.embed.methods[type](data);
+      if (id) window.parent.postMessage({ type: 'response', id: id, result: result }, '*');
+    } catch (err) {
+      if (id) window.parent.postMessage({ type: 'error', id: id, error: err.message }, '*');
+    }
+  }
+});
+
+_runWhenReady(() => {
+  if (window.__zellous.embed) {
+    window.__zellous.embed.isReady = true;
+    window.__zellous.embed.send('ready', { version: 1 });
+  }
+});
 </script>
 </body>
 </html>
