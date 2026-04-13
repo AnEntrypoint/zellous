@@ -23,6 +23,7 @@ data/servers/
 ux-audit-screenshots/
 bin/
 livekit.yaml
+search.exe
 
 .code-search/
 .gm-stop-verified
