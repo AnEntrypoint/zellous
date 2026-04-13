@@ -51,6 +51,9 @@ const moderation = {
       items += `<div class="context-menu-item" data-action="role-mod">Set Moderator</div>`;
       items += `<div class="context-menu-item" data-action="role-member">Set Member</div>`;
     }
+    if (canManage && isNostr && window.nostrVoice && nostrVoice._peers && nostrVoice._peers.has(memberId)) {
+      items += `<div class="context-menu-item danger" data-action="kick-voice">Kick from Voice</div>`;
+    }
     if (serverId && !isNostr) {
       items += `<div class="context-menu-item danger" data-action="kick">Kick</div>`;
       items += `<div class="context-menu-item danger" data-action="ban">Ban</div>`;
@@ -67,7 +70,15 @@ const moderation = {
       const action = e.target.dataset.action;
       menu.remove();
       try {
-        if (action === 'kick') { if (confirm(`Kick ${memberName}?`)) await moderation.kickUser(serverId, memberId); }
+        if (action === 'kick-voice') {
+          if (confirm(`Kick ${memberName} from voice?`) && window.nostrVoice) {
+            nostrVoice._closePeer(memberId);
+            const dTag = `zellous-kick:${memberId}`;
+            const signed = await auth.sign({ kind: 30078, created_at: Math.floor(Date.now()/1000), tags: [['d', dTag]], content: '' });
+            nostrNet.publish(signed);
+          }
+        }
+        else if (action === 'kick') { if (confirm(`Kick ${memberName}?`)) await moderation.kickUser(serverId, memberId); }
         else if (action === 'ban') { if (confirm(`Ban ${memberName}?`)) await moderation.banUser(serverId, memberId); }
         else if (action === 'role-mod') {
           if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'moderator');

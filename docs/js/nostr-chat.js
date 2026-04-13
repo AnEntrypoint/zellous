@@ -62,7 +62,26 @@ const chat = {
     );
   },
 
+  async sendAnnouncement(text) {
+    if (!auth.isLoggedIn() || !state.currentChannelId) return;
+    if (!window.serverRoles || !serverRoles.isAdmin(state.currentServerId)) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const chanHex = await _hexChannelId(state.currentChannelId, state.currentServerId);
+    const relayHint = (state.nostrRelays || [])[0] || '';
+    const template = {
+      kind: 42,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [['e', chanHex, relayHint, 'root'], ['t', 'announcement']],
+      content: trimmed,
+    };
+    const signedEvent = await auth.sign(template);
+    nostrNet.publish(signedEvent);
+    chat._addMessage(chat._eventToMsg(signedEvent));
+  },
+
   _eventToMsg(event) {
+    const tTags = (event.tags || []).filter(t => t[0] === 't').map(t => t[1]);
     return {
       id: event.id,
       type: 'text',
@@ -70,6 +89,7 @@ const chat = {
       username: chat.resolveProfile(event.pubkey),
       content: event.content,
       timestamp: event.created_at * 1000,
+      tags: tTags,
     };
   },
 

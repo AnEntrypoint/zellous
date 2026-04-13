@@ -2184,3 +2184,6 @@ select option { background: var(--bg-elevated); color: var(--text-primary); }
   .modal-box { padding: 18px; border-radius: var(--radius-md); }
   .modal-title { font-size: 18px; }
 }
+
+.announcement-msg { border-left: 3px solid #feb347; background: rgba(254,179,71,0.08); padding-left: 8px; }
+.voice-tile-role-badge { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; color: #fff; margin-left: 4px; vertical-align: middle; }

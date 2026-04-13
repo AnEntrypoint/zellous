@@ -89,6 +89,14 @@ const ui_events = {
     document.getElementById('settingsOutputDevice')?.addEventListener('change', (e) => audioIO.selectOutput(e.target.value));
     ui.chatInput?.addEventListener('keypress', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ui.actions.sendChat(); } });
     document.getElementById('sendBtn')?.addEventListener('click', () => ui.actions.sendChat());
+    document.getElementById('announceBtn')?.addEventListener('click', () => {
+      const content = ui.chatInput?.value?.trim();
+      if (!content) return;
+      if (window.chat?.sendAnnouncement) {
+        chat.sendAnnouncement(content);
+        ui.chatInput.value = '';
+      }
+    });
     document.getElementById('attachBtn')?.addEventListener('click', () => ui.actions.uploadFile());
     ui.fileInput?.addEventListener('change', (e) => ui.actions.handleFileSelect(e));
     document.addEventListener('paste', (e) => { if (document.activeElement === ui.chatInput && window.fileTransfer?.uploadFromClipboard) fileTransfer.uploadFromClipboard(e); });

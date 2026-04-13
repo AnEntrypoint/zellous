@@ -1,4 +1,13 @@
 
+## [2026-04-13] admin-ux-full
+- ui-voice.js: Role badge overlay on voice tiles. Reads serverRoles.getRole() per participant pubkey; shows Owner/Admin/Mod badge with color.
+- ui-chat.js: Announcement messages rendered with announcement-msg CSS class (gold left-border, tinted bg). announceBtn show/hide based on serverRoles.isAdmin() on every render cycle.
+- nostr-chat.js: sendAnnouncement() sends kind 42 with ['t','announcement'] tag. _eventToMsg() extracts t-tags into msg.tags array.
+- moderation.js: Kick from Voice menu item in Nostr mode when peer is in nostrVoice._peers. Closes peer locally and publishes best-effort kick signal (kind 30078 zellous-kick:<pubkey>).
+- discord.css: .announcement-msg and .voice-tile-role-badge styles added.
+- index.html: announceBtn added to chat input bar (hidden by default, shown to admins).
+- app.js: announceBtn click handler wired to chat.sendAnnouncement().
+
 ## [2026-04-13] nostr-admin-roles-video-media
 - nostr-roles.js: Nostr-native role system (kind 30078 zellous-roles:<serverId>). Only server creator can assign admin; admins can assign moderator. All clients verify event.pubkey === serverId creator before applying. window.__debug.roles exposes live store.
 - nostr-settings.js: Server-owner/admin configurable Opus bitrate (8/16/24/48/96 kbps) stored as kind 30078 zellous-settings:<serverId>. Applied to AudioEncoder on voice connect and on change. Non-authorized events silently ignored.

@@ -8,9 +8,10 @@ const mentionify = (text, selfId) => {
 
 const uiChat = {
   messages() { this.render(); },
-
   render() {
     if (!ui.chatMessagesInner) return;
+    const announceBtn = document.getElementById('announceBtn');
+    if (announceBtn) announceBtn.style.display = (window.serverRoles && state.currentServerId && serverRoles.isAdmin(state.currentServerId)) ? 'inline-flex' : 'none';
     const chatMsgs = chat?.messages || [];
     const sysMsgs = (state.messages || []).map(m => ({
       id: m.id, type: 'system', text: m.text,
@@ -36,6 +37,7 @@ const uiChat = {
       const shortTime = new Date(m.timestamp).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
       const username = m.username || 'User';
       const color = getAvatarColor(m.userId);
+      const isAnnouncement = Array.isArray(m.tags) && m.tags.includes('announcement');
       const pendingAttr = m.pending ? ' style="opacity:0.6"' : '';
       const editedBadge = m.edited ? '<span class="msg-edited">(edited)</span>' : '';
       const selfId = state.userId || state.nostrPubkey;
@@ -59,14 +61,15 @@ const uiChat = {
         `<button class="reaction-pill${r.users?.includes(state.userId) ? ' reacted' : ''}" data-react-emoji="${r.emoji}" data-msg="${m.id}">${r.emoji} <span class="reaction-count">${r.users?.length||1}</span></button>`
       ).join('')}</div>` : '';
 
+      const annoClass = isAnnouncement ? ' announcement-msg' : '';
       if (!sameUser) {
-        html += `<div class="msg-group" data-message-id="${m.id}" data-user-id="${m.userId}"${pendingAttr}>
+        html += `<div class="msg-group${annoClass}" data-message-id="${m.id}" data-user-id="${m.userId}"${pendingAttr}>
           ${actions}<div class="msg-avatar" style="background:${color}">${getInitial(username)}</div>
           ${replyHtml}<span class="msg-username" style="color:${color}">${escHtml(username)}</span>
           <span class="msg-timestamp">${time}</span>${editedBadge}${contentHtml}${reactionsHtml}
         </div>`;
       } else {
-        html += `<div class="msg-cont" data-message-id="${m.id}" data-user-id="${m.userId}"${pendingAttr}>
+        html += `<div class="msg-cont${annoClass}" data-message-id="${m.id}" data-user-id="${m.userId}"${pendingAttr}>
           ${actions}<span class="msg-hover-time">${shortTime}</span>${replyHtml}${contentHtml}${reactionsHtml}
         </div>`;
       }
@@ -77,7 +80,6 @@ const uiChat = {
     if (wasAtBottom) ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
     this._bindActions();
   },
-
   _bindActions() {
     const el = ui.chatMessagesInner;
     el.addEventListener('contextmenu', (e) => {
@@ -98,7 +100,6 @@ const uiChat = {
       else if (btn.dataset.reactEmoji) chat?.toggleReaction?.(btn.dataset.msg, btn.dataset.reactEmoji);
     });
   },
-
   sendChat() {
     const content = ui.chatInput?.value?.trim();
     if (!content) return;
@@ -196,5 +197,4 @@ const uiChat = {
 
   hideContextMenu() { document.getElementById('messageContextMenu')?.remove(); }
 };
-
 window.uiChat = uiChat;
