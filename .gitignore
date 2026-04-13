@@ -24,6 +24,7 @@ ux-audit-screenshots/
 bin/
 livekit.yaml
 search.exe
+vendor/
 
 .code-search/
 .gm-stop-verified
