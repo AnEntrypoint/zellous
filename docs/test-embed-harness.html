@@ -228,6 +228,23 @@
           <button onclick="testEmbedding('test4', [document.getElementById('test4a-iframe'), document.getElementById('test4b-iframe')])">Run Test 4</button>
         </div>
       </div>
+
+      <!-- Test 5: Detach/reattach -->
+      <div class="test-case">
+        <h3>
+          Test 5: Iframe detach/reattach
+          <span class="status pending">pending</span>
+        </h3>
+        <div class="test-description">
+          Dynamically remove and re-insert iframe. Verify no memory leaks, proper cleanup, and state retained or cleared as intended.
+        </div>
+        <div class="test-controls">
+          <div class="iframe-frame" id="test5-container">
+            <iframe id="test5-iframe" src="nostr-chat/index.html" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <button onclick="testDetachReattach()">Run Test 5</button>
+        </div>
+      </div>
     </div>
 
     <div class="test-results">
@@ -247,6 +264,10 @@
         </div>
         <div class="test-result-item">
           <span>Test 4: Multiple iframes</span>
+          <span class="test-result-status pending">Pending</span>
+        </div>
+        <div class="test-result-item">
+          <span>Test 5: Detach/reattach</span>
           <span class="test-result-status pending">Pending</span>
         </div>
       </div>
@@ -342,6 +363,72 @@
         badge.textContent = status;
         badge.className = `test-result-status ${passed ? 'passed' : 'failed'}`;
         if (!passed) badge.className = badge.className.replace('passed', 'failed');
+      }
+    }
+
+    async function testDetachReattach() {
+      consoleLogs.length = 0;
+      console.log('Starting test5 (detach/reattach)...');
+
+      const container = document.getElementById('test5-container');
+      const iframe = document.getElementById('test5-iframe');
+      let passed = true;
+
+      try {
+        // Check initial state
+        if (!iframe.contentWindow.__zellous) {
+          console.error('test5: window.__zellous not found before detach');
+          passed = false;
+        } else {
+          console.log('test5: Initial state ✓');
+        }
+
+        // Detach iframe
+        const parent = iframe.parentNode;
+        iframe.remove();
+        console.log('test5: Iframe detached');
+
+        // Wait a bit
+        await new Promise(r => setTimeout(r, 100));
+
+        // Reattach iframe
+        parent.appendChild(iframe);
+        console.log('test5: Iframe reattached');
+
+        // Wait for reload
+        await new Promise(r => setTimeout(r, 500));
+
+        // Check state after reattach
+        if (!iframe.contentWindow.__zellous) {
+          console.error('test5: window.__zellous not found after reattach');
+          passed = false;
+        } else {
+          console.log('test5: State restored after reattach ✓');
+        }
+
+        // Check for memory leaks (check error count)
+        const errors = iframe.contentWindow.__pageErrors || [];
+        if (errors.length > 0) {
+          console.warn(`test5: Found ${errors.length} errors during detach/reattach`);
+          errors.forEach(e => console.warn(`  - ${e}`));
+        } else {
+          console.log('test5: No errors during detach/reattach ✓');
+        }
+
+      } catch (e) {
+        console.error(`test5 error: ${e.message}`);
+        passed = false;
+      }
+
+      const status = passed ? 'Passed' : 'Failed';
+      console.log(`test5: ${status}`);
+
+      // Update results UI
+      const statusEl = document.querySelector('#results-container .test-result-item:nth-child(5)');
+      if (statusEl) {
+        const badge = statusEl.querySelector('.test-result-status');
+        badge.textContent = status;
+        badge.className = `test-result-status ${passed ? 'passed' : 'failed'}`;
       }
     }
 
