@@ -16,6 +16,9 @@ Serverless voice and chat over public Nostr relays. No backend required.
 - Opus audio codec (24kbps, 48kHz)
 - Push-to-talk and VAD modes
 - Webcam support
+- Role management — Owner/Admin/Mod badges in member list and voice tiles
+- Admin-only server announcements (gold-bordered messages)
+- Kick-from-voice via member context menu (admin only)
 
 ## Usage
 
