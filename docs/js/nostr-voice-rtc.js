@@ -31,6 +31,7 @@ var nostrVoiceRtc = {
   maybeConnect(peerPubkey) {
     var nv=nostrVoice;
     if(!peerPubkey||peerPubkey===state.nostrPubkey||nv._peers.has(peerPubkey)) return;
+    if(window.nostrBans&&state.currentServerId&&(nostrBans.isBanned(state.currentServerId,peerPubkey)||nostrBans.isTimedOut(state.currentServerId,peerPubkey))) return;
     nostrVoiceRtc.cancelReconnect(peerPubkey);
     var fsm=XState.createActor(nostrFsm.peerMachine);
     fsm.subscribe(function(snap){var p=nv._peers.get(peerPubkey);if(p)p.state=snap.value;});
@@ -51,7 +52,7 @@ var nostrVoiceRtc = {
         var p=nv._participants.get(pKey);
         if(p){p.hasVideo=true;p._videoStream=ev.streams[0];}
         var el=document.getElementById('vtile-video-'+peerPubkey.slice(0,8));
-        if(!el){el=document.createElement('video');el.id='vtile-video-'+peerPubkey.slice(0,8);el.autoplay=true;el.playsinline=true;el.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px;position:absolute;top:0;left:0';document.body.appendChild(el);}
+        if(!el){el=document.createElement('video');el.id='vtile-video-'+peerPubkey.slice(0,8);el.autoplay=true;el.playsinline=true;el.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px';var wrap=document.getElementById('vtile-wrap-'+peerPubkey.slice(0,8));if(wrap){wrap.appendChild(el);}}
         el.srcObject=ev.streams[0];
         nv.updateParticipants();
         return;

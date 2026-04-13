@@ -34,6 +34,23 @@ const moderation = {
     return true;
   },
 
+  async banUserNostr(serverId, pubkey) {
+    if (!state.nostrPubkey) throw new Error('Not logged in');
+    if (!window.serverRoles || !serverRoles.isAdmin(serverId)) throw new Error('Insufficient permissions');
+    var dTag = 'zellous-ban:' + serverId + ':' + pubkey;
+    var signed = await auth.sign({kind:30078,created_at:Math.floor(Date.now()/1000),tags:[['d',dTag],['server',serverId]],content:JSON.stringify({action:'ban',pubkey:pubkey,timestamp:Math.floor(Date.now()/1000)})});
+    await nostrNet.publish(signed);
+  },
+
+  async timeoutUserNostr(serverId, pubkey, minutes) {
+    if (!state.nostrPubkey) throw new Error('Not logged in');
+    if (!window.serverRoles || !serverRoles.isAdmin(serverId)) throw new Error('Insufficient permissions');
+    var expiry = Math.floor(Date.now()/1000) + (minutes * 60);
+    var dTag = 'zellous-timeout:' + serverId + ':' + pubkey;
+    var signed = await auth.sign({kind:30078,created_at:Math.floor(Date.now()/1000),tags:[['d',dTag],['server',serverId]],content:JSON.stringify({action:'timeout',pubkey:pubkey,expiry:expiry})});
+    await nostrNet.publish(signed);
+  },
+
   showMemberMenu(memberId, memberName, x, y) {
     document.getElementById('memberContextMenu')?.remove();
     const serverId = state.currentServerId;
@@ -53,6 +70,11 @@ const moderation = {
     }
     if (canManage && isNostr && window.nostrVoice && nostrVoice._peers && nostrVoice._peers.has(memberId)) {
       items += `<div class="context-menu-item danger" data-action="kick-voice">Kick from Voice</div>`;
+    }
+    if (canManage && isNostr) {
+      items += `<div class="context-menu-item danger" data-action="ban">Ban User</div>`;
+      items += `<div class="context-menu-item danger" data-action="timeout-10">Timeout 10m</div>`;
+      items += `<div class="context-menu-item danger" data-action="timeout-60">Timeout 1h</div>`;
     }
     if (serverId && !isNostr) {
       items += `<div class="context-menu-item danger" data-action="kick">Kick</div>`;
@@ -91,6 +113,22 @@ const moderation = {
         else if (action === 'role-member') {
           if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'member');
           else await moderation.setRole(serverId, memberId, 'member');
+        }
+        else if (action === 'ban') {
+          if (confirm(`Ban ${memberName}?`)) {
+            if (state.nostrPubkey && window.moderation) await moderation.banUserNostr(serverId, memberId);
+            else await moderation.banUser(serverId, memberId);
+          }
+        }
+        else if (action === 'timeout-10') {
+          if (confirm(`Timeout ${memberName} for 10 minutes?`)) {
+            if (state.nostrPubkey && window.moderation) await moderation.timeoutUserNostr(serverId, memberId, 10);
+          }
+        }
+        else if (action === 'timeout-60') {
+          if (confirm(`Timeout ${memberName} for 1 hour?`)) {
+            if (state.nostrPubkey && window.moderation) await moderation.timeoutUserNostr(serverId, memberId, 60);
+          }
         }
       } catch (e) { console.warn('[Mod]', e.message); }
     });

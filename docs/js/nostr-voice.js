@@ -83,12 +83,22 @@ var nostrVoice = {
       } else {
         nostrVoice._localStream = rawStream;
       }
+      if (state.cameraEnabled && !nostrVoice._cameraStream) {
+        try {
+          const [w, h] = state.webcamResolution.split('x').map(Number);
+          nostrVoice._cameraStream = await navigator.mediaDevices.getUserMedia({video:{width:w,height:h,frameRate:state.webcamFps,facingMode:'user'}});
+        } catch(e) {
+          console.warn('[nostr-voice] camera access denied:', e.message);
+          state.cameraEnabled = false;
+        }
+      }
       nostrVoice._participants.clear();
-      nostrVoice._participants.set('local',{identity:nostrVoice._displayName(),isSpeaking:false,isMuted:false,isLocal:true,hasVideo:false,connectionQuality:'good'});
+      nostrVoice._participants.set('local',{identity:nostrVoice._displayName(),isSpeaking:false,isMuted:false,isLocal:true,hasVideo:!!nostrVoice._cameraStream,connectionQuality:'good'});
       nostrVoice._fsm.send({type:'connected'});
       state.voiceConnectionQuality='good'; state.voiceChannelName=channelName;
       state.voiceReconnectAttempts=0; state.dataChannelAvailable=false;
       nostrVoiceRtc.subscribe(nostrVoice._roomId,state.nostrPubkey);
+      if(window.nostrBans) nostrBans.subscribe(state.currentServerId||'');
       nostrVoice._subscribePresence();
       nostrVoice._publishPresence('join'); nostrVoice._startHeartbeat(); nostrVoice.updateParticipants();
       if(window.serverSettings) serverSettings.applyToEncoder();
@@ -235,9 +245,12 @@ var nostrVoice = {
       peers.push({pubkey:pk.slice(0,12),fsmState:peer.fsm?.getSnapshot().value,iceState:peer.pc?.iceConnectionState,connState:peer.pc?.connectionState,audioState:audioState,trackState:trackState,retryAttempt:peer.retryAttempt||0,retryAt:peer.retryAt||null,candidates:peer.pendingCandidates?.length??0,buffered:peer.bufferedCandidates?.length??0});
     });
     var sfu=window.nostrVoiceSfu?nostrVoiceSfu.__debug:null;
-    return {fsm:nostrVoice._fsm?.getSnapshot().value,peers:peers,participants:state.voiceParticipants,sfu:sfu,retrySchedule:window.__voiceRetrySchedule||{}};
+    var camera=window.nostrVoiceCamera?{fsm:nostrVoiceCamera._fsm?.getSnapshot().value,stream:!!nostrVoice._cameraStream,enabled:state.cameraEnabled}:null;
+    return {fsm:nostrVoice._fsm?.getSnapshot().value,camera:camera,peers:peers,participants:state.voiceParticipants,sfu:sfu,retrySchedule:window.__voiceRetrySchedule||{}};
   }
 };
 
 window.lk=nostrVoice;
 window.nostrVoice=nostrVoice;
+if(!window.__debug) window.__debug={};
+Object.defineProperty(window.__debug,'voice',{get:function(){return nostrVoice.__debug;},configurable:true});
