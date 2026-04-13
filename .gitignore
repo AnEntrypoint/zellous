@@ -25,6 +25,10 @@ bin/
 livekit.yaml
 search.exe
 vendor/
+docs/vendor/livekit-client.mjs
+docs/vendor/rnnoise-sync.js
+docs/vendor/rnnoise-worklet.js
+docs/vendor/fonts/
 
 .code-search/
 .gm-stop-verified
