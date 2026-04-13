@@ -1,0 +1,103 @@
+## 🎯 @sequentialos/zellous v2.0.0 — Real-time collaboration and communication library with PTT, rooms, and file sharing
+
+**Runtime:** node (npm)
+
+## 🚀 Quick Start
+
+`bun --hot run server.js`
+
+# 96f 14.7kL 569fn 13cls cx3.8
+*Legend: f=files L=lines fn=functions cls=classes cx=avg-complexity | file:line:name(NL)=location Np=params | ↑N=imports-from ↓N=imported-by (N)=occurrences (+N)=more | 🔄circular 🏝️isolated 🔥complex 📋duplicated 📁large*
+
+**Langs:** JS:80% JSON:19%
+
+## 🛠️ Tech Stack
+
+**Stack:** Express
+**Patterns:** document.getElementById(390), signal(166), res.status(122), res.json(106), Date.now(84), modal.querySelector(57)
+**Top IDs:** state(1429), document(507), roomId(440), req(436), userId(432), res(400)
+
+## ⚡ Code Patterns
+
+**Async:** async(834), await(580), Promise(8)
+**Errors:** try/catch(167), throw(99)
+**Internal calls:** document.getElementById(390), signal(166), res.status(122), res.json(106), Date.now(84), modal.querySelector(57), e.target.closest(44), join(44)
+
+## 🔗 I/O & Integration
+
+**Env vars:** BUSYBASE_KEY, BUSYBASE_URL, CLEANUP_TIMEOUT, CORS_ORIGINS, DATA_DIR, FRAME_ANCESTORS, HOST, LIVEKIT_API_KEY, LIVEKIT_API_SECRET, LIVEKIT_HTTP_PORT, LIVEKIT_TURN_CREDENTIAL, LIVEKIT_TURN_URL, LIVEKIT_TURN_USER, LIVEKIT_TURN_USERNAME, LIVEKIT_URL, MAX_BODY_SIZE, PING_INTERVAL, PORT, SESSION_TTL
+**HTTP:** fetch(29), routes: /, /:botId, /:botId/regenerate-key, /:roomId (+57)
+**Storage:** SQL(6), files(751), JSON(89)
+**Events:** emit(20), listen(320)
+
+## 📊 Code Organization
+
+**Large files:** server.js:1051L, js/network.js:376L, js/servers.js:275L, js/nostr-servers.js:262L, js/auth.js:253L, server/livekit.js:240L (+3)
+**Long funcs:** js/servers.js:204:showCreateModal(69L), js/ui-chat.js:12:render(68L), js/ui-channels.js:2:render(63L), js/ui-voice.js:2:render(61L), js/files.js:54:uploadChunked(57L), server.js:91:createLiveKitWebSocketProxy(53L) (+1)
+**Many params:** server.js:91:createLiveKitWebSocketProxy(12p), js/livekit.js:32:_wireRoom(11p), js/nostr-adapter.js:6:constructor(10p), js/nostr-auth.js:137:bindUI(10p), js/nostr-adapter.js:7:constructor(10p), js/channels-ui.js:112:initDragAndDrop(10p) (+4)
+**Classes:** js/nostr-adapter.js:0:NostrAdapter, js/audio-processor.js:0:AudioCaptureProcessor, lib/zellous-core.js:0:ZellousCore, js/sdk.js:0:ZellousSDK, server/bot-websocket.js:0:BotConnection
+
+## 🔄 Architecture
+
+**L0 [pure exports]:** db(11↓), utils(9↓), utils(8↓), handlers-messaging(2↓), room-manager(2↓), handlers-media(2↓), livekit(2↓), handlers(1↓) (+2)
+**L1 [low imports]:** auth-ops(2↑7↓)
+**L3 [pure imports]:** index(9↑), server(8↑), ws-handler(5↑), index(5↑), routes-livekit(4↑), routes-rooms(3↑), routes-servers(3↑), routes-auth(3↑)
+**Cross-module:** server.js→server
+**Hubs:** db(0↑11↓), utils(0↑9↓), auth-ops(2↑7↓), index(9↑0↓), server(8↑0↓)
+**External:** express, @sequentialos/sequential-logging, msgpackr, busybase, https:, ws
+
+## 🔌 API Surface
+
+**Exported fns:** livekit.js:19:getLkSdk(1p), livekit.js:174:stopLivekitServer(1p), livekit.js:182:getConfig(1p), livekit.js:217:buildIceServers(1p), livekit.js:225:initialize(1p)
+**Classes:** NostrAdapter, AudioCaptureProcessor, ZellousCore, ZellousSDK, BotConnection
+**Entry files:** handlers, room-manager, handlers-messaging, db, utils (+5)
+
+## 🚨 Issues
+
+- 📁 Large files: server.js:1051L
+- 📋 159 duplicated groups
+- 🔐 SQL injection in channels-api.js:14, channels-api.js:24, chat.js:182
+- 🔐 hardcoded secrets in api.js:4, moderation.js:5, utils.js:15
+
+## 🧹 Dead Code & Tests
+
+**Orphaned:** nostr-auth.js, msgpackr.min.js, test.cjs, channels-ui.js, queue.js, api.js (+56)
+**Unused exports:** ws-handler.js: setupWebSocket, createClient | state.js: state, config | routes-livekit.js: makeHttpProxy, makeTokenRouter | nostr-adapter.js: instance | routes-rooms.js: makeRouter | routes-servers.js: makeRouter (+3)
+**Tests:** 0/96 (0%)
+
+## 📦 Modules
+
+- server: 26f, 98cx, 45↑53↓
+- lib: 6f, 16cx, 8↑8↓
+- js: 32f, 0cx, 0↑0↓
+- test-browser: 1f, 0cx, 0↑0↓
+- docs: 25f, 0cx, 0↑0↓
+
+## 📄 File Index
+
+**app.js** 180L
+**docs/app.js** 180L
+**docs/js/audio-processor.js** 10L fn: process
+**docs/js/audio.js** 131L
+**docs/js/files.js** 199L fn: upload, uploadSmall, uploadChunked, readFile (+7)
+**docs/js/icons.js** 34L
+**docs/js/moderation.js** 88L fn: _headers, kickUser, banUser, setRole (+3)
+**docs/js/nostr-adapter.js** 196L exports: [instance] fn: constructor, connect, disconnect, on (+13)
+**docs/js/nostr-auth.js** 183L fn: user, init, generateKey, importKey (+13)
+**docs/js/nostr-channels-ui.js** 186L
+**docs/js/nostr-channels.js** 144L fn: _hexChannelId
+**docs/js/nostr-chat.js** 144L fn: messages, messages, send, sendImage (+11)
+**docs/js/nostr-network.js** 213L
+**docs/js/nostr-servers.js** 262L
+**docs/js/nostr-state-patch.js** 19L
+**docs/js/nostr-voice.js** 189L fn: _deriveRoomId, _displayName, connect, disconnect (+14)
+**docs/js/ptt.js** 104L
+**docs/js/queue.js** 95L
+**docs/js/state.js** 132L exports: [state], [config]
+**docs/js/threads.js** 113L fn: renderPanel, openPanel, setThreads, addThread (+2)
+*+76 more files*
+
+Git: branch: master, 1 uncommitted
+Hot: server.js(29), app.js(24), index.html(21), network.js(16), ui.js(14), package.json(14)
+Tooling: GitHub Actions (pages.yml)
+Conv[JS]: 4-space, single quotes, semicolons, arrow functions, named exports, relative imports, kebab-case files

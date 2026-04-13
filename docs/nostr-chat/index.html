@@ -5,20 +5,170 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>Zellous - Nostr</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%235865f2'/><text x='50' y='72' font-size='60' font-weight='700' font-family='sans-serif' fill='white' text-anchor='middle'>Z</text></svg>">
-  <script type="importmap">
-  {
-    "imports": {
-      "htm": "../vendor/htm.js",
-      "preact": "../vendor/preact.mjs",
-      "preact/hooks": "../vendor/preact-hooks.mjs",
-      "@preact/signals": "../vendor/preact-signals.mjs",
-      "@preact/signals-core": "../vendor/signals-core.mjs",
-      "livekit-client": "../vendor/livekit-client.mjs",
-      "nostr-tools": "../vendor/nostr-tools.mjs",
-      "xstate": "../vendor/xstate.mjs"
+  <script>
+// Dynamically compute vendor base path from script location
+const scripts = Array.from(document.querySelectorAll('script'));
+const thisScript = scripts.find(s => s.src && s.src.includes('index.html'));
+const scriptDir = thisScript ? new URL(thisScript.src).pathname.split('/').slice(0, -1).join('/') : '/zellous/docs/nostr-chat/';
+const baseUrl = scriptDir.replace(/nostr-chat\/?$/, ''); // Remove nostr-chat if present
+document.currentScript.before(Object.assign(document.createElement('script'), {
+  type: 'importmap',
+  textContent: JSON.stringify({
+    imports: {
+      htm: baseUrl + 'vendor/htm.js',
+      preact: baseUrl + 'vendor/preact.mjs',
+      'preact/hooks': baseUrl + 'vendor/preact-hooks.mjs',
+      '@preact/signals': baseUrl + 'vendor/preact-signals.mjs',
+      '@preact/signals-core': baseUrl + 'vendor/signals-core.mjs',
+      'livekit-client': baseUrl + 'vendor/livekit-client.mjs',
+      'nostr-tools': baseUrl + 'vendor/nostr-tools.mjs',
+      xstate: baseUrl + 'vendor/xstate.mjs'
     }
-  }
-  </script>
+  })
+}));
+</script>
+  <script>
+// Initialize window.__zellous namespace before any modules load
+window.__zellous = {};
+// Backward compat layer: classic scripts can still access window.lk, etc.
+// These getters forward to __zellous after modules populate it
+Object.defineProperty(window, 'lk', {
+  get() { return window.__zellous.voice; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrVoice', {
+  get() { return window.__zellous.voice; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrVoiceRtc', {
+  get() { return window.__zellous.voiceRtc; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrVoiceSfu', {
+  get() { return window.__zellous.voiceSfu; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrVoiceCamera', {
+  get() { return window.__zellous.voiceCamera; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrNet', {
+  get() { return window.__zellous.net; },
+  configurable: true
+});
+Object.defineProperty(window, 'network', {
+  get() { return window.__zellous.net; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrBans', {
+  get() { return window.__zellous.bans; },
+  configurable: true
+});
+Object.defineProperty(window, 'auth', {
+  get() { return window.__zellous.auth; },
+  configurable: true
+});
+Object.defineProperty(window, 'serverManager', {
+  get() { return window.__zellous.servers; },
+  configurable: true
+});
+Object.defineProperty(window, 'serverRoles', {
+  get() { return window.__zellous.roles; },
+  configurable: true
+});
+Object.defineProperty(window, 'serverSettings', {
+  get() { return window.__zellous.settings; },
+  configurable: true
+});
+Object.defineProperty(window, 'serverPages', {
+  get() { return window.__zellous.pages; },
+  configurable: true
+});
+Object.defineProperty(window, 'channelManager', {
+  get() { return window.__zellous.channels; },
+  configurable: true
+});
+Object.defineProperty(window, 'chat', {
+  get() { return window.__zellous.chat; },
+  configurable: true
+});
+Object.defineProperty(window, 'message', {
+  get() { return window.__zellous.message; },
+  configurable: true
+});
+Object.defineProperty(window, 'threadManager', {
+  get() { return window.__zellous.threads; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrMedia', {
+  get() { return window.__zellous.media; },
+  configurable: true
+});
+Object.defineProperty(window, 'audio', {
+  get() { return window.__zellous.audio; },
+  configurable: true
+});
+Object.defineProperty(window, 'webcam', {
+  get() { return window.__zellous.webcam; },
+  configurable: true
+});
+Object.defineProperty(window, 'fileTransfer', {
+  get() { return window.__zellous.files; },
+  configurable: true
+});
+Object.defineProperty(window, 'ptt', {
+  get() { return window.__zellous.ptt; },
+  configurable: true
+});
+Object.defineProperty(window, 'deafen', {
+  get() { return window.__zellous.deafen; },
+  configurable: true
+});
+Object.defineProperty(window, 'vad', {
+  get() { return window.__zellous.vad; },
+  configurable: true
+});
+Object.defineProperty(window, 'queue', {
+  get() { return window.__zellous.queue; },
+  configurable: true
+});
+Object.defineProperty(window, 'icons', {
+  get() { return window.__zellous.helpers?.icons; },
+  configurable: true
+});
+Object.defineProperty(window, 'getIcon', {
+  get() { return window.__zellous.helpers?.getIcon; },
+  configurable: true
+});
+Object.defineProperty(window, 'ui', {
+  get() { return window.__zellous.ui; },
+  configurable: true
+});
+Object.defineProperty(window, 'uiVoice', {
+  get() { return window.__zellous.uiVoice; },
+  configurable: true
+});
+Object.defineProperty(window, 'uiMembers', {
+  get() { return window.__zellous.uiMembers; },
+  configurable: true
+});
+Object.defineProperty(window, 'uiChat', {
+  get() { return window.__zellous.uiChat; },
+  configurable: true
+});
+Object.defineProperty(window, 'uiChannels', {
+  get() { return window.__zellous.uiChannels; },
+  configurable: true
+});
+Object.defineProperty(window, 'moderation', {
+  get() { return window.__zellous.moderation; },
+  configurable: true
+});
+Object.defineProperty(window, 'nostrFsm', {
+  get() { return window.__zellous.fsm; },
+  configurable: true
+});
+</script>
   <link rel="stylesheet" href="../vendor/fonts.css">
   <link rel="stylesheet" href="../css/discord.css">
 </head>

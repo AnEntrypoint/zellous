@@ -142,7 +142,7 @@ var serverPages = {
   }
 };
 
-window.serverPages = serverPages;
+window.__zellous.pages = serverPages;
 if (!window.__debug) window.__debug = {};
 Object.defineProperty(window.__debug, 'pages', { get: function() {
   var out = {};

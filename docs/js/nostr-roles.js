@@ -68,6 +68,6 @@ var serverRoles = {
   }
 };
 
-window.serverRoles = serverRoles;
+window.__zellous.roles = serverRoles;
 if (!window.__debug) window.__debug = {};
 Object.defineProperty(window.__debug, 'roles', { get: function() { return { store: Object.fromEntries(serverRoles._store), sub: serverRoles._sub }; }, configurable: true });

@@ -8,4 +8,4 @@ var message = window.message || {
     if (window.ui) ui.render.messages();
   }
 };
-window.message = message;
+window.__zellous.message = message;

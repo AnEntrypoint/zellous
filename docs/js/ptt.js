@@ -99,6 +99,6 @@ const vad = {
   },
   setThreshold: (v) => { state.vadThreshold = v / 100; ui.vadThresholdMarker.style.left = v + '%'; }
 };
-window.ptt = ptt;
-window.deafen = deafen;
-window.vad = vad;
+window.__zellous.ptt = ptt;
+window.__zellous.deafen = deafen;
+window.__zellous.vad = vad;

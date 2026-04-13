@@ -176,4 +176,4 @@ const chat = {
   handleFileShared() {},
 };
 
-window.chat = chat;
+window.__zellous.chat = chat;

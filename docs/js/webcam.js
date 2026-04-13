@@ -64,4 +64,4 @@ const webcam = {
     if (state.liveVideoChunks) state.liveVideoChunks.clear();
   }
 };
-window.webcam = webcam;
+window.__zellous.webcam = webcam;

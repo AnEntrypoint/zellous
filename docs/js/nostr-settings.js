@@ -57,6 +57,6 @@ var serverSettings = {
   }
 };
 
-window.serverSettings = serverSettings;
+window.__zellous.settings = serverSettings;
 if (!window.__debug) window.__debug = {};
 Object.defineProperty(window.__debug, 'settings', { get: function() { return { store: Object.fromEntries(serverSettings._store), sub: serverSettings._sub }; }, configurable: true });

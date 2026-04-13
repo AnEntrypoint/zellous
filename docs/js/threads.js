@@ -110,4 +110,4 @@ document.getElementById('forumNewPostBtn')?.addEventListener('click', () => {
   if (ch && window.channelManager) channelManager.showCreateModal('thread', ch.categoryId || null);
 });
 
-window.threadManager = threadManager;
+window.__zellous.threads = threadManager;

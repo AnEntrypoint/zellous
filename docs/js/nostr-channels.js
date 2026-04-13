@@ -141,4 +141,4 @@ var channelManager = {
   }
 };
 
-window.channelManager = channelManager;
+window.__zellous.channels = channelManager;

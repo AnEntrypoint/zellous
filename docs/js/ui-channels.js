@@ -188,4 +188,4 @@ const uiChannels = {
   }
 };
 
-window.uiChannels = uiChannels;
+window.__zellous.uiChannels = uiChannels;

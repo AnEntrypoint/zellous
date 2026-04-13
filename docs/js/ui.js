@@ -117,7 +117,7 @@ ui.showToast = function(msg, duration) {
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 350); }, duration || 2000);
 };
 
-window.ui = ui;
+window.__zellous.ui = ui;
 window.getInitial = getInitial;
 window.getAvatarColor = getAvatarColor;
 window.escHtml = escHtml;

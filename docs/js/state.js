@@ -128,6 +128,6 @@ const stateProxy = new Proxy(state, {
 
 window.state = stateProxy;
 window.stateSignals = state;
-window.config = config;
+window.__zellous.config = config;
 
 export { state, config };

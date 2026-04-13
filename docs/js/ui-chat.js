@@ -197,4 +197,4 @@ const uiChat = {
 
   hideContextMenu() { document.getElementById('messageContextMenu')?.remove(); }
 };
-window.uiChat = uiChat;
+window.__zellous.uiChat = uiChat;

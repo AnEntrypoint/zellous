@@ -180,4 +180,4 @@ const auth = {
   }
 };
 
-window.auth = auth;
+window.__zellous.auth = auth;

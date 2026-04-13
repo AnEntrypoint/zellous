@@ -124,4 +124,4 @@ var nostrVoiceSfu = {
     return {mode: nostrVoiceSfu._actor ? nostrVoiceSfu._actor.getSnapshot().value : 'mesh', hub: nostrVoiceSfu._hub ? nostrVoiceSfu._hub.slice(0,12) : null, hubLostAt: nostrVoiceSfu._hubLostAt, rttMatrix: scores};
   }
 };
-window.nostrVoiceSfu = nostrVoiceSfu;
+window.__zellous.voiceSfu = nostrVoiceSfu;

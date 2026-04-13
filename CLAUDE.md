@@ -167,3 +167,89 @@ Use `peer.trackEndedRestart` flag to prevent multiple triggers.
 **Problem**: Some codebases use `setLocalDescription(null)` for rollback; fails in Firefox.  
 **Fix**: Always use `pc.setLocalDescription({type:'rollback'})` when rolling back.  
 **Why**: Explicit type is the RFC 8840 standard; null is non-standard and Firefox-incompatible.
+
+## Embedding Zellous (Iframe)
+
+Zellous can be embedded in parent pages via iframe. Key constraints and global surface documented below.
+
+### Global Surface Audit
+
+**window.* assignments (47 total)**:
+- **Root state**: `window.state`, `window.stateSignals`, `window.config`
+- **Lifecycle**: `window.appReady` (boolean flag set on init completion)
+- **Utilities**: `window.__signal`, `window.__computed`, `window.__effect` (Preact signals)
+- **Libraries**: `window.NostrTools`, `window.XState`
+- **Core subsystems**: `window.auth`, `window.nostrNet` / `window.network`, `window.nostrVoice`, `window.lk` (LiveKit hybrid)
+- **Voice subsystems**: `window.nostrVoiceRtc`, `window.nostrVoiceSfu`, `window.nostrVoiceCamera`
+- **Chat/channels**: `window.chat`, `window.message`, `window.channelManager`, `window.serverManager`, `window.threadManager`
+- **Admin/roles**: `window.serverRoles`, `window.serverSettings`, `window.serverPages`, `window.nostrBans`, `window.nostrMedia`
+- **Audio**: `window.audio`, `window.queue`, `window.ptt`, `window.deafen`, `window.vad`, `window.webcam`
+- **UI**: `window.ui`, `window.uiChat`, `window.uiVoice`, `window.uiChannels`, `window.uiMembers`
+- **Files**: `window.fileTransfer`
+- **Debug**: `window.__debug` (read-only getter), `window.__debugNet`, `window.__voiceRetrySchedule`
+- **Helpers**: `window.getIcon`, `window.icons`, `window.moderation`, `window.getInitial`, `window.getAvatarColor`, `window.escHtml`, `window.formatTime`, `window.chIcon`
+
+**importmap entries** (in `<script type="importmap">`):
+- `htm` → `../vendor/htm.js`
+- `preact` → `../vendor/preact.mjs`
+- `preact/hooks` → `../vendor/preact-hooks.mjs`
+- `@preact/signals` → `../vendor/preact-signals.mjs`
+- `@preact/signals-core` → `../vendor/signals-core.mjs`
+- `livekit-client` → `../vendor/livekit-client.mjs`
+- `nostr-tools` → `../vendor/nostr-tools.mjs`
+- `xstate` → `../vendor/xstate.mjs`
+
+**localStorage keys** (10 total):
+- `nostr_pubkey`, `nostr_privkey` (deprecated; use `zn_sk`/`zn_pk`)
+- `zn_sk`, `zn_pk` (Nostr keys: private key nsec, public key npub)
+- `zn_servers`, `zn_joined_servers`, `zn_lastServer`, `zn_serverOrder`
+- `zellous_rnnoise`, `zellous_forceRelay` (settings toggles)
+
+**event listeners** (window/document level):
+- `click` (4 instances) — modal/context menu dismissal
+- `online` (2 instances) — network reconnection healing
+- `visibilitychange` (2 instances) — app background/foreground
+- `pageshow` (1 instance) — page restoration after back button
+- `paste` (1 in module script) — clipboard media paste
+
+**DOM references** (17 modules mutate via `getElementById`):
+- Channel sidebar: `#channelList`, `#channelSidebar`, `#serverList`, `#serverIcons`, `#serverHeader`
+- Voice: `#voiceGrid`, `#voiceView`, `#voiceControlsBar`, `#voiceMicBtn`, `#voiceDeafenBtn`, `#voiceCamBtn`, `#voiceLeaveBtn`
+- Chat: `#chatArea`, `#chatMessages`, `#chatMessagesInner`, `#chatInput`, `#attachBtn`, `#sendBtn`
+- User panel: `#userPanel`, `#userPanelName`, `#userPanelTag`, `#userPanelAvatar`
+- Settings/auth: `#settingsPopover`, `#authModal`, `#settingsInputDevice`, `#settingsOutputDevice`
+- Mobile: `#mobileHeader`, `#mobileMenuBtn`, `#mobileMembersBtn`, `#mobileTitle`
+- Threads: `#threadPanel`, `#threadList`
+- Members: `#memberList`
+- File: `#fileInput`
+
+### Script Loading Sequence
+
+Bootstrap in `docs/nostr-chat/index.html` (module script):
+1. Preact signals → `window.__signal`, `window.__computed`, `window.__effect`
+2. `js/state.js` → `window.state`, `window.stateSignals`, `window.config`
+3. `nostr-tools` → `window.NostrTools`
+4. `xstate` → `window.XState`
+5. `window.__appBase` = computed from `import.meta.url` → base path for all script loading
+6. **47 classic scripts** loaded sequentially via `createElement('script')` + `head.appendChild()`
+7. `effect()` wires signals to UI renders
+8. `window.appReady = true`
+
+### Embedding Strategy
+
+**Global isolation**: Move all `window.X` → `window.__zellous.X` to prevent parent page collision.
+
+**Import resolution**: `importmap` uses relative `../vendor/` paths — only works at `docs/nostr-chat/index.html` depth. For embedded iframe at different path, must compute `window.__appBase` dynamically (already done via `import.meta.url`). importmap itself still needs updating to use dynamic base.
+
+**Frame restrictions**: GH Pages has no `X-Frame-Options` or `CSP frame-ancestors` headers blocking embedding.
+
+**postMessage bridge**: Planned API for parent-to-iframe and iframe-to-parent communication (see `.prd` items 5, 8, 9).
+
+**Responsive sizing**: App should work at 300px width and any height. Current design is intrinsically responsive (no `window.innerHeight` refs).
+
+### Frame Requirements
+
+- **Sandbox**: `<iframe sandbox="allow-scripts allow-same-origin">` recommended (adjust perms per use case)
+- **CORS**: Static GH Pages allows all origins for reading (no issue)
+- **CSP**: If parent has strict CSP, ensure `frame-src` allows iframe origin
+- **Origin validation**: iframe should validate `message.origin` before processing incoming postMessages

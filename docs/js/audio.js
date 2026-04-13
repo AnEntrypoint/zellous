@@ -128,4 +128,4 @@ const audio = {
   },
   resumeLive: () => { state.skipLiveAudio = false; state.currentLiveSpeaker = null; ui.render.queue(); }
 };
-window.audio = audio;
+window.__zellous.audio = audio;

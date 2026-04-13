@@ -161,7 +161,7 @@ var nostrNet = {
     }
   }
 };
-window.nostrNet = nostrNet;
+window.__zellous.net = nostrNet;
 window.network = nostrNet;
 
 function _healRelays() {

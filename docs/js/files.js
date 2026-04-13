@@ -179,4 +179,4 @@ const fileTransfer = {
   }
 };
 
-window.fileTransfer = fileTransfer;
+window.__zellous.files = fileTransfer;

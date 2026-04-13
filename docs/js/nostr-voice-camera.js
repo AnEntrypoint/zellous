@@ -59,4 +59,4 @@ var nostrVoiceCamera = {
   }
 };
 
-window.nostrVoiceCamera = nostrVoiceCamera;
+window.__zellous.voiceCamera = nostrVoiceCamera;

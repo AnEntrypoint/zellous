@@ -158,5 +158,5 @@ const uiVoice = {
   }
 };
 
-window.uiMembers = uiMembers;
-window.uiVoice = uiVoice;
+window.__zellous.uiMembers = uiMembers;
+window.__zellous.uiVoice = uiVoice;

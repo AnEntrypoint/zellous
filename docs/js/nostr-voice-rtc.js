@@ -162,7 +162,7 @@ var nostrVoiceRtc = {
       content:JSON.stringify({type,data})}));
   }
 };
-window.nostrVoiceRtc = nostrVoiceRtc;
+window.__zellous.voiceRtc = nostrVoiceRtc;
 
 nostrVoiceRtc.cancelReconnect = function(pk) {
   var e=window.__voiceRetrySchedule[pk]; if(e){clearTimeout(e.timer);delete window.__voiceRetrySchedule[pk];}
