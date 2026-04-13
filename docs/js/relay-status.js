@@ -1,13 +1,20 @@
 const relayStatus = {
+  _monitorId: null,
+
   init() {
     this._addRelayIndicator();
     this._startMonitoring();
+    window.addEventListener('beforeunload', () => this.cleanup());
   },
-  
+
+  cleanup() {
+    if (this._monitorId) clearInterval(this._monitorId);
+  },
+
   _addRelayIndicator() {
     const topbar = document.querySelector('.flow-topbar .topbar-right');
     if (!topbar) return;
-    
+
     const indicator = document.createElement('div');
     indicator.id = 'relayStatus';
     indicator.className = 'relay-status';
@@ -23,12 +30,12 @@ const relayStatus = {
     `;
     indicator.innerHTML = '<span class="relay-dot" style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></span><span id="relayCount">0</span>';
     topbar.insertBefore(indicator, topbar.firstChild);
-    
+
     indicator.addEventListener('click', () => this._showRelayPopover());
   },
-  
+
   _startMonitoring() {
-    setInterval(() => {
+    this._monitorId = setInterval(() => {
       if (!window.__debugNet?.relays) return;
       
       const relays = window.__debugNet.relays;

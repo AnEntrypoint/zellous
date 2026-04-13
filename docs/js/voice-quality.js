@@ -1,22 +1,23 @@
 const voiceQuality = {
   thresholds: {good: 100, degraded: 300, poor: 999},
   sessionWarnedOnce: false,
-  
+  _footerBtnWired: false,
+
   getQuality(rttMs) {
     if (rttMs < this.thresholds.good) return 'good';
     if (rttMs < this.thresholds.degraded) return 'degraded';
     return 'poor';
   },
-  
+
   getIcon(quality) {
     const icons = {good: '🟢', degraded: '🟡', poor: '🔴'};
     return icons[quality] || '—';
   },
-  
+
   updateParticipantQuality(participantId, rttMs, packetLoss) {
     const tile = document.querySelector(`[data-participant="${participantId}"]`);
     if (!tile) return;
-    
+
     const quality = this.getQuality(rttMs);
     const indicator = tile.querySelector('.quality-indicator');
     if (indicator) {
@@ -24,15 +25,19 @@ const voiceQuality = {
       indicator.title = `RTT: ${rttMs}ms, Loss: ${packetLoss || 0}%`;
     }
   },
-  
+
   updateFooterQuality(rttMs) {
     const btn = document.querySelector('#voiceQualityBtn');
     if (!btn) return;
-    
+
     const quality = this.getQuality(rttMs);
     btn.textContent = this.getIcon(quality);
-    btn.addEventListener('click', () => this.showQualityPopover(rttMs));
-    
+
+    if (!this._footerBtnWired) {
+      this._footerBtnWired = true;
+      btn.addEventListener('click', () => this.showQualityPopover());
+    }
+
     if (quality === 'poor' && !this.sessionWarnedOnce) {
       this.sessionWarnedOnce = true;
       if (window.__zellous.keyboardNav?.announce) {
@@ -41,10 +46,13 @@ const voiceQuality = {
     }
   },
   
-  showQualityPopover(rttMs) {
+  showQualityPopover() {
     const existing = document.querySelector('.quality-popover');
     if (existing) existing.remove();
-    
+
+    const debugNet = window.__debug?.relay?.avgLatency || 0;
+    const rttMs = Math.round(debugNet);
+
     const popover = document.createElement('div');
     popover.className = 'quality-popover';
     popover.style.cssText = `
