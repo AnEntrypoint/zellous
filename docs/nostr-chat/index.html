@@ -480,6 +480,7 @@ Object.defineProperty(window, 'nostrFsm', {
     window.__effect = effect;
 
     const { state, config } = await import('../js/state.js');
+    window.config = config;  // Ensure config is accessible to classic scripts
 
     import * as NostrTools from 'nostr-tools';
     window.NostrTools = NostrTools;
