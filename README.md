@@ -19,6 +19,7 @@ Serverless voice and chat over public Nostr relays. No backend required.
 - Role management — Owner/Admin/Mod badges in member list and voice tiles
 - Admin-only server announcements (gold-bordered messages)
 - Kick-from-voice via member context menu (admin only)
+- **Iframe embedding** — embed the app in parent pages via postMessage bridge API
 
 ## Usage
 
@@ -46,6 +47,26 @@ Static site — `docs/` directory served via GitHub Pages.
 Voice uses native WebRTC with Nostr kind 30078 events as signaling channel. No server, no STUN/TURN required for LAN; uses default browser STUN for WAN.
 
 - `docs/js/nostr-voice-sfu.js` — dynamic hub election: polls RTT via `getStats()`, elects lowest-latency peer as hub, forwards audio via `replaceTrack()` without decode/re-encode
+
+## Embedding in Iframes
+
+Zellous can be embedded in parent pages via iframe. See **[CLAUDE.md](CLAUDE.md#embedding-zellous)** for:
+- postMessage API with bidirectional events
+- Available methods: `joinRoom`, `leaveRoom`, `sendMessage`, `getState`
+- Working example: **[docs/embed.html](docs/embed.html)**
+- Test harness: **[test-harness.html](test-harness.html)**
+
+Quick start:
+```html
+<iframe src="https://anentrypoint.github.io/zellous/nostr-chat/index.html"></iframe>
+<script>
+const iframe = document.querySelector('iframe');
+iframe.contentWindow.postMessage({type: 'getState', id: 1}, '*');
+window.addEventListener('message', (e) => {
+  if (e.data.id === 1) console.log('State:', e.data.result);
+});
+</script>
+```
 
 ## Browser Support
 
