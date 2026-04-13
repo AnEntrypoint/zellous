@@ -18,30 +18,18 @@ const flowUI = {
     const cmd = document.getElementById('commandPalette');
     if (cmd) {
       cmd.addEventListener('focus', () => {
-        // Show command palette overlay
-        console.log('Command palette focused');
-      });
-      cmd.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          const val = cmd.value.trim();
-          if (val.startsWith('#')) {
-            // Switch channel
-            console.log('Switch to channel:', val);
-          } else if (val.startsWith('@')) {
-            // Open DM
-            console.log('Open DM:', val);
-          }
-          cmd.value = '';
-        }
+        if (window.commandPalette?.open) window.commandPalette.open();
       });
     }
 
     document.getElementById('serverSelector')?.addEventListener('click', () => {
-      console.log('Open server selector');
+      if (window.serverManager?.showContextMenu) {
+        window.serverManager.showContextMenu();
+      }
     });
 
     document.getElementById('userMenuBtn')?.addEventListener('click', () => {
-      if (window.auth?.showModal) auth.showModal();
+      if (window.auth?.showModal) window.auth.showModal();
     });
   },
 
@@ -84,11 +72,13 @@ const flowUI = {
     const msg = input.value.trim();
     if (!msg) return;
 
-    if (window.chat?.send) {
-      chat.send(msg);
-      input.value = '';
-      input.focus();
+    if (window.nostrChat?.send) {
+      window.nostrChat.send(msg);
+    } else if (window.chat?.send) {
+      window.chat.send(msg);
     }
+    input.value = '';
+    input.focus();
   },
 
   renderMessages(messages) {
