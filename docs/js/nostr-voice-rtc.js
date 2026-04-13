@@ -46,6 +46,16 @@ var nostrVoiceRtc = {
         pc.addTransceiver('audio',{direction:'recvonly'});
     }
     pc.ontrack=function(ev){
+      if(ev.track.kind==='video'){
+        var pKey='nostr-'+peerPubkey.slice(0,12);
+        var p=nv._participants.get(pKey);
+        if(p){p.hasVideo=true;p._videoStream=ev.streams[0];}
+        var el=document.getElementById('vtile-video-'+peerPubkey.slice(0,8));
+        if(!el){el=document.createElement('video');el.id='vtile-video-'+peerPubkey.slice(0,8);el.autoplay=true;el.playsinline=true;el.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:8px;position:absolute;top:0;left:0';document.body.appendChild(el);}
+        el.srcObject=ev.streams[0];
+        nv.updateParticipants();
+        return;
+      }
       if(!peer.audioEl){peer.audioEl=new Audio();peer.audioEl.autoplay=true;peer.audioEl.muted=state.voiceDeafened;document.body.appendChild(peer.audioEl);}
       peer.audioEl.srcObject=ev.streams[0];
       try { ev.receiver.playoutDelayHint=0.02; } catch(e) {}
@@ -95,8 +105,8 @@ var nostrVoiceRtc = {
         nostrVoiceRtc._applyAudioHints(pc);
         var pKey='nostr-'+peerPubkey.slice(0,12);
         var p=nv._participants.get(pKey);
-        if(!p){nv._participants.set(pKey,{identity:pKey,isSpeaking:false,isMuted:false,isLocal:false,hasVideo:false,connectionQuality:'good'});}
-        else{p.connectionQuality='good';}
+        if(!p){nv._participants.set(pKey,{identity:pKey,isSpeaking:false,isMuted:false,isLocal:false,hasVideo:false,connectionQuality:'good',_peerPubkey:peerPubkey});}
+        else{p.connectionQuality='good';p._peerPubkey=peerPubkey;}
         nv.updateParticipants();
       }
       if(pc.connectionState==='disconnected'){

@@ -1,4 +1,16 @@
 
+## [2026-04-13] nostr-admin-roles-video-media
+- nostr-roles.js: Nostr-native role system (kind 30078 zellous-roles:<serverId>). Only server creator can assign admin; admins can assign moderator. All clients verify event.pubkey === serverId creator before applying. window.__debug.roles exposes live store.
+- nostr-settings.js: Server-owner/admin configurable Opus bitrate (8/16/24/48/96 kbps) stored as kind 30078 zellous-settings:<serverId>. Applied to AudioEncoder on voice connect and on change. Non-authorized events silently ignored.
+- nostr-voice-camera.js: Real WebRTC camera toggle. Injects video track into existing peer connections via addTrack/replaceTrack. Disconnects cleanly on voice leave.
+- nostr-voice-rtc.js: Handle remote video ontrack — create <video> element per peer, wire to participant hasVideo flag.
+- nostr-media.js: NIP-96 media upload (nostr.build, void.cat). sendMedia() uploads file and publishes kind 42 with imeta tag. window.__debug.media exposes server list.
+- nostr-chat.js: sendImage() wired to nostrMedia.sendMedia. linkify() renders inline image/video from URLs in messages. Paste-from-clipboard support in index.html.
+- moderation.js: showMemberMenu gates role options on serverRoles.isAdmin(). Owner-only admin assignment enforced. Nostr mode calls serverRoles.setRole() instead of REST API.
+- nostr-servers-ui.js: Bitrate selector added to edit modal for owner/admin; saved via serverSettings.setBitrate() on submit.
+- state.js: Added cameraEnabled signal.
+- index.html: Added nostr-roles/nostr-settings/nostr-media/nostr-voice-camera to load list. Camera button wired. Paste handler for clipboard images.
+
 ## [2026-04-12] perfect-negotiation-pattern
 - Replace signalingState-guarded offer handler with RFC 8840 perfect negotiation pattern
 - polite peer (myPubkey < peerPubkey): rolls back own offer on collision via setLocalDescription({type:'rollback'}) then chains doAnswer

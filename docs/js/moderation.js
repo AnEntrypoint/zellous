@@ -43,10 +43,15 @@ const moderation = {
     menu.style.cssText = `position:fixed;top:${y}px;left:${x}px;z-index:2500`;
 
     let items = '';
-    if (serverId && !state.nostrPubkey) {
+    const isNostr = !!state.nostrPubkey;
+    const canManage = serverId && (isNostr ? (window.serverRoles && serverRoles.isAdmin(serverId)) : true);
+    const isOwner = serverId && isNostr && window.serverRoles && serverRoles.isOwner(serverId);
+    if (canManage) {
+      if (isOwner) items += `<div class="context-menu-item" data-action="role-admin">Set Admin</div>`;
       items += `<div class="context-menu-item" data-action="role-mod">Set Moderator</div>`;
-      items += `<div class="context-menu-item" data-action="role-admin">Set Admin</div>`;
       items += `<div class="context-menu-item" data-action="role-member">Set Member</div>`;
+    }
+    if (serverId && !isNostr) {
       items += `<div class="context-menu-item danger" data-action="kick">Kick</div>`;
       items += `<div class="context-menu-item danger" data-action="ban">Ban</div>`;
     }
@@ -64,9 +69,18 @@ const moderation = {
       try {
         if (action === 'kick') { if (confirm(`Kick ${memberName}?`)) await moderation.kickUser(serverId, memberId); }
         else if (action === 'ban') { if (confirm(`Ban ${memberName}?`)) await moderation.banUser(serverId, memberId); }
-        else if (action === 'role-mod') await moderation.setRole(serverId, memberId, 'moderator');
-        else if (action === 'role-admin') await moderation.setRole(serverId, memberId, 'admin');
-        else if (action === 'role-member') await moderation.setRole(serverId, memberId, 'member');
+        else if (action === 'role-mod') {
+          if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'moderator');
+          else await moderation.setRole(serverId, memberId, 'moderator');
+        }
+        else if (action === 'role-admin') {
+          if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'admin');
+          else await moderation.setRole(serverId, memberId, 'admin');
+        }
+        else if (action === 'role-member') {
+          if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'member');
+          else await moderation.setRole(serverId, memberId, 'member');
+        }
       } catch (e) { console.warn('[Mod]', e.message); }
     });
 

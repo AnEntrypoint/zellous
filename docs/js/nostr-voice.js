@@ -91,6 +91,7 @@ var nostrVoice = {
       nostrVoiceRtc.subscribe(nostrVoice._roomId,state.nostrPubkey);
       nostrVoice._subscribePresence();
       nostrVoice._publishPresence('join'); nostrVoice._startHeartbeat(); nostrVoice.updateParticipants();
+      if(window.serverSettings) serverSettings.applyToEncoder();
       if(window.nostrVoiceSfu) nostrVoiceSfu.start();
       if(ui.voicePanel) ui.voicePanel.classList.add('visible');
       if(ui.voicePanelChannel) ui.voicePanelChannel.textContent=channelName;
@@ -109,6 +110,8 @@ var nostrVoice = {
     nostrVoice._publishPresence('leave'); nostrVoice._stopHeartbeat();
     if(window.nostrVoiceSfu) nostrVoiceSfu.stop();
     nostrVoice._peers.forEach((_,pk)=>nostrVoice._closePeer(pk)); nostrVoice._peers.clear();
+    if(nostrVoice._cameraStream){nostrVoice._cameraStream.getTracks().forEach(function(t){t.stop();});nostrVoice._cameraStream=null;}
+    state.cameraEnabled=false;
     if(nostrVoice._localStream&&nostrVoice._localStream!==state.mediaStream){nostrVoice._localStream.getTracks().forEach(t=>t.stop());}
     nostrVoice._localStream=null;
     // tear down rnnoise graph (keep ctx alive for reuse, just disconnect nodes)
@@ -155,7 +158,7 @@ var nostrVoice = {
     nostrVoice.updateParticipants();
   },
 
-  toggleCamera(){message.add('Camera not available in voice-only mode');},
+  toggleCamera() { return nostrVoiceCamera.toggle(); },
 
   _publishSignal(toPubkey,type,data) { return nostrVoiceRtc.publish(toPubkey,type,data,nostrVoice._roomId); },
   _maybeConnect(pk) { nostrVoiceRtc.maybeConnect(pk); },

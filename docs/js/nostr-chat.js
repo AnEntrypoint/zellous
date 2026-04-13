@@ -24,9 +24,14 @@ const chat = {
     chat._addMessage(chat._eventToMsg(signedEvent));
   },
 
-  sendImage() {
-    if (typeof ui !== 'undefined' && ui.showToast) ui.showToast('Image upload coming soon');
-    else console.warn('Image upload coming soon');
+  sendImage(file) {
+    if (!file) {
+      var input = document.createElement('input');
+      input.type = 'file'; input.accept = 'image/*,video/*';
+      input.onchange = function() { if (input.files[0]) nostrMedia.sendMedia(input.files[0]).catch(function(e){ message.add('Upload failed: ' + e.message); }); };
+      input.click(); return;
+    }
+    nostrMedia.sendMedia(file).catch(function(e){ message.add('Upload failed: ' + e.message); });
   },
 
   async loadHistory(channelId) {
@@ -134,6 +139,16 @@ const chat = {
         ui.render.all();
       }
     );
+  },
+
+  linkify(html) {
+    return html.replace(/https?:\/\/[^\s<>"]+/g, function(url) {
+      if (!window.nostrMedia) return '<a href="' + url + '" target="_blank" rel="noopener">' + url + '</a>';
+      var kind = nostrMedia.isMedia(url);
+      if (kind === 'image') return '<a href="' + url + '" target="_blank" rel="noopener"><img src="' + url + '" style="max-width:100%;max-height:300px;border-radius:8px;margin-top:4px;display:block" loading="lazy"></a>';
+      if (kind === 'video') return '<video src="' + url + '" controls style="max-width:100%;max-height:300px;border-radius:8px;margin-top:4px;display:block"></video>';
+      return '<a href="' + url + '" target="_blank" rel="noopener">' + url + '</a>';
+    });
   },
 
   handleTextMessage(msg) { chat._addMessage(msg); },

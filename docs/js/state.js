@@ -104,6 +104,7 @@ const state = {
 
   servers: signal([]),
   currentServerId: signal(null),
+  cameraEnabled: signal(false),
 };
 
 const _isSignal = (v) => v !== null && typeof v === 'object' && 'value' in v && typeof v.subscribe === 'function';

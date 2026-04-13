@@ -108,6 +108,8 @@ var serverManager = {
   switchTo: async function(serverId) {
     state.currentServerId = serverId;
     state.chatMessages = []; state.channels = []; state.categories = [];
+    if (window.serverRoles) serverRoles.subscribe(serverId);
+    if (window.serverSettings) serverSettings.subscribe(serverId);
     if (serverId) localStorage.setItem('zn_lastServer', serverId);
     else localStorage.removeItem('zn_lastServer');
     if (window.channelManager && serverId) {

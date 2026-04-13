@@ -351,6 +351,9 @@
       'js/nostr-channels.js',
       'js/nostr-channels-ui.js',
       'js/threads.js',
+      'js/nostr-roles.js',
+      'js/nostr-settings.js',
+      'js/nostr-media.js',
       'js/nostr-servers.js',
       'js/nostr-servers-ui.js',
       'js/moderation.js',
@@ -359,7 +362,8 @@
       'js/nostr-fsm.js',
       'js/nostr-voice-rtc.js',
       'js/nostr-voice.js',
-    'js/nostr-voice-sfu.js',
+      'js/nostr-voice-camera.js',
+      'js/nostr-voice-sfu.js',
       'js/ptt.js',
       'js/webcam.js',
       'app.js'
@@ -375,7 +379,13 @@
       });
     }
 
-    Object.defineProperty(window, '__debug', {get: function(){ return {get voice(){return window.nostrVoice&&window.nostrVoice.__debug;}, get net(){return window.__debugNet;}};}, configurable: true});
+    Object.defineProperty(window, '__debug', {get: function(){ return {
+      get voice(){return window.nostrVoice&&window.nostrVoice.__debug;},
+      get net(){return window.__debugNet;},
+      get roles(){return window.serverRoles&&{store:Object.fromEntries(serverRoles._store),sub:serverRoles._sub};},
+      get settings(){return window.serverSettings&&{store:Object.fromEntries(serverSettings._store)};},
+      get media(){return window.nostrMedia&&{servers:nostrMedia._NIP96_SERVERS};}
+    };}, configurable: true});
 
     effect(() => {
       window.stateSignals.isSpeaking.value;
@@ -623,6 +633,27 @@ async function initNostr() {
   }
 
   window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt, nostrVoice };
+
+  document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
+    if (window.lk && lk.toggleCamera) lk.toggleCamera();
+  });
+  document.getElementById('voiceVideoBtn')?.addEventListener('click', function() {
+    if (window.lk && lk.toggleCamera) lk.toggleCamera();
+  });
+
+  document.addEventListener('paste', function(e) {
+    if (!state.nostrPubkey || !state.currentChannelId) return;
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        var file = items[i].getAsFile();
+        if (file && window.nostrMedia) nostrMedia.sendMedia(file).catch(function(err) { message.add('Upload failed: ' + err.message); });
+        break;
+      }
+    }
+  });
 }
 
 function _runWhenReady(fn) {

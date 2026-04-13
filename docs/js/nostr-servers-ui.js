@@ -56,6 +56,18 @@ serverManager.showEditModal = function(serverId) {
     });
     picker.appendChild(dot);
   });
+  var isAdmin = window.serverRoles && (serverRoles.isOwner(serverId) || serverRoles.isAdmin(serverId));
+  if (isAdmin && window.serverSettings) {
+    var bitrateField = document.createElement('div');
+    bitrateField.className = 'modal-field';
+    var curBitrate = serverSettings.getBitrate(serverId);
+    bitrateField.innerHTML = '<label class="modal-label">Voice Quality (Opus bitrate)</label>' +
+      '<select class="modal-input" id="editServerBitrate">' +
+      [8000,16000,24000,48000,96000].map(function(b) {
+        return '<option value="' + b + '"' + (b === curBitrate ? ' selected' : '') + '>' + (b/1000) + ' kbps</option>';
+      }).join('') + '</select>';
+    modal.querySelector('#editServerForm').insertBefore(bitrateField, modal.querySelector('[type="submit"]'));
+  }
   modal.querySelector('#editServerForm').addEventListener('submit', async function() {
     var name = document.getElementById('editServerName').value.trim();
     if (!name) return;
@@ -66,6 +78,10 @@ serverManager.showEditModal = function(serverId) {
       var dTag = serverId.split(':')[1];
       var template = { kind: 34550, created_at: Math.floor(Date.now() / 1000), tags: [['d', dTag], ['name', name], ['color', selectedColor]], content: '' };
       try { var signed = await auth.sign(template); await nostrNet.publish(signed); } catch (e) {}
+    }
+    if (isAdmin && window.serverSettings) {
+      var bitrateEl = document.getElementById('editServerBitrate');
+      if (bitrateEl) await serverSettings.setBitrate(serverId, parseInt(bitrateEl.value)).catch(function(){});
     }
     modal.remove(); ui.render.all();
   });
