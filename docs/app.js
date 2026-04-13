@@ -118,12 +118,13 @@ const ui_events = {
     document.getElementById('deafenToggleBtn')?.addEventListener('click', () => { state.voiceConnected ? lk.toggleDeafen() : deafen.toggle(); });
     document.getElementById('settingsBtn')?.addEventListener('click', () => ui.actions.toggleSettings());
     document.getElementById('createCategoryBtn')?.addEventListener('click', () => { if (window.channelManager) channelManager.showCreateCategoryModal(); });
-    document.addEventListener('click', (e) => { if (ui.settingsPopover.classList.contains('open') && !ui.settingsPopover.contains(e.target) && e.target.id !== 'settingsBtn') ui.settingsPopover.classList.remove('open'); });
+    document.addEventListener('click', (e) => { if (ui.settingsPopover.classList.contains('open') && !ui.settingsPopover.contains(e.target) && e.target.id !== 'settingsBtn' && e.target.id !== 'voiceSettingsBtn') ui.settingsPopover.classList.remove('open'); });
     document.getElementById('voiceDisconnectBtn')?.addEventListener('click', () => lk.disconnect());
     document.getElementById('voiceVideoBtn')?.addEventListener('click', () => lk.toggleCamera());
     document.getElementById('voiceMicBtn')?.addEventListener('click', () => lk.toggleMic());
     document.getElementById('voiceDeafenBtn')?.addEventListener('click', () => { state.voiceConnected ? lk.toggleDeafen() : deafen.toggle(); });
     document.getElementById('voiceCamBtn')?.addEventListener('click', () => lk.toggleCamera());
+    document.getElementById('voiceSettingsBtn')?.addEventListener('click', () => ui.actions.toggleSettings());
     document.getElementById('voiceLeaveBtn')?.addEventListener('click', () => lk.disconnect());
     document.getElementById('toggleMembersBtn')?.addEventListener('click', () => ui.actions.toggleMembers());
     document.getElementById('toggleQueueBtn')?.addEventListener('click', () => ui.actions.toggleQueue());
