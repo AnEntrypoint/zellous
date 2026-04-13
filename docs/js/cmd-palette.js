@@ -98,7 +98,11 @@ const commandPalette = {
           window.ui.actions.muteChannel(window.state.currentChannelId);
         }
       } else if (cmd === 'clear') {
-        localStorage.clear();
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('zn_') || key.startsWith('nostr_') || key.startsWith('zellous_')) {
+            localStorage.removeItem(key);
+          }
+        });
       }
     }
     
