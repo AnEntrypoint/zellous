@@ -320,3 +320,116 @@ Quick reference:
 - Backward compatibility: window.state, window.lk, window.ui still work
 - CSS responsive: app height uses 100% (not 100vh), respects container size
 - Test harness: docs/test-embed-harness.html covers 4+ embedding scenarios
+
+## Flow UI — Modern, Content-First Redesign
+
+`docs/flow.html` provides an alternative UI layout optimized for content visibility and voice chat.
+
+### Entry Point
+- `docs/flow.html` — modern layout with left sidebar, top command bar, voice grid
+- `docs/js/ui-flow.js` — main controller binding DOM events and state updates
+- `docs/css/flow.css` — layout and styling for Flow UI
+- `docs/css/animations.css` — micro-animations with spring easing
+
+### Enhancement Modules (docs/js/)
+Flow UI is augmented with 10 optional enhancement modules, each <200 lines:
+
+1. **cmd-palette.js** — Command palette with fuzzy search
+   - Searches channels, users, servers, threads by prefix
+   - Fuzzy matching: `cmd` matches `CommandPalette`, `gen` matches `general`
+   - Caches recent commands in localStorage `zn_cmdRecent`
+   - Execute dispatches to channel switch, DM open, server join
+
+2. **cmd-palette-ui.js** — Command palette UI bindings
+   - Ctrl+K to open, Escape to close
+   - Arrow keys navigate results, Enter selects
+   - Input focus auto-triggers search
+
+3. **emoji-reactions.js** — First-class emoji reactions
+   - Publishes kind-7 Nostr events on reaction toggle
+   - Renders top 3 reactions inline with +N indicator
+   - Distinguishes user-reacted vs other reactions via visual styling
+
+4. **voice-quality.js** — WebRTC voice quality indicators
+   - RTT thresholds: <100ms=good 🟢, <300ms=degraded 🟡, >300ms=poor 🔴
+   - Updates per-participant quality tiles in voice grid
+   - Shows footer quality indicator with RTT/status details
+   - Popover displays full latency metrics on hover
+
+5. **messaging.js** — Markdown parsing and syntax highlighting
+   - Parses **bold**, *italic*, `code`, ```fenced blocks```
+   - syntaxHighlight module with language detection (js, py, rust, go)
+   - messageThreading groups consecutive same-author messages (7-minute window)
+   - XSS-safe escapeHtml prevents injection
+
+6. **keyboard-nav.js** — Keyboard navigation and a11y
+   - Focus trap in modals (Tab loops within modal)
+   - Skip link for jump-to-main-content
+   - Aria labels for buttons, regions, listboxes
+   - Focus-visible outline with 2px accent color
+   - Screen reader announcement region for status updates
+
+7. **theme-manager.js** — Theme and accent customization
+   - Themes: light, dark, auto (follows system preference)
+   - Accent presets: indigo, violet, pink, cyan, green, orange
+   - CSS variable swapping (--bg-base, --bg-surface, --text-primary, --accent)
+   - localStorage persistence (zn_theme, zn_accent)
+
+8. **sidebar-manager.js** — Collapsible sidebar
+   - Toggle between 240px (expanded) and 64px (icon-only) widths
+   - Hover-expand: sidebar expands on hover when collapsed
+   - localStorage persistence (zn_sidebarCollapsed)
+   - Smooth CSS transitions
+
+9. **relay-status.js** — Relay connection indicator
+   - Topbar indicator: green dot (all relays connected), yellow (<50%), red (0)
+   - Polls window.__debugNet every 2s for relay health
+   - Popover shows per-relay latency and connection status
+   - Warning banner if zero relays connected
+
+10. **debug-structure.js** — Observability registry
+    - window.__debug permanent structure (not console.log)
+    - 8 subsystems: ui, voice, relay, cache, user, errors, perf
+    - Real-time updates: active channel, voice FSM state, RTT matrix, peer list
+    - Errors tracked (max 20 entries) with timestamp and context
+
+### Animations
+- fadeIn (200ms) — message entrance
+- slideInRight (150ms) — new participant tile
+- pulse (2s infinite) — unread indicator
+- buttonPress (100ms) — button click feedback
+- Spring easing: cubic-bezier(0.34, 1.56, 0.64, 1) for smooth feel
+- @media (prefers-reduced-motion) respects user accessibility preferences
+
+### Module Loading
+Flow UI loads enhancement modules in sequence in `docs/flow.html`:
+```javascript
+const enhancements = [
+  'js/cmd-palette.js',
+  'js/cmd-palette-ui.js',
+  'js/emoji-reactions.js',
+  'js/voice-quality.js',
+  'js/messaging.js',
+  'js/keyboard-nav.js',
+  'js/theme-manager.js',
+  'js/sidebar-manager.js',
+  'js/relay-status.js',
+  'js/debug-structure.js'
+];
+
+for (const mod of enhancements) {
+  try {
+    await import(base + mod);
+  } catch (e) {
+    console.warn('Failed to load enhancement:', mod, e.message);
+  }
+}
+```
+
+All modules register into window.__zellous namespace to prevent parent page collisions.
+
+### localStorage Keys Added
+- `zn_cmdRecent` — recent command palette queries
+- `zn_theme` — theme preference (light/dark/auto)
+- `zn_accent` — accent color preset
+- `zn_sidebarCollapsed` — sidebar collapsed state
