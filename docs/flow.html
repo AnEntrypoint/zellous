@@ -6,8 +6,7 @@
   <title>Zellous - Flow UI</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236366f1'/><text x='50' y='72' font-size='60' font-weight='700' font-family='sans-serif' fill='white' text-anchor='middle'>Z</text></svg>">
   <link rel="stylesheet" href="css/flow.css">
-  <script>
-    // Dynamically compute vendor base path
+  <script type="module">
     const scriptDir = new URL(import.meta.url).pathname.split('/').slice(0, -1).join('/');
     const baseUrl = scriptDir.replace(/flow\/?$/, '');
     document.currentScript.before(Object.assign(document.createElement('script'), {
