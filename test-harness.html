@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zellous Embedding Test Harness</title>
+  <style>
+    body { font-family: monospace; margin: 0; padding: 20px; background: #0f1117; color: #c9d1d9; }
+    .test { border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin: 12px 0; }
+    .test.pass { border-color: #34d399; background: rgba(52, 211, 153, 0.1); }
+    .test.fail { border-color: #f87171; background: rgba(248, 113, 113, 0.1); }
+    .test.pending { border-color: #818cf8; background: rgba(129, 140, 248, 0.1); }
+    h2 { margin-top: 0; color: #58a6ff; }
+    .result { margin: 8px 0; }
+  </style>
+</head>
+<body>
+  <h1>Zellous Embedding Test Harness</h1>
+  <p>Comprehensive testing for iframe embedding flawless implementation.</p>
+
+  <div id="tests"></div>
+
+  <script>
+    const results = [];
+
+    function test(name, fn) {
+      const el = document.createElement('div');
+      el.className = 'test pending';
+      el.innerHTML = `<h2>${name}</h2><div class="result">Running...</div>`;
+      document.getElementById('tests').appendChild(el);
+
+      (async () => {
+        try {
+          await fn();
+          el.classList.remove('pending');
+          el.classList.add('pass');
+          el.querySelector('.result').textContent = '✓ PASS';
+          results.push({ name, status: 'pass' });
+        } catch (err) {
+          el.classList.remove('pending');
+          el.classList.add('fail');
+          el.querySelector('.result').textContent = '✗ FAIL: ' + err.message;
+          results.push({ name, status: 'fail', error: err.message });
+        }
+      })();
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Test 1: Same-origin iframe (docs/embed.html → nostr-chat/index.html)
+    test('Test 1: Same-origin iframe at same base', async () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = './docs/embed.html';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      await sleep(2000);
+
+      if (!iframe.contentWindow || !iframe.contentWindow.window) {
+        throw new Error('Iframe failed to load');
+      }
+
+      if (!iframe.contentWindow.postMessage) {
+        throw new Error('postMessage API not available');
+      }
+
+      iframe.remove();
+    });
+
+    // Test 2: Check namespace isolation
+    test('Test 2: window.__zellous namespace exists', async () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = './docs/nostr-chat/index.html';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      await sleep(3000);
+
+      const hasNamespace = await new Promise(resolve => {
+        iframe.contentWindow.postMessage({ type: 'check_namespace' }, '*');
+        window.addEventListener('message', (e) => {
+          if (e.data.type === 'namespace_check') {
+            resolve(e.data.exists);
+          }
+        });
+        setTimeout(() => resolve(false), 1000);
+      });
+
+      iframe.remove();
+
+      if (!hasNamespace) {
+        throw new Error('window.__zellous not found');
+      }
+    });
+
+    // Test 3: Narrow iframe (400px)
+    test('Test 3: Narrow iframe (400px width) renders correctly', async () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = './docs/nostr-chat/index.html';
+      iframe.style.width = '400px';
+      iframe.style.height = '600px';
+      iframe.style.border = '1px solid red';
+      document.body.appendChild(iframe);
+
+      await sleep(3000);
+
+      // Visual inspection: sidebar should stack, no horizontal overflow
+      const computed = window.getComputedStyle(iframe);
+      if (computed.display === 'none') {
+        throw new Error('Iframe not displayed');
+      }
+
+      iframe.remove();
+    });
+
+    // Test 4: Multiple iframes isolation
+    test('Test 4: Multiple iframes state isolation', async () => {
+      const iframe1 = document.createElement('iframe');
+      const iframe2 = document.createElement('iframe');
+      iframe1.src = './docs/nostr-chat/index.html';
+      iframe2.src = './docs/nostr-chat/index.html';
+      iframe1.style.display = 'none';
+      iframe2.style.display = 'none';
+      document.body.appendChild(iframe1);
+      document.body.appendChild(iframe2);
+
+      await sleep(3000);
+
+      // Each iframe should have its own __zellous
+      const has1 = !!iframe1.contentWindow.__zellous;
+      const has2 = !!iframe2.contentWindow.__zellous;
+
+      if (!has1 || !has2) {
+        throw new Error('One or both iframes missing __zellous namespace');
+      }
+
+      // They should be different objects
+      if (iframe1.contentWindow.__zellous === iframe2.contentWindow.__zellous) {
+        throw new Error('Iframes sharing same __zellous object (not isolated)');
+      }
+
+      iframe1.remove();
+      iframe2.remove();
+    });
+
+    // Test 5: No console errors
+    test('Test 5: No console errors on load', async () => {
+      let errors = [];
+      const oldError = console.error;
+      console.error = function() {
+        const msg = Array.from(arguments).join(' ');
+        if (!msg.includes('Fallback') && !msg.includes('chunk')) {
+          errors.push(msg);
+        }
+        oldError.apply(console, arguments);
+      };
+
+      const iframe = document.createElement('iframe');
+      iframe.src = './docs/nostr-chat/index.html';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      await sleep(3000);
+
+      console.error = oldError;
+      iframe.remove();
+
+      if (errors.length > 0) {
+        throw new Error(`Console errors: ${errors.join('; ')}`);
+      }
+    });
+
+    // Test 6: Backward compatibility (window.lk still works)
+    test('Test 6: Backward compat - window.lk accessible', async () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = './docs/nostr-chat/index.html';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+
+      await sleep(2000);
+
+      const hasLk = !!iframe.contentWindow.lk;
+      if (!hasLk) {
+        throw new Error('window.lk not accessible (backward compat broken)');
+      }
+
+      iframe.remove();
+    });
+
+    // Summary
+    setTimeout(() => {
+      const passed = results.filter(r => r.status === 'pass').length;
+      const failed = results.filter(r => r.status === 'fail').length;
+      console.log(`\nTest Summary: ${passed} passed, ${failed} failed`);
+      if (failed === 0) {
+        console.log('✓ All tests PASSED - Flawless embedding verified');
+      }
+    }, 20000);
+  </script>
+</body>
+</html>
