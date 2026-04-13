@@ -1,23 +1,50 @@
 var nostrMedia = {
-  _NIP96_SERVERS: [
-    'https://nostr.build/api/v2/nip96/upload',
-    'https://void.cat/upload?v=2'
+  _BLOSSOM_SERVERS: [
+    'https://blossom.nostr.build',
+    'https://cdn.blossom.primal.net',
+    'https://blossom.primal.net'
   ],
 
-  async upload(file) {
-    var form = new FormData();
+  async _generateNip98Auth(method, url) {
+    if (!state.nostrPubkey) throw new Error('Not authenticated');
+    const auth_event = {
+      kind: 27235,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [
+        ['u', url],
+        ['method', method]
+      ],
+      content: '',
+      pubkey: state.nostrPubkey
+    };
+    const signed = await window.auth.sign(auth_event);
+    return window.NostrTools.nip19.eventEncode(signed);
+  },
+
+  async _uploadBlossom(file, serverUrl) {
+    const uploadUrl = serverUrl + '/upload';
+    const form = new FormData();
     form.append('file', file);
+    const auth = await nostrMedia._generateNip98Auth('POST', uploadUrl);
+    const res = await fetch(uploadUrl, {
+      method: 'POST',
+      body: form,
+      headers: { 'Authorization': 'Nostr ' + auth }
+    });
+    if (!res.ok) throw new Error('Status ' + res.status);
+    const data = await res.json();
+    const url = data.url || (data.content && JSON.parse(data.content).url);
+    if (!url) throw new Error('No URL in response');
+    return url;
+  },
+
+  async upload(file) {
     var errors = [];
-    for (var i = 0; i < nostrMedia._NIP96_SERVERS.length; i++) {
+    for (var i = 0; i < nostrMedia._BLOSSOM_SERVERS.length; i++) {
       try {
-        var res = await fetch(nostrMedia._NIP96_SERVERS[i], { method: 'POST', body: form });
-        if (!res.ok) { errors.push(nostrMedia._NIP96_SERVERS[i] + ': ' + res.status); continue; }
-        var data = await res.json();
-        var url = (data.nip94_event && data.nip94_event.tags && data.nip94_event.tags.find(function(t){return t[0]==='url';})) ?
-          data.nip94_event.tags.find(function(t){return t[0]==='url';})[1] :
-          data.url || data.location;
-        if (url) return { url: url, type: file.type, name: file.name, size: file.size };
-      } catch(e) { errors.push(nostrMedia._NIP96_SERVERS[i] + ': ' + e.message); }
+        var url = await nostrMedia._uploadBlossom(file, nostrMedia._BLOSSOM_SERVERS[i]);
+        return { url: url, type: file.type, name: file.name, size: file.size };
+      } catch(e) { errors.push(nostrMedia._BLOSSOM_SERVERS[i] + ': ' + e.message); }
     }
     throw new Error('Upload failed: ' + errors.join('; '));
   },
