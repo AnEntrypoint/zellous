@@ -127,6 +127,9 @@
         </div>
       </div>
 
+      <!-- PAGE VIEW -->
+      <div class="page-view" id="pageView" style="display:none;flex-direction:column;flex:1;overflow-y:auto;padding:24px 32px"></div>
+
       <!-- FORUM CHANNEL VIEW -->
       <div class="forum-view" id="forumView" style="display:none">
         <div class="forum-header-bar">
@@ -355,6 +358,7 @@
       'js/nostr-roles.js',
       'js/nostr-settings.js',
       'js/nostr-media.js',
+      'js/nostr-pages.js',
       'js/nostr-servers.js',
       'js/nostr-servers-ui.js',
       'js/moderation.js',
@@ -385,7 +389,8 @@
       get net(){return window.__debugNet;},
       get roles(){return window.serverRoles&&{store:Object.fromEntries(serverRoles._store),sub:serverRoles._sub};},
       get settings(){return window.serverSettings&&{store:Object.fromEntries(serverSettings._store)};},
-      get media(){return window.nostrMedia&&{servers:nostrMedia._NIP96_SERVERS};}
+      get media(){return window.nostrMedia&&{servers:nostrMedia._NIP96_SERVERS};},
+      get pages(){if(!window.serverPages)return null;var o={};serverPages._store.forEach(function(pages,srv){o[srv]=Array.from(pages.keys());});return o;}
     };}, configurable: true});
 
     effect(() => {

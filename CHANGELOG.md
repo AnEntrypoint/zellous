@@ -1,4 +1,12 @@
 
+## [2026-04-13] loading-ux-server-pages
+- index.html: Default user panel text changed from 'Not logged in' to 'Connecting...' — eliminates flash before scripts load.
+- nostr-pages.js: Admin-publishable server pages. kind 30078 events (zellous-page:<serverId>:<slug>). HTML sanitized (removes script/iframe/on* attrs). Admin-only via serverRoles.isAdmin(). window.__debug.pages exposes loaded pages.
+- ui-channels.js: Pages section in channel sidebar (below channels). Clicking page sets currentChannel to type:page and renders pageView.
+- nostr-servers.js: switchTo() calls serverPages.subscribe(serverId).
+- discord.css: page-view-header, page-view-body, page-editor, page-tb-btn styles.
+- index.html: pageView div added; nostr-pages.js in script load list; __debug.pages wired.
+
 ## [2026-04-13] admin-ux-full
 - ui-voice.js: Role badge overlay on voice tiles. Reads serverRoles.getRole() per participant pubkey; shows Owner/Admin/Mod badge with color.
 - ui-chat.js: Announcement messages rendered with announcement-msg CSS class (gold left-border, tinted bg). announceBtn show/hide based on serverRoles.isAdmin() on every render cycle.

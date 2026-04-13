@@ -2187,3 +2187,14 @@ select option { background: var(--bg-elevated); color: var(--text-primary); }
 
 .announcement-msg { border-left: 3px solid #feb347; background: rgba(254,179,71,0.08); padding-left: 8px; }
 .voice-tile-role-badge { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; color: #fff; margin-left: 4px; vertical-align: middle; }
+
+.page-view-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.page-view-title{font-size:22px;font-weight:700;color:var(--text)}
+.page-edit-btn{margin-left:auto}
+.page-view-body{color:var(--text-secondary);line-height:1.7;font-size:15px}
+.page-view-body h1,.page-view-body h2,.page-view-body h3{color:var(--text);margin:16px 0 8px}
+.page-view-body a{color:var(--accent)}
+.page-view-body blockquote{border-left:3px solid var(--accent);padding-left:12px;margin:8px 0;color:var(--text-muted)}
+.page-view-body ul,.page-view-body ol{padding-left:20px;margin:8px 0}
+.page-tb-btn{background:var(--bg-raised);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:4px 10px;cursor:pointer;font-size:13px}
+.page-tb-btn:hover{background:var(--bg-surface)}

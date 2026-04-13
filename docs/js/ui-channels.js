@@ -59,6 +59,25 @@ const uiChannels = {
       uncat.forEach(renderCh);
     }
 
+    if (window.serverPages && state.currentServerId) {
+      var pages = serverPages.getPages(state.currentServerId);
+      var isAdmin = window.serverRoles && serverRoles.isAdmin(state.currentServerId);
+      if (pages.length > 0 || isAdmin) {
+        html += `<div class="category-header" data-category="pages-section">
+          <svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+          <span class="category-name">PAGES</span>
+          ${isAdmin ? `<button class="category-add-btn" id="addPageBtn" title="New Page">+</button>` : ''}
+        </div>`;
+        pages.forEach(function(p) {
+          var isCurPage = state.currentChannel && state.currentChannel.id === 'page:' + p.slug && state.currentChannel._serverId === state.currentServerId;
+          html += `<div class="channel-item${isCurPage ? ' active' : ''}" data-page-slug="${escHtml(p.slug)}">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
+            <span class="channel-name">${escHtml(p.title)}</span>
+          </div>`;
+        });
+      }
+    }
+
     ui.channelList.innerHTML = html;
     this._bind();
     if (window.channelManager?.initDragAndDrop) channelManager.initDragAndDrop();
@@ -116,18 +135,32 @@ const uiChannels = {
         if (window.ui?.showToast) ui.showToast('Invite link copied!');
       });
     });
+    ui.channelList.querySelectorAll('[data-page-slug]').forEach(el => {
+      el.addEventListener('click', () => {
+        const slug = el.dataset.pageSlug;
+        state.currentChannel = { id: 'page:' + slug, name: el.querySelector('.channel-name').textContent, type: 'page', _serverId: state.currentServerId, _slug: slug };
+        this.render();
+        this.renderView();
+      });
+    });
+    document.getElementById('addPageBtn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window.serverPages) serverPages.showEditModal(state.currentServerId, null);
+    });
   },
 
   renderView() {
     const ch = state.currentChannel;
     if (!ch) return;
     const forumView = document.getElementById('forumView');
+    const pageView = document.getElementById('pageView');
     ui.chatArea.style.display = 'none';
     ui.voiceView.style.display = 'none';
     ui.threadedView.style.display = 'none';
     if (forumView) forumView.style.display = 'none';
+    if (pageView) pageView.style.display = 'none';
 
-    const iconMap = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread' };
+    const iconMap = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread', page:'text' };
     if (ui.chatHeaderIcon) {
       ui.chatHeaderIcon.innerHTML = window.getIcon ? getIcon(iconMap[ch.type]||'text') : '#';
     }
@@ -144,6 +177,9 @@ const uiChannels = {
       ui.threadedView.style.display = 'flex';
     } else if (ch.type === 'forum' && forumView) {
       forumView.style.display = 'flex';
+    } else if (ch.type === 'page' && pageView && window.serverPages) {
+      pageView.style.display = 'flex';
+      serverPages.renderPageView(ch._serverId, ch._slug);
     } else {
       ui.chatArea.style.display = 'flex';
       if (ui.chatInput) ui.chatInput.placeholder = `Message #${ch.name}`;
