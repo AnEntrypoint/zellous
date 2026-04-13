@@ -184,6 +184,19 @@
       }
     }
 
+    // Load Flow UI controller as classic script
+    try {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = base + 'js/ui-flow.js';
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.appendChild(s);
+      });
+    } catch (e) {
+      console.warn('Failed to load Flow UI controller:', e.message);
+    }
+
     window.appReady = true;
     console.log('🚀 Zellous Flow UI ready');
   </script>
