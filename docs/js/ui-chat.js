@@ -99,6 +99,30 @@ const uiChat = {
       else if (btn.dataset.react) this.showEmojiPicker(btn.dataset.react, btn);
       else if (btn.dataset.reactEmoji) chat?.toggleReaction?.(btn.dataset.msg, btn.dataset.reactEmoji);
     });
+    el.addEventListener('touchstart', (e) => {
+      const row = e.target.closest('[data-message-id]');
+      if (!row) return;
+      const msgId = row.dataset.messageId;
+      const startTime = Date.now();
+      const startX = e.touches?.[0]?.clientX;
+      const startY = e.touches?.[0]?.clientY;
+      let canceled = false;
+      const touchmove = (me) => {
+        const dx = Math.abs((me.touches?.[0]?.clientX || 0) - (startX || 0));
+        const dy = Math.abs((me.touches?.[0]?.clientY || 0) - (startY || 0));
+        if (dx > 10 || dy > 10) canceled = true;
+      };
+      const touchend = () => {
+        el.removeEventListener('touchmove', touchmove);
+        el.removeEventListener('touchend', touchend);
+        if (!canceled && Date.now() - startTime >= 300) {
+          const msg = chat?.messages?.find(m => m.id === msgId);
+          if (msg) this.showMessageContext(msg, e.touches?.[0]?.clientX, e.touches?.[0]?.clientY);
+        }
+      };
+      el.addEventListener('touchmove', touchmove, { passive: true });
+      el.addEventListener('touchend', touchend, { once: true });
+    }, { passive: true });
   },
   sendChat() {
     const content = ui.chatInput?.value?.trim();
@@ -195,6 +219,38 @@ const uiChat = {
     setTimeout(() => document.addEventListener('click', close), 0);
   },
 
-  hideContextMenu() { document.getElementById('messageContextMenu')?.remove(); }
+  hideContextMenu() { document.getElementById('messageContextMenu')?.remove(); },
+
+  showMessageContext(msg, x, y) {
+    document.getElementById('messageContextPopup')?.remove();
+    const popup = document.createElement('div');
+    popup.id = 'messageContextPopup';
+    popup.style.cssText = 'position:fixed;z-index:3500;background:var(--bg-floating);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-md);padding:12px;max-width:280px;box-shadow:var(--elevation-high);font-size:12px;line-height:1.4';
+    let html = '';
+    if (msg.replyTo) {
+      html += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="color:var(--text-muted)">Replying to:</span><br><span style="color:var(--accent)">@${escHtml(msg.replyTo.username||'User')}</span><br><span style="color:var(--text-muted);font-size:11px">${escHtml((msg.replyTo.content||'').substring(0,60))}${msg.replyTo.content?.length>60?'...':''}</span></div>`;
+    }
+    if (msg.reactions?.length) {
+      html += `<div style="margin-bottom:8px"><span style="color:var(--text-muted)">Reactions:</span><br><span>${msg.reactions.map(r=>`${r.emoji} <span style="color:var(--text-muted)">${r.users?.length||1}</span>`).join(' ')}</span></div>`;
+    }
+    if (msg.threadId || msg.replyCount) {
+      html += `<div style="margin-bottom:8px"><span style="color:var(--accent)">📌 Thread</span><br><span style="color:var(--text-muted)">${msg.replyCount||1} reply${msg.replyCount!==1?'ies':''}</span></div>`;
+    }
+    html += `<div style="color:var(--text-muted);font-size:11px">${formatTime(msg.timestamp)}</div>`;
+    popup.innerHTML = html;
+    document.body.appendChild(popup);
+    const rect = popup.getBoundingClientRect();
+    if (rect.right > window.innerWidth) popup.style.left = (window.innerWidth - rect.width - 8) + 'px';
+    else popup.style.left = ((x||0) - 140) + 'px';
+    if (rect.bottom > window.innerHeight) popup.style.top = ((y||0) - rect.height - 8) + 'px';
+    else popup.style.top = ((y||0) + 8) + 'px';
+    const close = (e) => {
+      if (!popup.contains(e.target) && !e.target.closest('[data-message-id]')) {
+        document.getElementById('messageContextPopup')?.remove();
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', close), 0);
+  }
 };
 window.__zellous.uiChat = uiChat;
