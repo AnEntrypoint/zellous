@@ -26,5 +26,6 @@ livekit.yaml
 
 .code-search/
 .gm-stop-verified
+.plugkit-browser-profile/
 test-imports.js
 verify-assets.js
