@@ -63,6 +63,26 @@ const auth = {
     return window.nostr.signEvent(eventTemplate);
   },
 
+  async setDisplayName(name) {
+    if (!state.nostrPubkey) throw new Error('Not logged in');
+    if (!name || typeof name !== 'string') throw new Error('Invalid display name');
+    const template = {
+      kind: 0,
+      created_at: Math.floor(Date.now() / 1000),
+      tags: [],
+      content: JSON.stringify({ name: name.trim(), ...(state.nostrProfile || {}) })
+    };
+    const signed = await auth.sign(template);
+    if (window.nostrNet && window.nostrNet.publish) {
+      await window.nostrNet.publish(signed);
+    }
+    state.nostrProfile = { ...(state.nostrProfile || {}), name: name.trim() };
+    const nameEl = document.getElementById('userPanelName');
+    const avatarEl = document.getElementById('userPanelAvatar');
+    if (nameEl) nameEl.textContent = state.nostrProfile.name;
+    if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = state.nostrProfile.name[0].toUpperCase(); }
+  },
+
   logout() {
     localStorage.removeItem('zn_sk');
     localStorage.removeItem('zn_pk');
@@ -100,6 +120,8 @@ const auth = {
     if (loggedIn) {
       const d = document.getElementById('nostrNpubDisplay');
       if (d) d.textContent = auth.npubShort(state.nostrPubkey);
+      const inp = document.getElementById('displayNameInput');
+      if (inp) inp.value = state.nostrProfile?.name || '';
     }
   },
 
@@ -161,6 +183,16 @@ const auth = {
     on('copyNpubBtn', () => {
       const pk = state.nostrPubkey;
       if (pk) navigator.clipboard.writeText(window.NostrTools.nip19.npubEncode(pk)).catch(() => {});
+    });
+
+    on('saveDisplayNameBtn', async () => {
+      const inp = $('displayNameInput');
+      const val = inp ? inp.value.trim() : '';
+      if (!val) { auth._err('Enter a display name'); return; }
+      try {
+        await auth.setDisplayName(val);
+        if (inp) inp.value = val;
+      } catch (e) { auth._err(e.message); }
     });
 
     on('nostrLogoutBtn', () => { auth.logout(); auth.showModal(); });

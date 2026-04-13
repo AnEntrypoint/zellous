@@ -417,6 +417,11 @@ Object.defineProperty(window, 'nostrFsm', {
           <span id="nostrNpubDisplay" style="font-family:monospace;word-break:break-all;font-size:12px"></span>
         </div>
         <button class="modal-btn secondary" id="copyNpubBtn">Copy npub</button>
+        <div class="modal-field" style="margin-top:16px">
+          <label class="modal-label">Display Name</label>
+          <input type="text" class="modal-input" id="displayNameInput" placeholder="Your display name" maxlength="50" autocomplete="off">
+        </div>
+        <button class="modal-btn" id="saveDisplayNameBtn">Save Display Name</button>
         <button class="modal-btn danger" id="nostrLogoutBtn">Logout</button>
       </div>
       <div class="modal-error" id="nostrAuthError"></div>
