@@ -142,6 +142,7 @@
   </div>
 
   <!-- Modals and Overlays -->
+<div id="cmdPaletteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);align-items:flex-start;justify-content:center;padding-top:60px;z-index:2000;"><div style="width:90%;max-width:500px;background:var(--bg-surface);border-radius:8px;overflow:hidden;box-shadow:var(--shadow);"><input type="text" id="cmdPaletteInput" placeholder="⌘K Search..." style="width:100%;padding:12px;background:var(--bg-raised);border:none;color:var(--text-primary);font-size:14px;"><div id="cmdPaletteResults" role="listbox" style="max-height:400px;overflow-y:auto;"></div></div></div>
   <div id="modalContainer"></div>
 
   <script type="module">
@@ -195,6 +196,28 @@
       });
     } catch (e) {
       console.warn('Failed to load Flow UI controller:', e.message);
+    }
+
+        // Load enhancement modules
+    const enhancements = [
+      'js/cmd-palette.js',
+      'js/cmd-palette-ui.js',
+      'js/emoji-reactions.js',
+      'js/voice-quality.js',
+      'js/messaging.js',
+      'js/keyboard-nav.js',
+      'js/theme-manager.js',
+      'js/sidebar-manager.js',
+      'js/relay-status.js',
+      'js/debug-structure.js'
+    ];
+    
+    for (const mod of enhancements) {
+      try {
+        await import(base + mod);
+      } catch (e) {
+        console.warn('Failed to load enhancement:', mod, e.message);
+      }
     }
 
     window.appReady = true;

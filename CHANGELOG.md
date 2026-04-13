@@ -1,3 +1,26 @@
+## [2026-04-13] Flow UI Enhancements - 13 GUI Improvements
+
+### Features
+- Command Palette: Ctrl+K search across channels, users, servers, commands with fuzzy matching
+- Emoji Reactions: First-class UI with top 3 inline, +N indicator, click-to-add
+- Voice Quality Indicators: Green/yellow/red icons, RTT/packet-loss popover
+- Sidebar Collapse: Icon-only 64px mode, hover-expand, localStorage state
+- Mobile Bottom Sheets: Modals slide up on <768px, swipe-down dismiss
+- Theme Customization: Light/dark/auto toggle, 6 accent presets
+- Micro-animations: Button press, message fade-in, participant slide, pulse effects
+- Keyboard Navigation: Tab nav, arrow keys, Enter/Space, focus trap, ARIA labels
+- Relay Status: Connected count in topbar, per-relay latency/status popover, offline banner
+- Markdown Support: Bold, italic, inline code, code blocks with language detection
+- Syntax Highlighting: js, python, rust, go keyword/string/comment coloring
+- Message Grouping: Collapse consecutive messages, thread indicators with reply counts
+- Observability: window.__debug with ui, voice, relay, cache, user, errors, perf
+
+### Implementation
+- 10 new modules created, all <200 lines
+- animations.css with spring-like easing, prefers-reduced-motion support
+- flow.html updated to load all enhancement modules
+- Command palette modal and bottom-sheet modal CSS
+
 
 ## [2026-04-13] loading-ux-server-pages
 - index.html: Default user panel text changed from 'Not logged in' to 'Connecting...' — eliminates flash before scripts load.
