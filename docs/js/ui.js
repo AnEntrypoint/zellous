@@ -118,6 +118,7 @@ ui.showToast = function(msg, duration) {
 };
 
 window.__zellous.ui = ui;
+window.ui = ui;
 window.getInitial = getInitial;
 window.getAvatarColor = getAvatarColor;
 window.escHtml = escHtml;

@@ -65,3 +65,4 @@ const webcam = {
   }
 };
 window.__zellous.webcam = webcam;
+window.webcam = webcam;

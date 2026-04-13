@@ -213,3 +213,4 @@ const auth = {
 };
 
 window.__zellous.auth = auth;
+window.auth = auth;

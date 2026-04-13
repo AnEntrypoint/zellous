@@ -189,3 +189,4 @@ const uiChannels = {
 };
 
 window.__zellous.uiChannels = uiChannels;
+window.uiChannels = uiChannels;

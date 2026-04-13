@@ -159,4 +159,6 @@ const uiVoice = {
 };
 
 window.__zellous.uiMembers = uiMembers;
+window.uiMembers = uiMembers;
 window.__zellous.uiVoice = uiVoice;
+window.uiVoice = uiVoice;

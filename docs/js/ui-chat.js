@@ -254,3 +254,4 @@ const uiChat = {
   }
 };
 window.__zellous.uiChat = uiChat;
+window.uiChat = uiChat;

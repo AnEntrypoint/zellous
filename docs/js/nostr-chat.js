@@ -177,3 +177,4 @@ const chat = {
 };
 
 window.__zellous.chat = chat;
+window.chat = chat;

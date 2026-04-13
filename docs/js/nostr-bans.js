@@ -54,5 +54,6 @@ var nostrBans = {
 };
 
 window.__zellous.bans = nostrBans;
+window.nostrBans = nostrBans;
 if (!window.__debug) window.__debug = {};
 Object.defineProperty(window.__debug, 'bans', { get: function() { return Object.fromEntries(nostrBans._store); }, configurable: true });

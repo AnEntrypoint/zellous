@@ -60,3 +60,4 @@ var nostrVoiceCamera = {
 };
 
 window.__zellous.voiceCamera = nostrVoiceCamera;
+window.nostrVoiceCamera = nostrVoiceCamera;

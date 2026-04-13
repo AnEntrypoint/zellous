@@ -84,5 +84,6 @@ var nostrMedia = {
 };
 
 window.__zellous.media = nostrMedia;
+window.nostrMedia = nostrMedia;
 if (!window.__debug) window.__debug = {};
 Object.defineProperty(window.__debug, 'media', { get: function() { return { servers: nostrMedia._NIP96_SERVERS }; }, configurable: true });

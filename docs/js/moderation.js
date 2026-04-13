@@ -149,3 +149,4 @@ const moderation = {
 };
 
 window.__zellous.moderation = moderation;
+window.moderation = moderation;

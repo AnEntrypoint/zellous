@@ -93,3 +93,4 @@ const queue = {
   }
 };
 window.__zellous.queue = queue;
+window.queue = queue;

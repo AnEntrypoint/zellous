@@ -9,3 +9,4 @@ var message = window.message || {
   }
 };
 window.__zellous.message = message;
+window.message = message;

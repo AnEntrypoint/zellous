@@ -125,3 +125,4 @@ var nostrVoiceSfu = {
   }
 };
 window.__zellous.voiceSfu = nostrVoiceSfu;
+window.nostrVoiceSfu = nostrVoiceSfu;

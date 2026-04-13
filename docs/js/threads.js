@@ -111,3 +111,4 @@ document.getElementById('forumNewPostBtn')?.addEventListener('click', () => {
 });
 
 window.__zellous.threads = threadManager;
+window.threadManager = threadManager;
