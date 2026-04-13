@@ -848,6 +848,12 @@ window.addEventListener('message', (e) => {
   if (window.parent === window) return;
   const { type, data, id } = e.data || {};
   if (!type) return;
+  const srvId = state?.currentServerId;
+  const originAllowed = !srvId || !window.serverSettings || window.serverSettings.isOriginAllowed(srvId, e.origin);
+  if (!originAllowed) {
+    if (id) window.parent.postMessage({ type: 'error', id: id, error: 'Origin not allowed to embed this server' }, '*');
+    return;
+  }
   if (window.__zellous.embed.methods[type]) {
     try {
       const result = window.__zellous.embed.methods[type](data);

@@ -67,6 +67,13 @@ serverManager.showEditModal = function(serverId) {
         return '<option value="' + b + '"' + (b === curBitrate ? ' selected' : '') + '>' + (b/1000) + ' kbps</option>';
       }).join('') + '</select>';
     modal.querySelector('#editServerForm').insertBefore(bitrateField, modal.querySelector('[type="submit"]'));
+    var allowlistField = document.createElement('div');
+    allowlistField.className = 'modal-field';
+    var curAllowlist = serverSettings.getEmbedAllowlist(serverId).join(', ');
+    allowlistField.innerHTML = '<label class="modal-label">Embedding Allow List</label>' +
+      '<textarea class="modal-input" id="editServerAllowlist" placeholder="example.com, *.example.com, localhost:3000" style="resize:vertical;min-height:60px">' + curAllowlist.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>' +
+      '<div style="font-size:11px;color:var(--text-faint);margin-top:4px">Comma-separated list of domains allowed to embed this server. Leave empty to allow all.</div>';
+    modal.querySelector('#editServerForm').insertBefore(allowlistField, modal.querySelector('[type="submit"]'));
   }
   modal.querySelector('#editServerForm').addEventListener('submit', async function() {
     var name = document.getElementById('editServerName').value.trim();
@@ -82,6 +89,8 @@ serverManager.showEditModal = function(serverId) {
     if (isAdmin && window.serverSettings) {
       var bitrateEl = document.getElementById('editServerBitrate');
       if (bitrateEl) await serverSettings.setBitrate(serverId, parseInt(bitrateEl.value)).catch(function(){});
+      var allowlistEl = document.getElementById('editServerAllowlist');
+      if (allowlistEl) await serverSettings.setEmbedAllowlist(serverId, allowlistEl.value).catch(function(){});
     }
     modal.remove(); ui.render.all();
   });
