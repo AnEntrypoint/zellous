@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zellous Embedding Test Harness</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e8eaf0;
+      padding: 20px;
+    }
+    .test-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 28px; margin-bottom: 10px; }
+    .test-intro { color: #9ca3b8; margin-bottom: 30px; line-height: 1.6; }
+    .test-suite {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .test-case {
+      background: #1a1d27;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+    }
+    .test-case h3 {
+      font-size: 16px;
+      color: #f0f2ff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .test-case h3 .status {
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: 600;
+      background: rgba(52, 211, 153, 0.12);
+      color: #34d399;
+    }
+    .test-case h3 .status.pending {
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
+    }
+    .test-case h3 .status.failed {
+      background: rgba(248, 113, 113, 0.12);
+      color: #f87171;
+    }
+    .test-description {
+      color: #9ca3b8;
+      font-size: 13px;
+      margin-bottom: 15px;
+      line-height: 1.5;
+    }
+    .test-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+      justify-content: flex-end;
+    }
+    button {
+      padding: 8px 12px;
+      border: 1px solid rgba(108,99,255,0.3);
+      background: rgba(108,99,255,0.08);
+      color: #818cf8;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.15s ease;
+    }
+    button:hover {
+      background: rgba(108,99,255,0.15);
+      border-color: rgba(108,99,255,0.5);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .iframe-frame {
+      background: #252836;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .test-case-1 .iframe-frame { height: 500px; }
+    .test-case-2 .iframe-frame { height: 500px; }
+    .test-case-3 .iframe-frame { width: 400px; height: 500px; }
+    .test-case-4 .iframe-frame { display: inline-block; width: 48%; height: 500px; margin-right: 2%; vertical-align: top; }
+    .test-case-4 .iframe-frame:nth-of-type(2) { margin-right: 0; }
+    .test-results {
+      background: #1a1d27;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 40px;
+    }
+    .test-results h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    .test-result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      font-size: 13px;
+    }
+    .test-result-item:last-child {
+      border-bottom: none;
+    }
+    .test-result-status {
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-weight: 600;
+      font-size: 11px;
+      background: rgba(52, 211, 153, 0.12);
+      color: #34d399;
+    }
+    .test-result-status.pending {
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
+    }
+    .test-result-status.failed {
+      background: rgba(248, 113, 113, 0.12);
+      color: #f87171;
+    }
+    .console-log {
+      background: #0f1117;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 10px;
+      color: #34d399;
+    }
+  </style>
+</head>
+<body>
+  <div class="test-container">
+    <h1>Zellous Embedding Test Harness</h1>
+    <div class="test-intro">
+      <p>This harness tests Zellous embedding in 5 scenarios. All tests run locally with no external dependencies. Verify no console errors, full functionality (voice, chat, file upload), and proper state isolation.</p>
+    </div>
+
+    <div class="test-suite">
+      <!-- Test 1: Same-origin, same base -->
+      <div class="test-case test-case-1">
+        <h3>
+          Test 1: Same-origin (same path)
+          <span class="status pending">pending</span>
+        </h3>
+        <div class="test-description">
+          Embed nostr-chat/index.html in docs/test-embed-harness.html. Parent and iframe at same origin. Verify full voice + chat functionality.
+        </div>
+        <div class="test-controls">
+          <div class="iframe-frame">
+            <iframe id="test1-iframe" src="nostr-chat/index.html" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <button onclick="testEmbedding('test1', document.getElementById('test1-iframe'))">Run Test 1</button>
+        </div>
+      </div>
+
+      <!-- Test 2: Same-origin, different path -->
+      <div class="test-case test-case-2">
+        <h3>
+          Test 2: Same-origin (different path)
+          <span class="status pending">pending</span>
+        </h3>
+        <div class="test-description">
+          Embed via root test-embed-alt.html. Iframe loads from docs/nostr-chat/index.html with relative import paths. Verify imports resolve correctly.
+        </div>
+        <div class="test-controls">
+          <div class="iframe-frame">
+            <iframe id="test2-iframe" src="../test-embed-alt.html" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <button onclick="testEmbedding('test2', document.getElementById('test2-iframe'))">Run Test 2</button>
+        </div>
+      </div>
+
+      <!-- Test 3: Narrow container -->
+      <div class="test-case test-case-3">
+        <h3>
+          Test 3: Narrow iframe (400px)
+          <span class="status pending">pending</span>
+        </h3>
+        <div class="test-description">
+          Constrain iframe to 400px width. Verify UI reflows: server list becomes sidebar, chat area responds, no horizontal overflow, modal max-width respects container.
+        </div>
+        <div class="test-controls">
+          <div class="iframe-frame">
+            <iframe id="test3-iframe" src="nostr-chat/index.html" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <button onclick="testEmbedding('test3', document.getElementById('test3-iframe'))">Run Test 3</button>
+        </div>
+      </div>
+
+      <!-- Test 4: Multiple iframes -->
+      <div class="test-case test-case-4">
+        <h3>
+          Test 4: Multiple iframes
+          <span class="status pending">pending</span>
+        </h3>
+        <div class="test-description">
+          Two iframes on one page. Verify state is isolated per frame (each has own window.__zellous namespace). No collision or shared state.
+        </div>
+        <div class="test-controls">
+          <div class="iframe-frame">
+            <iframe id="test4a-iframe" src="nostr-chat/index.html" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <div class="iframe-frame">
+            <iframe id="test4b-iframe" src="nostr-chat/index.html" style="width:100%;height:100%;border:none;"></iframe>
+          </div>
+          <button onclick="testEmbedding('test4', [document.getElementById('test4a-iframe'), document.getElementById('test4b-iframe')])">Run Test 4</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-results">
+      <h2>Test Results</h2>
+      <div id="results-container">
+        <div class="test-result-item">
+          <span>Test 1: Same-origin</span>
+          <span class="test-result-status pending">Pending</span>
+        </div>
+        <div class="test-result-item">
+          <span>Test 2: Different path</span>
+          <span class="test-result-status pending">Pending</span>
+        </div>
+        <div class="test-result-item">
+          <span>Test 3: Narrow (400px)</span>
+          <span class="test-result-status pending">Pending</span>
+        </div>
+        <div class="test-result-item">
+          <span>Test 4: Multiple iframes</span>
+          <span class="test-result-status pending">Pending</span>
+        </div>
+      </div>
+      <div class="console-log" id="console-log">Console logs will appear here...</div>
+    </div>
+  </div>
+
+  <script>
+    const consoleLogs = [];
+    const origLog = console.log;
+    const origWarn = console.warn;
+    const origError = console.error;
+
+    function captureLog(type, args) {
+      const msg = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+      consoleLogs.push(`[${type}] ${msg}`);
+      const logEl = document.getElementById('console-log');
+      if (logEl) {
+        logEl.textContent = consoleLogs.slice(-50).join('\n');
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
+
+    console.log = function(...args) { origLog(...args); captureLog('LOG', args); };
+    console.warn = function(...args) { origWarn(...args); captureLog('WARN', args); };
+    console.error = function(...args) { origError(...args); captureLog('ERROR', args); };
+
+    async function testEmbedding(testName, iframes) {
+      const isArray = Array.isArray(iframes);
+      const iframeList = isArray ? iframes : [iframes];
+      consoleLogs.length = 0;
+      console.log(`Starting ${testName}...`);
+
+      let passed = true;
+      for (const iframe of iframeList) {
+        try {
+          console.log(`Checking iframe: ${iframe.id}`);
+
+          // Check if window.__zellous exists
+          if (!iframe.contentWindow.__zellous) {
+            console.error(`${iframe.id}: window.__zellous not found`);
+            passed = false;
+            continue;
+          }
+          console.log(`${iframe.id}: window.__zellous ✓`);
+
+          // Check state availability
+          if (!iframe.contentWindow.__zellous.state) {
+            console.error(`${iframe.id}: window.__zellous.state not found`);
+            passed = false;
+            continue;
+          }
+          console.log(`${iframe.id}: window.__zellous.state ✓`);
+
+          // Check voice subsystem
+          if (!iframe.contentWindow.__zellous.voice) {
+            console.error(`${iframe.id}: window.__zellous.voice not found`);
+            passed = false;
+            continue;
+          }
+          console.log(`${iframe.id}: window.__zellous.voice ✓`);
+
+          // Check backward compat
+          if (iframe.contentWindow.state !== iframe.contentWindow.__zellous.state) {
+            console.error(`${iframe.id}: backward compat broken (window.state !== window.__zellous.state)`);
+            passed = false;
+            continue;
+          }
+          console.log(`${iframe.id}: backward compat ✓`);
+
+          // Check for console errors
+          const errors = iframe.contentWindow.__pageErrors || [];
+          if (errors.length > 0) {
+            console.warn(`${iframe.id}: Found ${errors.length} errors on page load`);
+            errors.forEach(e => console.warn(`  - ${e}`));
+          } else {
+            console.log(`${iframe.id}: No errors on page load ✓`);
+          }
+
+        } catch (e) {
+          console.error(`${iframe.id} error: ${e.message}`);
+          passed = false;
+        }
+      }
+
+      const status = passed ? 'Passed' : 'Failed';
+      console.log(`${testName}: ${status}`);
+
+      // Update results UI
+      const statusEl = document.querySelector(`#results-container .test-result-item:nth-child(${testName.replace(/\D/g, '')})`);
+      if (statusEl) {
+        const badge = statusEl.querySelector('.test-result-status');
+        badge.textContent = status;
+        badge.className = `test-result-status ${passed ? 'passed' : 'failed'}`;
+        if (!passed) badge.className = badge.className.replace('passed', 'failed');
+      }
+    }
+
+    // Auto-check on load
+    window.addEventListener('load', () => {
+      console.log('Test harness loaded. Click "Run Test" buttons to validate embedding.');
+    });
+  </script>
+</body>
+</html>

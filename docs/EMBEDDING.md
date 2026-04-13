@@ -1,169 +1,233 @@
-# Global Surface Audit — Embedding Readiness
+# Embedding Zellous in an Iframe
 
-## Window Assignments (55 properties)
+Zellous can be embedded as a serverless voice and chat widget in any web application. All communication happens via the `postMessage` API — no backend required.
 
-### Core State & Controls
-- **window.state** (state.js:129) — Global state proxy with reactive signals
-- **window.stateSignals** (state.js:130) — Raw signal object for voice/chat state
-- **window.config** (state.js:131) — App configuration object
-- **window.ui** (ui.js:120) — DOM refs and render dispatch
-- **window.getInitial, getAvatarColor, escHtml, formatTime, chIcon** (ui.js:121-125) — Helper functions
+## Quick Start
 
-### Voice Subsystem
-- **window.lk** (nostr-voice.js:253) — Main voice interface (alias for nostrVoice)
-- **window.nostrVoice** (nostr-voice.js:254) — Full voice session manager
-- **window.nostrVoiceRtc** (nostr-voice-rtc.js:165) — WebRTC peer management
-- **window.nostrVoiceSfu** (nostr-voice-sfu.js:127) — SFU hub election & forwarding
-- **window.nostrVoiceCamera** (nostr-voice-camera.js:62) — Camera FSM and toggle
+```html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My App with Zellous</title>
+</head>
+<body>
+  <!-- Embed the iframe -->
+  <div style="width: 400px; height: 600px;">
+    <iframe id="zellous" src="https://your-domain.com/docs/nostr-chat/index.html" style="width:100%;height:100%;border:none;"></iframe>
+  </div>
 
-### Networking & Auth
-- **window.nostrNet** (nostr-network.js:164) — Relay connection & pub/sub
-- **window.network** (nostr-network.js:165) — Alias for nostrNet
-- **window.auth** (nostr-auth.js:183) — Nostr key management (nsec/npub)
-- **window.nostrBans** (nostr-bans.js:56) — Ban/timeout enforcement
+  <script>
+    const iframe = document.getElementById('zellous');
 
-### Managers
-- **window.serverManager** (nostr-servers.js:222) — Server/community management
-- **window.serverRoles** (nostr-roles.js:71) — Role-based access control
-- **window.serverSettings** (nostr-settings.js:60) — Server configuration
-- **window.serverPages** (nostr-pages.js:145) — Page-as-document feature
-- **window.channelManager** (nostr-channels.js:144) — Channel management
-- **window.chat** (nostr-chat.js:179) — Chat message interface
-- **window.message** (nostr-message.js:11) — System message dispatcher
-- **window.threadManager** (threads.js:113) — Threaded conversations
+    // Listen for events from Zellous
+    window.addEventListener('message', (event) => {
+      if (event.source !== iframe.contentWindow) return;
 
-### UI Components
-- **window.uiVoice** (ui-voice.js:162) — Voice grid render methods
-- **window.uiMembers** (ui-voice.js:161) — Member list/grid UI
-- **window.uiChat** (ui-chat.js:200) — Chat message rendering
-- **window.uiChannels** (ui-channels.js:191) — Channel list rendering
+      console.log('Zellous event:', event.data);
+      const { type, data } = event.data;
 
-### Media & Files
-- **window.audio** (audio.js:131) — Opus encode/decode
-- **window.webcam** (webcam.js:67) — Webcam capture interface
-- **window.fileTransfer** (files.js:182) — File upload/download
-- **window.ptt, deafen, vad** (ptt.js:102-104) — Voice activity detection
-- **window.queue** (queue.js:95) — Audio replay queue
-- **window.nostrMedia** (nostr-media.js:59) — Media event handling
+      if (type === 'ready') {
+        console.log('Zellous loaded and ready');
+        iframe.contentWindow.postMessage({ type: 'joinRoom', room: 'lobby' }, '*');
+      }
 
-### Utilities
-- **window.icons, getIcon** (icons.js:33-34) — SVG icon registry
-- **window.moderation** (moderation.js:151) — Member management actions
-- **window.ZellousSDK** (nostr-adapter.js:195) — SDK instance export
+      if (type === 'message-received') {
+        console.log('Chat message:', data.text);
+      }
 
-### FSM Registry
-- **window.nostrFsm** (nostr-fsm.js:4) — XState machines: voiceMachine, peerMachine, cameraMachine
-
-## Observability Registries (Permanent Structures)
-
-### Debug Surface
-- **window.__debug.voice** — Voice FSM state, peers, SFU election, retry schedule
-- **window.__debug.bans** — Active bans and timeouts by serverId
-- **window.__debug.media** — Media event log
-- **window.__debug.roles** — Role assignments per server
-- **window.__debug.settings** — Server settings snapshots
-- **window.__debug.pages** — Page history
-- **window.__debugNet** — Relay latency stats (getter)
-
-## localStorage Keys (Nostr Mode)
-
-### Auth & Identity
-- **zn_sk** — Nostr secret key (hex-encoded)
-- **zn_pk** — Nostr public key
-
-### Server/Channel Persistence
-- **zn_servers** — Owned servers (JSON array)
-- **zn_joined_servers** — Joined server list
-- **zn_lastServer** — Last viewed server
-- **zn_serverOrder** — Server sidebar order
-
-### Settings
-- **zellous_rnnoise** — Voice denoiser enabled (boolean)
-- **zellous_forceRelay** — Force relay selection (string)
-
-### NostrAdapter Keys
-- **nostr_pubkey, nostr_privkey** — Alternative key storage
-
-## Window Event Listeners (22 total)
-
-### Network/Visibility Recovery (nostr-voice-rtc.js)
-- **visibilitychange** (line 189) — Heal peers on tab visible
-- **online** (line 193) — Heal peers on network restore
-- **pageshow** (line 198) — Heal peers on bfcache restore
-
-### UI Event Handlers (bound via onclick attributes or addEventListener)
-- **click**: moderation (139), nostr-channels-ui (13), nostr-pages (4x), threads (2x), ui-channels (146), ui-chat (4x), ui-voice (2x)
-- **mousedown**: nostr-pages (108)
-
-## importmap Entries (../vendor/ hardcoded paths)
-
-```json
-{
-  "htm": "../vendor/htm.js",
-  "preact": "../vendor/preact.mjs",
-  "preact/hooks": "../vendor/preact-hooks.mjs",
-  "@preact/signals": "../vendor/preact-signals.mjs",
-  "@preact/signals-core": "../vendor/signals-core.mjs",
-  "livekit-client": "../vendor/livekit-client.mjs",
-  "nostr-tools": "../vendor/nostr-tools.mjs",
-  "xstate": "../vendor/xstate.mjs"
-}
+      if (type === 'voice-joined') {
+        console.log('User joined voice:', data.participants);
+      }
+    });
+  </script>
+</body>
+</html>
 ```
 
-**Issue**: All paths are relative (`../vendor/...`). Breaks if index.html moves or embedding happens at different directory depth.
+## API Reference
 
-## XState v5 Setup
+### Events from Iframe → Parent
 
-**Pattern**: Module script imports XState, assigns to window:
+The iframe emits events via `postMessage`. Listen with `window.addEventListener('message', ...)`.
+
+#### `ready`
+Iframe has loaded and is ready to receive commands.
+
 ```javascript
-import { createMachine, createActor } from 'xstate';
-window.XState = { createMachine, createActor };
+{ type: 'ready' }
 ```
 
-Classic scripts (nostr-fsm.js, nostr-voice.js, etc.) call:
+#### `error`
+An operation failed.
+
 ```javascript
-XState.createActor(nostrFsm.voiceMachine)
+{ type: 'error', code: 'AUTH_REQUIRED', message: 'Must be logged in' }
 ```
 
-## Collision Risks (Parent Page Conflicts)
+#### `message-received`
+A new chat message arrived.
 
-**High Risk**: Names too generic
-- window.state — Parent page likely has this
-- window.config — Common app config
-- window.ui — Generic UI namespace
+```javascript
+{ type: 'message-received', data: { text: 'hello', author: 'user123', channel: 'general' } }
+```
 
-**Medium Risk**: Nostr-specific but likely in parent
-- window.auth — Common auth object
-- window.message — Common message bus
-- window.chat — If parent is chat app
+#### `voice-joined`
+User joined voice. `participants` is array of user objects.
 
-**Low Risk**: Zellous-specific prefixes
-- window.nostrVoice, nostrNet, nostrBans — Unlikely collision
+```javascript
+{ type: 'voice-joined', data: { channel: 'general', participants: [{id, name, isLocal}] } }
+```
 
-## Document Mutations
+#### `voice-left`
+User left voice channel.
 
-**No direct document.body.appendChild found at module level.** All mutations occur in event handlers or function calls:
-- Context menus appended to body (moderation.js:85, ui-chat.js)
-- Video elements appended to voice tile wrappers (nostr-voice-rtc.js)
-- Modal creation via ui.js
+```javascript
+{ type: 'voice-left', data: { channel: 'general' } }
+```
 
-**No frame restrictions detected** (no X-Frame-Options, no CSP frame-ancestors in static HTML).
+### Commands from Parent → Iframe
 
-## Removal Strategy (On Disconnect)
+Send via `iframe.contentWindow.postMessage({ type, ...params }, '*')`.
 
-For embedding to work, cleanly unload all globals:
-1. Cancel all active listeners (presence heartbeats, relay subscriptions)
-2. Close all WebRTC peer connections
-3. Stop all timers (retry schedules, presence updates)
-4. Delete all window.* assignments
-5. Clear localStorage keys prefixed `zn_` and `zellous_`
+#### `joinRoom`
+Switch to a room/server.
 
-**Currently Missing**: No cleanup lifecycle. Need explicit `disconnect()` or similar at embed boundary.
+```javascript
+iframe.contentWindow.postMessage({
+  type: 'joinRoom',
+  room: 'lobby'
+}, '*');
+```
 
-## Next Steps
+#### `leaveRoom`
+Leave the current room.
 
-To enable embedding, address:
-1. **Namespace everything under window.__zellous** — prevent parent collision
-2. **Make importmap paths dynamic** — compute base from script location
-3. **Add cleanup function** — clear state, unsubscribe, stop timers on unload
-4. **Test with multiple iframes** — verify state isolation
+```javascript
+iframe.contentWindow.postMessage({
+  type: 'leaveRoom'
+}, '*');
+```
+
+#### `sendMessage`
+Send a chat message.
+
+```javascript
+iframe.contentWindow.postMessage({
+  type: 'sendMessage',
+  text: 'Hello world!',
+  channel: 'general'
+}, '*');
+```
+
+#### `joinVoice`
+Connect to voice channel.
+
+```javascript
+iframe.contentWindow.postMessage({
+  type: 'joinVoice',
+  channel: 'general'
+}, '*');
+```
+
+#### `leaveVoice`
+Disconnect from voice.
+
+```javascript
+iframe.contentWindow.postMessage({
+  type: 'leaveVoice'
+}, '*');
+```
+
+## Sizing & Responsive Design
+
+- **Minimum width**: 320px (mobile)
+- **Recommended width**: 400px–500px for chat + sidebar
+- **Height**: 500px–800px recommended
+- **Aspect ratio**: No constraint
+
+The app adapts to any container size. Modals max-width is 90vw so they fit in narrow containers.
+
+## Security Considerations
+
+### Origin Validation
+
+By default, Zellous accepts `postMessage` from any origin. For production, validate in the parent:
+
+```javascript
+window.addEventListener('message', (event) => {
+  if (!['https://trusted.com'].includes(event.origin)) {
+    return;
+  }
+  // Process message...
+});
+```
+
+### CSP
+
+If the parent has CSP, ensure:
+- `frame-src` allows the iframe origin
+- `connect-src` allows Nostr relay URLs (wss://)
+- `script-src` allows `unsafe-inline` for ES6 modules
+
+### LocalStorage
+
+LocalStorage is isolated per origin by the browser. Parent and iframe don't share state.
+
+## Troubleshooting
+
+**Iframe loads blank**: Verify src URL is correct and importMap paths resolve. Check console for 404 errors.
+
+**`window.__zellous` undefined**: Reload iframe. The init script in index.html must run first.
+
+**postMessage not received**: Wait for iframe to load. Listen for `ready` event before sending commands.
+
+**Audio not working**: Check browser permissions. Verify microphone is allowed for the page origin.
+
+**State not isolated**: Each iframe gets its own `contentWindow` context automatically. No action needed.
+
+## Testing
+
+See `docs/test-embed-harness.html` for test suite covering:
+- Same-origin embedding
+- Different-path embedding  
+- Narrow container (400px) responsiveness
+- Multiple iframes on one page (state isolation)
+
+Run locally:
+```bash
+npx serve docs
+# Open http://localhost:3000/test-embed-harness.html
+```
+
+## Architecture Notes
+
+### Namespace Isolation
+
+All globals under `window.__zellous`:
+- `window.__zellous.state` — app state (Preact signals)
+- `window.__zellous.voice` — voice subsystem
+- `window.__zellous.chat` — chat operations
+- `window.__zellous.net` — network/relay operations
+- `window.__zellous.embed` — postMessage bridge
+
+Backward compat shims at `window.state`, `window.lk` etc. point to `window.__zellous.*`.
+
+### WebSocket Connections
+
+Voice and chat use WebSockets to Nostr relays. Each iframe maintains independent relay connections. No multiplexing at parent level.
+
+## Limitations
+
+1. **No cross-iframe messaging**: Iframes cannot directly communicate. Use parent page as message hub.
+
+2. **LocalStorage isolation**: Each iframe has isolated localStorage (by origin). Login in one won't appear in another (by design).
+
+3. **Shared public key**: To share Nostr key across iframes, manually copy `localStorage.getItem('zn_pk')` from first iframe to others.
+
+4. **Web only**: This embedding method is for browsers. Node.js/server requires SDK (if available).
+
+---
+
+For architecture details, see `CLAUDE.md`.

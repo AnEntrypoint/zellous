@@ -310,3 +310,13 @@ window.addEventListener('message', (e) => {
 ```
 
 **Example: docs/embed.html** shows full working demo with controls and event log.
+
+## Embedding Zellous (Complete Guide)
+
+For a comprehensive embedding guide with examples, API reference, security notes, troubleshooting, and test harness, see **EMBEDDING.md**.
+
+Quick reference:
+- All globals namespaced under window.__zellous to prevent parent page collisions
+- Backward compatibility: window.state, window.lk, window.ui still work
+- CSS responsive: app height uses 100% (not 100vh), respects container size
+- Test harness: docs/test-embed-harness.html covers 4+ embedding scenarios
