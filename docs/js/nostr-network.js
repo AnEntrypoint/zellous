@@ -163,6 +163,7 @@ var nostrNet = {
 };
 window.__zellous.net = nostrNet;
 window.network = nostrNet;
+window.nostrNet = nostrNet;
 
 function _healRelays() {
   nostrNet.relays.forEach(function(relay, url) {

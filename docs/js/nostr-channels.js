@@ -142,3 +142,4 @@ var channelManager = {
 };
 
 window.__zellous.channels = channelManager;
+window.channelManager = channelManager;

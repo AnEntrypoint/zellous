@@ -163,6 +163,7 @@ var nostrVoiceRtc = {
   }
 };
 window.__zellous.voiceRtc = nostrVoiceRtc;
+window.nostrVoiceRtc = nostrVoiceRtc;
 
 nostrVoiceRtc.cancelReconnect = function(pk) {
   var e=window.__voiceRetrySchedule[pk]; if(e){clearTimeout(e.timer);delete window.__voiceRetrySchedule[pk];}
