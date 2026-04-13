@@ -192,5 +192,8 @@ class NostrAdapter {
 }
 
 const instance = new NostrAdapter();
-if (typeof window !== 'undefined') window.ZellousSDK = instance;
+if (typeof window !== 'undefined') {
+  window.__zellous.adapter = instance;
+  window.ZellousSDK = instance;
+}
 export default instance;

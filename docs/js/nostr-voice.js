@@ -250,6 +250,7 @@ var nostrVoice = {
   }
 };
 
+window.__zellous.voice=nostrVoice;
 window.lk=nostrVoice;
 window.nostrVoice=nostrVoice;
 if(!window.__debug) window.__debug={};

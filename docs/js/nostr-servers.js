@@ -219,4 +219,5 @@ var serverManager = {
   }
 };
 
+window.__zellous.servers = serverManager;
 window.serverManager = serverManager;
