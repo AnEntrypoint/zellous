@@ -132,12 +132,15 @@ const flowUI = {
   },
 
   bindMessages() {
-    // Listen for message updates
-    if (window.__effect) {
+    if (window.__effect && window.state) {
       window.__effect(() => {
-        if (window.state?.currentChannelMessages) {
-          this.renderMessages(window.state.currentChannelMessages);
-        }
+        const msgs = window.state.currentChannelMessages?.value || [];
+        this.renderMessages(msgs);
+      });
+      window.__effect(() => {
+        const ch = window.state.currentChannel?.value;
+        const name = document.getElementById('chatHeaderName');
+        if (name && ch) name.textContent = (ch.type === 'voice' ? '🎤 ' : '# ') + ch.name;
       });
     }
   },
@@ -163,6 +166,23 @@ const flowUI = {
     document.getElementById('voiceSettingsBtn')?.addEventListener('click', () => {
       if (window.ui?.actions?.toggleSettings) ui.actions.toggleSettings();
     });
+
+    if (window.__effect && window.state) {
+      window.__effect(() => {
+        const connected = window.state.voiceConnected?.value;
+        const status = document.getElementById('voiceStatus');
+        if (!status) return;
+        if (connected) {
+          status.classList.add('active');
+          status.innerHTML = '<div class="voice-status-dot" style="background:#22c55e;"></div><span>In voice</span>';
+          this.switchView('voice');
+        } else {
+          status.classList.remove('active');
+          status.innerHTML = '<div class="voice-status-dot"></div><span>Offline</span>';
+          this.switchView('chat');
+        }
+      });
+    }
   },
 
   switchView(view) {
