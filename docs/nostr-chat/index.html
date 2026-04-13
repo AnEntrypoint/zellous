@@ -6,23 +6,19 @@
   <title>Zellous - Nostr</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%235865f2'/><text x='50' y='72' font-size='60' font-weight='700' font-family='sans-serif' fill='white' text-anchor='middle'>Z</text></svg>">
   <script>
-// Dynamically compute vendor base path from script location
-const scripts = Array.from(document.querySelectorAll('script'));
-const thisScript = scripts.find(s => s.src && s.src.includes('index.html'));
-const scriptDir = thisScript ? new URL(thisScript.src).pathname.split('/').slice(0, -1).join('/') : '/zellous/docs/nostr-chat/';
-const baseUrl = scriptDir.replace(/nostr-chat\/?$/, ''); // Remove nostr-chat if present
+// Use relative URLs to vendor directory (sibling of nostr-chat/)
 document.currentScript.before(Object.assign(document.createElement('script'), {
   type: 'importmap',
   textContent: JSON.stringify({
     imports: {
-      htm: baseUrl + 'vendor/htm.js',
-      preact: baseUrl + 'vendor/preact.mjs',
-      'preact/hooks': baseUrl + 'vendor/preact-hooks.mjs',
-      '@preact/signals': baseUrl + 'vendor/preact-signals.mjs',
-      '@preact/signals-core': baseUrl + 'vendor/signals-core.mjs',
-      'livekit-client': baseUrl + 'vendor/livekit-client.mjs',
-      'nostr-tools': baseUrl + 'vendor/nostr-tools.mjs',
-      xstate: baseUrl + 'vendor/xstate.mjs'
+      htm: '../vendor/htm.js',
+      preact: '../vendor/preact.mjs',
+      'preact/hooks': '../vendor/preact-hooks.mjs',
+      '@preact/signals': '../vendor/preact-signals.mjs',
+      '@preact/signals-core': '../vendor/signals-core.mjs',
+      'livekit-client': '../vendor/livekit-client.mjs',
+      'nostr-tools': '../vendor/nostr-tools.mjs',
+      xstate: '../vendor/xstate.mjs'
     }
   })
 }));
