@@ -21,10 +21,12 @@ const files = [
   {
     name: 'rnnoise-sync.js',
     url: 'https://cdn.jsdelivr.net/npm/@jitsi/rnnoise-wasm@0.2.2/dist/rnnoise-processor.js',
+    optional: true,
   },
   {
     name: 'rnnoise-worklet.js',
     url: 'https://cdn.jsdelivr.net/npm/@jitsi/rnnoise-wasm@0.2.2/dist/rnnoise-worklet.js',
+    optional: true,
   },
   {
     name: 'fonts/noto-sans-400.ttf',
@@ -77,8 +79,12 @@ async function main() {
       console.log(`  ${file.name}...`);
       await downloadFile(file.url, dest);
     } catch (err) {
-      console.error(`  ✗ ${file.name}: ${err.message}`);
-      process.exit(1);
+      if (file.optional) {
+        console.warn(`  ⊘ ${file.name}: ${err.message} (optional, skipping)`);
+      } else {
+        console.error(`  ✗ ${file.name}: ${err.message}`);
+        process.exit(1);
+      }
     }
   }
   console.log('✓ All vendor files fetched');
