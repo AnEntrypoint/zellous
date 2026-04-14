@@ -82,11 +82,11 @@ const chat = {
 
   _eventToMsg(event) {
     const tTags = (event.tags || []).filter(t => t[0] === 't').map(t => t[1]);
+    chat._fetchProfile(event.pubkey);
     return {
       id: event.id,
       type: 'text',
       userId: event.pubkey,
-      username: chat.resolveProfile(event.pubkey),
       content: event.content,
       timestamp: event.created_at * 1000,
       tags: tTags,
@@ -105,7 +105,7 @@ const chat = {
   _updateMembers(msgs) {
     const seen = new Map();
     (msgs || []).forEach(function(m) {
-      if (m.userId && !seen.has(m.userId)) seen.set(m.userId, m.username || chat.resolveProfile(m.userId));
+      if (m.userId && !seen.has(m.userId)) seen.set(m.userId, chat.resolveProfile(m.userId));
     });
     state.roomMembers = Array.from(seen.entries()).map(function([id, username]) {
       return { id, username, online: true };

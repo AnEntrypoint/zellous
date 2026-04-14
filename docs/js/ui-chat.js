@@ -35,7 +35,7 @@ const uiChat = {
       const sameUser = m.userId === lastUser && (m.timestamp - lastTime) < 420000;
       const time = formatTime(m.timestamp);
       const shortTime = new Date(m.timestamp).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
-      const username = m.username || 'User';
+      const username = (chat?.resolveProfile && chat.resolveProfile(m.userId)) || m.username || 'User';
       const color = getAvatarColor(m.userId);
       const isAnnouncement = Array.isArray(m.tags) && m.tags.includes('announcement');
       const pendingAttr = m.pending ? ' style="opacity:0.6"' : '';
