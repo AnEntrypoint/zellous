@@ -81,6 +81,7 @@ const auth = {
     const avatarEl = document.getElementById('userPanelAvatar');
     if (nameEl) nameEl.textContent = state.nostrProfile.name;
     if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = state.nostrProfile.name[0].toUpperCase(); }
+    if (window.chat) chat.updateProfile(state.nostrPubkey, state.nostrProfile);
   },
 
   logout() {

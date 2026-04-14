@@ -18,7 +18,7 @@ var nostrMedia = {
       pubkey: state.nostrPubkey
     };
     const signed = await window.auth.sign(auth_event);
-    return window.NostrTools.nip19.eventEncode(signed);
+    return btoa(JSON.stringify(signed));
   },
 
   async _uploadBlossom(file, serverUrl) {

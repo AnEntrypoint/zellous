@@ -174,6 +174,11 @@ const chat = {
   handleTextMessage(msg) { chat._addMessage(msg); },
   handleImageMessage() {},
   handleFileShared() {},
+
+  updateProfile(pubkey, profile) {
+    profiles.set(pubkey, profile);
+    ui.render.all();
+  },
 };
 
 window.__zellous.chat = chat;
