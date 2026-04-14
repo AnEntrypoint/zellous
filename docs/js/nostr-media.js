@@ -1,8 +1,8 @@
 var nostrMedia = {
   _BLOSSOM_SERVERS: [
-    'https://blossom.oxtr.dev',
-    'https://files.sovbit.host',
     'https://blossom.nostr.build',
+    'https://files.sovbit.host',
+    'https://nostrcheck.me',
   ],
 
   async _hashFile(file) {
