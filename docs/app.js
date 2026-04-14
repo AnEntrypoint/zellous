@@ -288,9 +288,11 @@ window.zellousDebug = { state, config, audio, message, network, ptt, queue, deaf
   ui_events.setup();
   osjsIntegration.wrapPtt();
   if (window.channelManager) channelManager.initDragAndDrop();
-  let _audioInitialized = false;
-  const initAudioOnGesture = async () => { if (_audioInitialized) return; _audioInitialized = true; await audioIO.init(); };
-  document.addEventListener('click', initAudioOnGesture, { once: true });
-  document.addEventListener('touchstart', initAudioOnGesture, { once: true });
-  document.addEventListener('keydown', initAudioOnGesture, { once: true });
+  if (!window.__nostrMode) {
+    let _audioInitialized = false;
+    const initAudioOnGesture = async () => { if (_audioInitialized) return; _audioInitialized = true; await audioIO.init(); };
+    document.addEventListener('click', initAudioOnGesture, { once: true });
+    document.addEventListener('touchstart', initAudioOnGesture, { once: true });
+    document.addEventListener('keydown', initAudioOnGesture, { once: true });
+  }
 })();
