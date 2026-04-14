@@ -1,35 +1,43 @@
 var nostrMedia = {
   _BLOSSOM_SERVERS: [
+    'https://blossom.oxtr.dev',
+    'https://files.sovbit.host',
     'https://blossom.nostr.build',
-    'https://cdn.blossom.primal.net',
-    'https://blossom.primal.net'
   ],
 
-  async _generateNip98Auth(method, url) {
+  async _hashFile(file) {
+    const buf = await file.arrayBuffer();
+    const hash = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+  },
+
+  async _generateBlossomAuth(file, uploadUrl) {
     if (!state.nostrPubkey) throw new Error('Not authenticated');
+    const hash = await nostrMedia._hashFile(file);
     const auth_event = {
-      kind: 27235,
+      kind: 24242,
       created_at: Math.floor(Date.now() / 1000),
       tags: [
-        ['u', url],
-        ['method', method]
+        ['t', 'upload'],
+        ['x', hash],
+        ['expiration', String(Math.floor(Date.now() / 1000) + 600)],
       ],
-      content: '',
-      pubkey: state.nostrPubkey
+      content: 'Upload ' + file.name,
     };
     const signed = await window.auth.sign(auth_event);
-    return btoa(JSON.stringify(signed));
+    return { header: 'Nostr ' + btoa(JSON.stringify(signed)), hash };
   },
 
   async _uploadBlossom(file, serverUrl) {
     const uploadUrl = serverUrl + '/upload';
-    const form = new FormData();
-    form.append('file', file);
-    const auth = await nostrMedia._generateNip98Auth('POST', uploadUrl);
+    const { header, hash } = await nostrMedia._generateBlossomAuth(file, uploadUrl);
     const res = await fetch(uploadUrl, {
-      method: 'POST',
-      body: form,
-      headers: { 'Authorization': 'Nostr ' + auth }
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Authorization': header,
+        'Content-Type': file.type || 'application/octet-stream',
+      }
     });
     if (!res.ok) throw new Error('Status ' + res.status);
     const data = await res.json();
