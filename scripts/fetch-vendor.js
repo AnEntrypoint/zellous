@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Fetch vendor files during CI/build.
- * Downloads: livekit-client, rnnoise, fonts
+ * Downloads: rnnoise, fonts
  * Run: node scripts/fetch-vendor.js
  */
 
@@ -14,10 +14,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const vendorDir = path.join(__dirname, '..', 'docs', 'vendor');
 
 const files = [
-  {
-    name: 'livekit-client.mjs',
-    url: 'https://cdn.jsdelivr.net/npm/livekit-client@0.17.5/+esm',
-  },
   {
     name: 'rnnoise-sync.js',
     url: 'https://cdn.jsdelivr.net/npm/@jitsi/rnnoise-wasm@0.2.2/dist/rnnoise-processor.js',
