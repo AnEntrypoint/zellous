@@ -944,3 +944,108 @@ body, body *, h1, h2, h3, h4, h5, h6, p, span, div, a, button, input, textarea, 
 h1, .t-h1, h1.hero, .t-hero, h2, .t-h2 { font-family: var(--ff-display) !important; }
 h3, .t-h3, h4, .t-h4 { font-family: var(--ff-mono) !important; }
 .t-prose, .prose p, .message-content, .chat-message-content, .msg-content { font-family: var(--ff-body) !important; }
+
+
+/* ==== fix remaining discord.css leakage ==== */
+.chat-header-bar, .server-header, .voice-panel-header, .voice-panel,
+.voice-view-header, .queue-header, .thread-panel, .thread-panel-header,
+.forum-header-bar, .page-view-header, .chat-input-bar, .chat-input-wrapper,
+.chat-messages, .chat-messages-inner, .chat-scroll, .channel-list, .voice-users {
+  background: var(--bg) !important;
+  color: var(--fg) !important;
+  border-color: var(--chat-border) !important;
+}
+.chat-header-bar {
+  border-bottom: var(--bw-hair) solid var(--chat-border) !important;
+  padding: var(--space-3) var(--space-4) !important;
+}
+.chat-header-name { font-family: var(--ff-display) !important; font-weight: 700 !important; font-size: var(--fs-h4) !important; letter-spacing: var(--tr-tight) !important; color: var(--fg) !important; text-transform: none !important; }
+.chat-header-icon { color: var(--fg-3) !important; }
+.chat-header-divider { background: var(--chat-border) !important; }
+.chat-header-topic { font-family: var(--ff-body) !important; color: var(--fg-2) !important; font-size: var(--fs-sm) !important; }
+.chat-header-toolbar { gap: var(--space-2) !important; }
+
+.server-header {
+  background: var(--bg) !important;
+  border-bottom: var(--bw-hair) solid var(--chat-border) !important;
+  padding: var(--space-3) var(--space-4) !important;
+}
+.server-header-dropdown, .server-header-btn, .server-header-chevron { color: var(--fg) !important; background: transparent !important; }
+.server-header-dropdown:hover, .server-header-btn:hover { background: var(--chat-hover) !important; }
+.server-header-name { font-family: var(--ff-display) !important; font-weight: 700 !important; font-size: var(--fs-body) !important; color: var(--fg) !important; text-transform: none !important; letter-spacing: var(--tr-tight) !important; }
+
+.category-header { color: var(--fg-3) !important; font-family: var(--ff-mono) !important; font-size: var(--fs-tiny) !important; text-transform: uppercase !important; letter-spacing: var(--tr-label) !important; padding: var(--space-3) var(--space-3) var(--space-1) !important; }
+.channel-name { font-family: var(--ff-mono) !important; font-size: var(--fs-sm) !important; color: inherit !important; text-transform: none !important; letter-spacing: 0 !important; }
+.channel-icon { color: var(--fg-3) !important; }
+.channel-item.active .channel-icon, .channel-item.active .channel-name { color: var(--green-deep) !important; }
+.channel-mention-badge, .channel-badge { background: var(--mascot) !important; color: var(--mascot-fg) !important; border-radius: 999px !important; font-family: var(--ff-mono) !important; font-size: var(--fs-micro) !important; }
+.channel-action-btn { color: var(--fg-3) !important; background: transparent !important; border: 0 !important; }
+.channel-action-btn:hover { color: var(--fg) !important; background: var(--chat-hover) !important; }
+
+.user-panel {
+  background: var(--bg-2) !important;
+  border-top: var(--bw-hair) solid var(--chat-border) !important;
+  padding: var(--space-3) !important;
+}
+.user-panel-avatar, .user-profile-avatar { border-radius: 10px !important; font-family: var(--ff-display) !important; font-weight: 800 !important; }
+.user-panel-info { color: var(--fg) !important; }
+.user-panel-controls { gap: 4px !important; }
+.user-panel-btn {
+  background: transparent !important;
+  color: var(--fg-2) !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  padding: var(--space-2) !important;
+}
+.user-panel-btn:hover { background: var(--chat-hover) !important; color: var(--fg) !important; }
+.user-status-dot { background: var(--green) !important; border: 2px solid var(--bg) !important; }
+
+.voice-panel {
+  background: var(--chat-active-bg) !important;
+  border-top: var(--bw-hair) solid var(--chat-border) !important;
+  border-radius: 10px !important;
+  margin: var(--space-2) !important;
+  padding: var(--space-3) !important;
+}
+.voice-panel-channel { font-family: var(--ff-mono) !important; font-size: var(--fs-xs) !important; color: var(--green-deep) !important; text-transform: uppercase !important; letter-spacing: var(--tr-label) !important; }
+.voice-panel-btn { background: var(--bg) !important; color: var(--fg) !important; border: var(--bw-hair) solid var(--chat-border) !important; border-radius: 8px !important; }
+.voice-user { background: transparent !important; color: var(--fg) !important; }
+.voice-user-avatar { border-radius: 8px !important; }
+.voice-user-name { font-family: var(--ff-mono) !important; font-size: var(--fs-xs) !important; color: var(--fg-2) !important; }
+
+.msg-username { font-family: var(--ff-display) !important; font-weight: 700 !important; color: var(--fg) !important; letter-spacing: var(--tr-tight) !important; text-transform: none !important; }
+
+.member-role-header { font-family: var(--ff-mono) !important; font-size: var(--fs-tiny) !important; text-transform: uppercase !important; letter-spacing: var(--tr-label) !important; color: var(--fg-3) !important; padding: var(--space-3) var(--space-3) var(--space-1) !important; }
+
+.mobile-header {
+  background: var(--bg) !important;
+  border-bottom: var(--bw-hair) solid var(--chat-border) !important;
+  color: var(--fg) !important;
+}
+
+.thread-panel { border-left: var(--bw-hair) solid var(--chat-border) !important; }
+.thread-panel-header { background: var(--bg) !important; border-bottom: var(--bw-hair) solid var(--chat-border) !important; font-family: var(--ff-display) !important; font-weight: 700 !important; color: var(--fg) !important; }
+.thread-panel-close { color: var(--fg-3) !important; background: transparent !important; border: 0 !important; }
+.thread-panel-close:hover { color: var(--fg) !important; }
+
+/* any remaining dark bg from inline styles using var(--bg-surface) / --bg-base / --bg-raised tokens from tokens.css */
+:root {
+  --bg-base: var(--paper) !important;
+  --bg-surface: var(--paper) !important;
+  --bg-raised: color-mix(in oklab, var(--paper) 94%, var(--ink) 6%) !important;
+  --bg-hover: var(--chat-hover) !important;
+  --text-normal: var(--fg) !important;
+  --text-muted: var(--fg-3) !important;
+  --text-faint: var(--fg-3) !important;
+  --border-default: var(--chat-border) !important;
+  --accent: var(--green) !important;
+  --accent-hover: var(--green-deep) !important;
+}
+[data-theme="ink"] {
+  --bg-base: var(--ink) !important;
+  --bg-surface: var(--ink) !important;
+  --bg-raised: var(--ink-2) !important;
+  --text-normal: var(--paper) !important;
+  --text-muted: var(--fg-3) !important;
+  --border-default: var(--ink-3) !important;
+}
