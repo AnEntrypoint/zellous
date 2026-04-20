@@ -1097,3 +1097,248 @@ body, .message-content, .chat-message-content, .msg-content, .chat-input input, 
 .channel-sidebar, .server-list, .member-list, .thread-panel {
   border-color: var(--cream-3) !important;
 }
+
+
+/* ============================================================
+   ZERO 1PX BORDERS \u2014 final enforcement.
+   Any border that was authored at 1px in discord.css is killed.
+   Separation comes from background-tint differences only.
+   When we want a visible edge, we use box-shadow or bg-color step,
+   not a drawn line.
+   ============================================================ */
+
+/* Wipe 1px borders wholesale from every element. */
+.server-list, .channel-sidebar, .member-list, .chat-area,
+.server-header, .server-header-btn, .server-header-dropdown, .server-header-chevron,
+.chat-header-bar, .chat-header-divider, .chat-header-toolbar, .chat-header-icon,
+.channel-list, .channel-item, .channel-action-btn, .category-header,
+.voice-panel, .voice-panel-header, .voice-panel-btn, .voice-users, .voice-user,
+.user-panel, .user-panel-btn, .user-panel-avatar, .user-status-dot, .user-panel-info,
+.mobile-header, .mobile-hamburger, .mobile-members-btn, .mobile-title,
+.chat-input-bar, .chat-input-wrapper, .chat-messages, .chat-messages-inner,
+.thread-panel, .thread-panel-header, .thread-panel-close, .thread-item-header,
+.forum-header-bar, .page-view-header, .queue-header, .queue-item-user,
+.member-role-header, .member-item, .server-icon,
+.forum-tag, .badge, .chip, .pill,
+.vad-threshold-marker, .drop-indicator,
+.message, .chat-message, .msg-username, .message-author,
+.reaction, .message-reaction {
+  border: 0 !important;
+}
+
+/* Use bg-tint step to separate columns instead of drawn lines. */
+.server-list { background: var(--paper-2) !important; }
+.channel-sidebar { background: color-mix(in oklab, var(--paper) 96%, var(--ink) 4%) !important; }
+.chat-area { background: var(--paper) !important; }
+.member-list { background: var(--paper-2) !important; }
+.user-panel, .voice-panel {
+  background: color-mix(in oklab, var(--paper-2) 85%, var(--green) 15%) !important;
+  border-radius: 14px !important;
+  margin: var(--space-2) !important;
+}
+.chat-header-bar {
+  background: var(--paper) !important;
+  /* soft drop-shadow instead of line */
+  box-shadow: 0 6px 12px -8px color-mix(in oklab, var(--ink) 18%, transparent) !important;
+}
+.chat-input-bar, .chat-input-wrapper {
+  background: var(--paper) !important;
+  box-shadow: 0 -6px 12px -8px color-mix(in oklab, var(--ink) 15%, transparent) !important;
+}
+.mobile-header {
+  background: var(--paper) !important;
+  box-shadow: 0 4px 10px -8px color-mix(in oklab, var(--ink) 18%, transparent) !important;
+}
+
+/* Buttons \u2014 no border, soft bg */
+.server-header-btn, .voice-panel-btn, .mobile-hamburger, .mobile-members-btn,
+.user-panel-btn, .chat-header-toolbar button, .channel-action-btn, .thread-panel-close {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  color: var(--ink-3) !important;
+  padding: var(--space-2) !important;
+  transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease);
+}
+.server-header-btn:hover, .voice-panel-btn:hover, .mobile-hamburger:hover,
+.mobile-members-btn:hover, .user-panel-btn:hover, .channel-action-btn:hover,
+.chat-header-toolbar button:hover, .thread-panel-close:hover {
+  background: color-mix(in oklab, var(--paper) 85%, var(--ink) 15%) !important;
+  color: var(--ink-2) !important;
+}
+.voice-panel-btn.disconnect {
+  background: color-mix(in oklab, var(--warn) 18%, var(--paper)) !important;
+  color: var(--warn) !important;
+}
+.voice-panel-btn.disconnect:hover {
+  background: var(--warn) !important;
+  color: var(--paper) !important;
+}
+
+/* Status dot \u2014 no ring, just a soft green bubble */
+.user-status-dot {
+  background: var(--green) !important;
+  border: 0 !important;
+  box-shadow: 0 0 0 3px var(--paper-2) !important;
+  border-radius: 999px !important;
+}
+
+/* Server icon \u2014 rounded soft square, no hairline */
+.server-icon, .server-icon.home {
+  border: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+.server-icon.active, .server-icon:hover {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--green) 40%, transparent) !important;
+}
+
+/* Channel items \u2014 no border, just rounded hover */
+.channel-item {
+  border: 0 !important;
+  border-radius: 10px !important;
+  margin: 2px var(--space-2) !important;
+  padding: var(--space-2) var(--space-3) !important;
+}
+.channel-item.active {
+  background: color-mix(in oklab, var(--green) 14%, var(--paper)) !important;
+  color: var(--green-deep) !important;
+}
+
+/* Member items \u2014 no border */
+.member-item {
+  border: 0 !important;
+  border-radius: 10px !important;
+  margin: 2px var(--space-2) !important;
+}
+
+/* Messages \u2014 no border, generous padding */
+.message, .chat-message {
+  border: 0 !important;
+  border-radius: 10px !important;
+  padding: var(--space-2) var(--space-3) !important;
+  margin: 1px var(--space-2) !important;
+}
+
+/* Reactions \u2014 bg pill, no border */
+.reaction, .message-reaction {
+  border: 0 !important;
+  background: color-mix(in oklab, var(--paper-2) 90%, var(--green) 10%) !important;
+  border-radius: 999px !important;
+  padding: 2px var(--space-2) !important;
+}
+.reaction.active, .message-reaction.active {
+  background: color-mix(in oklab, var(--green) 20%, var(--paper)) !important;
+  color: var(--green-deep) !important;
+  font-weight: 600;
+}
+
+/* Inputs \u2014 keep a 2px border because they need a visible edge to feel clickable */
+input[type="text"], input[type="password"], input[type="search"], textarea,
+.chat-input input, .chat-input textarea, .input, .modal-input {
+  border: 2px solid transparent !important;
+  background: color-mix(in oklab, var(--paper) 90%, var(--ink) 10%) !important;
+  border-radius: 12px !important;
+  padding: var(--space-3) !important;
+}
+input:focus, textarea:focus, .modal-input:focus {
+  border-color: var(--green) !important;
+  background: var(--paper) !important;
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--green) 20%, transparent) !important;
+}
+
+/* Modals \u2014 0 border, soft elevation shadow */
+.modal-content, .modal-box, .modal-dialog {
+  border: 0 !important;
+  border-radius: 18px !important;
+  box-shadow: 0 20px 60px -10px color-mix(in oklab, var(--ink) 35%, transparent) !important;
+}
+
+/* Context menus \u2014 0 border, soft shadow */
+.context-menu {
+  border: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px -8px color-mix(in oklab, var(--ink) 28%, transparent) !important;
+}
+.context-menu-item { border: 0 !important; }
+
+/* Thread panel \u2014 tint step, no line */
+.thread-panel {
+  background: var(--paper-2) !important;
+  border: 0 !important;
+}
+.thread-panel-header { border: 0 !important; }
+
+/* Voice tiles \u2014 soft, no hairline */
+.voice-tile, .participant-tile, .vtile, .voice-grid-tile {
+  border: 0 !important;
+  background: var(--paper-2) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 2px 8px -2px color-mix(in oklab, var(--ink) 10%, transparent) !important;
+}
+.voice-tile.speaking {
+  box-shadow: 0 0 0 3px var(--green), 0 4px 12px -2px color-mix(in oklab, var(--green) 30%, transparent) !important;
+}
+
+/* Forum tag, pills \u2014 no border */
+.forum-tag, .badge, .chip, .pill { border: 0 !important; }
+
+/* absolutely no hairlines anywhere */
+* { outline: none !important; }
+
+
+/* ============================================================
+   ZERO SHADOWS. Separation by bg-tint only.
+   ============================================================ */
+*, *::before, *::after { box-shadow: none !important; }
+
+/* restore only one exception: focused inputs need a visible ring \u2014 use a
+   border-color change instead of a shadow. */
+input:focus, textarea:focus, .modal-input:focus, .chat-input input:focus {
+  border-color: var(--green) !important;
+  background: var(--paper) !important;
+  box-shadow: none !important;
+}
+
+/* voice speaking indicator \u2014 use a bg-color pulse instead of shadow ring */
+.voice-tile.speaking, .voice-user.speaking {
+  background: color-mix(in oklab, var(--green) 22%, var(--paper)) !important;
+}
+
+/* status dot \u2014 no ring shadow, just a soft green bubble against its container bg */
+.user-status-dot {
+  box-shadow: none !important;
+  outline: 3px solid var(--paper-2);
+}
+
+/* server icon active/hover \u2014 use bg step instead of ring */
+.server-icon:hover { background: color-mix(in oklab, var(--paper) 85%, var(--ink) 15%) !important; }
+.server-icon.active { background: color-mix(in oklab, var(--green) 22%, var(--paper)) !important; color: var(--green-deep) !important; }
+
+/* modal \u2014 elevation via ONLY bg contrast + rounded corners */
+.modal-overlay, .modal-backdrop {
+  background: color-mix(in srgb, var(--ink) 55%, transparent) !important;
+  backdrop-filter: blur(6px);
+}
+.modal-content, .modal-box, .modal-dialog {
+  box-shadow: none !important;
+  border: 0 !important;
+  border-radius: 18px !important;
+}
+
+/* context menu \u2014 bg-2 lift, no shadow */
+.context-menu {
+  box-shadow: none !important;
+  background: var(--paper-2) !important;
+  border-radius: 12px !important;
+}
+
+/* chat header + input bar + mobile header \u2014 no faux-shadow lines */
+.chat-header-bar, .chat-input-bar, .chat-input-wrapper, .mobile-header, .thread-panel-header {
+  box-shadow: none !important;
+}
+
+/* voice tiles \u2014 flat */
+.voice-tile, .participant-tile, .vtile, .voice-grid-tile {
+  box-shadow: none !important;
+}
