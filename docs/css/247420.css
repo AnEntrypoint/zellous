@@ -1049,3 +1049,51 @@ h3, .t-h3, h4, .t-h4 { font-family: var(--ff-mono) !important; }
   --text-muted: var(--fg-3) !important;
   --border-default: var(--ink-3) !important;
 }
+
+
+/* ============================================================
+   Comfort overrides \u2014 kill harsh lines, soften contrast.
+   discord.css has ~40 "border: 1px solid var(--border)" rules.
+   Instead of rewriting each, we redefine --border to be nearly
+   invisible warmth so those 1px lines become gentle separators.
+   ============================================================ */
+:root, [data-theme="paper"] {
+  /* --border was #2A251D (full ink). Make it a warm 6% shade instead. */
+  --border: color-mix(in oklab, var(--paper) 88%, var(--ink) 12%) !important;
+  --rule:   color-mix(in oklab, var(--paper) 88%, var(--ink) 12%) !important;
+  /* Soften text contrast so ink-on-paper reads warm, not harsh. */
+  --text-primary:   var(--ink-2) !important;
+  --text-secondary: var(--ink-3) !important;
+  --text-muted:     color-mix(in oklab, var(--ink-3) 70%, var(--paper) 30%) !important;
+  --text-faint:     color-mix(in oklab, var(--ink-3) 55%, var(--paper) 45%) !important;
+  --accent:         var(--green) !important;
+  --accent-hover:   var(--green-deep) !important;
+}
+[data-theme="ink"] {
+  --border: color-mix(in oklab, var(--ink) 85%, var(--paper) 15%) !important;
+  --rule:   color-mix(in oklab, var(--ink) 85%, var(--paper) 15%) !important;
+  --text-primary:   color-mix(in oklab, var(--paper) 92%, var(--ink) 8%) !important;
+  --text-secondary: color-mix(in oklab, var(--paper) 70%, var(--ink) 30%) !important;
+  --text-muted:     var(--ink-3) !important;
+}
+
+/* Body text should not be pure ink \u2014 use ink-2 for 10% lift off paper. */
+body, .message-content, .chat-message-content, .msg-content, .chat-input input, .chat-input textarea {
+  color: var(--ink-2) !important;
+}
+[data-theme="ink"] body, [data-theme="ink"] .message-content { color: color-mix(in oklab, var(--paper) 92%, var(--ink) 8%) !important; }
+
+/* Replace any leftover full-ink text on paper (usernames, titles) with ink-2 */
+.chat-header-name, .server-header-name, .msg-username, .message-author,
+.user-panel-name, .modal-title, .channel-title, .settings-title {
+  color: var(--ink-2) !important;
+}
+
+/* For the rare places where we DO want a visible hairline (top-of-bar etc),
+   use --chat-border which is --cream-3 (already gentle). */
+
+/* Re-assert: no 1px hairline should be darker than --cream-3 anywhere. */
+.chat-header-bar, .server-header, .user-panel, .chat-input-bar, .chat-input-wrapper,
+.channel-sidebar, .server-list, .member-list, .thread-panel {
+  border-color: var(--cream-3) !important;
+}
