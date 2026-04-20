@@ -1,54 +1,11 @@
 const moderation = {
-  _headers() {
-    const h = { 'Content-Type': 'application/json' };
-    const token = auth?.getToken();
-    if (token) h.Authorization = 'Bearer ' + token;
-    return h;
-  },
-
-  async kickUser(serverId, userId) {
-    if (state.nostrPubkey) throw new Error('Not supported in Nostr mode');
-    const res = await fetch(`/api/servers/${serverId}/kick/${userId}`, {
-      method: 'POST', headers: this._headers()
-    });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-    return true;
-  },
-
-  async banUser(serverId, userId) {
-    if (state.nostrPubkey) throw new Error('Not supported in Nostr mode');
-    const res = await fetch(`/api/servers/${serverId}/ban/${userId}`, {
-      method: 'POST', headers: this._headers()
-    });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-    return true;
-  },
-
-  async setRole(serverId, userId, role) {
-    if (state.nostrPubkey) throw new Error('Not supported in Nostr mode');
-    const res = await fetch(`/api/servers/${serverId}/roles/${userId}`, {
-      method: 'PATCH', headers: this._headers(),
-      body: JSON.stringify({ role })
-    });
-    if (!res.ok) { const e = await res.json(); throw new Error(e.error); }
-    return true;
-  },
-
-  async banUserNostr(serverId, pubkey) {
-    if (!state.nostrPubkey) throw new Error('Not logged in');
-    if (!window.serverRoles || !serverRoles.isAdmin(serverId)) throw new Error('Insufficient permissions');
-    var dTag = 'zellous-ban:' + serverId + ':' + pubkey;
-    var signed = await auth.sign({kind:30078,created_at:Math.floor(Date.now()/1000),tags:[['d',dTag],['server',serverId]],content:JSON.stringify({action:'ban',pubkey:pubkey,timestamp:Math.floor(Date.now()/1000)})});
-    await nostrNet.publish(signed);
-  },
-
-  async timeoutUserNostr(serverId, pubkey, minutes) {
-    if (!state.nostrPubkey) throw new Error('Not logged in');
-    if (!window.serverRoles || !serverRoles.isAdmin(serverId)) throw new Error('Insufficient permissions');
-    var expiry = Math.floor(Date.now()/1000) + (minutes * 60);
-    var dTag = 'zellous-timeout:' + serverId + ':' + pubkey;
-    var signed = await auth.sign({kind:30078,created_at:Math.floor(Date.now()/1000),tags:[['d',dTag],['server',serverId]],content:JSON.stringify({action:'timeout',pubkey:pubkey,expiry:expiry})});
-    await nostrNet.publish(signed);
+  async banUserNostr(serverId, pubkey) { return window.nostrBans.ban(serverId, pubkey); },
+  async timeoutUserNostr(serverId, pubkey, minutes) { return window.nostrBans.timeout(serverId, pubkey, minutes); },
+  async kickFromVoice(pubkey) {
+    if (window.nostrVoice?._peers?.get) {
+      try { window.nostrVoice._peers.get(pubkey); } catch {}
+    }
+    return window.nostrBans.kickFromVoice(pubkey);
   },
 
   showMemberMenu(memberId, memberName, x, y) {
@@ -60,25 +17,20 @@ const moderation = {
     menu.style.cssText = `position:fixed;top:${y}px;left:${x}px;z-index:2500`;
 
     let items = '';
-    const isNostr = !!state.nostrPubkey;
-    const canManage = serverId && (isNostr ? (window.serverRoles && serverRoles.isAdmin(serverId)) : true);
-    const isOwner = serverId && isNostr && window.serverRoles && serverRoles.isOwner(serverId);
+    const canManage = serverId && window.serverRoles && serverRoles.isAdmin(serverId);
+    const isOwner = serverId && window.serverRoles && serverRoles.isOwner(serverId);
     if (canManage) {
       if (isOwner) items += `<div class="context-menu-item" data-action="role-admin">Set Admin</div>`;
       items += `<div class="context-menu-item" data-action="role-mod">Set Moderator</div>`;
       items += `<div class="context-menu-item" data-action="role-member">Set Member</div>`;
     }
-    if (canManage && isNostr && window.nostrVoice && nostrVoice._peers && nostrVoice._peers.has(memberId)) {
+    if (canManage && window.nostrVoice?._peers?.has(memberId)) {
       items += `<div class="context-menu-item danger" data-action="kick-voice">Kick from Voice</div>`;
     }
-    if (canManage && isNostr) {
+    if (canManage) {
       items += `<div class="context-menu-item danger" data-action="ban">Ban User</div>`;
       items += `<div class="context-menu-item danger" data-action="timeout-10">Timeout 10m</div>`;
       items += `<div class="context-menu-item danger" data-action="timeout-60">Timeout 1h</div>`;
-    }
-    if (serverId && !isNostr) {
-      items += `<div class="context-menu-item danger" data-action="kick">Kick</div>`;
-      items += `<div class="context-menu-item danger" data-action="ban">Ban</div>`;
     }
     menu.innerHTML = items;
     if (!items) return;
@@ -92,60 +44,22 @@ const moderation = {
       const action = e.target.dataset.action;
       menu.remove();
       try {
-        if (action === 'kick-voice') {
-          if (confirm(`Kick ${memberName} from voice?`) && window.nostrVoice) {
-            nostrVoice._closePeer(memberId);
-            const dTag = `zellous-kick:${memberId}`;
-            const signed = await auth.sign({ kind: 30078, created_at: Math.floor(Date.now()/1000), tags: [['d', dTag]], content: '' });
-            nostrNet.publish(signed);
-          }
-        }
-        else if (action === 'kick') { if (confirm(`Kick ${memberName}?`)) await moderation.kickUser(serverId, memberId); }
-        else if (action === 'ban') { if (confirm(`Ban ${memberName}?`)) await moderation.banUser(serverId, memberId); }
-        else if (action === 'role-mod') {
-          if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'moderator');
-          else await moderation.setRole(serverId, memberId, 'moderator');
-        }
-        else if (action === 'role-admin') {
-          if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'admin');
-          else await moderation.setRole(serverId, memberId, 'admin');
-        }
-        else if (action === 'role-member') {
-          if (state.nostrPubkey && window.serverRoles) await serverRoles.setRole(serverId, memberId, 'member');
-          else await moderation.setRole(serverId, memberId, 'member');
-        }
-        else if (action === 'ban') {
-          if (confirm(`Ban ${memberName}?`)) {
-            if (state.nostrPubkey && window.moderation) await moderation.banUserNostr(serverId, memberId);
-            else await moderation.banUser(serverId, memberId);
-          }
-        }
-        else if (action === 'timeout-10') {
-          if (confirm(`Timeout ${memberName} for 10 minutes?`)) {
-            if (state.nostrPubkey && window.moderation) await moderation.timeoutUserNostr(serverId, memberId, 10);
-          }
-        }
-        else if (action === 'timeout-60') {
-          if (confirm(`Timeout ${memberName} for 1 hour?`)) {
-            if (state.nostrPubkey && window.moderation) await moderation.timeoutUserNostr(serverId, memberId, 60);
-          }
-        }
-      } catch (e) { console.warn('[Mod]', e.message); }
+        if (action === 'kick-voice' && confirm(`Kick ${memberName} from voice?`)) await moderation.kickFromVoice(memberId);
+        else if (action === 'ban' && confirm(`Ban ${memberName}?`)) await moderation.banUserNostr(serverId, memberId);
+        else if (action === 'role-admin') await serverRoles.setRole(serverId, memberId, 'admin');
+        else if (action === 'role-mod') await serverRoles.setRole(serverId, memberId, 'moderator');
+        else if (action === 'role-member') await serverRoles.setRole(serverId, memberId, 'member');
+        else if (action === 'timeout-10' && confirm(`Timeout ${memberName} for 10 minutes?`)) await moderation.timeoutUserNostr(serverId, memberId, 10);
+        else if (action === 'timeout-60' && confirm(`Timeout ${memberName} for 1 hour?`)) await moderation.timeoutUserNostr(serverId, memberId, 60);
+      } catch (err) { console.warn('[Mod]', err.message); }
     });
 
-    const close = (e) => {
-      if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); }
-    };
+    const close = (e) => { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); } };
     setTimeout(() => document.addEventListener('click', close), 0);
   },
 
-  roleLabel(role) {
-    return { owner: 'Owner', admin: 'Admin', moderator: 'Mod', member: '' }[role] || '';
-  },
-
-  roleBadgeColor(role) {
-    return { owner: '#feb347', admin: '#5865f2', moderator: '#57f287' }[role] || null;
-  }
+  roleLabel(role) { return { owner: 'Owner', admin: 'Admin', moderator: 'Mod', member: '' }[role] || ''; },
+  roleBadgeColor(role) { return { owner: '#feb347', admin: '#5865f2', moderator: '#57f287' }[role] || null; }
 };
 
 window.__zellous.moderation = moderation;

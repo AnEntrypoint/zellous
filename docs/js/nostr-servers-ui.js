@@ -82,9 +82,7 @@ serverManager.showEditModal = function(serverId) {
     state.servers = state.servers.slice();
     serverManager._persistServers();
     if (srv.ownerId === state.nostrPubkey) {
-      var dTag = serverId.split(':')[1];
-      var template = { kind: 34550, created_at: Math.floor(Date.now() / 1000), tags: [['d', dTag], ['name', name], ['color', selectedColor]], content: '' };
-      try { var signed = await auth.sign(template); await nostrNet.publish(signed); } catch (e) {}
+      try { await serverManager.rename(serverId, name, selectedColor); } catch (e) {}
     }
     if (isAdmin && window.serverSettings) {
       var bitrateEl = document.getElementById('editServerBitrate');

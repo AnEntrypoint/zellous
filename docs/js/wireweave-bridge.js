@@ -201,6 +201,10 @@
   window.serverManager = {
     loadServers: () => srv.load(),
     create: (n, c) => srv.create(n, c),
+    rename: (sid, n, c) => srv.rename(sid, n, c),
+    kickFromVoice: (pk) => bans.kickFromVoice(pk),
+    banUserNostr: (sid, pk) => bans.ban(sid, pk),
+    timeoutUserNostr: (sid, pk, min) => bans.timeout(sid, pk, min),
     join: (sid) => srv.join(sid),
     delete: (sid) => srv.delete(sid),
     leave: (sid) => srv.leave(sid),
@@ -235,7 +239,10 @@
     _store: bans.store,
     isBanned: (sid, pk) => bans.isBanned(sid, pk),
     isTimedOut: (sid, pk) => bans.isTimedOut(sid, pk),
-    subscribe: (sid) => bans.subscribe(sid)
+    subscribe: (sid) => bans.subscribe(sid),
+    ban: (sid, pk) => bans.ban(sid, pk),
+    timeout: (sid, pk, m) => bans.timeout(sid, pk, m),
+    kickFromVoice: (pk) => bans.kickFromVoice(pk)
   };
 
   const settings = ww.settings;

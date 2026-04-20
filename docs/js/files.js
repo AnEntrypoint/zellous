@@ -148,25 +148,7 @@ const fileTransfer = {
     }
   },
 
-  async list(path = '') {
-    try {
-      const res = await fetch(`/api/rooms/${state.roomId}/files?path=${encodeURIComponent(path)}`);
-      const data = await res.json();
-      return data.files || [];
-    } catch {
-      return [];
-    }
-  },
-
-  download(fileId, filename) {
-    const url = `/api/rooms/${state.roomId}/files/${fileId}`;
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename || 'download';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  },
+  async list() { return []; },
 
   formatSize(bytes) {
     if (bytes < 1024) return bytes + ' B';
