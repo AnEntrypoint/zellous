@@ -1,5 +1,0 @@
-var voiceMachine = XState.createMachine({initial:'idle',states:{idle:{on:{connect:'connecting'}},connecting:{on:{connected:'connected',fail:'idle'}},connected:{on:{disconnect:'disconnecting'}},disconnecting:{on:{done:'idle'}}}});
-var peerMachine = XState.createMachine({initial:'new',states:{new:{on:{offer:'offering',recv_offer:'answering'}},offering:{on:{recv_answer:'connected',fail:'new',restart:'offering'}},answering:{on:{sent_answer:'connected',recv_answer:'connected',fail:'new'}},connected:{on:{disconnect:'reconnecting',close:'closed'}},reconnecting:{on:{offer:'offering',recv_answer:'connected',close:'closed'}},closed:{}}});
-var cameraMachine = XState.createMachine({initial:'idle',states:{idle:{on:{enable:'requesting'}},requesting:{on:{enabled:'active',denied:'idle'}},active:{on:{disable:'idle',error:'idle'}},error:{on:{enable:'requesting'}}}});
-window.__zellous.fsm = { voiceMachine: voiceMachine, peerMachine: peerMachine, cameraMachine: cameraMachine };
-window.nostrFsm = window.__zellous.fsm;

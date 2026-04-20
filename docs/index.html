@@ -3,35 +3,94 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zellous - Nostr Chat</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%235865f2'/><text x='50' y='72' font-size='60' font-weight='700' font-family='sans-serif' fill='white' text-anchor='middle'>Z</text></svg>">
+<title>zellous // serverless voice + chat</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230B0B09'/><text x='50' y='72' font-size='60' font-weight='700' font-family='monospace' fill='%23EFE9DD' text-anchor='middle'>Z</text></svg>">
 <link rel="stylesheet" href="vendor/fonts.css">
+<link rel="stylesheet" href="css/tokens.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:#313338;color:#dbdee1;font-family:'Noto Sans',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:1.5rem}
-.logo{width:72px;height:72px;border-radius:16px;background:#5865f2;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:700;color:#fff}
-h1{color:#f2f3f5;font-size:2rem;font-weight:700}
-p{color:#b5bac1;max-width:480px;text-align:center;line-height:1.6}
-a.btn{display:inline-block;background:#5865f2;color:#fff;text-decoration:none;padding:.75rem 2rem;border-radius:4px;font-weight:600;font-size:1rem;transition:background 0.15s}
-a.btn:hover{background:#4752c4}
-.rooms{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-top:.5rem}
-a.room{background:#2b2d31;border:1px solid #3f4147;color:#b5bac1;text-decoration:none;padding:.4rem 1rem;border-radius:4px;font-size:.85rem;font-family:monospace;transition:background 0.15s}
-a.room:hover{background:#383a40;color:#dbdee1}
-.note{font-size:.75rem;color:#80848e;max-width:400px;text-align:center;line-height:1.5}
-.badge{display:inline-block;background:#2b2d31;border:1px solid #3f4147;color:#b5bac1;padding:.25rem .6rem;border-radius:4px;font-size:.7rem;font-family:monospace}
+:root {
+  --c247: #247420; --c420: #420247; --cream: #EFE9DD; --ink: #0B0B09;
+  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+  --font-display: 'Redaction 50', 'Redaction', 'Times New Roman', serif;
+  --font-body: 'Instrument Serif', Georgia, serif;
+}
+@media (prefers-color-scheme: dark) { :root { --bg: var(--ink); --fg: var(--cream); } }
+@media (prefers-color-scheme: light) { :root { --bg: var(--cream); --fg: var(--ink); } }
+:root { --bg: var(--cream); --fg: var(--ink); }
+@media (prefers-color-scheme: dark) { :root { --bg: var(--ink); --fg: var(--cream); } }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  min-height: 100vh; padding: 32px; line-height: 1.6;
+}
+.dateline {
+  font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.05em; border-bottom: 1px solid var(--fg); padding-bottom: 8px;
+  margin-bottom: 48px; display: flex; justify-content: space-between;
+}
+h1 { font-family: var(--font-display); font-size: 72px; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 16px; }
+.tagline { font-size: 20px; max-width: 48ch; margin-bottom: 48px; }
+.tagline em { color: var(--c247); font-style: normal; font-weight: 600; }
+.actions { margin: 32px 0 64px; }
+.stamp {
+  display: inline-block; background: var(--cream); color: var(--ink);
+  border: 1px solid var(--ink); font-family: var(--font-mono); font-weight: 700;
+  padding: 12px 24px; transform: rotate(-2deg); box-shadow: 4px 4px 0 var(--ink);
+  text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; font-size: 14px;
+  transition: box-shadow 80ms cubic-bezier(0.2,0,0,1), transform 80ms;
+}
+.stamp:hover { box-shadow: 2px 2px 0 var(--ink); transform: rotate(-2deg) translate(2px,2px); }
+.stamp:active { box-shadow: 0 0 0 var(--ink); transform: rotate(-2deg) translate(4px,4px); }
+.rooms { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 0; border-top: 1px solid var(--fg); }
+.room {
+  flex: 1 1 200px; font-family: var(--font-mono); text-transform: uppercase;
+  padding: 16px; border-bottom: 1px solid var(--fg); border-right: 1px solid var(--fg);
+  color: var(--fg); text-decoration: none; letter-spacing: 0.03em; font-size: 12px;
+}
+.room:hover { background: var(--fg); color: var(--bg); }
+.note { font-family: var(--font-mono); font-size: 11px; text-transform: lowercase;
+  letter-spacing: 0.03em; opacity: 0.7; max-width: 60ch; margin-top: 48px; }
+.footer {
+  margin-top: 96px; padding-top: 16px; border-top: 1px solid var(--fg);
+  font-family: var(--font-mono); font-size: 10px; text-transform: lowercase;
+  letter-spacing: 0.04em; opacity: 0.6; text-align: center;
+}
+.manifesto { margin-top: 64px; padding-top: 32px; border-top: 3px double var(--fg); }
+.manifesto p { font-family: var(--font-body); font-size: 16px; margin-bottom: 16px; max-width: 60ch; }
+.tag { color: var(--c247); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
 </style>
 </head>
 <body>
-<div class="logo">Z</div>
-<h1>Zellous</h1>
-<p>Serverless voice and chat over public Nostr relays. No server required. Your Nostr keys are your identity.</p>
-<a class="btn" href="nostr-chat/">Open Chat</a>
+<div class="dateline">
+  <span>247420 // an entrypoint // zellous // apr 20 2026</span>
+  <span>probably emerging 🌀</span>
+</div>
+
+<span class="tag">// zellous</span>
+<h1>hold button. talk. someone hears you.</h1>
+<p class="tagline">push-to-talk over public nostr relays. no backend. no account. your keys are your identity. <em>broken on purpose</em>. read the source.</p>
+
+<div class="actions">
+  <a class="stamp" href="nostr-chat/">open chat ↗</a>
+</div>
+
 <div class="rooms">
   <a class="room" href="nostr-chat/?room=general"># general</a>
   <a class="room" href="nostr-chat/?room=dev"># dev</a>
   <a class="room" href="nostr-chat/?room=random"># random</a>
 </div>
-<p class="note">Messages are published to public Nostr relays. Anyone with the same room name can read and post. Powered by NIP-28 public channels.</p>
-<div class="badge">relay.damus.io &bull; relay.primal.net &bull; relay.snort.social &bull; nos.lol</div>
+
+<p class="note">messages publish to public nostr relays. anyone with the same room name can read and post. NIP-28 public channels, NIP-07 extension auth, webrtc voice mesh with sfu hub election once you hit 3 peers. networking runs through <a href="https://www.npmjs.com/package/wireweave" style="color:var(--c247)">wireweave</a>.</p>
+
+<div class="manifesto">
+  <p><strong>code is communication.</strong> talk is cheap. PRs are truth.</p>
+  <p><strong>community > capital.</strong> we optimize for the people who show up.</p>
+  <p><strong>learn in public.</strong> ship broken code, iterate fast, improve in the open.</p>
+  <p><strong>fun is a feature.</strong> if it isn't at least a little bit fun to use, we failed.</p>
+</div>
+
+<div class="footer">
+  247420 / mmxxvi / probably emerging 🌀 / built in public / <a href="https://github.com/AnEntrypoint/zellous">source</a>
+</div>
 </body>
 </html>

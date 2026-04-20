@@ -1,0 +1,541 @@
+/* ============================================================
+   247420 DESIGN SYSTEM — colors + type
+   we fart in its general direction.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Space+Grotesk:wght@400;500;600;700&family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Narrow:wght@400;500;600;700&display=swap');
+
+:root {
+  /* --- Neutrals --- */
+  --paper:      #EFE9DD;   /* warm off-white, zine cream */
+  --paper-2:    #E4DDCA;   /* one step warmer for blocks */
+  --ink:        #2A251D;   /* softened near-black — warm, not harsh */
+  --ink-2:      #3E382E;   /* secondary ink */
+  --ink-3:      #7A7567;   /* tertiary / metadata */
+  --rule:       #2A251D;   /* default rule */
+  --rule-inv:   #EFE9DD;
+  --cream-3:    #DCD4BE;   /* deeper cream, for hover / chips */
+  --plum-tint:  #EFE3EF;   /* pale purple-tinted cream */
+  --green-tint: #E5EDD8;   /* pale green-tinted cream */
+  --peach-tint: #F5E1D3;   /* pale peach-tinted cream */
+
+  /* --- Lore pair — the 247420 palette proper --- */
+  --green:      #247420;   /* marijuana green. 247420. primary accent. */
+  --green-fg:   #EFE9DD;   /* fg on green */
+  --green-2:    #3A9A34;   /* brighter, for mono-on-paper highlights */
+  --green-deep: #133F10;   /* deeper, for mono-on-green highlights */
+  --purple:     #420247;   /* marijuana purple. 420247. secondary accent. */
+  --purple-fg:  #EFE9DD;   /* fg on purple */
+  --purple-2:   #7F18A4;   /* brighter, mono-on-paper */
+  --purple-deep:#28002B;   /* deeper, mono-on-purple */
+
+  /* --- Mascot family — pink/magenta/mauve --- */
+  --mascot:     #E84B8A;   /* mascot magenta, wild-card */
+  --mascot-fg:  #0B0B09;
+  --mascot-hot: #FF3CA7;   /* hotter pop */
+  --mascot-mauve: #B771A0; /* muted / ambiguous */
+
+  /* --- Supporting signals --- */
+  --sun:        #F5C344;   /* warm yellow — rare highlight, not "acid" */
+  --flame:      #FF5A1F;   /* orange — warning / attention */
+  --sky:        #3A6EFF;   /* blue — long-form link */
+  --warn:       #E0241A;   /* destructive / error red */
+  --live:       var(--green);   /* success / up */
+
+  /* Canonical swatch (used for tags, inline highlights) */
+  --canon-1: var(--green);
+  --canon-2: var(--purple);
+  --canon-3: var(--mascot);
+  --canon-4: var(--sun);
+  --canon-5: var(--flame);
+  --canon-6: var(--sky);
+
+  /* --- Surfaces (semantic) --- */
+  --bg:         var(--paper);
+  --bg-2:       var(--paper-2);
+  --fg:         var(--ink);
+  --fg-2:       var(--ink-2);
+  --fg-3:       var(--ink-3);
+  --border:     var(--rule);
+  --accent:     var(--green);
+  --accent-fg:  var(--green-fg);
+  --accent-2:   var(--purple);
+  --accent-2-fg:var(--purple-fg);
+  --accent-wild:var(--mascot);
+  --link:       var(--sky);
+  --error:      var(--warn);
+
+  /* Mono-on-surface canonicals (for colorful mono treatment) */
+  --mono-1:     var(--green-2);   /* green-ish on paper, green-2 on ink */
+  --mono-2:     var(--purple-2);
+  --mono-3:     var(--mascot);
+  --mono-4:     var(--sun);
+  --mono-5:     var(--flame);
+  --mono-6:     var(--sky);
+
+  /* --- Type families (no serifs, ever) --- */
+  --ff-display: 'Archivo', 'Archivo Narrow', system-ui, -apple-system, sans-serif;
+  --ff-sans:    'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --ff-body:    'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --ff-mono:    'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  /* legacy alias — never a serif. */
+  --ff-serif:   var(--ff-body);
+
+  /* --- Type scale (tight, opinionated) --- */
+  --fs-micro:   10px;
+  --fs-tiny:    11px;
+  --fs-xs:      12px;
+  --fs-sm:      14px;
+  --fs-body:    16px;
+  --fs-lg:      18px;
+  --fs-h4:      22px;
+  --fs-h3:      28px;
+  --fs-h2:      44px;
+  --fs-h1:      72px;
+  --fs-hero:   128px;
+
+  /* --- Line heights --- */
+  --lh-tight:   1.02;
+  --lh-snug:    1.15;
+  --lh-base:    1.5;
+  --lh-long:    1.65;
+
+  /* --- Letter spacing --- */
+  --tr-caps:    0.08em;
+  --tr-label:   0.14em;
+  --tr-tight:  -0.02em;
+  --tr-wide:    0.24em;   /* billboard headlines */
+
+  /* --- Spacing (8pt) --- */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+  --space-8: 96px;
+  --space-9: 128px;
+
+  /* --- Borders (no hairlines; everything load-bearing is 2px+) --- */
+  --bw-hair:    2px;
+  --bw-rule:    4px;
+  --bw-chunk:   6px;
+
+  /* --- Radii (rounder, friendlier) --- */
+  --r-1: 6px;   /* chips, inputs, stamps */
+  --r-2: 10px;  /* buttons, rows */
+  --r-3: 16px;  /* cards, blocks */
+  --r-4: 24px;  /* hero surfaces */
+  --r-pill: 999px;
+
+  /* --- Motion --- */
+  --dur-snap:   80ms;
+  --dur-base:  160ms;
+  --dur-slow:  240ms;
+  --ease:       cubic-bezier(0.2, 0, 0, 1);
+
+  /* --- Z-index --- */
+  --z-header:  100;
+  --z-overlay: 1000;
+
+  /* --- Content measure --- */
+  --measure:   72ch;
+}
+
+/* --- Ink (dark) mode --- */
+.theme-ink,
+[data-theme="ink"] {
+  --bg:     var(--ink);
+  --bg-2:   var(--ink-2);
+  --fg:     var(--paper);
+  --fg-2:   var(--paper-2);
+  --fg-3:   #A9A396;
+  --border: var(--rule-inv);
+  /* mono-on-dark: push brighter variants so they pop on #0B0B09 */
+  --mono-1: var(--green-2);
+  --mono-2: #C277FF;
+  --mono-3: var(--mascot-hot);
+  --mono-4: var(--sun);
+  --mono-5: var(--flame);
+  --mono-6: #7AA0FF;
+}
+
+/* System preference default — flips light/dark with the OS */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="paper"]) {
+    --bg:     var(--ink);
+    --bg-2:   var(--ink-2);
+    --fg:     var(--paper);
+    --fg-2:   var(--paper-2);
+    --fg-3:   #A9A396;
+    --border: var(--rule-inv);
+    --mono-1: var(--green-2);
+    --mono-2: #C277FF;
+    --mono-3: var(--mascot-hot);
+    --mono-4: var(--sun);
+    --mono-5: var(--flame);
+    --mono-6: #7AA0FF;
+  }
+}
+
+/* ============================================================
+   Base elements
+   ============================================================ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-body);
+  line-height: var(--lh-base);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: 'ss01', 'ss02', 'calt' 1;
+}
+
+/* ============================================================
+   Semantic type classes
+   ============================================================ */
+
+/* Hero — project name, once per page. Archivo Black territory. */
+.t-hero, h1.hero {
+  font-family: var(--ff-display);
+  font-size: clamp(64px, 12vw, var(--fs-hero));
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  font-weight: 800;
+  margin: 0;
+}
+
+/* h1 — page title */
+.t-h1, h1 {
+  font-family: var(--ff-display);
+  font-size: clamp(40px, 6vw, var(--fs-h1));
+  line-height: var(--lh-tight);
+  letter-spacing: var(--tr-tight);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* h2 — section */
+.t-h2, h2 {
+  font-family: var(--ff-display);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tr-tight);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* h3 — subsection (mono, colorful-eligible) */
+.t-h3, h3 {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-h3);
+  line-height: var(--lh-snug);
+  letter-spacing: 0;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* h4 */
+.t-h4, h4 {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-h4);
+  line-height: var(--lh-snug);
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Body UI — mono, the default UI voice */
+.t-body {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-body);
+  line-height: var(--lh-base);
+}
+
+/* Long-form prose — SANS, not serif. Space Grotesk. */
+.t-prose, .prose p {
+  font-family: var(--ff-body);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-long);
+  max-width: var(--measure);
+  text-wrap: pretty;
+  font-weight: 400;
+}
+.prose p { margin: 0 0 var(--space-4) 0; }
+
+/* Label — mono caps, terminal voice */
+.t-label {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-label);
+  font-weight: 500;
+}
+
+/* Meta — mono, small, dim */
+.t-meta {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
+}
+
+/* Micro — smallest, datelines */
+.t-micro {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+/* Pull — display, for section intros and callouts */
+.t-pull {
+  font-family: var(--ff-display);
+  font-size: var(--fs-h2);
+  line-height: var(--lh-snug);
+  font-weight: 600;
+  max-width: 20ch;
+  letter-spacing: var(--tr-tight);
+}
+
+/* Code */
+code, .t-code {
+  font-family: var(--ff-mono);
+  font-size: 0.9em;
+  background: var(--bg-2);
+  padding: 0.15em 0.5em;
+  border: var(--bw-hair) solid var(--border);
+  border-radius: var(--r-1);
+}
+
+/* ============================================================
+   COLORFUL MONO — the signature treatment
+   Mono is the UI voice. We don't leave it grey. Every mono block
+   is allowed — encouraged — to carry a canonical hue per token.
+   ============================================================ */
+
+/* Hue utilities — apply to mono runs to tint them */
+.mono-green   { color: var(--mono-1); }
+.mono-purple  { color: var(--mono-2); }
+.mono-mascot  { color: var(--mono-3); }
+.mono-sun     { color: var(--mono-4); }
+.mono-flame   { color: var(--mono-5); }
+.mono-sky     { color: var(--mono-6); }
+.mono-ink     { color: var(--fg); }
+.mono-dim     { color: var(--fg-3); }
+
+/* Highlight block — a mono run on a tinted bg with dark text */
+.hl-green   { background: var(--green);   color: var(--green-fg); padding: 0.08em 0.4em; border-radius: var(--r-1); }
+.hl-purple  { background: var(--purple);  color: var(--purple-fg); padding: 0.08em 0.4em; border-radius: var(--r-1); }
+.hl-mascot  { background: var(--mascot);  color: var(--mascot-fg); padding: 0.08em 0.4em; border-radius: var(--r-1); }
+.hl-sun     { background: var(--sun);     color: var(--ink); padding: 0.08em 0.4em; border-radius: var(--r-1); }
+.hl-flame   { background: var(--flame);   color: var(--paper); padding: 0.08em 0.4em; border-radius: var(--r-1); }
+.hl-sky     { background: var(--sky);     color: var(--paper); padding: 0.08em 0.4em; border-radius: var(--r-1); }
+
+/* Role-colored mono spans — semantic, self-documenting */
+.m-k     { color: var(--mono-2); font-weight: 500; }  /* keyword */
+.m-s     { color: var(--mono-4); }                    /* string */
+.m-n     { color: var(--mono-1); }                    /* number / live */
+.m-c     { color: var(--fg-3); font-style: italic; }  /* comment */
+.m-tag   { color: var(--mono-3); }                    /* tag / mention */
+.m-op    { color: var(--mono-5); }                    /* operator / punct */
+.m-ref   { color: var(--mono-6); text-decoration: underline; text-underline-offset: 3px; }
+
+/* Links in prose */
+.prose a, a.t-link {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.prose a:hover, a.t-link:hover {
+  background: var(--link);
+  color: var(--paper);
+  text-decoration: none;
+}
+
+/* ============================================================
+   Primitives — rules, stamps, buttons
+   ============================================================ */
+
+.rule       { border: 0; border-top: var(--bw-hair) solid var(--border); margin: 0; }
+.rule-double{ border: 0; border-top: var(--bw-hair) solid var(--border); border-bottom: var(--bw-hair) solid var(--border); height: var(--bw-rule); margin: 0; }
+.rule-dotted{ border: 0; border-top: var(--bw-hair) dotted var(--border); margin: 0; }
+.rule-green { border: 0; border-top: var(--bw-rule) solid var(--green); margin: 0; }
+.rule-purple{ border: 0; border-top: var(--bw-rule) solid var(--purple); margin: 0; }
+.rule-mascot{ border: 0; border-top: var(--bw-rule) solid var(--mascot); margin: 0; }
+
+/* The 247420 stamp */
+.stamp {
+  display: inline-block;
+  padding: var(--space-1) var(--space-3);
+  border: var(--bw-hair) solid var(--fg);
+  border-radius: var(--r-pill);
+  color: var(--fg);
+  background: transparent;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-tiny);
+  letter-spacing: var(--tr-label);
+  text-transform: uppercase;
+  font-weight: 600;
+  transform: rotate(-2deg);
+}
+.stamp.ink     { background: var(--fg);     color: var(--bg); }
+.stamp.green   { background: var(--green);  color: var(--green-fg);  border-color: var(--green-fg); }
+.stamp.purple  { background: var(--purple); color: var(--purple-fg); border-color: var(--purple-fg); }
+.stamp.mascot  { background: var(--mascot); color: var(--mascot-fg); border-color: var(--mascot-fg); }
+.stamp.sun     { background: var(--sun);    color: var(--ink);       border-color: var(--ink); }
+.stamp.flame   { background: var(--flame);  color: var(--paper);     border-color: var(--paper); }
+
+/* Legacy alias — .stamp.acid now means green */
+.stamp.acid    { background: var(--green);  color: var(--green-fg);  border-color: var(--green-fg); }
+
+/* The "stamp button" */
+.btn-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--fg);
+  color: var(--bg);
+  border: var(--bw-hair) solid var(--fg);
+  border-radius: var(--r-2);
+  box-shadow: 4px 4px 0 var(--fg);
+  font-family: var(--ff-mono);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-caps);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--dur-snap) var(--ease), box-shadow var(--dur-snap) var(--ease);
+}
+.btn-stamp:hover  { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--fg); }
+.btn-stamp:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--fg); }
+
+.btn-stamp.green  { background: var(--green);  color: var(--green-fg);  border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+.btn-stamp.purple { background: var(--purple); color: var(--purple-fg); border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+.btn-stamp.mascot { background: var(--mascot); color: var(--mascot-fg); border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+.btn-stamp.sun    { background: var(--sun);    color: var(--ink);       border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+.btn-stamp.flame  { background: var(--flame);  color: var(--paper);     border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+.btn-stamp.acid   { background: var(--green);  color: var(--green-fg);  border-color: var(--ink); box-shadow: 4px 4px 0 var(--ink); } /* legacy */
+
+/* Plain button — default */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  color: var(--fg);
+  border: var(--bw-hair) solid var(--fg);
+  border-radius: var(--r-2);
+  font-family: var(--ff-mono);
+  font-weight: 500;
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-caps);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease);
+}
+.btn:hover  { background: var(--fg); color: var(--bg); }
+.btn:active { background: var(--green); color: var(--green-fg); border-color: var(--green); }
+
+/* Ghost/link button */
+.btn-ghost {
+  background: transparent;
+  border: none;
+  color: var(--fg);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-sm);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-caps);
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.btn-ghost:hover { color: var(--green-fg); background: var(--green); }
+
+/* Input — softened: full border, rounded, 2px default */
+.input {
+  width: 100%;
+  background: var(--bg);
+  border: var(--bw-hair) solid var(--border);
+  border-radius: var(--r-2);
+  padding: var(--space-3) var(--space-3);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-body);
+  color: var(--fg);
+  outline: none;
+  transition: border-color var(--dur-snap) var(--ease), box-shadow var(--dur-snap) var(--ease);
+}
+.input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--green) 25%, transparent);
+}
+.input::placeholder { color: var(--fg-3); }
+
+/* ============================================================
+   Layout scaffolds
+   ============================================================ */
+
+.page { min-height: 100vh; padding: var(--space-5); }
+
+.dateline {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-bottom: var(--space-2);
+  border-bottom: var(--bw-hair) solid var(--border);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-label);
+}
+.dateline > * { white-space: nowrap; }
+.dateline .spread { flex: 1; border-bottom: var(--bw-hair) dotted var(--border); align-self: center; }
+
+/* Index-card row — soft card with breathing room */
+.row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--bw-hair) solid var(--border);
+  border-radius: var(--r-3);
+  background: var(--bg);
+  align-items: baseline;
+  margin-bottom: calc(var(--bw-hair) * -1);
+  transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease), transform var(--dur-snap) var(--ease);
+}
+.row + .row { margin-top: var(--space-2); margin-bottom: 0; }
+.row .row-code  { font-family: var(--ff-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tr-label); color: var(--mono-1); }
+.row .row-title { font-family: var(--ff-display); font-weight: 700; font-size: var(--fs-h3); line-height: var(--lh-snug); letter-spacing: var(--tr-tight); }
+.row .row-meta  { font-family: var(--ff-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tr-label); color: var(--fg-3); }
+.row:hover { background: var(--green); color: var(--green-fg); transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
+.row:hover .row-code { color: var(--sun); }
+.row:hover .row-meta { color: var(--green-fg); }
+
+/* Soft card — the generic container */
+.card {
+  border: var(--bw-hair) solid var(--border);
+  border-radius: var(--r-3);
+  background: var(--bg);
+  padding: var(--space-5);
+}
+.card.chunk { border-width: var(--bw-chunk); }
+
+/* ============================================================
+   Selection
+   ============================================================ */
+::selection { background: var(--mascot); color: var(--mascot-fg); }

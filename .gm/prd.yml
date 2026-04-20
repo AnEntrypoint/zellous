@@ -1,0 +1,154 @@
+- id: claim-npm-magicwand
+  subject: Verify + claim "magicwand" npm name
+  status: pending
+  description: npm view magicwand. Package name fixed to "magicwand" (no scope). If taken by other owner, HALT.
+  effort: small
+  category: infra
+  blocking: [magicwand-scaffold, magicwand-ci]
+  blockedBy: []
+  acceptance:
+    - package.json name = "magicwand"
+    - npm view magicwand either 404 OR owned by this account
+  edge_cases:
+    - taken by other -> HALT
+
+- id: probe-design-url
+  subject: Fetch design spec from Anthropic URL
+  status: pending
+  description: WebFetch https://api.anthropic.com/v1/design/h/IlV0ChPfQkFZVtXrJu8avw. If 401/403/404, fallback to ripple-ui.com + webjsx.org public docs as design source. Record tokens in .gm/design.json.
+  effort: small
+  category: infra
+  blocking: [apply-design-magicwand, apply-design-zellous]
+  blockedBy: []
+  acceptance:
+    - .gm/design.json written with colors/spacing/typography OR fallback documented
+  edge_cases:
+    - auth required -> fallback
+    - 404 -> fallback
+
+- id: enumerate-network-surface
+  subject: List every zellous file touching network
+  status: pending
+  description: exec:codesearch for fetch/WebSocket/RTCPeerConnection/getUserMedia/relay/nostr-tools/SubscriptionManager. Produce file list + exported surface + consumer map.
+  effort: medium
+  category: refactor
+  blocking: [magicwand-modules, zellous-thin-shell]
+  blockedBy: []
+  acceptance:
+    - .gm/network-surface.md complete
+  edge_cases:
+    - indirect window.* globals missed
+
+- id: magicwand-scaffold
+  subject: Scaffold C:/dev/magicwand package
+  status: pending
+  description: mkdir C:/dev/magicwand, git init, package.json (name="magicwand", type=module, exports map), README.md, LICENSE (MIT), .gitignore, src/ dir, test.js stub.
+  effort: small
+  category: infra
+  blocking: [magicwand-modules, magicwand-ci]
+  blockedBy: [claim-npm-magicwand]
+  acceptance:
+    - C:/dev/magicwand git log shows initial commit
+    - package.json has name/main/exports/types
+  edge_cases: []
+
+- id: magicwand-modules
+  subject: Port ALL network modules to magicwand
+  status: pending
+  description: Port nostr-network.js, nostr-voice.js, nostr-voice-rtc.js, nostr-voice-sfu.js, nostr-voice-camera.js, network layer of nostr-chat.js, nostr-channels.js, nostr-servers.js, nostr-auth.js (keys+sign), nostr-fsm.js. Strip all window.* globals -> explicit ES exports. No Preact deps. Files <200 lines.
+  effort: large
+  category: refactor
+  blocking: [zellous-thin-shell, magicwand-test, observability-magicwand]
+  blockedBy: [enumerate-network-surface, magicwand-scaffold]
+  acceptance:
+    - named exports: createRelayPool, createVoiceSession, createChannelClient, createServerClient, createChatClient, NostrAuth
+    - no file > 200 lines
+    - zero window.* writes in src/
+  edge_cases:
+    - XState peer dep
+    - nostr-tools as dep
+
+- id: magicwand-test
+  subject: Write test.js against real public relays
+  status: pending
+  description: Root test.js. Connect wss://relay.damus.io, publish+subscribe kind 1, WebRTC offer/answer loopback, voice presence heartbeat. Plain node assert, no framework.
+  effort: medium
+  category: feature
+  blocking: [magicwand-ci]
+  blockedBy: [magicwand-modules]
+  acceptance:
+    - node test.js exits 0
+  edge_cases:
+    - relay flaky -> retry with relay.primal.net
+    - node lacks RTCPeerConnection -> use @roamhq/wrtc
+
+- id: magicwand-ci
+  subject: GH Action auto-bump + npm publish on push
+  status: pending
+  description: .github/workflows/publish.yml. On push master -> npm version patch -> git push --follow-tags -> npm publish. Skip if commit has [skip-publish] or bot author.
+  effort: medium
+  category: infra
+  blocking: [zellous-thin-shell]
+  blockedBy: [magicwand-test, claim-npm-magicwand]
+  acceptance:
+    - push triggers Action
+    - version bumps, tag pushed, npm registry updated
+  edge_cases:
+    - NPM_TOKEN secret setup documented in README
+    - bot bump loop -> detect author + [skip ci]
+
+- id: zellous-thin-shell
+  subject: Strip ALL network code from zellous - GUI only
+  status: pending
+  description: zellous local = GUI shell. Delete nostr-network.js, nostr-voice*.js, nostr-chat/channels/servers network layer, nostr-auth.js. Replace with magicwand import via importmap CDN (unpkg pinned version). Remaining docs/js/ = UI render + DOM events + state signals bound to magicwand events.
+  effort: large
+  category: refactor
+  blocking: [apply-design-zellous]
+  blockedBy: [magicwand-modules, magicwand-ci]
+  acceptance:
+    - zero WebSocket/RTCPeerConnection/relay-fetch in docs/js/
+    - docs/nostr-chat/ works end-to-end via magicwand
+    - docs/js/ files are UI-only
+  edge_cases:
+    - CDN pin for reproducibility
+    - magicwand API drift -> pinned version in importmap
+
+- id: apply-design-magicwand
+  subject: Build magicwand docs site with webjsx + ripple-ui components
+  status: pending
+  description: magicwand/docs/ static site. webjsx rendering. Ripple-ui visual tokens reimplemented as web components (Button, Card, Input, Badge, Tabs, Modal). GH Pages deploy.
+  effort: large
+  category: feature
+  blocking: []
+  blockedBy: [probe-design-url, magicwand-scaffold]
+  acceptance:
+    - magicwand/docs/index.html component gallery renders
+    - components authored via webjsx as <web-components>
+  edge_cases:
+    - webjsx ESM CDN availability
+
+- id: apply-design-zellous
+  subject: Restyle zellous with new design tokens + magicwand components
+  status: pending
+  description: Rewrite docs/css/discord.css using resolved tokens. Import magicwand web components for buttons/inputs/modals where they fit.
+  effort: medium
+  category: refactor
+  blocking: []
+  blockedBy: [probe-design-url, zellous-thin-shell]
+  acceptance:
+    - palette/typography matches magicwand docs
+    - no mobile/desktop layout regressions
+  edge_cases: []
+
+- id: observability-magicwand
+  subject: window.__magicwand debug registry
+  status: pending
+  description: Each client object registers into window.__magicwand[key] on construct, deregisters on close. Live state getters.
+  effort: small
+  category: feature
+  blocking: []
+  blockedBy: [magicwand-modules]
+  acceptance:
+    - window.__magicwand.relays.status() lists per-relay state
+    - window.__magicwand.voice.peers() lists peer matrix
+  edge_cases: []
