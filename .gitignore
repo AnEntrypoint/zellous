@@ -35,3 +35,8 @@ docs/vendor/fonts/
 .plugkit-browser-profile/
 test-imports.js
 verify-assets.js
+.plugkit-browser-profile-*/
+.plugkit-agent-worktree/
+.codeinsight
+*.stackdump
+preview-*.png
