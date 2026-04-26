@@ -20,12 +20,13 @@ html[data-theme="light"] {
   --gs-text-2:    #3c4043;   /* secondary, AAA on gs-1 */
   --gs-text-3:    #5f6368;   /* tertiary, AA on gs-1 (4.69:1) */
   --gs-text-4:    #80868b;   /* hint only */
-  --gs-accent:    #1967d2;          /* deepened from #1a73e8 → 5.17:1 on gs-bg AA */
-  --gs-accent-hover: #174ea6;
-  --gs-accent-bg: #e8f0fe;
-  --gs-accent-fg: #174ea6;   /* AAA on accent-bg */
+  /* 247420 brand accent — green is the lore. Tokens shift, not scattered hex. */
+  --gs-accent:    #247420;          /* marijuana green · 5.45:1 on gs-bg AA */
+  --gs-accent-hover: #1c5a19;
+  --gs-accent-bg: #E5EDD8;          /* green-tinted cream — soft pill bg */
+  --gs-accent-fg: #133F10;          /* AAA on accent-bg */
   --gs-danger:    #d93025;
-  --gs-success:   #137333;
+  --gs-success:   #247420;          /* same family as accent, brand consistency */
   --gs-warn:      #b06000;
   --gs-warn-bg:   #fef7e0;
   --gs-radius:    8px;
@@ -53,12 +54,13 @@ html[data-theme="night"] {
   --gs-text-2:    #c4c7c5;   /* AAA on gs-1 */
   --gs-text-3:    #9aa0a6;   /* AA on gs-1 (4.7:1) */
   --gs-text-4:    #80868b;   /* hint */
-  --gs-accent:    #8ab4f8;
-  --gs-accent-hover: #aecbfa;
-  --gs-accent-bg: #1e3a5f;
-  --gs-accent-fg: #d2e3fc;   /* AAA on accent-bg */
+  /* Dark accent — mint green so fg ink reads, brand-paired (per SKILL contrast contract) */
+  --gs-accent:    #92CEAC;          /* mint, AAA against #1f1f1f */
+  --gs-accent-hover: #B6E0CA;
+  --gs-accent-bg: #1c3a25;          /* deep green tint, holds text */
+  --gs-accent-fg: #C8EBD3;          /* AAA on accent-bg */
   --gs-danger:    #f28b82;
-  --gs-success:   #81c995;
+  --gs-success:   #92CEAC;          /* mirror accent */
   --gs-warn:      #fdd663;
   --gs-warn-bg:   #3d2e00;
   --gs-shadow-1:  0 1px 2px 0 rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
@@ -134,16 +136,25 @@ html, body, .app {
   background: var(--gs-3) !important;
   border-radius: var(--gs-radius-lg) !important;
 }
-.server-icon.active {
+.server-icon.active,
+.server-icon.home,
+.server-icon.home.active {
   background: var(--gs-accent) !important;
   color: #fff !important;
   border-radius: var(--gs-radius-lg) !important;
+  font-family: 'Archivo Black','Archivo',var(--gs-font) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
 }
 html[data-theme="ink"] .server-icon.active,
+html[data-theme="ink"] .server-icon.home,
+html[data-theme="ink"] .server-icon.home.active,
 html[data-theme="dark"] .server-icon.active,
+html[data-theme="dark"] .server-icon.home,
+html[data-theme="dark"] .server-icon.home.active,
 html[data-theme="night"] .server-icon.active {
   background: var(--gs-accent) !important;
-  color: #1f1f1f !important;
+  color: #0B0B09 !important;
 }
 .server-icon .server-pill { display: none !important; }
 .server-boost-bar { display: none !important; }
@@ -165,9 +176,11 @@ html[data-theme="night"] .server-icon.active {
 .server-header-name {
   background: transparent !important;
   color: var(--gs-text) !important;
-  font-weight: 500 !important;
+  font-family: 'Archivo Black','Archivo',var(--gs-font) !important;
+  font-weight: 800 !important;
   font-size: 18px !important;
-  padding: 12px 18px 8px 18px !important;
+  letter-spacing: -0.01em !important;
+  padding: 14px 18px 10px 18px !important;
 }
 .server-header-dropdown { color: var(--gs-text) !important; }
 .server-header-arrow { color: var(--gs-text-3) !important; }
@@ -492,8 +505,18 @@ textarea.chat-input {
 .input-btn:hover,
 .input-icon-btn:hover,
 .input-buttons button:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
-.send-btn, #sendBtn { color: var(--gs-accent) !important; }
-.send-btn:hover, #sendBtn:hover { background: var(--gs-accent-bg) !important; color: var(--gs-accent-fg) !important; }
+/* Send button — brand-filled, primary action signal */
+.send-btn, #sendBtn {
+  background: var(--gs-accent) !important;
+  color: #fff !important;
+}
+html[data-theme="ink"] .send-btn, html[data-theme="ink"] #sendBtn,
+html[data-theme="dark"] .send-btn, html[data-theme="dark"] #sendBtn {
+  color: #0B0B09 !important;
+}
+.send-btn:hover, #sendBtn:hover { background: var(--gs-accent-hover) !important; color: #fff !important; }
+html[data-theme="ink"] .send-btn:hover, html[data-theme="ink"] #sendBtn:hover,
+html[data-theme="dark"] .send-btn:hover, html[data-theme="dark"] #sendBtn:hover { color: #0B0B09 !important; }
 .input-buttons { gap: 2px !important; display: flex; align-items: center; background: transparent !important; }
 
 /* ============================================================
