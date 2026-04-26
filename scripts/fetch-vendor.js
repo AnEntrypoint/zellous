@@ -27,18 +27,22 @@ const files = [
   {
     name: 'fonts/noto-sans-400.ttf',
     url: 'https://fonts.gstatic.com/s/notosans/v21/o-0NIpQlx3QUlC5A4PNr6DRHS_m8rYnrF_BOXe5dZ3E.ttf',
+    optional: true,
   },
   {
     name: 'fonts/noto-sans-500.ttf',
     url: 'https://fonts.gstatic.com/s/notosans/v21/o-0OIpQlx3QUlC5A4PNr6DRHS_m8rYnrF_BOXe5dZ3E.ttf',
+    optional: true,
   },
   {
     name: 'fonts/noto-sans-600.ttf',
     url: 'https://fonts.gstatic.com/s/notosans/v21/o-0TIpQlx3QUlC5A4PNr6DRHS_m8rYnrF_BOXe5dZ3E.ttf',
+    optional: true,
   },
   {
     name: 'fonts/noto-sans-700.ttf',
     url: 'https://fonts.gstatic.com/s/notosans/v21/o-0VIpQlx3QUlC5A4PNr6DRHS_m8rYnrF_BOXe5dZ3E.ttf',
+    optional: true,
   },
 ];
 
