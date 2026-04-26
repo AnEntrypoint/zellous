@@ -1,0 +1,785 @@
+/* ============================================================
+   gmail-surface.css — Mode B (per c:/dev/design SKILL.md)
+   "Backgrounds over borders" — separation by surface tone + gap.
+   Loads LAST; overrides discord.css/tokens.css/247420.css.
+   Material 3 / Gmail inbox aesthetic with Roboto + Google Sans.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+:root,
+html[data-theme="paper"],
+html[data-theme="light"] {
+  /* Light (gmail inbox) */
+  --gs-bg:        #f6f8fc;   /* page canvas */
+  --gs-1:         #ffffff;   /* card / surface */
+  --gs-2:         #f1f3f4;   /* zebra / hover / filled input */
+  --gs-3:         #e8eaed;   /* deeper hover / pressed */
+  --gs-4:         #dadce0;   /* faint divider band only */
+  --gs-text:      #202124;   /* WCAG AAA on gs-1, gs-2, gs-3 */
+  --gs-text-2:    #3c4043;   /* secondary, AAA on gs-1 */
+  --gs-text-3:    #5f6368;   /* tertiary, AA on gs-1 (4.69:1) */
+  --gs-text-4:    #80868b;   /* hint only */
+  --gs-accent:    #1a73e8;
+  --gs-accent-hover: #1967d2;
+  --gs-accent-bg: #e8f0fe;
+  --gs-accent-fg: #174ea6;   /* AAA on accent-bg */
+  --gs-danger:    #d93025;
+  --gs-success:   #137333;
+  --gs-warn:      #b06000;
+  --gs-warn-bg:   #fef7e0;
+  --gs-radius:    8px;
+  --gs-radius-md: 12px;
+  --gs-radius-lg: 16px;
+  --gs-radius-pill: 9999px;
+  --gs-gap:       8px;
+  --gs-shadow-1:  0 1px 2px 0 rgba(60,64,67,.10), 0 1px 3px 1px rgba(60,64,67,.06);
+  --gs-shadow-2:  0 1px 2px 0 rgba(60,64,67,.10), 0 2px 6px 2px rgba(60,64,67,.08);
+  --gs-shadow-3:  0 4px 8px 3px rgba(60,64,67,.10), 0 1px 3px 0 rgba(60,64,67,.10);
+  --gs-font:      'Google Sans Text','Roboto', system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+  --gs-font-mono: 'Roboto Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --gs-ease:      cubic-bezier(0.2, 0, 0, 1);
+}
+
+html[data-theme="ink"],
+html[data-theme="dark"],
+html[data-theme="night"] {
+  --gs-bg:        #1f1f1f;
+  --gs-1:         #2d2e30;
+  --gs-2:         #35363a;
+  --gs-3:         #3c4043;
+  --gs-4:         #5f6368;
+  --gs-text:      #e8eaed;   /* AAA on gs-1, gs-2, gs-3 */
+  --gs-text-2:    #c4c7c5;   /* AAA on gs-1 */
+  --gs-text-3:    #9aa0a6;   /* AA on gs-1 (4.7:1) */
+  --gs-text-4:    #80868b;   /* hint */
+  --gs-accent:    #8ab4f8;
+  --gs-accent-hover: #aecbfa;
+  --gs-accent-bg: #1e3a5f;
+  --gs-accent-fg: #d2e3fc;   /* AAA on accent-bg */
+  --gs-danger:    #f28b82;
+  --gs-success:   #81c995;
+  --gs-warn:      #fdd663;
+  --gs-warn-bg:   #3d2e00;
+  --gs-shadow-1:  0 1px 2px 0 rgba(0,0,0,.30), 0 1px 3px 1px rgba(0,0,0,.15);
+  --gs-shadow-2:  0 1px 2px 0 rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.20);
+  --gs-shadow-3:  0 4px 8px 3px rgba(0,0,0,.30), 0 1px 3px 0 rgba(0,0,0,.30);
+}
+
+/* ============================================================
+   Zero-border baseline (Mode B). Only <hr> + [data-slot=separator] keep a band.
+   Applies to .app and to top-level overlays (modals, popovers, menus).
+   ============================================================ */
+.app, .app *, .app *::before, .app *::after,
+.modal, .modal *, .modal *::before, .modal *::after,
+.modal-overlay, .modal-overlay *,
+.modal-box, .modal-box *,
+.popover, .popover *, .context-menu, .context-menu *,
+[id$="ContextMenu"], [id$="ContextMenu"] *,
+#authModal, #authModal *, #settingsPopover, #settingsPopover * {
+  border-color: transparent !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  outline: none !important;
+}
+.app hr,
+.app [data-slot="separator"] {
+  border: 0 !important;
+  height: 1px;
+  background: var(--gs-4) !important;
+  opacity: 0.40;
+  margin: 8px 0;
+}
+
+/* ============================================================
+   Global typography
+   ============================================================ */
+html, body, .app, .app input, .app textarea, .app button, .app select {
+  font-family: var(--gs-font) !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+html, body, .app {
+  background: var(--gs-bg) !important;
+  color: var(--gs-text) !important;
+}
+.app code, .app pre, .app .mono { font-family: var(--gs-font-mono) !important; }
+
+/* ============================================================
+   App grid spacing
+   ============================================================ */
+.app { gap: var(--gs-gap) !important; padding: 0 !important; }
+
+/* ============================================================
+   SERVER LIST (left rail)
+   ============================================================ */
+.server-list,
+#serverList,
+#serverIcons {
+  background: var(--gs-bg) !important;
+  padding: 8px 6px !important;
+  gap: 6px !important;
+}
+.server-icon {
+  border-radius: var(--gs-radius-md) !important;
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  font-weight: 500 !important;
+  transition: background 120ms var(--gs-ease), border-radius 200ms var(--gs-ease), color 120ms var(--gs-ease) !important;
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.server-icon:hover {
+  background: var(--gs-3) !important;
+  border-radius: var(--gs-radius-lg) !important;
+}
+.server-icon.active {
+  background: var(--gs-accent) !important;
+  color: #fff !important;
+  border-radius: var(--gs-radius-lg) !important;
+}
+html[data-theme="ink"] .server-icon.active,
+html[data-theme="dark"] .server-icon.active,
+html[data-theme="night"] .server-icon.active {
+  background: var(--gs-accent) !important;
+  color: #1f1f1f !important;
+}
+.server-icon .server-pill { display: none !important; }
+.server-boost-bar { display: none !important; }
+.server-icon img { border-radius: inherit !important; }
+
+/* ============================================================
+   CHANNEL SIDEBAR (left of main)
+   ============================================================ */
+.channel-sidebar,
+#channelSidebar {
+  background: var(--gs-1) !important;
+  border-radius: var(--gs-radius-lg) !important;
+  margin: 6px 0 6px 0 !important;
+  padding: 4px 0 8px 0 !important;
+  overflow: hidden;
+}
+
+.server-header,
+.server-header-name {
+  background: transparent !important;
+  color: var(--gs-text) !important;
+  font-weight: 500 !important;
+  font-size: 18px !important;
+  padding: 12px 18px 8px 18px !important;
+}
+.server-header-dropdown { color: var(--gs-text) !important; }
+.server-header-arrow { color: var(--gs-text-3) !important; }
+
+.channel-category-header,
+.category-header {
+  background: transparent !important;
+  color: var(--gs-text-3) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 14px 16px 4px 16px !important;
+  font-family: var(--gs-font) !important;
+}
+
+.channel-list { background: transparent !important; padding: 0 !important; }
+
+.channel-item,
+.channel {
+  background: transparent !important;
+  color: var(--gs-text-2) !important;
+  border-radius: 0 var(--gs-radius-pill) var(--gs-radius-pill) 0 !important;
+  margin: 1px 12px 1px 0 !important;
+  padding: 7px 16px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  font-family: var(--gs-font) !important;
+  display: flex; align-items: center; gap: 10px;
+  transition: background 80ms var(--gs-ease), color 80ms var(--gs-ease) !important;
+}
+.channel-item:hover,
+.channel:hover {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+}
+.channel-item.active,
+.channel.active,
+.channel-item.voice-active,
+.channel.voice-active {
+  background: var(--gs-accent-bg) !important;
+  color: var(--gs-accent-fg) !important;
+}
+.channel-item .channel-name,
+.channel .channel-name,
+.channel-item .ch-icon,
+.channel .ch-icon { color: inherit !important; opacity: 1 !important; }
+.channel-item.active .channel-name,
+.channel.active .channel-name,
+.channel-item.active .ch-icon,
+.channel.active .ch-icon { color: var(--gs-accent-fg) !important; font-weight: 700 !important; }
+
+.channel-actions { color: inherit !important; opacity: 0; transition: opacity 80ms var(--gs-ease); }
+.channel-item:hover .channel-actions { opacity: 0.7 !important; }
+.channel-mention-badge {
+  background: var(--gs-danger) !important;
+  color: #fff !important;
+  border-radius: var(--gs-radius-pill) !important;
+  padding: 0 6px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  min-width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* ============================================================
+   USER PANEL (bottom of sidebar)
+   ============================================================ */
+.user-panel,
+#userPanel {
+  background: var(--gs-2) !important;
+  border-radius: var(--gs-radius) !important;
+  margin: 6px 8px !important;
+  padding: 8px 10px !important;
+}
+.user-panel-name, #userPanelName { color: var(--gs-text) !important; font-weight: 500 !important; font-size: 13px !important; }
+.user-panel-tag, #userPanelTag { color: var(--gs-text-3) !important; font-size: 11px !important; font-family: var(--gs-font-mono) !important; }
+.user-panel-avatar, #userPanelAvatar {
+  background: var(--gs-success) !important;
+  color: #fff !important;
+  border-radius: var(--gs-radius-pill) !important;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 500;
+}
+.user-status-dot, #userStatusDot { background: var(--gs-success) !important; }
+.user-panel-actions button,
+.user-panel-actions .input-icon-btn {
+  background: transparent !important;
+  color: var(--gs-text-2) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  width: 32px; height: 32px;
+}
+.user-panel-actions button:hover { background: var(--gs-3) !important; color: var(--gs-text) !important; }
+
+/* ============================================================
+   CHAT AREA (main)
+   ============================================================ */
+.main-content { background: var(--gs-bg) !important; }
+.chat-area,
+#chatArea {
+  background: var(--gs-1) !important;
+  border-radius: var(--gs-radius-lg) !important;
+  margin: 6px 6px 6px 0 !important;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.chat-scroll, .chat-messages-inner { background: transparent !important; }
+
+/* CHAT HEADER */
+.chat-header,
+.chat-header-bar {
+  background: transparent !important;
+  color: var(--gs-text) !important;
+  padding: 14px 22px !important;
+  display: flex; align-items: center; gap: 12px;
+}
+.chat-header-name,
+.chat-header h1, .chat-header h2 {
+  font-family: var(--gs-font) !important;
+  font-weight: 500 !important;
+  font-size: 20px !important;
+  color: var(--gs-text) !important;
+  background: transparent !important;
+  letter-spacing: -0.01em !important;
+}
+.chat-header-icon, .chat-header .ch-icon { color: var(--gs-text-3) !important; }
+.chat-header-divider { background: var(--gs-4) !important; opacity: 0.4 !important; width: 1px; height: 18px; }
+.chat-header-toolbar { background: transparent !important; gap: 4px !important; margin-left: auto !important; }
+
+.toolbar-btn {
+  background: transparent !important;
+  color: var(--gs-text-3) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 80ms var(--gs-ease), color 80ms var(--gs-ease) !important;
+}
+.toolbar-btn:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+.toolbar-btn.active { background: var(--gs-accent-bg) !important; color: var(--gs-accent-fg) !important; }
+
+/* MESSAGES */
+.chat-messages,
+#chatMessages {
+  background: transparent !important;
+  padding: 8px 8px 8px 8px !important;
+}
+#chatMessagesInner { padding: 0 !important; }
+.message,
+.msg-row,
+.msg-cont,
+.msg-group,
+.chat-message {
+  background: transparent !important;
+  padding: 6px 16px !important;
+  border-radius: var(--gs-radius) !important;
+  transition: background 60ms var(--gs-ease) !important;
+  margin: 1px 4px;
+}
+.message:hover,
+.msg-row:hover,
+.msg-cont:hover,
+.msg-group:hover,
+.chat-message:hover {
+  background: var(--gs-2) !important;
+}
+.msg-content, .message-content, .chat-message-content {
+  color: var(--gs-text) !important;
+  font-family: var(--gs-font) !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+.msg-author, .msg-username, .message-author, .chat-message-author {
+  color: var(--gs-text) !important;
+  font-weight: 500 !important;
+  font-family: var(--gs-font) !important;
+  font-size: 14px !important;
+}
+.msg-timestamp, .message-timestamp {
+  color: var(--gs-text-3) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  font-family: var(--gs-font) !important;
+  margin-left: 8px !important;
+}
+.msg-avatar, .message-avatar, .chat-message-avatar {
+  border-radius: var(--gs-radius-pill) !important;
+  background: var(--gs-2) !important;
+}
+
+/* Message hover actions — restore shadow after reset */
+.app .msg-actions {
+  background: var(--gs-1) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,.10), 0 2px 6px 2px rgba(60,64,67,.08) !important;
+  padding: 2px !important;
+  display: flex; gap: 0;
+}
+html[data-theme="ink"] .app .msg-actions,
+html[data-theme="dark"] .app .msg-actions { box-shadow: 0 1px 2px 0 rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.20) !important; }
+.msg-action-btn {
+  background: transparent !important;
+  color: var(--gs-text-2) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  width: 32px; height: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 80ms var(--gs-ease) !important;
+}
+.msg-action-btn:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+.msg-action-btn.danger { background: transparent !important; color: var(--gs-danger) !important; }
+.msg-action-btn.danger:hover { background: var(--gs-2) !important; color: var(--gs-danger) !important; }
+.msg-action-btn .ch-icon, .msg-action-btn svg { color: inherit !important; }
+
+/* Reactions */
+.msg-reactions, .message-reactions { gap: 4px !important; margin-top: 4px !important; }
+.reaction, .msg-reaction {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  padding: 2px 8px !important;
+  font-size: 12px !important;
+  cursor: pointer;
+  transition: background 80ms var(--gs-ease) !important;
+}
+.reaction:hover, .msg-reaction:hover { background: var(--gs-3) !important; }
+.reaction.self, .msg-reaction.self { background: var(--gs-accent-bg) !important; color: var(--gs-accent-fg) !important; font-weight: 500 !important; }
+
+/* Mentions */
+.mention {
+  background: var(--gs-accent-bg) !important;
+  color: var(--gs-accent-fg) !important;
+  border-radius: var(--gs-radius) !important;
+  padding: 0 6px !important;
+  font-weight: 500 !important;
+}
+.mention.self {
+  background: #fef7e0 !important;
+  color: #b06000 !important;
+}
+html[data-theme="ink"] .mention.self,
+html[data-theme="dark"] .mention.self { background:#3d2e00 !important; color:#fdd663 !important; }
+
+/* ============================================================
+   CHAT INPUT (Material filled, pill)
+   ============================================================ */
+.chat-input-wrapper,
+.chat-input-container,
+.chat-input-bar,
+.message-input-wrapper {
+  background: transparent !important;
+  padding: 8px 16px 14px 16px !important;
+  gap: 6px !important;
+  display: flex; align-items: center;
+}
+.chat-input,
+#chatInput,
+.message-input,
+input.chat-input,
+textarea.chat-input {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  padding: 12px 18px !important;
+  font-family: var(--gs-font) !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: background 120ms var(--gs-ease) !important;
+  flex: 1;
+}
+.chat-input::placeholder, #chatInput::placeholder { color: var(--gs-text-3) !important; }
+.chat-input:hover, #chatInput:hover { background: var(--gs-3) !important; }
+.chat-input:focus, #chatInput:focus, .chat-input:focus-within { background: var(--gs-3) !important; }
+
+/* attach + send + input-buttons (icon pills) */
+.attach-btn, #attachBtn,
+.send-btn, #sendBtn,
+.input-btn,
+.input-icon-btn,
+.input-action-btn,
+.input-buttons button {
+  background: transparent !important;
+  color: var(--gs-text-2) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  width: 40px !important; height: 40px !important;
+  min-width: 40px !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 22px !important;
+  font-weight: 400 !important;
+  padding: 0 !important;
+  transition: background 80ms var(--gs-ease), color 80ms var(--gs-ease) !important;
+}
+.attach-btn svg, #attachBtn svg,
+.send-btn svg, #sendBtn svg,
+.input-btn svg,
+.input-icon-btn svg,
+.input-buttons button svg,
+.toolbar-btn svg,
+.msg-action-btn svg,
+.voice-control-btn svg,
+.voice-ctrl-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px;
+  flex-shrink: 0;
+}
+.input-btn .ch-icon, .input-icon-btn .ch-icon, .toolbar-btn .ch-icon, .msg-action-btn .ch-icon {
+  display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px;
+}
+.attach-btn:hover, #attachBtn:hover,
+.send-btn:hover, #sendBtn:hover,
+.input-btn:hover,
+.input-icon-btn:hover,
+.input-buttons button:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+.send-btn, #sendBtn { color: var(--gs-accent) !important; }
+.send-btn:hover, #sendBtn:hover { background: var(--gs-accent-bg) !important; color: var(--gs-accent-fg) !important; }
+.input-buttons { gap: 2px !important; display: flex; align-items: center; background: transparent !important; }
+
+/* ============================================================
+   MEMBERS PANEL
+   ============================================================ */
+.member-list,
+#memberList,
+.members-panel {
+  background: var(--gs-1) !important;
+  border-radius: var(--gs-radius-lg) !important;
+  margin: 6px 6px 6px 0 !important;
+  padding: 8px 6px !important;
+}
+.member,
+.member-item {
+  background: transparent !important;
+  padding: 6px 10px !important;
+  border-radius: var(--gs-radius) !important;
+  color: var(--gs-text-2) !important;
+  display: flex; align-items: center; gap: 10px;
+  transition: background 80ms var(--gs-ease) !important;
+}
+.member:hover, .member-item:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+.member-avatar { border-radius: var(--gs-radius-pill) !important; }
+.member-name { color: inherit !important; font-weight: 500 !important; font-size: 14px !important; }
+.member-section-header,
+.member-group-header {
+  background: transparent !important;
+  color: var(--gs-text-3) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  padding: 12px 12px 4px 12px !important;
+}
+.member-section-separator { display: none !important; }
+
+/* ============================================================
+   MODALS (elevation-3, rounded-12)
+   ============================================================ */
+.modal-overlay, .modal-backdrop,
+#authModal, .modal[id]:not(.context-menu) {
+  background: rgba(32,33,36,0.40) !important;
+}
+html[data-theme="ink"] .modal-overlay,
+html[data-theme="ink"] .modal-backdrop,
+html[data-theme="ink"] #authModal,
+html[data-theme="ink"] .modal[id]:not(.context-menu) { background: rgba(0,0,0,0.55) !important; }
+
+.modal-content,
+.modal-box,
+.popover,
+.context-menu,
+[id$="ContextMenu"],
+#authModal .modal-content,
+#authModal .modal-box,
+#settingsPopover {
+  background: var(--gs-1) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius-md) !important;
+  box-shadow: 0 4px 8px 3px rgba(60,64,67,.10), 0 1px 3px 0 rgba(60,64,67,.10) !important;
+  padding: 20px !important;
+  font-family: var(--gs-font) !important;
+}
+.modal-content *, .modal-box * { font-family: var(--gs-font) !important; }
+.modal-title { color: var(--gs-text) !important; font-weight: 500 !important; font-size: 18px !important; margin-bottom: 16px !important; }
+.modal-divider { display: none !important; }
+.modal-field-label, .modal-fieldset legend, .modal-content label,
+.modal-box label, #authModal label {
+  color: var(--gs-text-2) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+html[data-theme="ink"] .app .modal-content,
+html[data-theme="ink"] #authModal .modal-content,
+html[data-theme="dark"] .app .modal-content,
+html[data-theme="dark"] #authModal .modal-content {
+  box-shadow: 0 4px 8px 3px rgba(0,0,0,.30), 0 1px 3px 0 rgba(0,0,0,.30) !important;
+}
+.modal h1, .modal h2, .modal h3, .modal-title { color: var(--gs-text) !important; font-weight: 500 !important; }
+.modal label, .modal-label { color: var(--gs-text-2) !important; font-size: 12px !important; }
+.modal input, .modal textarea, .modal select {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius) !important;
+  padding: 10px 14px !important;
+  font-family: var(--gs-font) !important;
+  font-size: 14px !important;
+  outline: none !important;
+}
+.modal input:focus, .modal textarea:focus { background: var(--gs-3) !important; }
+
+.modal-btn, .btn, button.primary {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  padding: 9px 22px !important;
+  font-weight: 500 !important;
+  font-family: var(--gs-font) !important;
+  font-size: 14px !important;
+  cursor: pointer;
+  transition: background 80ms var(--gs-ease) !important;
+}
+.modal-btn:hover, .btn:hover { background: var(--gs-3) !important; }
+.modal-btn:not(.secondary):not(.danger),
+button.primary {
+  background: var(--gs-accent) !important;
+  color: #fff !important;
+}
+html[data-theme="ink"] .modal-btn:not(.secondary):not(.danger),
+html[data-theme="dark"] .modal-btn:not(.secondary):not(.danger) {
+  color: #1f1f1f !important;
+}
+.modal-btn:not(.secondary):not(.danger):hover,
+button.primary:hover { background: var(--gs-accent-hover) !important; }
+.modal-btn.secondary { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+.modal-btn.secondary:hover { background: var(--gs-3) !important; }
+.modal-btn.danger { background: var(--gs-danger) !important; color: #fff !important; }
+.modal-btn.danger:hover { filter: brightness(0.92); }
+.modal-field, .modal-fieldset { margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+.modal-field input, .modal-field textarea, .modal-fieldset input, .modal-fieldset textarea,
+.modal-box input, .modal-box textarea, .modal-box select {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius) !important;
+  padding: 10px 14px !important;
+  font-family: var(--gs-font) !important;
+  font-size: 14px !important;
+  outline: none !important;
+}
+.modal-field input::placeholder, .modal-box input::placeholder, .modal-box textarea::placeholder { color: var(--gs-text-3) !important; }
+.modal-field input:focus, .modal-box input:focus, .modal-box textarea:focus { background: var(--gs-3) !important; }
+
+/* Context menus */
+.context-menu, [id$="ContextMenu"] { padding: 6px !important; min-width: 200px; }
+.context-menu-item, .context-menu li, .ctx-item {
+  padding: 8px 14px !important;
+  border-radius: var(--gs-radius) !important;
+  color: var(--gs-text) !important;
+  cursor: pointer;
+  font-size: 14px !important;
+  transition: background 60ms var(--gs-ease) !important;
+}
+.context-menu-item:hover, .context-menu li:hover, .ctx-item:hover { background: var(--gs-2) !important; }
+.context-menu-item.danger, .ctx-item.danger { color: var(--gs-danger) !important; }
+
+/* ============================================================
+   MOBILE HEADER
+   ============================================================ */
+.mobile-header,
+#mobileHeader {
+  background: var(--gs-1) !important;
+  color: var(--gs-text) !important;
+  padding: 12px 16px !important;
+}
+#mobileTitle { color: var(--gs-text) !important; font-weight: 500 !important; }
+#mobileMenuBtn, #mobileMembersBtn { color: var(--gs-text-2) !important; background: transparent !important; }
+
+/* ============================================================
+   EMPTY STATES + MISC
+   ============================================================ */
+.empty-state, .no-messages, .chat-empty {
+  color: var(--gs-text-3) !important;
+  font-family: var(--gs-font) !important;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+/* ============================================================
+   VOICE
+   ============================================================ */
+.voice-grid, #voiceGrid, #voiceView { background: transparent !important; padding: 12px !important; gap: 12px !important; }
+.voice-tile {
+  background: var(--gs-2) !important;
+  border-radius: var(--gs-radius-md) !important;
+  padding: 16px;
+}
+.voice-tile-name { color: var(--gs-text) !important; font-weight: 500 !important; }
+.voice-tile-status { color: var(--gs-text-3) !important; font-size: 11px !important; }
+.voice-tile-avatar.speaking { box-shadow: 0 0 0 3px var(--gs-success) !important; }
+.app .voice-controls-bar, .app #voiceControlsBar {
+  background: var(--gs-1) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  padding: 8px 12px !important;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,.10), 0 2px 6px 2px rgba(60,64,67,.08) !important;
+  display: inline-flex;
+}
+html[data-theme="ink"] .app #voiceControlsBar { box-shadow: 0 1px 2px 0 rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.20) !important; }
+.voice-control-btn, .voice-ctrl-btn,
+#voiceMicBtn, #voiceDeafenBtn, #voiceCamBtn, #voiceLeaveBtn, #voiceSettingsBtn {
+  background: transparent !important;
+  color: var(--gs-text-2) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  width: 40px !important; height: 40px !important;
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  padding: 0 !important;
+  transition: background 80ms var(--gs-ease), color 80ms var(--gs-ease) !important;
+}
+.voice-control-btn:hover, .voice-ctrl-btn:hover,
+#voiceMicBtn:hover, #voiceDeafenBtn:hover, #voiceCamBtn:hover, #voiceSettingsBtn:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+#voiceLeaveBtn, .voice-ctrl-btn.danger { background: var(--gs-danger) !important; color: #fff !important; }
+#voiceLeaveBtn:hover, .voice-ctrl-btn.danger:hover { filter: brightness(0.92); }
+.voice-ctrl-btn.muted, .voice-ctrl-btn.deafened { background: var(--gs-2) !important; color: var(--gs-danger) !important; }
+.voice-connecting { color: var(--gs-accent-fg) !important; }
+
+/* ============================================================
+   RECONNECT BANNER
+   ============================================================ */
+.reconnect-banner {
+  background: var(--gs-warn-bg) !important;
+  color: var(--gs-warn) !important;
+  border-radius: 0 !important;
+  padding: 8px 16px !important;
+  font-weight: 500 !important;
+}
+
+/* ============================================================
+   THREADS PANEL
+   ============================================================ */
+#threadPanel, .thread-panel {
+  background: var(--gs-1) !important;
+  border-radius: var(--gs-radius-lg) !important;
+  margin: 6px 6px 6px 0 !important;
+}
+#threadList .thread-item {
+  background: transparent !important;
+  padding: 8px 12px !important;
+  border-radius: var(--gs-radius) !important;
+  color: var(--gs-text-2) !important;
+}
+#threadList .thread-item:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+
+/* ============================================================
+   SCROLLBARS (subtle Material)
+   ============================================================ */
+.app *::-webkit-scrollbar { width: 12px; height: 12px; }
+.app *::-webkit-scrollbar-track { background: transparent; }
+.app *::-webkit-scrollbar-thumb {
+  background: var(--gs-3);
+  border-radius: var(--gs-radius-pill);
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+.app *::-webkit-scrollbar-thumb:hover {
+  background: var(--gs-4);
+  background-clip: content-box;
+  border: 3px solid transparent;
+}
+
+/* ============================================================
+   SETTINGS POPOVER
+   ============================================================ */
+#settingsPopover {
+  background: var(--gs-1) !important;
+  border-radius: var(--gs-radius-md) !important;
+  box-shadow: var(--gs-shadow-3) !important;
+  padding: 16px !important;
+  color: var(--gs-text) !important;
+}
+#settingsPopover label { color: var(--gs-text-2) !important; font-size: 12px !important; font-weight: 500 !important; }
+#settingsPopover select, #settingsPopover input {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius) !important;
+  padding: 8px 12px !important;
+  font-family: var(--gs-font) !important;
+}
+
+/* ============================================================
+   LINKS
+   ============================================================ */
+.app a, .msg-content a, .message-content a {
+  color: var(--gs-accent) !important;
+  text-decoration: none !important;
+}
+.app a:hover { text-decoration: underline !important; text-underline-offset: 2px; }
+
+/* ============================================================
+   FORCE override of Discord SVG inline-color quirks
+   ============================================================ */
+.msg-username[style*="color"] { color: var(--gs-text) !important; }
+
+/* ============================================================
+   Focus ring (accessibility) — replaces removed outline reset
+   ============================================================ */
+.app button:focus-visible,
+.app input:focus-visible,
+.app textarea:focus-visible,
+.app select:focus-visible,
+.app a:focus-visible,
+.app [tabindex]:focus-visible {
+  outline: 2px solid var(--gs-accent) !important;
+  outline-offset: 2px !important;
+}
+.app .chat-input:focus-visible, .app #chatInput:focus-visible {
+  outline: 2px solid var(--gs-accent) !important;
+  outline-offset: -2px !important;
+}

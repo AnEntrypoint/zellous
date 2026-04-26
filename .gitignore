@@ -31,7 +31,6 @@ docs/vendor/rnnoise-worklet.js
 docs/vendor/fonts/
 
 .code-search/
-.gm-stop-verified
 .plugkit-browser-profile/
 test-imports.js
 verify-assets.js
@@ -40,3 +39,19 @@ verify-assets.js
 .codeinsight
 *.stackdump
 preview-*.png
+_test/
+# >>> gm managed (do not edit between markers)
+.gm-stop-verified
+.gm/prd-state.json
+.gm/rslearn-counter.json
+.gm/git-block-counter.json
+.gm/learning-state.md
+.gm/trajectory-drafts/
+.gm/ingest-drafts/
+.gm/needs-gm
+.gm/lastskill
+.gm/turn-state.json
+.gm/no-memorize-this-turn
+.gm/prd.paused.yml
+# tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml
+# <<< gm managed
