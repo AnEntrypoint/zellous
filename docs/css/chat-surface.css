@@ -828,6 +828,146 @@ html[data-theme="ink"] .app #voiceControlsBar { box-shadow: 0 1px 2px 0 rgba(0,0
 #threadList .thread-item:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
 
 /* ============================================================
+   MOBILE / RESPONSIVE — Mode B surface adjustments
+   ============================================================ */
+@media (max-width: 1024px) {
+  .member-list,
+  #memberList,
+  .members-panel { margin: 6px 6px 6px 0 !important; }
+}
+
+@media (max-width: 768px) {
+  /* Avoid duplicate header — chat-header-bar wins by !important in our base; force off */
+  .app .chat-header,
+  .app .chat-header-bar { display: none !important; }
+
+  /* Edge-to-edge chat area; bottom space for fixed server bar */
+  .app .chat-area,
+  .app #chatArea {
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Drawer sidebars — keep Mode B surface but reset margin so transform math holds */
+  .app .channel-sidebar,
+  .app #channelSidebar {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: var(--gs-1) !important;
+  }
+  .app .member-list,
+  .app #memberList,
+  .app .members-panel {
+    margin: 0 !important;
+    border-radius: 0 !important;
+    background: var(--gs-1) !important;
+  }
+
+  /* Mobile header surface */
+  .app .mobile-header,
+  .app #mobileHeader {
+    background: var(--gs-1) !important;
+    padding: 8px 12px !important;
+  }
+  #mobileMenuBtn, #mobileMembersBtn {
+    width: 44px !important; height: 44px !important;
+    border-radius: var(--gs-radius-pill) !important;
+  }
+  #mobileMenuBtn:hover, #mobileMembersBtn:hover { background: var(--gs-2) !important; color: var(--gs-text) !important; }
+
+  /* Chat input — tight, full width, large touch targets, no horizontal overflow */
+  .app .chat-input-wrapper,
+  .app .chat-input-container,
+  .app .chat-input-bar,
+  .app .message-input-wrapper {
+    padding: 6px 8px 10px 8px !important;
+    padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+    gap: 4px !important;
+    background: var(--gs-1) !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .app .chat-input,
+  .app #chatInput {
+    padding: 11px 14px !important;
+    font-size: 16px !important; /* prevent iOS zoom-on-focus */
+    min-width: 0 !important;
+    flex: 1 1 0 !important;
+    width: auto !important;
+  }
+  .app .attach-btn, .app #attachBtn,
+  .app .send-btn, .app #sendBtn,
+  .app .input-btn,
+  .app .input-icon-btn,
+  .app .input-buttons button {
+    width: 44px !important; height: 44px !important;
+    min-width: 44px !important;
+    flex-shrink: 0 !important;
+  }
+  .app .input-buttons { gap: 0 !important; flex-shrink: 0 !important; }
+
+  /* Messages — tighter padding, room for avatar */
+  .app .message,
+  .app .msg-row,
+  .app .msg-cont,
+  .app .msg-group,
+  .app .chat-message {
+    margin: 1px 2px !important;
+    padding: 6px 10px !important;
+  }
+  .app .chat-messages,
+  .app #chatMessages { padding: 4px 0 !important; }
+
+  /* Server bar at bottom — Mode B surface */
+  .app .server-list,
+  .app #serverList,
+  .app #serverIcons {
+    background: var(--gs-1) !important;
+    padding: 6px 8px !important;
+    padding-bottom: max(6px, env(safe-area-inset-bottom)) !important;
+  }
+  .app .server-icon { width: 40px !important; height: 40px !important; }
+
+  /* Voice controls — bigger touch targets */
+  .app .voice-control-btn,
+  .app .voice-ctrl-btn,
+  .app #voiceMicBtn,
+  .app #voiceDeafenBtn,
+  .app #voiceCamBtn,
+  .app #voiceLeaveBtn,
+  .app #voiceSettingsBtn {
+    width: 48px !important; height: 48px !important;
+  }
+  .app .voice-ptt-pill { height: 48px !important; padding: 0 16px !important; font-size: 14px !important; }
+
+  /* Drawer overlay: confirm body-level overlay is dim, not theme-dependent */
+  .drawer-overlay { background: rgba(0,0,0,0.55) !important; }
+
+  /* Modals — fill more of viewport on phones */
+  .app .modal-content,
+  .app .modal-box,
+  #authModal .modal-content,
+  #authModal .modal-box {
+    padding: 16px !important;
+    border-radius: var(--gs-radius-md) !important;
+    width: calc(100vw - 24px) !important;
+    max-width: 420px !important;
+    box-sizing: border-box;
+  }
+
+  /* Toolbar buttons keep accessible touch size */
+  .app .toolbar-btn { width: 40px !important; height: 40px !important; }
+}
+
+@media (max-width: 480px) {
+  .app .voice-grid,
+  .app #voiceGrid,
+  .app #voiceView { padding: 8px !important; gap: 8px !important; }
+  .app .voice-tile { padding: 12px 10px !important; }
+}
+
+/* ============================================================
    SCROLLBARS (subtle Material)
    ============================================================ */
 .app *::-webkit-scrollbar { width: 12px; height: 12px; }
