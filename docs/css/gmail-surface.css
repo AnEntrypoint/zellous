@@ -275,7 +275,7 @@ html[data-theme="night"] .server-icon.active {
   overflow: hidden;
   display: flex; flex-direction: column;
 }
-.chat-scroll, .chat-messages-inner { background: transparent !important; }
+.app .chat-scroll, .app .chat-messages-inner, .app #chatMessagesInner, .app #chatMessages { background: transparent !important; }
 
 /* CHAT HEADER */
 .chat-header,
@@ -358,13 +358,24 @@ html[data-theme="night"] .server-icon.active {
   background: var(--gs-2) !important;
 }
 
-/* Message hover actions — restore shadow after reset */
+/* Message hover actions — hidden by default, shown on row hover */
 .app .msg-actions {
   background: var(--gs-1) !important;
   border-radius: var(--gs-radius-pill) !important;
   box-shadow: 0 1px 2px 0 rgba(60,64,67,.10), 0 2px 6px 2px rgba(60,64,67,.08) !important;
   padding: 2px !important;
-  display: flex; gap: 0;
+  gap: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 80ms var(--gs-ease);
+  display: flex;
+}
+.app .msg-group:hover > .msg-actions,
+.app .msg-cont:hover > .msg-actions,
+.app .msg-group:hover .msg-actions,
+.app .msg-cont:hover .msg-actions {
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 html[data-theme="ink"] .app .msg-actions,
 html[data-theme="dark"] .app .msg-actions { box-shadow: 0 1px 2px 0 rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.20) !important; }
