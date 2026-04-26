@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -108,9 +108,12 @@ a.card,
 .app-main a.card:hover, a.card:hover { color: var(--panel-0) !important; }
 .card:nth-child(even) { background: var(--panel-2); }
 .card:hover { background: var(--panel-text); color: var(--panel-0); }
-.card:hover .card-meta { color: var(--panel-0); opacity: 0.7; }
+.card:hover .card-meta { color: var(--panel-0); opacity: 0.75; }
 .card-code { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--panel-accent); font-weight: 600; }
-.card:hover .card-code { color: var(--paper); }
+/* On hover the card flips to inverted ink/paper. card-code must read on the
+   inverted bg, NOT on the original surface — tint to the contrast-safe accent. */
+[data-theme="light"] .card:hover .card-code { color: #92CEAC; }   /* mint on ink — 9.18:1 */
+[data-theme="dark"]  .card:hover .card-code { color: #247420; }   /* green on paper — 4.83:1 */
 .card-title { font-family: var(--ff-display); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
 .card-meta { font-size: 11px; color: var(--panel-text-3); line-height: 1.5; }
 
@@ -385,8 +388,8 @@ h3.section-head {
   }
   var stored = null;
   try { stored = localStorage.getItem(KEY); } catch(e) {}
-  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  apply(stored || (prefersDark ? 'dark' : 'light'));
+  // Canonical 247420 surface is dark — default dark unless user explicitly chose light.
+  apply(stored || 'dark');
   btn.addEventListener('click', function(){
     var cur = document.documentElement.getAttribute('data-theme');
     apply(cur === 'dark' ? 'light' : 'dark');

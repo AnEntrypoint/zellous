@@ -20,8 +20,8 @@ html[data-theme="light"] {
   --gs-text-2:    #3c4043;   /* secondary, AAA on gs-1 */
   --gs-text-3:    #5f6368;   /* tertiary, AA on gs-1 (4.69:1) */
   --gs-text-4:    #80868b;   /* hint only */
-  --gs-accent:    #1a73e8;
-  --gs-accent-hover: #1967d2;
+  --gs-accent:    #1967d2;          /* deepened from #1a73e8 → 5.17:1 on gs-bg AA */
+  --gs-accent-hover: #174ea6;
   --gs-accent-bg: #e8f0fe;
   --gs-accent-fg: #174ea6;   /* AAA on accent-bg */
   --gs-danger:    #d93025;
