@@ -418,6 +418,9 @@ window.nostrFsm = null;
         s.onerror = reject;
         document.head.appendChild(s);
       });
+      if (src === 'js/wireweave-bridge.js' && window.__wireweaveReady) {
+        await window.__wireweaveReady;
+      }
     }
 
     Object.defineProperty(window, '__debug', {get: function(){ return {

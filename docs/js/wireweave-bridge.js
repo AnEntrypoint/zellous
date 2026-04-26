@@ -1,4 +1,4 @@
-(async () => {
+window.__wireweaveReady = (async () => {
   const mod = await import('https://cdn.jsdelivr.net/npm/wireweave@latest/src/index.js');
   const NT = window.NostrTools;
   const XS = { createMachine: window.XState.createMachine, createActor: window.XState.createActor };
@@ -344,6 +344,6 @@
   window.__zellous = window.__zellous || {};
   Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, wireweave: ww });
 
-  window.__wireweaveReady = true;
   document.dispatchEvent(new CustomEvent('wireweave:ready'));
+  return true;
 })();

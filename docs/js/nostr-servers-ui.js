@@ -161,3 +161,28 @@ serverManager.showCreateModal = function() {
   modal.querySelector('#cancelCreateServer').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
 };
+
+serverManager.renderList = function() {
+  var host = document.getElementById('serverIcons');
+  if (!host) return;
+  var list = state.servers || [];
+  var current = state.currentServerId;
+  var html = '';
+  list.forEach(function(s) {
+    var initial = (s.name || '?').trim().charAt(0).toUpperCase();
+    var bg = s.iconColor || '#5865f2';
+    var active = current === s.id ? ' active' : '';
+    html += '<div class="server-icon' + active + '" data-server-id="' + s.id + '" style="background:' + bg + '" title="' + (s.name || '').replace(/"/g, '&quot;') + '">' +
+              '<div class="server-pill"></div>' + initial +
+            '</div>';
+  });
+  html += '<div class="server-icon add-server" id="addServerBtn" title="Create server">+</div>';
+  host.innerHTML = html;
+  host.querySelectorAll('.server-icon[data-server-id]').forEach(function(el) {
+    var sid = el.dataset.serverId;
+    el.addEventListener('click', function() { serverManager.switchTo(sid); });
+    el.addEventListener('contextmenu', function(e) { e.preventDefault(); serverManager.showContextMenu(sid, e.clientX, e.clientY); });
+  });
+  var addBtn = host.querySelector('#addServerBtn');
+  if (addBtn) addBtn.addEventListener('click', function() { serverManager.showCreateModal(); });
+};
