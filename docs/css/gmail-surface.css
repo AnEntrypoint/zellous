@@ -699,6 +699,40 @@ html[data-theme="ink"] .app #voiceControlsBar { box-shadow: 0 1px 2px 0 rgba(0,0
 #voiceLeaveBtn, .voice-ctrl-btn.danger { background: var(--gs-danger) !important; color: #fff !important; }
 #voiceLeaveBtn:hover, .voice-ctrl-btn.danger:hover { filter: brightness(0.92); }
 .voice-ctrl-btn.muted, .voice-ctrl-btn.deafened { background: var(--gs-2) !important; color: var(--gs-danger) !important; }
+
+/* PTT pill — first-class hold-to-talk control inside voice controls bar */
+.app .voice-ptt-pill {
+  background: var(--gs-2) !important;
+  color: var(--gs-text) !important;
+  border-radius: var(--gs-radius-pill) !important;
+  height: 40px !important;
+  padding: 0 18px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  font-family: var(--gs-font) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  transition: background 60ms var(--gs-ease), color 60ms var(--gs-ease), transform 60ms var(--gs-ease) !important;
+}
+.app .voice-ptt-pill:hover { background: var(--gs-3) !important; }
+.app .voice-ptt-pill.active,
+.app .voice-ptt-pill[data-state="live"] {
+  background: var(--gs-success) !important;
+  color: #fff !important;
+  transform: scale(0.98);
+}
+.app .voice-ptt-pill svg { width: 18px !important; height: 18px !important; }
+.app .voice-ptt-label { letter-spacing: 0.02em; }
+.app .voice-ptt-pill.active .voice-ptt-label::after,
+.app .voice-ptt-pill[data-state="live"] .voice-ptt-label::after {
+  content: ' · live';
+  opacity: 0.85;
+}
 .voice-connecting { color: var(--gs-accent-fg) !important; }
 
 /* ============================================================
