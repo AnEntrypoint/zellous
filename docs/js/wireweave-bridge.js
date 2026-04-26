@@ -1,5 +1,5 @@
 window.__wireweaveReady = (async () => {
-  const mod = await import('https://cdn.jsdelivr.net/npm/wireweave@latest/src/index.js');
+  const mod = await import('../vendor/wireweave/src/index.js');
   const NT = window.NostrTools;
   const XS = { createMachine: window.XState.createMachine, createActor: window.XState.createActor };
 
@@ -313,6 +313,8 @@ window.__wireweaveReady = (async () => {
     voice.addEventListener('participants', (e) => { state.voiceParticipants = e.detail.list; if (window.uiVoice) { uiVoice.renderGrid(); uiVoice.renderPanel(); } if (window.uiChannels) uiChannels.render(); });
     voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; if (window.ui?.voicePanel) ui.voicePanel.classList.add('visible'); if (window.ui?.voicePanelChannel) ui.voicePanelChannel.textContent = e.detail.channelName; window.message.add('Voice connected'); });
     voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); if (window.ui?.voicePanel) ui.voicePanel.classList.remove('visible'); if (window.uiVoice) { uiVoice.renderGrid(); uiVoice.renderPanel(); } });
+    voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; document.getElementById('voiceMicBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); });
+    voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
     return voice;
   };
 
@@ -321,14 +323,19 @@ window.__wireweaveReady = (async () => {
     get _peers() { return ensureVoice().peers; },
     get _roomId() { return ensureVoice().roomId; },
     get _channelName() { return ensureVoice().channelName; },
-    async connect(ch) { const v = ensureVoice(); v.serverId = state.currentServerId || ''; await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' }); },
+    async connect(ch) { const v = ensureVoice(); v.serverId = state.currentServerId || ''; await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' }); state.micMuted = !!v.muted; },
     async disconnect() { if (voice) await voice.disconnect(); },
-    toggleMic() { ensureVoice().toggleMic(); state.micMuted = voice.muted; document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); },
+    toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); },
+    setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); },
+    requestTransmit() { const v = ensureVoice(); const live = v.requestTransmit(); state.micMuted = !!v.muted; return live; },
+    releaseTransmit() { const v = ensureVoice(); v.releaseTransmit(); state.micMuted = !!v.muted; },
+    anyRemoteSpeaking() { return voice ? voice.anyRemoteSpeaking() : false; },
     toggleDeafen() { ensureVoice().toggleDeafen(); state.voiceDeafened = voice.deafened; document.getElementById('deafenToggleBtn')?.classList.toggle('muted', state.voiceDeafened); document.getElementById('voiceDeafenBtn')?.classList.toggle('active', state.voiceDeafened); },
     async toggleCamera() { /* camera handled via onVideoTrack above; full port deferred */ },
     updateParticipants() { if (voice) { state.voiceParticipants = voice.getParticipants(); if (window.uiVoice) { uiVoice.renderGrid(); uiVoice.renderPanel(); } if (window.uiChannels) uiChannels.render(); } },
-    isDataChannelReady: () => false,
+    isDataChannelReady: () => { if (!voice) return false; for (const [, p] of voice.peers) if (p.dc?.readyState === 'open') return true; return false; },
     updateVoiceGrid() { voiceAPI.updateParticipants(); },
+    on(evt, fn) { ensureVoice().addEventListener(evt, fn); return () => voice?.removeEventListener(evt, fn); },
     get __debug() { return voice?.debug() || null; }
   };
   window.nostrVoice = voiceAPI;

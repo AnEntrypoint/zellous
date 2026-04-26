@@ -1,0 +1,64 @@
+{
+  "name": "wireweave",
+  "version": "0.2.0",
+  "description": "nostr + webrtc voice SDK. networking layer for 247420 projects.",
+  "type": "module",
+  "main": "./src/index.js",
+  "module": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./wireweave": "./src/wireweave.js",
+    "./relay-pool": "./src/relay-pool.js",
+    "./auth": "./src/auth.js",
+    "./fsm": "./src/fsm.js",
+    "./voice": "./src/voice.js",
+    "./chat": "./src/chat.js",
+    "./channels": "./src/channels.js",
+    "./servers": "./src/servers.js",
+    "./message": "./src/message.js",
+    "./bans": "./src/bans.js",
+    "./roles": "./src/roles.js",
+    "./settings": "./src/settings.js",
+    "./media": "./src/media.js",
+    "./pages": "./src/pages.js",
+    "./debug": "./src/debug.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test.js",
+    "site:build": "node site/build.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnEntrypoint/wireweave.git"
+  },
+  "keywords": [
+    "nostr",
+    "webrtc",
+    "voice",
+    "p2p",
+    "serverless",
+    "247420"
+  ],
+  "author": "AnEntrypoint",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/AnEntrypoint/wireweave/issues"
+  },
+  "homepage": "https://anentrypoint.github.io/wireweave/",
+  "peerDependencies": {
+    "nostr-tools": "^2.7.0"
+  },
+  "devDependencies": {
+    "flatspace": "^1.0.13",
+    "nostr-tools": "^2.7.0",
+    "ws": "^8.18.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

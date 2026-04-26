@@ -1,0 +1,72 @@
+const VALID_BITRATES = [8000, 16000, 24000, 48000, 96000];
+const clampBitrate = (v) => VALID_BITRATES.reduce((prev, cur) => Math.abs(cur - v) < Math.abs(prev - v) ? cur : prev);
+
+export class Settings extends EventTarget {
+  constructor({ relayPool, auth, roles }) {
+    super();
+    if (!relayPool || !auth || !roles) throw new Error('Settings: deps required');
+    this.pool = relayPool; this.auth = auth; this.roles = roles;
+    this.store = new Map();
+    this.sub = null;
+  }
+
+  getBitrate(serverId) { return this.store.get(serverId)?.opusBitrate || 24000; }
+
+  async setBitrate(serverId, bitrate) {
+    if (!this.roles.isOwner(serverId) && !this.roles.isAdmin(serverId)) throw new Error('Insufficient permissions');
+    const clamped = clampBitrate(Number(bitrate));
+    const existing = this.store.get(serverId) || {};
+    const next = { ...existing, opusBitrate: clamped };
+    this.store.set(serverId, next);
+    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', 'zellous-settings:' + serverId]], content: JSON.stringify(next) });
+    this.pool.publish(signed);
+    this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next } }));
+    return clamped;
+  }
+
+  getEmbedAllowlist(serverId) {
+    const s = this.store.get(serverId);
+    if (!s?.embedAllowlist) return [];
+    return typeof s.embedAllowlist === 'string' ? s.embedAllowlist.split(',').map(d => d.trim()).filter(Boolean) : s.embedAllowlist;
+  }
+
+  async setEmbedAllowlist(serverId, domainsStr) {
+    if (!this.roles.isOwner(serverId) && !this.roles.isAdmin(serverId)) throw new Error('Insufficient permissions');
+    const domains = domainsStr.split(',').map(d => d.trim()).filter(Boolean);
+    const existing = this.store.get(serverId) || {};
+    const next = { ...existing, embedAllowlist: domains };
+    this.store.set(serverId, next);
+    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', 'zellous-settings:' + serverId]], content: JSON.stringify(next) });
+    this.pool.publish(signed);
+    this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next } }));
+    return domains;
+  }
+
+  isOriginAllowed(serverId, origin) {
+    if (!origin) return false;
+    const allowlist = this.getEmbedAllowlist(serverId);
+    if (!allowlist.length) return true;
+    let url; try { url = new URL(origin); } catch { return false; }
+    return allowlist.some(p => {
+      if (p === '*') return true;
+      if (p.startsWith('*.')) { const s = p.slice(2); return url.hostname === s || url.hostname.endsWith('.' + s); }
+      return url.hostname === p || url.hostname === p.replace(/^https?:\/\//, '');
+    });
+  }
+
+  subscribe(serverId) {
+    if (this.sub) { this.pool.unsubscribe(this.sub); this.sub = null; }
+    if (!serverId) return;
+    const creator = serverId.split(':')[0];
+    if (!creator) return;
+    this.sub = 'settings-' + serverId;
+    this.pool.subscribe(this.sub,
+      [{ kinds: [30078], authors: [creator], '#d': ['zellous-settings:' + serverId] }],
+      (event) => {
+        if (event.pubkey !== creator) return;
+        try { this.store.set(serverId, JSON.parse(event.content)); this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next: this.store.get(serverId) } })); } catch {}
+      });
+  }
+}
+
+export const createSettings = (opts) => new Settings(opts);
