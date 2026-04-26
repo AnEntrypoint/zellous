@@ -1,96 +1,398 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="en" data-theme="light">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>zellous // serverless voice + chat</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%230B0B09'/><text x='50' y='72' font-size='60' font-weight='700' font-family='monospace' fill='%23EFE9DD' text-anchor='middle'>Z</text></svg>">
-<link rel="stylesheet" href="vendor/fonts.css">
-<link rel="stylesheet" href="css/tokens.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#247420" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#3A9A34" media="(prefers-color-scheme: dark)">
+<title>zellous · serverless voice + chat</title>
+<meta name="description" content="push-to-talk over public nostr relays. no backend. no account. your keys are your identity.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23247420'/><text x='50' y='72' font-size='60' font-weight='800' font-family='monospace' fill='%23EFE9DD' text-anchor='middle'>Z</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Narrow:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap">
+
+<link rel="stylesheet" href="vendor/design/colors_and_type.css">
+<link rel="stylesheet" href="vendor/design/app-shell.css">
+
 <style>
-:root {
-  --c247: #247420; --c420: #420247; --cream: #EFE9DD; --ink: #0B0B09;
-  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
-  --font-display: 'Redaction 50', 'Redaction', 'Times New Roman', serif;
-  --font-body: 'Instrument Serif', Georgia, serif;
-}
-@media (prefers-color-scheme: dark) { :root { --bg: var(--ink); --fg: var(--cream); } }
-@media (prefers-color-scheme: light) { :root { --bg: var(--cream); --fg: var(--ink); } }
-:root { --bg: var(--cream); --fg: var(--ink); }
-@media (prefers-color-scheme: dark) { :root { --bg: var(--ink); --fg: var(--cream); } }
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* Page-local — landing uses no sidebar */
 body {
-  background: var(--bg); color: var(--fg); font-family: var(--font-body);
-  min-height: 100vh; padding: 32px; line-height: 1.6;
+  background: var(--panel-0);
+  color: var(--panel-text);
 }
+.app-main { padding: 0; }
+.section { padding: 24px 32px; }
+.section + .section { padding-top: 0; }
+
+.hero { padding: 48px 32px 24px 32px; max-width: 980px; }
+.hero .tag { color: var(--panel-accent); font-family: var(--ff-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.hero h1 {
+  font-family: var(--ff-display);
+  font-size: clamp(40px, 7vw, 88px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 8px 0 16px 0;
+  color: var(--panel-text);
+}
+.hero p.lede {
+  font-family: var(--ff-prose);
+  font-style: italic;
+  font-size: clamp(18px, 2.2vw, 22px);
+  line-height: 1.5;
+  max-width: 56ch;
+  color: var(--panel-text-2);
+  margin: 0 0 24px 0;
+}
+.hero p.lede em { color: var(--panel-accent); font-style: normal; font-weight: 600; font-family: var(--ff-mono); }
+
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0 0 0; }
+
+/* Stamp button — design system primitive */
+.app-main a.btn-stamp,
+a.btn-stamp,
+.btn-stamp {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px;
+  background: var(--panel-accent);
+  color: var(--panel-accent-fg) !important;
+  font-family: var(--ff-mono);
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  box-shadow: 4px 4px 0 var(--ink) !important;
+  transition: transform 80ms cubic-bezier(.2,0,0,1), box-shadow 80ms cubic-bezier(.2,0,0,1);
+}
+[data-theme="dark"] .btn-stamp { box-shadow: 4px 4px 0 var(--paper) !important; color: var(--ink); }
+.btn-stamp:hover  { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--ink) !important; }
+.btn-stamp:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink) !important; }
+[data-theme="dark"] .btn-stamp:hover  { box-shadow: 3px 3px 0 var(--paper) !important; }
+[data-theme="dark"] .btn-stamp:active { box-shadow: 0 0 0 var(--paper) !important; }
+
+.app-main a.btn-ghost,
+a.btn-ghost,
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--panel-text) !important;
+  font-family: var(--ff-mono);
+  font-weight: 500;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  border-radius: 0;
+  transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
+}
+.btn-ghost:hover { background: var(--panel-text); color: var(--panel-0); }
+
+/* Index-card row pattern — used for rooms + features */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0; margin: 0; }
+.app-main a.card,
+a.card,
+.card {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 18px 20px;
+  background: var(--panel-1);
+  color: var(--panel-text) !important;
+  font-family: var(--ff-mono);
+  text-decoration: none;
+  transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
+}
+.app-main a.card:hover, a.card:hover { color: var(--panel-0) !important; }
+.card:nth-child(even) { background: var(--panel-2); }
+.card:hover { background: var(--panel-text); color: var(--panel-0); }
+.card:hover .card-meta { color: var(--panel-0); opacity: 0.7; }
+.card-code { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--panel-accent); font-weight: 600; }
+.card:hover .card-code { color: var(--paper); }
+.card-title { font-family: var(--ff-display); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
+.card-meta { font-size: 11px; color: var(--panel-text-3); line-height: 1.5; }
+
+/* Section header — h3 mono caps with leading slashes */
+h3.section-head {
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--panel-accent);
+  margin: 32px 0 12px 0;
+}
+
+/* Manifesto block — serif italic */
+.manifesto {
+  background: var(--panel-1);
+  padding: 32px;
+  display: grid;
+  gap: 16px;
+}
+.manifesto p {
+  font-family: var(--ff-prose);
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.5;
+  max-width: 60ch;
+  margin: 0;
+  color: var(--panel-text);
+}
+.manifesto p strong {
+  font-style: normal;
+  font-family: var(--ff-display);
+  font-weight: 700;
+  color: var(--panel-text);
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+}
+
+/* Tech list — mono rows with token highlights */
+.tech {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 0;
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  background: var(--panel-1);
+}
+.tech > div {
+  padding: 10px 16px;
+  background: var(--panel-1);
+}
+.tech > div:nth-child(4n+3),
+.tech > div:nth-child(4n+4) {
+  background: var(--panel-2);
+}
+.tech .k { color: var(--panel-text-3); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+.tech .v { color: var(--panel-text); }
+.tech .v code { background: transparent; padding: 0; color: var(--panel-accent); font-weight: 500; }
+
+/* Footer status bar */
+.app-status {
+  position: sticky; bottom: 0;
+  background: var(--panel-2);
+  color: var(--panel-text-2);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  padding: 8px 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.app-status a { color: var(--panel-accent); text-decoration: none; }
+.app-status a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.app-status .spread { flex: 1; }
+
+/* Theme toggle pill */
+.theme-toggle {
+  margin-left: auto;
+  background: transparent;
+  color: var(--panel-text-2);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+.theme-toggle:hover { background: var(--panel-hover); color: var(--panel-text); }
+
+/* Topbar layout */
+.app-topbar { background: var(--panel-1); }
+.app-topbar .brand { font-family: var(--ff-mono); font-weight: 700; }
+.app-topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; }
+.app-topbar nav a {
+  font-family: var(--ff-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--panel-text-2);
+  text-decoration: none;
+  padding: 6px 12px;
+}
+.app-topbar nav a:hover { background: var(--panel-hover); color: var(--panel-text); }
+
+/* Dateline (above hero) */
 .dateline {
-  font-family: var(--font-mono); font-size: 11px; text-transform: uppercase;
-  letter-spacing: 0.05em; border-bottom: 1px solid var(--fg); padding-bottom: 8px;
-  margin-bottom: 48px; display: flex; justify-content: space-between;
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--panel-text-3);
+  padding: 0 32px;
+  margin: 16px 0 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
 }
-h1 { font-family: var(--font-display); font-size: 72px; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 16px; }
-.tagline { font-size: 20px; max-width: 48ch; margin-bottom: 48px; }
-.tagline em { color: var(--c247); font-style: normal; font-weight: 600; }
-.actions { margin: 32px 0 64px; }
-.stamp {
-  display: inline-block; background: var(--cream); color: var(--ink);
-  border: 1px solid var(--ink); font-family: var(--font-mono); font-weight: 700;
-  padding: 12px 24px; transform: rotate(-2deg); box-shadow: 4px 4px 0 var(--ink);
-  text-decoration: none; text-transform: uppercase; letter-spacing: 0.05em; font-size: 14px;
-  transition: box-shadow 80ms cubic-bezier(0.2,0,0,1), transform 80ms;
+.dateline .lhs, .dateline .rhs { display: inline-flex; gap: 6px; align-items: baseline; }
+.dateline .live::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--live);
+  border-radius: 9999px;
+  margin-right: 6px;
+  vertical-align: middle;
+  animation: live-pulse 1.6s cubic-bezier(.2,0,0,1) infinite;
 }
-.stamp:hover { box-shadow: 2px 2px 0 var(--ink); transform: rotate(-2deg) translate(2px,2px); }
-.stamp:active { box-shadow: 0 0 0 var(--ink); transform: rotate(-2deg) translate(4px,4px); }
-.rooms { margin-top: 32px; display: flex; flex-wrap: wrap; gap: 0; border-top: 1px solid var(--fg); }
-.room {
-  flex: 1 1 200px; font-family: var(--font-mono); text-transform: uppercase;
-  padding: 16px; border-bottom: 1px solid var(--fg); border-right: 1px solid var(--fg);
-  color: var(--fg); text-decoration: none; letter-spacing: 0.03em; font-size: 12px;
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
-.room:hover { background: var(--fg); color: var(--bg); }
-.note { font-family: var(--font-mono); font-size: 11px; text-transform: lowercase;
-  letter-spacing: 0.03em; opacity: 0.7; max-width: 60ch; margin-top: 48px; }
-.footer {
-  margin-top: 96px; padding-top: 16px; border-top: 1px solid var(--fg);
-  font-family: var(--font-mono); font-size: 10px; text-transform: lowercase;
-  letter-spacing: 0.04em; opacity: 0.6; text-align: center;
+
+@media (max-width: 640px) {
+  .hero { padding: 32px 20px 16px 20px; }
+  .section { padding: 16px 20px; }
+  .dateline { padding: 0 20px; }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .btn-stamp, .btn-ghost { justify-content: center; }
+  .tech { grid-template-columns: 1fr; }
+  .tech > div:nth-child(4n+3), .tech > div:nth-child(4n+4) { background: var(--panel-1); }
+  .tech > div:nth-child(2n) { background: var(--panel-2); }
 }
-.manifesto { margin-top: 64px; padding-top: 32px; border-top: 3px double var(--fg); }
-.manifesto p { font-family: var(--font-body); font-size: 16px; margin-bottom: 16px; max-width: 60ch; }
-.tag { color: var(--c247); font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; }
 </style>
 </head>
 <body>
+
+<header class="app-topbar">
+  <span class="brand">247420<span class="slash"> / </span>zellous</span>
+  <nav>
+    <a href="#features">features</a>
+    <a href="#tech">tech</a>
+    <a href="#manifesto">manifesto</a>
+    <a href="https://github.com/AnEntrypoint/zellous" target="_blank" rel="noopener">source ↗</a>
+    <button class="theme-toggle" id="themeToggle" type="button" title="toggle theme">light</button>
+  </nav>
+</header>
+
 <div class="dateline">
-  <span>247420 // an entrypoint // zellous // apr 20 2026</span>
-  <span>probably emerging 🌀</span>
+  <span class="lhs"><span>247420 // an entrypoint // zellous</span></span>
+  <span class="rhs"><span class="live">live on nostr</span></span>
 </div>
 
-<span class="tag">// zellous</span>
-<h1>hold button. talk. someone hears you.</h1>
-<p class="tagline">push-to-talk over public nostr relays. no backend. no account. your keys are your identity. <em>broken on purpose</em>. read the source.</p>
+<main class="app-main">
 
-<div class="actions">
-  <a class="stamp" href="nostr-chat/">open chat ↗</a>
-</div>
+  <section class="hero">
+    <span class="tag">// zellous v2</span>
+    <h1>hold the button. talk. someone hears you.</h1>
+    <p class="lede">push-to-talk over public nostr relays. no backend. no account. your keys are your identity. <em>broken on purpose</em>. read the source.</p>
+    <div class="hero-actions">
+      <a class="btn-stamp" href="nostr-chat/">open chat ↗</a>
+      <a class="btn-ghost" href="https://github.com/AnEntrypoint/zellous" target="_blank" rel="noopener">source</a>
+    </div>
+  </section>
 
-<div class="rooms">
-  <a class="room" href="nostr-chat/?room=general"># general</a>
-  <a class="room" href="nostr-chat/?room=dev"># dev</a>
-  <a class="room" href="nostr-chat/?room=random"># random</a>
-</div>
+  <section class="section" id="rooms">
+    <h3 class="section-head">// drop-in rooms</h3>
+    <div class="cards">
+      <a class="card" href="nostr-chat/?room=general">
+        <span class="card-code">001</span>
+        <span class="card-title"># general</span>
+        <span class="card-meta">public · nip-28 · open relay</span>
+      </a>
+      <a class="card" href="nostr-chat/?room=dev">
+        <span class="card-code">002</span>
+        <span class="card-title"># dev</span>
+        <span class="card-meta">public · nip-28 · open relay</span>
+      </a>
+      <a class="card" href="nostr-chat/?room=random">
+        <span class="card-code">003</span>
+        <span class="card-title"># random</span>
+        <span class="card-meta">public · nip-28 · open relay</span>
+      </a>
+      <a class="card" href="nostr-chat/">
+        <span class="card-code">004</span>
+        <span class="card-title">+ new server</span>
+        <span class="card-meta">spin up a private community</span>
+      </a>
+    </div>
+  </section>
 
-<p class="note">messages publish to public nostr relays. anyone with the same room name can read and post. NIP-28 public channels, NIP-07 extension auth, webrtc voice mesh with sfu hub election once you hit 3 peers. networking runs through <a href="https://www.npmjs.com/package/wireweave" style="color:var(--c247)">wireweave</a>.</p>
+  <section class="section" id="features">
+    <h3 class="section-head">// what it is</h3>
+    <div class="cards">
+      <div class="card">
+        <span class="card-code">push to talk</span>
+        <span class="card-title">opus voice</span>
+        <span class="card-meta">webrtc mesh, sfu hub election once you hit 3 peers, ~85ms chunks</span>
+      </div>
+      <div class="card">
+        <span class="card-code">protocol</span>
+        <span class="card-title">nostr</span>
+        <span class="card-meta">nip-28 channels, nip-07 extension auth, kind-30078 voice signaling</span>
+      </div>
+      <div class="card">
+        <span class="card-code">surface</span>
+        <span class="card-title">browser</span>
+        <span class="card-meta">no install, no app store, no native. pages that render and run.</span>
+      </div>
+      <div class="card">
+        <span class="card-code">backend</span>
+        <span class="card-title">— none —</span>
+        <span class="card-meta">static html, vendored js, public relays. nothing to host.</span>
+      </div>
+    </div>
+  </section>
 
-<div class="manifesto">
-  <p><strong>code is communication.</strong> talk is cheap. PRs are truth.</p>
-  <p><strong>community > capital.</strong> we optimize for the people who show up.</p>
-  <p><strong>learn in public.</strong> ship broken code, iterate fast, improve in the open.</p>
-  <p><strong>fun is a feature.</strong> if it isn't at least a little bit fun to use, we failed.</p>
-</div>
+  <section class="section" id="tech">
+    <h3 class="section-head">// stack</h3>
+    <div class="tech">
+      <div class="k">runtime</div>           <div class="v">browser · static html</div>
+      <div class="k">protocol</div>          <div class="v"><code>nostr</code> · nip-07, nip-28, nip-19</div>
+      <div class="k">voice transport</div>  <div class="v"><code>webrtc</code> · <code>RTCPeerConnection</code> + <code>getUserMedia</code></div>
+      <div class="k">codec</div>             <div class="v"><code>opus</code> via WebCodecs · 24kbps · 48khz mono</div>
+      <div class="k">signaling</div>         <div class="v">nostr <code>kind:30078</code> · perfect-negotiation · iceRestart on stall</div>
+      <div class="k">topology</div>          <div class="v">mesh ≤ 2 · star/sfu hub-elected ≥ 3 (lowest avg RTT wins)</div>
+      <div class="k">networking</div>        <div class="v"><a href="https://www.npmjs.com/package/wireweave">wireweave</a> · vendored</div>
+      <div class="k">deploy</div>            <div class="v">github pages · github actions · zero servers</div>
+    </div>
+  </section>
 
-<div class="footer">
-  247420 / mmxxvi / probably emerging 🌀 / built in public / <a href="https://github.com/AnEntrypoint/zellous">source</a>
-</div>
+  <section class="section" id="manifesto">
+    <h3 class="section-head">// manifesto</h3>
+    <div class="manifesto">
+      <p><strong>code is communication.</strong> talk is cheap. PRs are truth.</p>
+      <p><strong>community &gt; capital.</strong> we optimize for the people who show up.</p>
+      <p><strong>learn in public.</strong> ship broken code. iterate fast. improve in the open.</p>
+      <p><strong>fun is a feature.</strong> if it isn't at least a little fun to use, we failed.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-status">
+  <span>247420 / mmxxvi / probably emerging</span>
+  <span class="spread"></span>
+  <span>built in public</span>
+  <a href="https://github.com/AnEntrypoint/zellous" target="_blank" rel="noopener">source ↗</a>
+</footer>
+
+<script>
+(function(){
+  var KEY = 'zellous-theme';
+  var btn = document.getElementById('themeToggle');
+  function apply(t){
+    document.documentElement.setAttribute('data-theme', t);
+    btn.textContent = t === 'dark' ? 'dark' : 'light';
+    try { localStorage.setItem(KEY, t); } catch(e) {}
+  }
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch(e) {}
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  apply(stored || (prefersDark ? 'dark' : 'light'));
+  btn.addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    apply(cur === 'dark' ? 'light' : 'dark');
+  });
+})();
+</script>
+
 </body>
 </html>
