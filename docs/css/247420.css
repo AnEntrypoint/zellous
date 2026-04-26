@@ -3,7 +3,7 @@
    we fart in its general direction.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Space+Grotesk:wght@400;500;600;700&family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Narrow:wght@400;500;600;700&display=swap');
+/* Webfonts hoisted to the non-blocking <link> in index.html. */
 
 :root {
   /* --- Neutrals --- */

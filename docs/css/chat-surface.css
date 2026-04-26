@@ -1,16 +1,16 @@
 /* ============================================================
-   gmail-surface.css — Mode B (per c:/dev/design SKILL.md)
+   chat-surface.css — Mode B (per c:/dev/design SKILL.md)
    "Backgrounds over borders" — separation by surface tone + gap.
    Loads LAST; overrides discord.css/tokens.css/247420.css.
-   Material 3 / Gmail inbox aesthetic with Roboto + Google Sans.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap');
+/* Webfonts hoisted to a non-blocking <link> in index.html — @import here would
+   serialize after CSS parse and stall the page-load event behind the CDN. */
 
 :root,
 html[data-theme="paper"],
 html[data-theme="light"] {
-  /* Light (gmail inbox) */
+  /* Light surface */
   --gs-bg:        #f6f8fc;   /* page canvas */
   --gs-1:         #ffffff;   /* card / surface */
   --gs-2:         #f1f3f4;   /* zebra / hover / filled input */

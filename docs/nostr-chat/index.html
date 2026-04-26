@@ -80,9 +80,58 @@ window.nostrFsm = null;
   <link rel="stylesheet" href="../css/discord.css">
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/247420.css">
-  <link rel="stylesheet" href="../css/gmail-surface.css">
+  <link rel="stylesheet" href="../css/chat-surface.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Non-blocking webfonts: system font stack renders first, swap when CDN responds.
+       Single combined URL replaces three separate @import statements that previously
+       held the page-load event hostage when the CDN was slow or unreachable. -->
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Noto+Sans:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Google+Sans+Text:wght@400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+  <style>
+    /* Boot overlay — visible before any module CSS resolves. Inline so it never blocks on a fetch. */
+    #zellousBoot{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0B0B09;color:#EFE9DD;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;transition:opacity 200ms ease}
+    [data-theme="light"] #zellousBoot{background:#EFE9DD;color:#0B0B09}
+    #zellousBoot.gone{opacity:0;pointer-events:none}
+    #zellousBoot .zb-mark{font-family:'Archivo Black','Archivo',system-ui,sans-serif;font-size:48px;font-weight:900;letter-spacing:-0.03em;text-transform:none;color:#92CEAC}
+    [data-theme="light"] #zellousBoot .zb-mark{color:#247420}
+    #zellousBoot .zb-bar{width:240px;height:3px;background:rgba(146,206,172,0.18);overflow:hidden;border-radius:2px}
+    [data-theme="light"] #zellousBoot .zb-bar{background:rgba(36,116,32,0.15)}
+    #zellousBoot .zb-fill{height:100%;width:0%;background:#92CEAC;transition:width 160ms cubic-bezier(.2,0,0,1)}
+    [data-theme="light"] #zellousBoot .zb-fill{background:#247420}
+    #zellousBoot .zb-phase{opacity:0.7;font-size:11px}
+    #zellousBoot .zb-error{color:#FF3B1F;font-size:11px;max-width:320px;text-align:center;line-height:1.5;display:none}
+    #zellousBoot.errored .zb-error{display:block}
+    #zellousBoot.errored .zb-fill{background:#FF3B1F}
+  </style>
 </head>
 <body>
+  <div id="zellousBoot" role="status" aria-live="polite" aria-label="Loading Zellous">
+    <div class="zb-mark">zellous</div>
+    <div class="zb-bar"><div class="zb-fill" id="zbFill"></div></div>
+    <div class="zb-phase" id="zbPhase">starting</div>
+    <div class="zb-error" id="zbError"></div>
+  </div>
+  <script>
+    // Boot reporter — exposed early so any code path can update progress / mark errors.
+    // Phases: tokens → modules (each script counts) → ready. Observable via window.__boot.
+    (function(){
+      var fill=document.getElementById('zbFill'),phase=document.getElementById('zbPhase'),err=document.getElementById('zbError'),box=document.getElementById('zellousBoot');
+      var t0=performance.now(),events=[];
+      function log(name,extra){events.push({t:+(performance.now()-t0).toFixed(1),name:name,extra:extra||null});}
+      function setProgress(p,label){if(fill)fill.style.width=Math.max(0,Math.min(100,p))+'%';if(label&&phase)phase.textContent=label;log('progress',{p:p,label:label});}
+      function fail(msg){if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});}
+      function done(){if(!box)return;box.classList.add('gone');setTimeout(function(){box&&box.parentNode&&box.parentNode.removeChild(box);},250);log('done');}
+      window.__boot={ progress:setProgress, fail:fail, done:done, events:events, t0:t0 };
+      // Safety net — if nothing finalizes within 25s, surface the failure.
+      window.__boot._watchdog=setTimeout(function(){if(!window.appReady)fail('Took longer than 25s — check console for module load failures.');},25000);
+      // Catch unhandled module errors so the user sees them instead of a frozen splash.
+      window.addEventListener('error',function(e){if(window.appReady)return;if(e&&e.message)fail(e.message);});
+      window.addEventListener('unhandledrejection',function(e){if(window.appReady)return;var m=e&&e.reason&&(e.reason.message||String(e.reason));if(m)fail(m);});
+      log('boot-html');
+      setProgress(2,'starting');
+    })();
+  </script>
   <div class="reconnect-banner" id="reconnectBanner">No relay connected. Reconnecting...</div>
   <div class="app">
     <!-- SERVER LIST -->
@@ -388,6 +437,7 @@ window.nostrFsm = null;
 
   <script src="../msgpackr.min.js"></script>
   <script type="module">
+    window.__boot?.progress(4, 'loading core libs');
     import { signal, computed, effect } from '@preact/signals';
 
     window.__signal = signal;
@@ -402,6 +452,7 @@ window.nostrFsm = null;
 
     import { createMachine, createActor } from 'xstate';
     window.XState = { createMachine, createActor };
+    window.__boot?.progress(7, 'core libs ready');
 
     const base = new URL('../', import.meta.url).href;
     window.__appBase = base;
@@ -427,18 +478,36 @@ window.nostrFsm = null;
       'js/voice-ptt.js'
     ];
 
-    for (const src of scripts) {
-      await new Promise((resolve, reject) => {
+    // Two-phase parallel loader: wireweave-bridge runs first (creates managers
+    // asynchronously); we await __wireweaveReady before parallel-loading the rest,
+    // because several UI modules monkey-patch those managers at evaluation time.
+    // Within each phase, async=false preserves execution order while the browser
+    // fetches the URLs concurrently.
+    function loadOne(src, onDone) {
+      return new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = base + src;
-        s.onload = resolve;
-        s.onerror = reject;
+        s.async = false;
+        s.onload = () => { onDone && onDone(src); resolve(); };
+        s.onerror = () => reject(new Error('Failed to load ' + src));
         document.head.appendChild(s);
       });
-      if (src === 'js/wireweave-bridge.js' && window.__wireweaveReady) {
-        await window.__wireweaveReady;
-      }
     }
+
+    const [bridgeSrc, ...rest] = scripts;
+    window.__boot?.progress(8, 'loading bridge');
+    await loadOne(bridgeSrc);
+    if (window.__wireweaveReady) await window.__wireweaveReady;
+    window.__boot?.progress(14, 'fetching modules');
+
+    const total = rest.length;
+    let done = 0;
+    await Promise.all(rest.map((src) => loadOne(src, () => {
+      done += 1;
+      const pct = 14 + Math.round((done / total) * 76);
+      window.__boot?.progress(pct, `loaded ${done}/${total}`);
+    })));
+    window.__boot?.progress(92, 'wiring signals');
 
     Object.defineProperty(window, '__debug', {get: function(){ return {
       get voice(){return window.nostrVoice&&window.nostrVoice.__debug;},
@@ -486,6 +555,10 @@ window.nostrFsm = null;
       }
     });
     window.appReady = true;
+    window.__boot?.progress(100, 'ready');
+    // One frame so the user sees the bar fill before fade.
+    requestAnimationFrame(() => window.__boot?.done());
+    if (window.__boot?._watchdog) clearTimeout(window.__boot._watchdog);
   </script>
 <script>
 async function initNostr() {

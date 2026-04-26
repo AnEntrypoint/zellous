@@ -1,2 +1,3 @@
-/* Load Noto Sans from Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap');
+/* Webfonts hoisted to the non-blocking <link> in index.html.
+   Kept as an empty file so existing <link rel="stylesheet" href="fonts.css">
+   refs continue to resolve without a 404. */
