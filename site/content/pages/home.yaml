@@ -1,0 +1,29 @@
+id: home
+title: Home
+hero:
+  heading: "zellous"
+  subheading: "production push-to-talk"
+  body: "hold the button. talk. someone on the other side hears you. Opus codec, dynamic rooms, 50-message replay. ships production-ready, not prototype-ready."
+  badges:
+    - { label: "voice" }
+    - { label: "opus" }
+    - { label: "realtime" }
+    - { label: "voice" }
+  ctas:
+    - { label: "GitHub", href: "https://github.com/AnEntrypoint/zellous", primary: true }
+    - { label: "Install", href: "https://github.com/AnEntrypoint/zellous#installation" }
+    - { label: "247420", href: "https://247420.xyz" }
+features:
+  heading: "Why zellous"
+  items:
+    - { name: "voice", desc: "flagship trait of zellous." }
+    - { name: "opus", desc: "core capability of zellous." }
+    - { name: "realtime", desc: "core capability of zellous." }
+quickstart:
+  heading: Quick start
+  lines:
+    - { kind: "cmt", text: "# install" }
+    - { kind: "cmd", text: "npm i zellous" }
+    - { kind: "cmt", text: "" }
+    - { kind: "cmt", text: "# source" }
+    - { kind: "cmd", text: "git clone https://github.com/AnEntrypoint/zellous.git" }

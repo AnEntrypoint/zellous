@@ -1,0 +1,17 @@
+title: "zellous"
+tagline: "production push-to-talk"
+description: "hold the button. talk. someone on the other side hears you. Opus codec, dynamic rooms, 50-message replay. ships production-ready, not prototype-ready."
+repo: "https://github.com/AnEntrypoint/zellous"
+url: "https://anentrypoint.github.io/zellous"
+year: 2026
+keywords:
+  - "voice"
+  - "opus"
+  - "realtime"
+  - "247420"
+  - "anentrypoint"
+accent_from: "#f97583"
+accent_to: "#ffa657"
+glyph: "◉"
+code: "030"
+category: "voice"
