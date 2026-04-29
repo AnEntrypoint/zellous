@@ -147,6 +147,13 @@ const html = ({ site, nav, home }) => `<!DOCTYPE html>
 `;
 
 export default {
+  assets: {
+    '../docs/nostr-chat': 'nostr-chat',
+    '../docs/vendor': 'vendor',
+    '../docs/css': 'css',
+    '../docs/js': 'js',
+    '../docs/msgpackr.min.js': 'msgpackr.min.js',
+  },
   render: async (ctx) => {
     const site = ctx.readGlobal('site') || {};
     const nav = ctx.readGlobal('navigation') || { links: [] };
