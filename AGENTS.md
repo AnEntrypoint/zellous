@@ -82,6 +82,16 @@ If `errors` is non-empty (after filtering external Google Fonts failures, which 
 
 **Playwriter (exec:browser) viewport API** — playwriter uses Playwright's `page.setViewportSize({width, height})`, NOT puppeteer's `page.setViewport()`. The method name and parameter structure differ. Ensure viewport manipulation code targets Playwright, not puppeteer.
 
+**AppShell `.app-body` grid-to-flex override** — anentrypoint-design's AppShell `.app-body` renders as `display: grid`. Overriding to flex requires both `display:flex !important` AND `grid-template-columns:none !important` to clear grid tracks. Setting display:flex alone loses the cascade against the grid definition.
+
+**AppShell `.app-main` padding cascade** — anentrypoint-design's `.app-main` ships with `padding: 16px 20px 72px`. Unprefixed `padding:0` from wrapper stylesheets loses the cascade. Override requires `!important` flag.
+
+**AppShell `.app-body.no-side` element retention** — When `.app-body.no-side` is set, the SDK still renders the `.app-side-shell` element off-screen via fadeOutLeft animation. It still consumes a grid track or flex item. To reclaim the space, explicitly hide it: `.app-body.no-side > .app-side-shell { display:none }`.
+
+**Viewport height overflow from iframe min-height clamp** — site/theme.mjs embedClient: using iframe `height: calc(100vh - 180px); min-height:520px` causes body overflow on standard desktop sizes (e.g., bodyH 970px > viewport 900px). Fix: lock html/body/#app/.app/.app-body/.app-main to flex column with `height:100vh; overflow:hidden`, iframe `height:100%`, and remove the min-height clamp.
+
+**Flatspace build command and output** — Flatspace is invoked via `npx --yes flatspace@latest build` (see .github/workflows/gh-pages.yml). There is no local build script in package.json; the command must be run directly. Build output goes to ./dist.
+
 ## Quick path map
 
 ```
@@ -103,3 +113,7 @@ flatspace.config.mjs                 build config (CI only)
 dist/                                CI build artifact
 scripts/fetch-vendor.js              vendored-dep fetcher
 ```
+
+## Learning audit
+
+2026-04-30: 5 items sampled (importmap, preact, wireweave, crlf, path-traversal). Recall: 0/5. All retained in AGENTS.md. rs-learn store empty; gradual population expected in future sessions.
