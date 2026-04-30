@@ -119,20 +119,27 @@ function Footer() {
 const App = C.AppShell({
   topbar: C.Topbar({ brand: '247420', leaf: site.title || '', items: navItems }),
   crumb: C.Crumb({ trail: ['247420', site.title || ''], leaf: page.title || '' }),
-  main: C.Panel({
-    style: 'margin:8px',
-    children: h('iframe', {
-      src: page.embedSrc,
-      style: 'width:100%;height:calc(100vh - 180px);min-height:520px;border:0;border-radius:6px;background:var(--panel-1);display:block',
-      title: page.title || ''
-    })
+  main: h('iframe', {
+    src: page.embedSrc,
+    style: 'width:100%;height:100%;border:0;background:var(--panel-1);display:block',
+    title: page.title || ''
   }),
   status: Footer()
 });
 applyDiff(document.getElementById('app'), [App]);
 `;
 
-const renderHtml = ({ site, nav, page, clientScript }) => `<!DOCTYPE html>
+const embedFullscreenCss = `
+html,body{height:100%;overflow:hidden}
+#app{height:100vh;display:flex;flex-direction:column}
+.ds-247420 .app{height:100vh;min-height:0;display:flex;flex-direction:column}
+.ds-247420 .app-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex !important;grid-template-columns:none !important}
+.ds-247420 .app-body.no-side>.app-side-shell{display:none}
+.ds-247420 .app-main{flex:1 1 auto;min-height:0;display:flex;padding:0 !important;margin:0 !important}
+.ds-247420 .app-main>iframe{flex:1 1 auto;min-height:0}
+`;
+
+const renderHtml = ({ site, nav, page, clientScript, extraStyle }) => `<!DOCTYPE html>
 <html lang="en" class="ds-247420">
 <head>
   <meta charset="UTF-8" />
@@ -140,7 +147,7 @@ const renderHtml = ({ site, nav, page, clientScript }) => `<!DOCTYPE html>
   <title>${escapeHtml(page.title || site.title)}${site.tagline ? ' — ' + escapeHtml(site.tagline) : ''}</title>
   <meta name="description" content="${escapeHtml(page.description || site.description || site.tagline || site.title)}" />
   <script type="importmap">{"imports":{"anentrypoint-design":"${SDK_URL}"}}</script>
-  <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito',system-ui,sans-serif)}</style>
+  <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito',system-ui,sans-serif)}${extraStyle || ''}</style>
 </head>
 <body>
   <div id="app"></div>
@@ -178,7 +185,7 @@ export default {
     for (const e of embeds) {
       outputs.push({
         path: e.path,
-        html: renderHtml({ site, nav, page: e, clientScript: embedClient })
+        html: renderHtml({ site, nav, page: e, clientScript: embedClient, extraStyle: embedFullscreenCss })
       });
     }
     return outputs;
