@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="dark" class="ds-247420">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -31,7 +31,8 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       '@preact/signals': '../vendor/preact-signals.mjs',
       '@preact/signals-core': '../vendor/signals-core.mjs',
       'nostr-tools': '../vendor/nostr-tools.mjs',
-      xstate: '../vendor/xstate.mjs'
+      xstate: '../vendor/xstate.mjs',
+      'anentrypoint-design': 'https://unpkg.com/anentrypoint-design@latest/dist/247420.js'
     }
   })
 }));
@@ -81,6 +82,7 @@ window.nostrFsm = null;
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/247420.css">
   <link rel="stylesheet" href="../css/chat-surface.css">
+  <link rel="stylesheet" href="../css/sdk-shell.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Non-blocking webfonts: system font stack renders first, swap when CDN responds.
@@ -452,6 +454,15 @@ window.nostrFsm = null;
 
     import { createMachine, createActor } from 'xstate';
     window.XState = { createMachine, createActor };
+
+    try {
+      const sdk = await import('anentrypoint-design');
+      sdk.installStyles?.();
+      window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components };
+    } catch (e) {
+      console.error('SDK load failed', e);
+      window.__sdk = null;
+    }
     window.__boot?.progress(7, 'core libs ready');
 
     const base = new URL('../', import.meta.url).href;
@@ -475,7 +486,8 @@ window.nostrFsm = null;
       'js/moderation.js',
       'js/ptt.js',
       'js/webcam.js',
-      'js/voice-ptt.js'
+      'js/voice-ptt.js',
+      'js/ui-shell.js'
     ];
 
     // Two-phase parallel loader: wireweave-bridge runs first (creates managers
