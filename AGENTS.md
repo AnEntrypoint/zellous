@@ -92,6 +92,10 @@ If `errors` is non-empty (after filtering external Google Fonts failures, which 
 
 **Flatspace build command and output** — Flatspace is invoked via `npx --yes flatspace@latest build` (see .github/workflows/gh-pages.yml). There is no local build script in package.json; the command must be run directly. Build output goes to ./dist.
 
+**docs/sdk/ vs docs/vendor/ gitignore split** — `docs/vendor/` is gitignored (third-party drops). `docs/sdk/` is NOT gitignored and is committed. SDK assets (e.g. `247420.js` copied from `node_modules/anentrypoint-design/dist/`) belong in `docs/sdk/`, not `docs/vendor/`.
+
+**Static dev server must set MIME types** — When serving `docs/` locally for module script testing, the dev server must send explicit `Content-Type` headers (e.g. `text/javascript` for `.js` files). Browsers enforce strict MIME checking for ES modules and will refuse to execute scripts served without the correct type, even if the file content is correct.
+
 ## Quick path map
 
 ```
@@ -117,3 +121,4 @@ scripts/fetch-vendor.js              vendored-dep fetcher
 ## Learning audit
 
 2026-04-30: 5 items sampled (importmap, preact, wireweave, crlf, path-traversal). Recall: 0/5. All retained in AGENTS.md. rs-learn store empty; gradual population expected in future sessions.
+2026-05-01: 5 items sampled (importmap-injection, crlf-html, windows-path-traversal, appshell-flex-collision, playwriter-viewport). Recall: 0/5. All retained in AGENTS.md. All 5 ingested into rs-learn this session. 6 new SDK integration facts also ingested (sdk-bundle-location, sdk-importmap-entry, dev-server-mime-types, sdk-window-global, sdk-wiring-points, appready-no-relay). 2 new AGENTS.md caveats added (docs/sdk/ gitignore split, static server MIME types).
