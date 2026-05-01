@@ -53,6 +53,8 @@ _test/
 .gm/turn-state.json
 .gm/no-memorize-this-turn
 .gm/prd.paused.yml
+.gm/rs-learn.db-shm
+.gm/rs-learn.db-wal
 # tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml
 # <<< gm managed
 dist/

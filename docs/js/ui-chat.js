@@ -124,15 +124,38 @@ const uiChat = {
       el.addEventListener('touchend', touchend, { once: true });
     }, { passive: true });
   },
-  sendChat() {
-    const content = ui.chatInput?.value?.trim();
+  _composerValue: '',
+  _mountComposer() {
+    const sdk = window.__sdk;
+    if (!sdk?.C?.ChatComposer || !sdk.applyDiff) return;
+    const { h, applyDiff, C } = sdk;
+    const wrapper = document.querySelector('.chat-input-bar');
+    if (!wrapper || wrapper.dataset.sdkComposer) return;
+    wrapper.dataset.sdkComposer = '1';
+    const render = () => {
+      applyDiff(wrapper, C.ChatComposer({
+        value: this._composerValue,
+        placeholder: 'Message ' + (window.stateSignals?.currentChannel?.value?.name ? '#' + window.stateSignals.currentChannel.value.name : '#general'),
+        onInput: (v) => { this._composerValue = v; },
+        onSend: (v) => { this._composerValue = ''; this._doSend(v); render(); }
+      }));
+    };
+    this._renderComposer = render;
+    render();
+  },
+  _doSend(content) {
     if (!content) return;
     if (ui._replyTarget) {
       chat.send(content, { replyTo: ui._replyTarget });
       ui._replyTarget = null;
       document.getElementById('replyComposeBar')?.remove();
     } else { chat.send(content); }
-    ui.chatInput.value = '';
+  },
+  sendChat() {
+    const content = ui.chatInput?.value?.trim();
+    if (!content) return;
+    this._doSend(content);
+    if (ui.chatInput) ui.chatInput.value = '';
   },
 
   startReply(msgId) {
@@ -255,3 +278,10 @@ const uiChat = {
 };
 window.__zellous.uiChat = uiChat;
 window.uiChat = uiChat;
+
+if (document.readyState === 'complete') {
+  setTimeout(() => uiChat._mountComposer(), 100);
+} else {
+  window.addEventListener('appready', () => uiChat._mountComposer(), { once: true });
+  setTimeout(() => uiChat._mountComposer(), 1500);
+}

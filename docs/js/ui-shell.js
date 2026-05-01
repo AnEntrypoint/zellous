@@ -186,10 +186,46 @@
     return { strip, update };
   })();
 
+  // -------- SDK AppShell mount --------
+  const sdkShell = (() => {
+    const sdk = window.__sdk;
+    if (!sdk) return null;
+    const { h, applyDiff, C } = sdk;
+    if (!C?.AppShell || !C?.Topbar) return null;
+
+    const app = document.querySelector('.app');
+    if (!app) return null;
+
+    const renderTopbar = () => {
+      const ss = window.stateSignals;
+      const chName = ss?.currentChannel?.value?.name || 'zellous';
+      const chType = ss?.currentChannel?.value?.type;
+      const icon = chType === 'voice' ? '🔊' : '#';
+      return C.Topbar({ brand: 'zellous', leaf: icon + ' ' + chName, items: [] });
+    };
+
+    const topbarMount = document.createElement('div');
+    topbarMount.id = 'sdkTopbarMount';
+    app.insertBefore(topbarMount, app.firstChild);
+
+    const render = () => applyDiff(topbarMount, renderTopbar());
+
+    render();
+
+    if (typeof window.__effect === 'function') {
+      window.__effect(() => {
+        window.stateSignals?.currentChannel?.value;
+        render();
+      });
+    }
+
+    return { render };
+  })();
+
   // Register on __shell directly; also wrap __debug after appReady so
   // the inline module bootstrap (which redefines __debug after parallel
   // script load) doesn't clobber us.
-  window.__shell = { palette, rail, voiceStrip };
+  window.__shell = { palette, rail, voiceStrip, sdkShell };
 
   const wrapDebug = () => {
     const prev = Object.getOwnPropertyDescriptor(window, '__debug');
