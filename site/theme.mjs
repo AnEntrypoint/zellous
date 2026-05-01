@@ -229,6 +229,7 @@ export default {
   // Copy original docs/* into dist/_legacy/* so iframes can load them.
   assets: {
     '../docs/nostr-chat': '_legacy/nostr-chat',
+    '../docs/sdk': '_legacy/sdk',
     '../docs/vendor': '_legacy/vendor',
     '../docs/css': '_legacy/css',
     '../docs/js': '_legacy/js',
