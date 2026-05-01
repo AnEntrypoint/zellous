@@ -6,13 +6,13 @@
   <title>Zellous - Nostr</title>
   <script>
     // Theme init — runs before any paint. Shares 'zellous-theme' localStorage with landing.
-    (function(){try{var t=localStorage.getItem('zellous-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+    (function(){try{var t=localStorage.getItem('zellous-theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');else document.documentElement.setAttribute('data-theme','ink');}catch(e){}})();
     // Toggle wiring — bound on DOMContentLoaded since #themeToggleBtn is later in document.
     document.addEventListener('DOMContentLoaded',function(){
       var b=document.getElementById('themeToggleBtn');if(!b)return;
       b.addEventListener('click',function(){
-        var cur=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light';
-        var next=cur==='dark'?'light':'dark';
+        var cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'ink';
+        var next=cur==='light'?'ink':'light';
         document.documentElement.setAttribute('data-theme',next);
         try{localStorage.setItem('zellous-theme',next);}catch(e){}
       });
