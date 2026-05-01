@@ -387,13 +387,13 @@ h3.section-head {
     // Normalize legacy "dark" → "ink"
     if(t === 'dark') t = 'ink';
     document.documentElement.setAttribute('data-theme', t);
-    btn.textContent = t === 'ink' ? 'ink' : 'light';
+    if(btn) btn.textContent = t === 'ink' ? 'ink' : 'light';
     try { localStorage.setItem(KEY, t); } catch(e) {}
   }
   var stored = null;
   try { stored = localStorage.getItem(KEY); } catch(e) {}
   apply(stored || 'ink');
-  btn.addEventListener('click', function(){
+  if(btn) btn.addEventListener('click', function(){
     var cur = document.documentElement.getAttribute('data-theme');
     apply(cur === 'ink' ? 'light' : 'ink');
   });
