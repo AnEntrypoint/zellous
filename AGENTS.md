@@ -96,6 +96,8 @@ If `errors` is non-empty (after filtering external Google Fonts failures, which 
 
 **Static dev server must set MIME types** — When serving `docs/` locally for module script testing, the dev server must send explicit `Content-Type` headers (e.g. `text/javascript` for `.js` files). Browsers enforce strict MIME checking for ES modules and will refuse to execute scripts served without the correct type, even if the file content is correct.
 
+**sdk-shell.css ID selector specificity for dark theme overrides** — anentrypoint-design's 247420.css ships `!important` on class selectors (e.g. `.chat-area`, `.chat-header-bar`, `.member-list`) at specificity [0,2,0]. zellous's chat-surface.css uses ID selectors (`#chatArea`, `#chatHeaderBar`, `#memberList`) with `!important` at [1,0,0], which wins. When sdk-shell.css needs to re-override those elements for dark theme, it must use the same ID selectors AND `!important` AND hardcoded hex values (e.g. `#2B2D31`). Using `var(--app-bg)` fails because the SDK does not define that CSS variable.
+
 ## Quick path map
 
 ```
@@ -122,3 +124,4 @@ scripts/fetch-vendor.js              vendored-dep fetcher
 
 2026-04-30: 5 items sampled (importmap, preact, wireweave, crlf, path-traversal). Recall: 0/5. All retained in AGENTS.md. rs-learn store empty; gradual population expected in future sessions.
 2026-05-01: 5 items sampled (importmap-injection, crlf-html, windows-path-traversal, appshell-flex-collision, playwriter-viewport). Recall: 0/5. All retained in AGENTS.md. All 5 ingested into rs-learn this session. 6 new SDK integration facts also ingested (sdk-bundle-location, sdk-importmap-entry, dev-server-mime-types, sdk-window-global, sdk-wiring-points, appready-no-relay). 2 new AGENTS.md caveats added (docs/sdk/ gitignore split, static server MIME types).
+2026-05-01 (session 2): 5 items sampled (importmap-injection, crlf-html, appshell-flex-collision, playwriter-viewport, docs-sdk-gitignore). Recall: 0/5. All retained. All 5 re-ingested with refined wording. 1 new AGENTS.md caveat added (sdk-shell.css ID selector specificity for dark theme).
