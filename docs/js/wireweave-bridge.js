@@ -209,6 +209,8 @@ window.__wireweaveReady = (async () => {
     delete: (sid) => srv.delete(sid),
     leave: (sid) => srv.leave(sid),
     switchTo: async (sid) => {
+      state.homeMode = false;
+      document.getElementById('homeServer')?.classList.remove('active');
       await srv.switchTo(sid);
       const firstText = state.channels?.find(c => c.type === 'text');
       if (firstText && state.currentChannelId !== firstText.id) {

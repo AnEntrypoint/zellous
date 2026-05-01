@@ -77,12 +77,9 @@ window.moderation = null;
 window.nostrFsm = null;
 </script>
   <link rel="stylesheet" href="../vendor/fonts.css">
-  <link rel="stylesheet" href="../vendor/rippleui-1.12.1.css">
-  <link rel="stylesheet" href="../css/discord.css">
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="../css/247420.css">
-  <link rel="stylesheet" href="../css/chat-surface.css">
-  <link rel="stylesheet" href="../css/sdk-shell.css">
+  <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Non-blocking webfonts: system font stack renders first, swap when CDN responds.
@@ -596,6 +593,14 @@ async function initNostr() {
   }
 
   window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt, nostrVoice };
+
+  document.getElementById('homeServer')?.addEventListener('click', function() {
+    state.homeMode = true;
+    state.currentServerId = null;
+    document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
+    this.classList.add('active');
+    if (window.ui) ui.render.all();
+  });
 
   document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
     if (window.lk && lk.toggleCamera) lk.toggleCamera();

@@ -1,5 +1,50 @@
 const uiChannels = {
+  renderHome() {
+    if (!ui.channelList) return;
+    const user = state.currentUser || window.auth?.user;
+    const name = user?.displayName || user?.username || 'You';
+    const npub = state.nostrPubkey ? (window.auth?.npubShort?.(state.nostrPubkey) || state.nostrPubkey.slice(0, 12) + '…') : '';
+    ui.channelList.innerHTML = `
+      <div class="home-dm-header">Direct Messages</div>
+      <div class="home-dm-self channel-item active">
+        <div class="voice-user-avatar" style="background:var(--accent)">${(name[0]||'?').toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:13px;color:var(--fg)">${escHtml(name)}</div>
+          ${npub ? `<div style="font-size:11px;color:var(--fg-3)">${escHtml(npub)}</div>` : ''}
+        </div>
+      </div>
+      <div style="padding:12px 16px;color:var(--fg-3);font-size:12px">No direct message contacts yet.</div>`;
+    if (ui.serverHeader) {
+      document.getElementById('serverHeaderName').textContent = 'Direct Messages';
+      document.getElementById('createCategoryBtn').style.display = 'none';
+    }
+    this._renderHomeView();
+  },
+
+  _renderHomeView() {
+    ui.chatArea.style.display = 'flex';
+    ui.voiceView.style.display = 'none';
+    ui.threadedView.style.display = 'none';
+    document.getElementById('forumView')?.style.setProperty('display', 'none');
+    document.getElementById('pageView')?.style.setProperty('display', 'none');
+    if (ui.chatHeaderIcon) ui.chatHeaderIcon.innerHTML = '';
+    if (ui.chatHeaderName) ui.chatHeaderName.textContent = 'Home';
+    if (ui.chatHeaderTopic) ui.chatHeaderTopic.textContent = '';
+    if (ui.chatMessagesInner) {
+      const user = state.currentUser || window.auth?.user;
+      const name = user?.displayName || user?.username || 'You';
+      const npub = state.nostrPubkey || '';
+      ui.chatMessagesInner.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:var(--fg-2);text-align:center;padding:40px">
+        <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;color:var(--green-fg)">${(name[0]||'?').toUpperCase()}</div>
+        <div style="font-size:22px;font-weight:700;color:var(--fg)">${escHtml(name)}</div>
+        ${npub ? `<div style="font-size:12px;color:var(--fg-3);font-family:var(--ff-mono);word-break:break-all;max-width:340px">${escHtml(npub)}</div>` : ''}
+        <div style="font-size:14px;color:var(--fg-2);max-width:320px">This is your home. Join or create a server to start chatting.</div>
+      </div>`;
+    }
+  },
+
   render() {
+    if (state.homeMode) { this.renderHome(); return; }
     if (!ui.channelList) return;
     const channels = state.channels || [];
     const cats = state.categories || [];
@@ -78,6 +123,8 @@ const uiChannels = {
       }
     }
 
+    const createBtn = document.getElementById('createCategoryBtn');
+    if (createBtn) createBtn.style.display = '';
     ui.channelList.innerHTML = html;
     this._bind();
     if (window.channelManager?.initDragAndDrop) channelManager.initDragAndDrop();
@@ -150,6 +197,7 @@ const uiChannels = {
   },
 
   renderView() {
+    if (state.homeMode) { this._renderHomeView(); return; }
     const ch = state.currentChannel;
     if (!ch) return;
     const forumView = document.getElementById('forumView');
