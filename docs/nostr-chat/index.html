@@ -76,9 +76,6 @@ window.uiChannels = null;
 window.moderation = null;
 window.nostrFsm = null;
 </script>
-  <link rel="stylesheet" href="../vendor/fonts.css">
-  <link rel="stylesheet" href="../css/tokens.css">
-  <link rel="stylesheet" href="../css/247420.css">
   <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -454,7 +451,7 @@ window.nostrFsm = null;
 
     try {
       const sdk = await import('anentrypoint-design');
-      sdk.installStyles?.();
+      await sdk.installStyles?.();
       window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components };
     } catch (e) {
       console.error('SDK load failed', e);
