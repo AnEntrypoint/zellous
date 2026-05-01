@@ -14,7 +14,7 @@ const escapeJson = (obj) => JSON.stringify(obj)
   .replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')
   .replace(new RegExp('\\u2028', 'g'), '\\u2028').replace(new RegExp('\\u2029', 'g'), '\\u2029');
 
-const SDK_URL = 'https://unpkg.com/anentrypoint-design@latest/dist/247420.js';
+const SDK_URL = './sdk/247420.js';
 const THIS_DIR = dirname(fileURLToPath(import.meta.url));
 
 const landingClient = `
@@ -230,7 +230,7 @@ export default {
   // Copy original docs/* into dist/_legacy/* so iframes can load them.
   assets: {
     '../docs/nostr-chat': '_legacy/nostr-chat',
-    '../docs/sdk': '_legacy/sdk',
+    '../docs/sdk': 'sdk',
     '../docs/vendor': '_legacy/vendor',
     '../docs/css': '_legacy/css',
     '../docs/js': '_legacy/js',
