@@ -164,6 +164,7 @@ const App = C.AppShell({
   status: Footer()
 });
 applyDiff(document.getElementById('app'), [App]);
+window.appReady = true;
 `;
 
 const embedFullscreenCss = `
