@@ -6,8 +6,8 @@ html.ds-247420 .app,
 html.ds-247420 .main-content,
 html.ds-247420 .chat-area {
   font-family: var(--ff-ui, 'Nunito', system-ui, sans-serif) !important;
-  background: var(--app-bg, var(--panel-2, #1B1D21));
-  color: var(--panel-text, #ECEEF2);
+  background: #1B1D21 !important;
+  color: var(--panel-text, #ECEEF2) !important;
 }
 
 html.ds-247420 .app {
@@ -116,15 +116,27 @@ html.ds-247420 .main-content {
   background: var(--panel-2, #2B2D31);
   border-left: 1px solid var(--border, rgba(255,255,255,0.04));
 }
-html.ds-247420 .chat-header-bar {
-  background: var(--panel-2, #2B2D31);
-  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+html.ds-247420 .chat-area,
+html.ds-247420 #chatArea,
+html.ds-247420 .chat-messages,
+html.ds-247420 .chat-messages-inner,
+html.ds-247420 .chat-input-bar {
+  background: #2B2D31 !important;
+  color: var(--panel-text, #ECEEF2) !important;
+}
+html.ds-247420 .chat-header-bar,
+html.ds-247420 #chatHeaderBar {
+  background: #2B2D31 !important;
+  color: var(--panel-text, #ECEEF2) !important;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06)) !important;
   height: 48px;
   font-family: var(--ff-ui);
   font-weight: 700;
 }
-html.ds-247420 .chat-header-name { font-weight: 700; letter-spacing: -0.01em; }
-html.ds-247420 .chat-header-icon { color: var(--panel-text-2); opacity: 0.6; }
+html.ds-247420 .chat-header-name { font-weight: 700; letter-spacing: -0.01em; color: var(--panel-text, #ECEEF2) !important; }
+html.ds-247420 .chat-header-icon { color: var(--panel-text-2, #BFC3CB) !important; opacity: 0.85; }
+html.ds-247420 #chatHeaderBar * { color: var(--panel-text, #ECEEF2) !important; }
+html.ds-247420 #chatHeaderBar button, html.ds-247420 #chatHeaderBar .icon-btn { color: var(--panel-text-2, #BFC3CB) !important; }
 
 /* CHAT MESSAGES — generous spacing, monospace meta */
 html.ds-247420 .chat-messages-inner { padding: 16px 24px; }
@@ -172,9 +184,11 @@ html.ds-247420 .attach-btn:hover { background: rgba(255,255,255,0.06); color: va
 html.ds-247420 .input-btn:hover { background: var(--accent, #3F8A4A); color: #fff; }
 
 /* MEMBER LIST */
-html.ds-247420 .member-list {
-  background: var(--panel-1, #232428);
+html.ds-247420 .member-list,
+html.ds-247420 #memberList {
+  background: #232428 !important;
   border-left: 1px solid var(--border, rgba(255,255,255,0.06));
+  color: var(--panel-text, #ECEEF2) !important;
 }
 html.ds-247420 .member-role-header {
   font-family: var(--ff-ui);
@@ -380,4 +394,16 @@ html.ds-247420 .reconnect-banner {
   background: #C8453A;
   font-family: var(--ff-ui);
   font-weight: 700;
+}
+
+/* SDK Topbar — global app header spanning full width above all columns */
+html.ds-247420 #sdkTopbarMount {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  height: 0;
+  overflow: hidden;
+  display: none;
 }

@@ -193,8 +193,8 @@
     const { h, applyDiff, C } = sdk;
     if (!C?.AppShell || !C?.Topbar) return null;
 
-    const app = document.querySelector('.app');
-    if (!app) return null;
+    const mainContent = document.querySelector('.main-content');
+    if (!mainContent) return null;
 
     const renderTopbar = () => {
       const ss = window.stateSignals;
@@ -206,7 +206,7 @@
 
     const topbarMount = document.createElement('div');
     topbarMount.id = 'sdkTopbarMount';
-    app.insertBefore(topbarMount, app.firstChild);
+    mainContent.insertBefore(topbarMount, mainContent.firstChild);
 
     const render = () => applyDiff(topbarMount, renderTopbar());
 
