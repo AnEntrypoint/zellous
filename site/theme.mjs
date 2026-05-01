@@ -140,7 +140,7 @@ html,body{height:100%;overflow:hidden}
 `;
 
 const renderHtml = ({ site, nav, page, clientScript, extraStyle }) => `<!DOCTYPE html>
-<html lang="en" class="ds-247420">
+<html lang="en" data-theme="ink" class="ds-247420">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -148,11 +148,42 @@ const renderHtml = ({ site, nav, page, clientScript, extraStyle }) => `<!DOCTYPE
   <meta name="description" content="${escapeHtml(page.description || site.description || site.tagline || site.title)}" />
   <script type="importmap">{"imports":{"anentrypoint-design":"${SDK_URL}"}}</script>
   <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito',system-ui,sans-serif)}${extraStyle || ''}</style>
+  <script>
+  // Theme init — runs before paint. Shares 'zellous-theme' localStorage with nostr-chat.
+  (function(){
+    var KEY='zellous-theme';
+    var stored=null;
+    try{stored=localStorage.getItem(KEY);}catch(e){}
+    var t=stored||'ink';
+    if(t==='light')document.documentElement.setAttribute('data-theme','light');
+    else document.documentElement.setAttribute('data-theme','ink');
+  })();
+  </script>
 </head>
 <body>
   <div id="app"></div>
   <script type="application/json" id="__site__">${escapeJson({ site, nav, page })}</script>
   <script type="module">${clientScript}</script>
+  <script>
+  // Theme toggle wiring — bound after client script loads.
+  (function(){
+    var KEY='zellous-theme';
+    var btn=document.getElementById('themeToggle');
+    if(!btn)return;
+    function updateBtn(){
+      var cur=document.documentElement.getAttribute('data-theme');
+      btn.textContent=cur==='light'?'light':'ink';
+    }
+    updateBtn();
+    btn.addEventListener('click',function(){
+      var cur=document.documentElement.getAttribute('data-theme');
+      var next=cur==='light'?'ink':'light';
+      document.documentElement.setAttribute('data-theme',next);
+      try{localStorage.setItem(KEY,next);}catch(e){}
+      updateBtn();
+    });
+  })();
+  </script>
 </body>
 </html>
 `;
