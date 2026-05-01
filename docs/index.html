@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="ink" class="ds-247420">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -70,11 +70,11 @@ a.btn-stamp,
   box-shadow: 4px 4px 0 var(--ink) !important;
   transition: transform 80ms cubic-bezier(.2,0,0,1), box-shadow 80ms cubic-bezier(.2,0,0,1);
 }
-[data-theme="dark"] .btn-stamp { box-shadow: 4px 4px 0 var(--paper) !important; color: var(--ink); }
+[data-theme="ink"] .btn-stamp { box-shadow: 4px 4px 0 var(--paper) !important; color: var(--ink); }
 .btn-stamp:hover  { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--ink) !important; }
 .btn-stamp:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink) !important; }
-[data-theme="dark"] .btn-stamp:hover  { box-shadow: 3px 3px 0 var(--paper) !important; }
-[data-theme="dark"] .btn-stamp:active { box-shadow: 0 0 0 var(--paper) !important; }
+[data-theme="ink"] .btn-stamp:hover  { box-shadow: 3px 3px 0 var(--paper) !important; }
+[data-theme="ink"] .btn-stamp:active { box-shadow: 0 0 0 var(--paper) !important; }
 
 .app-main a.btn-ghost,
 a.btn-ghost,
@@ -115,7 +115,7 @@ a.card,
 /* On hover the card flips to inverted ink/paper. card-code must read on the
    inverted bg, NOT on the original surface — tint to the contrast-safe accent. */
 [data-theme="light"] .card:hover .card-code { color: #92CEAC; }   /* mint on ink — 9.18:1 */
-[data-theme="dark"]  .card:hover .card-code { color: #247420; }   /* green on paper — 4.83:1 */
+[data-theme="ink"]   .card:hover .card-code { color: #247420; }   /* green on paper — 4.83:1 */
 .card-title { font-family: var(--ff-display); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
 .card-meta { font-size: 11px; color: var(--panel-text-3); line-height: 1.5; }
 
@@ -384,17 +384,18 @@ h3.section-head {
   var KEY = 'zellous-theme';
   var btn = document.getElementById('themeToggle');
   function apply(t){
+    // Normalize legacy "dark" → "ink"
+    if(t === 'dark') t = 'ink';
     document.documentElement.setAttribute('data-theme', t);
-    btn.textContent = t === 'dark' ? 'dark' : 'light';
+    btn.textContent = t === 'ink' ? 'ink' : 'light';
     try { localStorage.setItem(KEY, t); } catch(e) {}
   }
   var stored = null;
   try { stored = localStorage.getItem(KEY); } catch(e) {}
-  // Canonical 247420 surface is dark — default dark unless user explicitly chose light.
-  apply(stored || 'dark');
+  apply(stored || 'ink');
   btn.addEventListener('click', function(){
     var cur = document.documentElement.getAttribute('data-theme');
-    apply(cur === 'dark' ? 'light' : 'dark');
+    apply(cur === 'ink' ? 'light' : 'ink');
   });
 })();
 </script>

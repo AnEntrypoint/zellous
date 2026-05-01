@@ -861,3 +861,20 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .chat-header-bar { display: none; }
   .rail-toggle { display: none; }
 }
+
+.server-back-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 32px;
+  color: var(--fg-2);
+  text-decoration: none;
+  font-family: var(--ff-mono);
+  font-size: 16px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: color 0.15s;
+  margin-bottom: 4px;
+}
+.server-back-link:hover { color: var(--fg); }
