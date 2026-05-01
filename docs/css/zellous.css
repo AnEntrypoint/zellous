@@ -3,34 +3,28 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   height: 100%; width: 100%;
-  font-family: var(--ff-sans);
   font-size: var(--fs-sm);
   background: var(--bg);
   color: var(--fg);
   overflow: hidden;
 }
 
-[data-theme="dark"] {
-  --bg:    #1A1B1E;
-  --bg-2:  #232428;
-  --bg-3:  #2B2D31;
-  --bg-4:  #36383E;
-  --fg:    #ECEEF2;
-  --fg-2:  #BFC3CB;
-  --fg-3:  #80848E;
-  --border-color: rgba(255,255,255,0.06);
-  --shadow: 0 1px 3px rgba(0,0,0,0.4);
+/* Extension tokens — surface hierarchy beyond --bg/--bg-2 */
+:root {
+  --bg-3:       var(--cream-3);
+  --bg-4:       #C8C0A8;
+  --border-color: color-mix(in oklab, var(--fg) 12%, transparent);
+  --shadow:     0 1px 3px color-mix(in oklab, var(--fg) 15%, transparent);
 }
-[data-theme="light"] {
-  --bg:    var(--paper);
-  --bg-2:  var(--paper-2);
-  --bg-3:  var(--cream-3);
-  --bg-4:  #c8c0a8;
-  --fg:    var(--ink);
-  --fg-2:  var(--ink-2);
-  --fg-3:  var(--ink-3);
-  --border-color: rgba(0,0,0,0.1);
-  --shadow: 0 1px 3px rgba(0,0,0,0.12);
+[data-theme="ink"], .theme-ink {
+  --bg-3: #2E2920;
+  --bg-4: #3D3830;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="paper"]) {
+    --bg-3: #2E2920;
+    --bg-4: #3D3830;
+  }
 }
 
 /* ── App shell ── */
@@ -481,7 +475,7 @@ html, body {
 .voice-ctrl-btn.active { background: var(--accent); color: var(--green-fg); }
 .voice-ctrl-btn.muted { background: var(--warn); color: var(--green-fg); }
 .voice-ctrl-btn.danger { background: var(--warn); color: var(--green-fg); }
-.voice-ctrl-btn.danger:hover { background: #c01d14; }
+.voice-ctrl-btn.danger:hover { background: var(--warn); filter: brightness(0.85); }
 
 /* ── Member list ── */
 .member-list {
@@ -742,7 +736,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .btn-primary { background: var(--accent); color: var(--green-fg); }
 .btn-primary:hover { background: var(--green-2); }
 .btn-danger { background: var(--warn); color: var(--green-fg); }
-.btn-danger:hover { background: #c01d14; }
+.btn-danger:hover { background: var(--warn); filter: brightness(0.85); }
 .btn-ghost { background: transparent; border: 1px solid var(--border-color); }
 .btn-ghost:hover { background: var(--bg-3); }
 
