@@ -21,6 +21,15 @@ const landingClient = `
 import { h, applyDiff, installStyles, components as C } from 'anentrypoint-design';
 installStyles();
 document.documentElement.classList.add('ds-247420');
+// Theme: restore from localStorage or default to ink
+(function(){
+  var KEY='zellous-theme';
+  var stored=null;
+  try{stored=localStorage.getItem(KEY);}catch(e){}
+  var t=stored||'ink';
+  if(t==='light')document.documentElement.setAttribute('data-theme','light');
+  else document.documentElement.setAttribute('data-theme','ink');
+})();
 const data = JSON.parse(document.getElementById('__site__').textContent);
 const { site, nav, page } = data;
 
@@ -35,8 +44,9 @@ function Hero() {
       (page.hero.badges && page.hero.badges.length) ? h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px 0' },
         ...page.hero.badges.map((b, i) => C.Chip({ key: 'b' + i, children: b.label }))
       ) : null,
-      (page.hero.ctas && page.hero.ctas.length) ? h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' },
-        ...page.hero.ctas.map((c, i) => C.Btn({ key: 'c' + i, href: c.href, primary: c.primary, children: c.label }))
+      (page.hero.ctas && page.hero.ctas.length) ? h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center' },
+        ...page.hero.ctas.map((c, i) => C.Btn({ key: 'c' + i, href: c.href, primary: c.primary, children: c.label })),
+        h('button', { id: 'themeToggle', style: 'background:var(--panel-2);border:1px solid var(--panel-3);color:var(--fg);padding:6px 12px;border-radius:4px;cursor:pointer;font-size:inherit;font-family:inherit' }, 'ink')
       ) : null
     )
   });
@@ -95,12 +105,39 @@ const App = C.AppShell({
   status: Footer()
 });
 applyDiff(document.getElementById('app'), [App]);
+// Wire theme toggle after render
+setTimeout(()=>{
+  var KEY='zellous-theme';
+  var btn=document.getElementById('themeToggle');
+  if(!btn)return;
+  function updateBtn(){
+    var cur=document.documentElement.getAttribute('data-theme');
+    btn.textContent=cur==='light'?'light':'ink';
+  }
+  updateBtn();
+  btn.addEventListener('click',()=>{
+    var cur=document.documentElement.getAttribute('data-theme');
+    var next=cur==='light'?'ink':'light';
+    document.documentElement.setAttribute('data-theme',next);
+    try{localStorage.setItem(KEY,next);}catch(e){}
+    updateBtn();
+  });
+},0);
 `;
 
 const embedClient = `
 import { h, applyDiff, installStyles, components as C } from 'anentrypoint-design';
 installStyles();
 document.documentElement.classList.add('ds-247420');
+// Theme: restore from localStorage or default to ink (shared with landing)
+(function(){
+  var KEY='zellous-theme';
+  var stored=null;
+  try{stored=localStorage.getItem(KEY);}catch(e){}
+  var t=stored||'ink';
+  if(t==='light')document.documentElement.setAttribute('data-theme','light');
+  else document.documentElement.setAttribute('data-theme','ink');
+})();
 const data = JSON.parse(document.getElementById('__site__').textContent);
 const { site, nav, page } = data;
 const navItems = (nav && nav.links ? nav.links : []).map(l => [String(l.label || ''), l.href]);
