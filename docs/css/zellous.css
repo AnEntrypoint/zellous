@@ -21,19 +21,56 @@ html, body {
   --bg-4: #3D3830;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="paper"]) {
+  :root:not([data-theme="paper"]):not([data-theme="light"]) {
     --bg-3: #2E2920;
     --bg-4: #3D3830;
   }
 }
+/* Light surface — overrides SDK panel token aliases at higher specificity */
+html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
+  --bg:   #EFE9DD;
+  --bg-2: #E5DECB;
+  --bg-3: #D9D0B8;
+  --bg-4: #C8C0A8;
+  --fg:   #0B0B09;
+  --fg-2: #2A2820;
+  --fg-3: #4A4638;
+  --panel-0: #EFE9DD;
+  --panel-1: #E5DECB;
+  --panel-2: #D9D0B8;
+  --panel-text: #0B0B09;
+  --panel-text-2: #2A2820;
+  --panel-text-3: #4A4638;
+  --border-color: color-mix(in oklab, #0B0B09 12%, transparent);
+}
+/* Dark surface — explicit so toggle is reversible */
+html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
+  --bg:   #1A1B1E;
+  --bg-2: #2B2D31;
+  --bg-3: #2E2920;
+  --bg-4: #3D3830;
+  --fg:   #ECEEF2;
+  --fg-2: #B5BAC1;
+  --fg-3: #80848E;
+  --panel-0: #1A1B1E;
+  --panel-1: #232428;
+  --panel-2: #2B2D31;
+  --panel-text: #ECEEF2;
+  --panel-text-2: #B5BAC1;
+  --panel-text-3: #80848E;
+}
 
 /* ── App shell ── */
-.app {
+/* Specificity must beat the SDK's ".ds-247420 .app{flex-direction:column}" rule */
+html.ds-247420 .app, .app {
   display: flex;
   flex-direction: row;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+}
+@media (max-width: 899px) {
+  html.ds-247420 .app, .app { flex-direction: column; }
 }
 
 .reconnect-banner {
