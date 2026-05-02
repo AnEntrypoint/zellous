@@ -35,8 +35,8 @@ const uiChannels = {
       const name = user?.displayName || user?.username || 'You';
       const npub = state.nostrPubkey || '';
       ui.chatMessagesInner.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:16px;color:var(--fg-2);text-align:center;padding:40px">
-        <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:700;color:var(--green-fg)">${(name[0]||'?').toUpperCase()}</div>
-        <div style="font-size:22px;font-weight:700;color:var(--fg)">${escHtml(name)}</div>
+        <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:36px;font-weight:600;color:var(--green-fg)">${(name[0]||'?').toUpperCase()}</div>
+        <div style="font-size:22px;font-weight:600;color:var(--fg)">${escHtml(name)}</div>
         ${npub ? `<div style="font-size:12px;color:var(--fg-3);font-family:var(--ff-mono);word-break:break-all;max-width:340px">${escHtml(npub)}</div>` : ''}
         <div style="font-size:14px;color:var(--fg-2);max-width:320px">This is your home. Join or create a server to start chatting.</div>
       </div>`;

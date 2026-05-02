@@ -71,7 +71,7 @@ const uiVoice = {
       const isConnecting = state.voiceConnectionState === 'connecting';
       ui.voiceGrid.innerHTML = `<div class="empty-state" style="flex-direction:column;gap:12px">
         ${window.getIcon ? getIcon('voiceAlt') : '<svg viewBox="0 0 24 24" width="32" height="32" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>'}
-        <div style="font-size:20px;font-weight:700;color:var(--header-primary)">${ch ? escHtml(ch.name) : 'Voice'}</div>
+        <div style="font-size:20px;font-weight:600;color:var(--header-primary)">${ch ? escHtml(ch.name) : 'Voice'}</div>
         ${isConnecting ? '<div style="font-size:14px;color:var(--text-muted)">Connecting…</div>' : ''}
       </div>`;
       ui.voiceGrid.onclick = null;

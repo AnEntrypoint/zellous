@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- Non-blocking webfonts: print stylesheet swaps to all on load. Falls back to system stack instantly. -->
 <link rel="stylesheet" media="print" onload="this.media='all'"
-      href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Narrow:wght@400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Instrument+Serif:ital@0;1&display=swap">
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 
 <link rel="stylesheet" href="vendor/design/colors_and_type.css">
 <link rel="stylesheet" href="vendor/design/app-shell.css">
@@ -24,6 +24,31 @@
 :root {
   --mint-on-ink: #92CEAC;     /* 9.18:1 on ink */
   --green-on-paper: #247420;  /* 4.83:1 on paper */
+}
+/* Override vendored design system: spec demands Nunito on chrome, not JetBrains Mono.
+   Vendored colors_and_type.css aliases --ff-ui -> --ff-mono on this page; reassert. */
+html.ds-247420 {
+  --ff-ui: 'Nunito', 'Noto Sans', sans-serif !important;
+  --ff-prose: 'Nunito', 'Noto Sans', sans-serif !important;
+}
+html.ds-247420 body {
+  font-family: var(--ff-ui) !important;
+  font-size: 15px;
+  line-height: 1.55;
+}
+/* Vendored sheet hard-codes ALL CAPS + ff-mono on chrome elements; force lowercase ff-ui. */
+html.ds-247420 .btn-stamp,
+html.ds-247420 .btn-ghost,
+html.ds-247420 h3.section-head,
+html.ds-247420 .hero .tag,
+html.ds-247420 .tech .k,
+html.ds-247420 .theme-toggle,
+html.ds-247420 .app-topbar .brand,
+html.ds-247420 .app-topbar nav a,
+html.ds-247420 .dateline {
+  font-family: var(--ff-ui) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
 }
 /* Page-local — landing uses no sidebar */
 body {
@@ -35,11 +60,10 @@ body {
 .section + .section { padding-top: 0; }
 
 .hero { padding: 48px 32px 24px 32px; max-width: 980px; }
-.hero .tag { color: var(--panel-accent); font-family: var(--ff-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.hero .tag { color: var(--panel-accent); font-family: var(--ff-ui); font-size: 13px; font-weight: 600; }
 .hero h1 {
   font-family: var(--ff-display);
   font-size: clamp(40px, 7vw, 88px);
-  font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.02em;
   margin: 8px 0 16px 0;
@@ -66,11 +90,9 @@ a.btn-stamp,
   padding: 12px 20px;
   background: var(--panel-accent);
   color: var(--panel-accent-fg) !important;
-  font-family: var(--ff-mono);
-  font-weight: 700;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-family: var(--ff-ui);
+  font-weight: 600;
+  font-size: 14px;
   text-decoration: none;
   box-shadow: none !important;
   transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
@@ -85,11 +107,9 @@ a.btn-ghost,
   padding: 12px 20px;
   background: transparent;
   color: var(--panel-text) !important;
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-weight: 500;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-size: 14px;
   text-decoration: none;
   border-radius: 0;
   transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
@@ -118,16 +138,14 @@ a.card,
    inverted bg, NOT on the original surface — tint to the contrast-safe accent. */
 [data-theme="light"] .card:hover .card-code { color: var(--mint-on-ink); }
 [data-theme="ink"]   .card:hover .card-code { color: var(--green-on-paper); }
-.card-title { font-family: var(--ff-display); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.1; }
+.card-title { font-family: var(--ff-display); font-size: 22px; letter-spacing: -0.01em; line-height: 1.1; }
 .card-meta { font-size: 11px; color: var(--panel-text-3); line-height: 1.5; }
 
 /* Section header — h3 mono caps with leading slashes */
 h3.section-head {
-  font-family: var(--ff-mono);
-  font-size: 11px;
+  font-family: var(--ff-ui);
+  font-size: 13px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--panel-accent);
   margin: 32px 0 12px 0;
 }
@@ -174,7 +192,7 @@ h3.section-head {
 .tech > div:nth-child(4n+4) {
   background: var(--panel-2);
 }
-.tech .k { color: var(--panel-text-3); text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; }
+.tech .k { color: var(--panel-text-3); font-size: 13px; font-weight: 500; }
 .tech .v { color: var(--panel-text); }
 .tech .v code { background: transparent; padding: 0; color: var(--panel-accent); font-weight: 500; }
 
@@ -201,10 +219,9 @@ h3.section-head {
   margin-left: auto;
   background: transparent;
   color: var(--panel-text-2);
-  font-family: var(--ff-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-family: var(--ff-ui);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   padding: 6px 12px;
 }
@@ -212,13 +229,12 @@ h3.section-head {
 
 /* Topbar layout */
 .app-topbar { background: var(--panel-1); }
-.app-topbar .brand { font-family: var(--ff-mono); font-weight: 700; }
+.app-topbar .brand { font-family: var(--ff-ui); font-weight: 600; }
 .app-topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; }
 .app-topbar nav a {
-  font-family: var(--ff-mono);
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-family: var(--ff-ui);
+  font-size: 14px;
+  font-weight: 500;
   color: var(--panel-text-2);
   text-decoration: none;
   padding: 6px 12px;
@@ -227,10 +243,9 @@ h3.section-head {
 
 /* Dateline (above hero) */
 .dateline {
-  font-family: var(--ff-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-family: var(--ff-ui);
+  font-size: 13px;
+  font-weight: 500;
   color: var(--panel-text-3);
   padding: 0 32px;
   margin: 16px 0 0 0;
