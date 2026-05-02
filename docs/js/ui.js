@@ -56,8 +56,11 @@ const ui = {
 };
 
 const getInitial = (name) => (name || '?')[0].toUpperCase();
-const avatarColors = ['#5865f2','#57f287','#feb347','#fe7168','#9b59b6','#1abc9c','#e67e22','#e74c3c'];
-const getAvatarColor = (id) => avatarColors[Math.abs(typeof id === 'number' ? id : [...(id||'')].reduce((a,c)=>a+c.charCodeAt(0),0)) % avatarColors.length];
+const getAvatarColor = (id) => {
+  const colors = window.AVATAR_COLORS || ['#3F8A4A'];
+  const h = Math.abs(typeof id === 'number' ? id : [...(id||'')].reduce((a,c)=>a+c.charCodeAt(0),0));
+  return colors[h % colors.length];
+};
 const escHtml = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const formatTime = (ts) => {
   const d = new Date(ts), now = new Date();
@@ -112,7 +115,7 @@ ui.showToast = function(msg, duration) {
   const el = document.createElement('div');
   el.id = 'uiToast';
   el.textContent = msg;
-  el.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#23272a;color:#fff;padding:8px 18px;border-radius:6px;z-index:9999;font-size:14px;pointer-events:none;opacity:1;transition:opacity 0.3s';
+  el.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--bg-2);color:var(--fg);padding:8px 18px;border-radius:6px;z-index:9999;font-size:14px;pointer-events:none;opacity:1;transition:opacity 0.3s';
   document.body.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 350); }, duration || 2000);
 };

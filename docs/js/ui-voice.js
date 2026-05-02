@@ -4,7 +4,7 @@ const uiMembers = {
     const members = state.roomMembers || [];
     const roleOrder = ['owner','admin','moderator','member'];
     const roleLabel = { owner:'Owner', admin:'Admin', moderator:'Moderator', member:'Members' };
-    const roleColor = { owner:'#f0b232', admin:'#fe7168', moderator:'#57f287' };
+    const roleColor = window.ROLE_COLOR || {};
 
     const renderMember = (m) => {
       const color = roleColor[m.role] || null;
@@ -81,7 +81,7 @@ const uiVoice = {
       if (!pubkey || !window.serverRoles || !state.currentServerId) return '';
       const role = serverRoles.getRole(state.currentServerId, pubkey);
       const labels = { owner: 'Owner', admin: 'Admin', moderator: 'Mod' };
-      const colors = { owner: '#feb347', admin: '#5865f2', moderator: '#57f287' };
+      const colors = window.ROLE_COLOR || {};
       if (!labels[role]) return '';
       return `<span class="voice-tile-role-badge" style="background:${colors[role]}">${labels[role]}</span>`;
     };

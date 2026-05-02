@@ -185,7 +185,7 @@ const renderHtml = ({ site, nav, page, clientScript, extraStyle }) => `<!DOCTYPE
   <title>${escapeHtml(page.title || site.title)}${site.tagline ? ' — ' + escapeHtml(site.tagline) : ''}</title>
   <meta name="description" content="${escapeHtml(page.description || site.description || site.tagline || site.title)}" />
   <script type="importmap">{"imports":{"anentrypoint-design":"${SDK_URL}"}}</script>
-  <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito',system-ui,sans-serif)}${extraStyle || ''}</style>
+  <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito','Noto Sans',sans-serif)}${extraStyle || ''}</style>
   <script>
   // Theme init — runs before paint. Shares 'zellous-theme' localStorage with nostr-chat.
   (function(){

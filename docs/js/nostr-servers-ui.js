@@ -43,16 +43,16 @@ serverManager.showEditModal = function(serverId) {
       '<button type="button" class="modal-btn secondary" id="cancelEditServer">Cancel</button>' +
     '</form></div>';
   document.body.appendChild(modal);
-  var colors = ['#5865f2', '#57f287', '#feb347', '#fe7168', '#9b59b6', '#1abc9c', '#e67e22', '#e74c3c'];
+  var colors = (window.AVATAR_COLORS || ['#3F8A4A']).slice();
   var selectedColor = srv.iconColor || colors[0];
   var picker = modal.querySelector('#editServerColorPicker');
   colors.forEach(function(c) {
     var dot = document.createElement('div');
-    dot.style.cssText = 'width:28px;height:28px;border-radius:50%;background:' + c + ';cursor:pointer;border:3px solid ' + (c === selectedColor ? '#fff' : 'transparent') + ';transition:border 0.15s';
+    dot.style.cssText = 'width:28px;height:28px;border-radius:50%;background:' + c + ';cursor:pointer;border:3px solid ' + (c === selectedColor ? 'var(--fg)' : 'transparent') + ';transition:border 0.15s';
     dot.addEventListener('click', function() {
       selectedColor = c;
       picker.querySelectorAll('div').forEach(function(d) { d.style.borderColor = 'transparent'; });
-      dot.style.borderColor = '#fff';
+      dot.style.borderColor = 'var(--fg)';
     });
     picker.appendChild(dot);
   });
@@ -138,16 +138,16 @@ serverManager.showCreateModal = function() {
       '<button type="button" class="modal-btn secondary" id="cancelCreateServer">Cancel</button>' +
     '</form></div>';
   document.body.appendChild(modal);
-  var colors = ['#5865f2', '#57f287', '#feb347', '#fe7168', '#9b59b6', '#1abc9c', '#e67e22', '#e74c3c'];
+  var colors = (window.AVATAR_COLORS || ['#3F8A4A']).slice();
   var selectedColor = colors[0];
   var picker = modal.querySelector('#serverColorPicker');
   colors.forEach(function(c) {
     var dot = document.createElement('div');
-    dot.style.cssText = 'width:28px;height:28px;border-radius:50%;background:' + c + ';cursor:pointer;border:3px solid ' + (c === selectedColor ? '#fff' : 'transparent') + ';transition:border 0.15s';
+    dot.style.cssText = 'width:28px;height:28px;border-radius:50%;background:' + c + ';cursor:pointer;border:3px solid ' + (c === selectedColor ? 'var(--fg)' : 'transparent') + ';transition:border 0.15s';
     dot.addEventListener('click', function() {
       selectedColor = c;
       picker.querySelectorAll('div').forEach(function(d) { d.style.borderColor = 'transparent'; });
-      dot.style.borderColor = '#fff';
+      dot.style.borderColor = 'var(--fg)';
     });
     picker.appendChild(dot);
   });
@@ -170,7 +170,7 @@ serverManager.renderList = function() {
   var html = '';
   list.forEach(function(s) {
     var initial = (s.name || '?').trim().charAt(0).toUpperCase();
-    var bg = s.iconColor || '#5865f2';
+    var bg = s.iconColor || ((window.AVATAR_COLORS || ['#3F8A4A'])[0]);
     var active = current === s.id ? ' active' : '';
     html += '<div class="server-icon' + active + '" data-server-id="' + s.id + '" style="background:' + bg + '" title="' + (s.name || '').replace(/"/g, '&quot;') + '">' +
               '<div class="server-pill"></div>' + initial +

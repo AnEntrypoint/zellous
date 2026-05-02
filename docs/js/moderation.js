@@ -59,7 +59,7 @@ const moderation = {
   },
 
   roleLabel(role) { return { owner: 'Owner', admin: 'Admin', moderator: 'Mod', member: '' }[role] || ''; },
-  roleBadgeColor(role) { return { owner: '#feb347', admin: '#5865f2', moderator: '#57f287' }[role] || null; }
+  roleBadgeColor(role) { return (window.ROLE_COLOR || {})[role] || null; }
 };
 
 window.__zellous.moderation = moderation;

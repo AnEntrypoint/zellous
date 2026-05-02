@@ -205,7 +205,7 @@ const uiChat = {
     const emojis = ['👍','❤️','😂','🎉','😮','😢','😡','🔥','✅','👀'];
     const picker = document.createElement('div');
     picker.id = 'emojiPicker';
-    picker.style.cssText = 'position:fixed;z-index:3000;background:var(--bg-floating);border-radius:var(--radius-md);padding:8px;display:flex;gap:4px;box-shadow:var(--elevation-high);';
+    picker.style.cssText = 'position:fixed;z-index:3000;background:var(--bg-2);border-radius:8px;padding:8px;display:flex;gap:4px';
     picker.innerHTML = emojis.map(e => `<button style="background:transparent;border:none;font-size:20px;cursor:pointer;border-radius:4px;padding:4px" data-emoji="${e}">${e}</button>`).join('');
     const rect = anchorBtn.getBoundingClientRect();
     picker.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
@@ -248,7 +248,7 @@ const uiChat = {
     document.getElementById('messageContextPopup')?.remove();
     const popup = document.createElement('div');
     popup.id = 'messageContextPopup';
-    popup.style.cssText = 'position:fixed;z-index:3500;background:var(--bg-floating);border:1px solid rgba(255,255,255,0.1);border-radius:var(--radius-md);padding:12px;max-width:280px;box-shadow:var(--elevation-high);font-size:12px;line-height:1.4';
+    popup.style.cssText = 'position:fixed;z-index:3500;background:var(--bg-2);border-radius:8px;padding:12px;max-width:280px;font-size:12px;line-height:1.4';
     let html = '';
     if (msg.replyTo) {
       html += `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.05)"><span style="color:var(--text-muted)">Replying to:</span><br><span style="color:var(--accent)">@${escHtml(msg.replyTo.username||'User')}</span><br><span style="color:var(--text-muted);font-size:11px">${escHtml((msg.replyTo.content||'').substring(0,60))}${msg.replyTo.content?.length>60?'...':''}</span></div>`;
