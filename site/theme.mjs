@@ -52,20 +52,61 @@ function Hero() {
   });
 }
 
+function Rooms() {
+  if (!page || !page.rooms || !page.rooms.items || !page.rooms.items.length) return null;
+  const cards = page.rooms.items.map((it, i) => h('a', {
+    key: 'r' + i,
+    class: 'z-card',
+    href: it.href || '#'
+  },
+    h('span', { class: 'z-card-code' }, it.code || String(i + 1).padStart(3, '0')),
+    h('span', { class: 'z-card-title' }, it.title || ''),
+    h('span', { class: 'z-card-meta' }, it.meta || '')
+  ));
+  return C.Panel({
+    title: page.rooms.heading || 'drop-in rooms',
+    style: 'margin:8px',
+    children: h('div', { class: 'z-cards' }, ...cards)
+  });
+}
+
 function Features() {
   if (!page || !page.features || !page.features.items || !page.features.items.length) return null;
-  const rows = page.features.items.map((it, i) => C.RowLink({
+  const cards = page.features.items.map((it, i) => h('div', {
     key: 'f' + i,
-    code: String(i + 1).padStart(2, '0'),
-    title: it.name,
-    sub: it.desc || '',
-    meta: it.meta || '',
-    href: it.href || '#'
-  }));
+    class: 'z-card'
+  },
+    h('span', { class: 'z-card-code' }, it.meta || String(i + 1).padStart(2, '0')),
+    h('span', { class: 'z-card-title' }, it.name || ''),
+    h('span', { class: 'z-card-meta' }, it.desc || '')
+  ));
   return C.Panel({
     title: page.features.heading || 'features',
     style: 'margin:8px',
-    children: rows
+    children: h('div', { class: 'z-cards' }, ...cards)
+  });
+}
+
+function Stack() {
+  if (!page || !page.stack || !page.stack.items || !page.stack.items.length) return null;
+  const rows = page.stack.items.map((it, i) => [
+    h('div', { key: 'sk' + i, class: 'z-tech-k' }, it.k || ''),
+    h('div', { key: 'sv' + i, class: 'z-tech-v' }, it.v || '')
+  ]).flat();
+  return C.Panel({
+    title: page.stack.heading || 'stack',
+    style: 'margin:8px',
+    children: h('div', { class: 'z-tech' }, ...rows)
+  });
+}
+
+function Manifesto() {
+  if (!page || !page.manifesto || !page.manifesto.items || !page.manifesto.items.length) return null;
+  const paras = page.manifesto.items.map((txt, i) => h('p', { key: 'm' + i, class: 'z-manifesto-p' }, txt));
+  return C.Panel({
+    title: page.manifesto.heading || 'manifesto',
+    style: 'margin:8px',
+    children: h('div', { class: 'z-manifesto' }, ...paras)
   });
 }
 
@@ -101,7 +142,7 @@ const navItems = (nav && nav.links ? nav.links : []).map(l => [String(l.label ||
 const App = C.AppShell({
   topbar: C.Topbar({ brand: '247420', leaf: site.title || '', items: navItems }),
   crumb: C.Crumb({ trail: ['247420'], leaf: site.title || '' }),
-  main: h('div', {}, Hero(), Features(), Quickstart()),
+  main: h('div', {}, Hero(), Rooms(), Features(), Stack(), Manifesto(), Quickstart()),
   status: Footer()
 });
 applyDiff(document.getElementById('app'), [App]);
@@ -177,15 +218,15 @@ html,body{height:100%;overflow:hidden}
 .ds-247420 .app-main>iframe{flex:1 1 auto;min-height:0}
 `;
 
-const renderHtml = ({ site, nav, page, clientScript, extraStyle }) => `<!DOCTYPE html>
+const renderHtml = ({ site, nav, page, clientScript, extraStyle, sdkUrl }) => `<!DOCTYPE html>
 <html lang="en" data-theme="ink" class="ds-247420">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(page.title || site.title)}${site.tagline ? ' — ' + escapeHtml(site.tagline) : ''}</title>
   <meta name="description" content="${escapeHtml(page.description || site.description || site.tagline || site.title)}" />
-  <script type="importmap">{"imports":{"anentrypoint-design":"${SDK_URL}"}}</script>
-  <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito','Noto Sans',sans-serif)}${extraStyle || ''}</style>
+  <script type="importmap">{"imports":{"anentrypoint-design":"${sdkUrl || SDK_URL}"}}</script>
+  <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito','Noto Sans',sans-serif)}.z-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0}.z-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:var(--panel-1);color:var(--panel-text);text-decoration:none;transition:background 80ms}.z-card:nth-child(even){background:var(--panel-2)}.z-card:hover{background:var(--panel-text);color:var(--panel-0)}.z-card-code{font-family:var(--ff-mono,monospace);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--panel-accent)}.z-card:hover .z-card-code{color:var(--panel-0);opacity:.75}.z-card-title{font-family:var(--ff-display,'Archivo Black',sans-serif);font-size:20px;letter-spacing:-.01em;line-height:1.1}.z-card-meta{font-size:11px;color:var(--panel-text-3);line-height:1.5}.z-card:hover .z-card-meta{color:var(--panel-0);opacity:.75}.z-tech{display:grid;grid-template-columns:180px 1fr;font-family:var(--ff-mono,monospace);font-size:13px}.z-tech-k{padding:10px 16px;color:var(--panel-text-3)}.z-tech-v{padding:10px 16px;color:var(--panel-text)}.z-tech-k:nth-child(4n+1),.z-tech-v:nth-child(4n+2){background:var(--panel-2)}.z-manifesto{padding:16px 22px;display:grid;gap:14px}.z-manifesto-p{font-family:var(--ff-prose,'Nunito',sans-serif);font-size:17px;font-style:italic;line-height:1.5;max-width:60ch;margin:0;color:var(--panel-text)}${extraStyle || ''}</style>
   <script>
   // Theme init — runs before paint. Shares 'zellous-theme' localStorage with nostr-chat.
   (function(){
@@ -255,7 +296,7 @@ export default {
     for (const e of embeds) {
       outputs.push({
         path: e.path,
-        html: renderHtml({ site, nav, page: e, clientScript: embedClient, extraStyle: embedFullscreenCss })
+        html: renderHtml({ site, nav, page: e, clientScript: embedClient, extraStyle: embedFullscreenCss, sdkUrl: '../sdk/247420.js' })
       });
     }
     return outputs;

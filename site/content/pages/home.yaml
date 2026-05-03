@@ -2,28 +2,51 @@ id: home
 title: Home
 hero:
   heading: "zellous"
-  subheading: "production push-to-talk"
-  body: "hold the button. talk. someone on the other side hears you. Opus codec, dynamic rooms, 50-message replay. ships production-ready, not prototype-ready."
+  subheading: "hold the button. talk. someone hears you."
+  body: "push-to-talk over public nostr relays. no backend. no account. your keys are your identity. broken on purpose. read the source."
   badges:
     - { label: "voice" }
     - { label: "opus" }
-    - { label: "realtime" }
-    - { label: "voice" }
+    - { label: "nostr" }
+    - { label: "serverless" }
   ctas:
-    - { label: "GitHub", href: "https://github.com/AnEntrypoint/zellous", primary: true }
-    - { label: "Install", href: "https://github.com/AnEntrypoint/zellous#installation" }
-    - { label: "247420", href: "https://247420.xyz" }
-features:
-  heading: "Why zellous"
+    - { label: "open chat ↗", href: "nostr-chat/", primary: true }
+    - { label: "source", href: "https://github.com/AnEntrypoint/zellous" }
+rooms:
+  heading: "drop-in rooms"
   items:
-    - { name: "voice", desc: "flagship trait of zellous." }
-    - { name: "opus", desc: "core capability of zellous." }
-    - { name: "realtime", desc: "core capability of zellous." }
+    - { code: "001", title: "# general", meta: "public · nip-28 · open relay", href: "nostr-chat/?room=general" }
+    - { code: "002", title: "# dev", meta: "public · nip-28 · open relay", href: "nostr-chat/?room=dev" }
+    - { code: "003", title: "# random", meta: "public · nip-28 · open relay", href: "nostr-chat/?room=random" }
+    - { code: "004", title: "+ new server", meta: "spin up a private community", href: "nostr-chat/" }
+features:
+  heading: "what it is"
+  items:
+    - { name: "opus voice", desc: "webrtc mesh, sfu hub election once you hit 3 peers, ~85ms chunks", meta: "push to talk" }
+    - { name: "nostr", desc: "nip-28 channels, nip-07 extension auth, kind-30078 voice signaling", meta: "protocol" }
+    - { name: "browser", desc: "no install, no app store, no native. pages that render and run.", meta: "surface" }
+    - { name: "— none —", desc: "static html, vendored js, public relays. nothing to host.", meta: "backend" }
+stack:
+  heading: "stack"
+  items:
+    - { k: "runtime", v: "browser · static html" }
+    - { k: "protocol", v: "nostr · nip-07, nip-28, nip-19" }
+    - { k: "voice transport", v: "webrtc · RTCPeerConnection + getUserMedia" }
+    - { k: "codec", v: "opus via WebCodecs · 24kbps · 48khz mono" }
+    - { k: "signaling", v: "nostr kind:30078 · perfect-negotiation · iceRestart on stall" }
+    - { k: "topology", v: "mesh ≤ 2 · star/sfu hub-elected ≥ 3 (lowest avg RTT wins)" }
+    - { k: "networking", v: "wireweave · vendored" }
+    - { k: "deploy", v: "github pages · github actions · zero servers" }
+manifesto:
+  heading: "manifesto"
+  items:
+    - "code is communication. talk is cheap. PRs are truth."
+    - "community > capital. we optimize for the people who show up."
+    - "learn in public. ship broken code. iterate fast. improve in the open."
+    - "fun is a feature. if it isn't at least a little fun to use, we failed."
 quickstart:
   heading: Quick start
   lines:
-    - { kind: "cmt", text: "# install" }
-    - { kind: "cmd", text: "npm i zellous" }
-    - { kind: "cmt", text: "" }
-    - { kind: "cmt", text: "# source" }
+    - { kind: "cmt", text: "# clone and serve" }
     - { kind: "cmd", text: "git clone https://github.com/AnEntrypoint/zellous.git" }
+    - { kind: "cmd", text: "npx serve docs" }
