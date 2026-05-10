@@ -276,7 +276,124 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 }
 .channel-item:hover { background: var(--bg-3); color: var(--fg-2); }
 .channel-item.active { background: var(--bg-4); color: var(--fg); }
-.channel-item .ch-icon { font-size: 16px; opacity: 0.6; }
+.channel-item .ch-icon { font-size: 16px; opacity: 0.6; display: inline-flex; flex-shrink: 0; }
+.channel-item .ch-icon svg { width: 18px; height: 18px; fill: currentColor; display: block; }
+.channel-item .channel-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.channel-item .channel-actions {
+  display: none; align-items: center; gap: 2px; flex-shrink: 0; margin-left: auto;
+}
+.channel-item:hover .channel-actions { display: flex; }
+.channel-item .channel-action-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); padding: 2px; border-radius: 3px;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+}
+.channel-item .channel-action-btn:hover { color: var(--fg); background: var(--bg-3); }
+.channel-item .channel-action-btn svg { width: 14px; height: 14px; fill: currentColor; display: block; }
+.channel-item .channel-mention-badge {
+  min-width: 16px; height: 16px; border-radius: 8px;
+  background: var(--warn); color: var(--green-fg);
+  font-size: 10px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0 4px; flex-shrink: 0;
+}
+
+.category-header {
+  display: flex; align-items: center;
+  padding: 16px 8px 4px 8px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  cursor: pointer;
+  user-select: none;
+  gap: 2px;
+}
+.category-header:hover { color: var(--fg-2); }
+.category-arrow {
+  width: 12px; height: 12px;
+  fill: currentColor;
+  flex-shrink: 0;
+  transition: transform 0.1s;
+}
+.category-arrow.collapsed { transform: rotate(-90deg); }
+.category-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.category-add-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); padding: 2px; border-radius: 3px;
+  width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.category-add-btn:hover { color: var(--fg); background: var(--bg-3); }
+.category-add-btn svg { width: 14px; height: 14px; fill: currentColor; display: block; }
+
+.voice-spinner {
+  width: 12px; height: 12px;
+  border: 2px solid var(--fg-3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* ── App-defined modal vocabulary (modal-box / modal-field / modal-input / modal-btn) ── */
+.modal-box {
+  background: var(--bg-2);
+  border-radius: 8px;
+  padding: 20px 24px;
+  min-width: 320px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.modal-subtitle {
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+  margin-bottom: 16px;
+}
+.modal-field { margin-bottom: 16px; }
+.modal-label {
+  display: block;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--fg-2);
+  margin-bottom: 6px;
+}
+.modal-input {
+  width: 100%;
+  background: var(--bg-4);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: var(--fg);
+  font-size: var(--fs-sm);
+  font-family: var(--ff-ui);
+  outline: none;
+  transition: border-color 0.1s;
+}
+.modal-input:focus { border-color: var(--accent); }
+textarea.modal-input { resize: vertical; min-height: 60px; }
+select.modal-input { cursor: pointer; }
+.modal-btn {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--green-fg);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-family: var(--ff-ui);
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background 0.1s;
+}
+.modal-btn:hover { background: var(--green-2); }
+.modal-btn.secondary { background: var(--bg-4); color: var(--fg); }
+.modal-btn.secondary:hover { background: var(--bg-3); }
 
 /* Voice panel in sidebar */
 .voice-panel {
@@ -770,7 +887,7 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 20px; background: var(--bg-3);
 }
-.modal-title { font-weight: 600; font-size: var(--fs-lg); color: var(--fg); }
+.modal-title { font-weight: 600; font-size: var(--fs-lg); color: var(--fg); margin-bottom: 4px; }
 .modal-close { background: none; border: none; cursor: pointer; color: var(--fg-3); font-size: 20px; padding: 4px; border-radius: 4px; }
 .modal-close:hover { color: var(--fg); }
 .modal-body { padding: 20px; }
