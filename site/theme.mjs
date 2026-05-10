@@ -166,66 +166,16 @@ setTimeout(()=>{
 },0);
 `;
 
-const embedClient = `
-import { h, applyDiff, installStyles, components as C } from 'anentrypoint-design';
-installStyles();
-document.documentElement.classList.add('ds-247420');
-// Theme: restore from localStorage or default to ink (shared with landing)
-(function(){
-  var KEY='zellous-theme';
-  var stored=null;
-  try{stored=localStorage.getItem(KEY);}catch(e){}
-  var t=stored||'ink';
-  if(t==='light')document.documentElement.setAttribute('data-theme','light');
-  else document.documentElement.setAttribute('data-theme','ink');
-})();
-const data = JSON.parse(document.getElementById('__site__').textContent);
-const { site, nav, page } = data;
-const navItems = (nav && nav.links ? nav.links : []).map(l => [String(l.label || ''), l.href]);
 
-function Footer() {
-  return h('footer', { class: 'app-status' },
-    h('span', { class: 'item' }, 'styled with '),
-    h('a', { class: 'item', href: 'https://anentrypoint.github.io/design/' }, 'anentrypoint-design'),
-    h('span', { class: 'item' }, '·'),
-    h('a', { class: 'item', href: 'https://247420.xyz' }, '247420.xyz'),
-    h('span', { class: 'spread' }),
-    site.repo ? h('a', { class: 'item', href: site.repo }, 'source ↗') : null
-  );
-}
 
-const App = C.AppShell({
-  topbar: C.Topbar({ brand: '247420', leaf: site.title || '', items: navItems }),
-  crumb: C.Crumb({ trail: ['247420', site.title || ''], leaf: page.title || '' }),
-  main: h('iframe', {
-    src: page.embedSrc,
-    style: 'width:100%;height:100%;border:0;background:var(--panel-1);display:block',
-    title: page.title || ''
-  }),
-  status: Footer()
-});
-applyDiff(document.getElementById('app'), [App]);
-window.appReady = true;
-`;
-
-const embedFullscreenCss = `
-html,body{height:100%;overflow:hidden}
-#app{height:100vh;display:flex;flex-direction:column}
-.ds-247420 .app{height:100vh;min-height:0;display:flex;flex-direction:column}
-.ds-247420 .app-body{flex:1 1 auto;min-height:0;overflow:hidden;display:flex !important;grid-template-columns:none !important}
-.ds-247420 .app-body.no-side>.app-side-shell{display:none}
-.ds-247420 .app-main{flex:1 1 auto;min-height:0;display:flex;padding:0 !important;margin:0 !important}
-.ds-247420 .app-main>iframe{flex:1 1 auto;min-height:0}
-`;
-
-const renderHtml = ({ site, nav, page, clientScript, extraStyle, sdkUrl }) => `<!DOCTYPE html>
+const renderHtml = ({ site, nav, page, clientScript, extraStyle }) => `<!DOCTYPE html>
 <html lang="en" data-theme="ink" class="ds-247420">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>${escapeHtml(page.title || site.title)}${site.tagline ? ' — ' + escapeHtml(site.tagline) : ''}</title>
   <meta name="description" content="${escapeHtml(page.description || site.description || site.tagline || site.title)}" />
-  <script type="importmap">{"imports":{"anentrypoint-design":"${sdkUrl || SDK_URL}"}}</script>
+  <script type="importmap">{"imports":{"anentrypoint-design":"${SDK_URL}"}}</script>
   <style>html,body{margin:0;padding:0}body{background:var(--app-bg,#FBF6EB);color:var(--ink,#1F1B16);font-family:var(--ff-ui,'Nunito','Noto Sans',sans-serif)}.z-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0}.z-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:var(--panel-1);color:var(--panel-text);text-decoration:none;transition:background 80ms}.z-card:nth-child(even){background:var(--panel-2)}.z-card:hover{background:var(--panel-text);color:var(--panel-0)}.z-card-code{font-family:var(--ff-mono,monospace);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--panel-accent)}.z-card:hover .z-card-code{color:var(--panel-0);opacity:.75}.z-card-title{font-family:var(--ff-display,'Archivo Black',sans-serif);font-size:20px;letter-spacing:-.01em;line-height:1.1}.z-card-meta{font-size:11px;color:var(--panel-text-3);line-height:1.5}.z-card:hover .z-card-meta{color:var(--panel-0);opacity:.75}.z-tech{display:grid;grid-template-columns:180px 1fr;font-family:var(--ff-mono,monospace);font-size:13px}.z-tech-k{padding:10px 16px;color:var(--panel-text-3)}.z-tech-v{padding:10px 16px;color:var(--panel-text)}.z-tech-k:nth-child(4n+1),.z-tech-v:nth-child(4n+2){background:var(--panel-2)}.z-manifesto{padding:16px 22px;display:grid;gap:14px}.z-manifesto-p{font-family:var(--ff-prose,'Nunito',sans-serif);font-size:17px;font-style:italic;line-height:1.5;max-width:60ch;margin:0;color:var(--panel-text)}${extraStyle || ''}</style>
   <script>
   // Theme init — runs before paint. Shares 'zellous-theme' localStorage with nostr-chat.
@@ -268,14 +218,14 @@ const renderHtml = ({ site, nav, page, clientScript, extraStyle, sdkUrl }) => `<
 `;
 
 export default {
-  // Copy original docs/* into dist/_legacy/* so iframes can load them.
+  // Copy original docs/* into dist/ so the app and its assets are served directly.
   assets: {
-    '../docs/nostr-chat': '_legacy/nostr-chat',
+    '../docs/nostr-chat': 'nostr-chat',
     '../docs/sdk': 'sdk',
-    '../docs/vendor': '_legacy/vendor',
-    '../docs/css': '_legacy/css',
-    '../docs/js': '_legacy/js',
-    '../docs/msgpackr.min.js': '_legacy/msgpackr.min.js',
+    '../docs/vendor': 'vendor',
+    '../docs/css': 'css',
+    '../docs/js': 'js',
+    '../docs/msgpackr.min.js': 'msgpackr.min.js',
   },
   render: async (ctx) => {
     const site = ctx.readGlobal('site') || {};
@@ -284,22 +234,10 @@ export default {
     const homeDoc = docs.find(p => p.id === 'home');
     if (!homeDoc) throw new Error('site/content/pages/home.yaml missing or has no id: home');
 
-    const outputs = [{
+    return [{
       path: 'index.html',
       html: renderHtml({ site, nav, page: homeDoc, clientScript: landingClient })
     }];
-
-    // Wrapped legacy pages: SDK chrome + iframe of original.
-    const embeds = [
-      { path: 'nostr-chat/index.html', title: 'nostr-chat', embedSrc: '../_legacy/nostr-chat/index.html' },
-    ];
-    for (const e of embeds) {
-      outputs.push({
-        path: e.path,
-        html: renderHtml({ site, nav, page: e, clientScript: embedClient, extraStyle: embedFullscreenCss, sdkUrl: '../sdk/247420.js' })
-      });
-    }
-    return outputs;
   }
 };
 
