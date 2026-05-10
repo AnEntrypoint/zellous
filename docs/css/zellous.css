@@ -377,6 +377,7 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 .modal-input:focus { border-color: var(--accent); }
 textarea.modal-input { resize: vertical; min-height: 60px; }
 select.modal-input { cursor: pointer; }
+html.ds-247420 button.modal-btn,
 .modal-btn {
   display: inline-block;
   background: var(--accent);
@@ -391,8 +392,11 @@ select.modal-input { cursor: pointer; }
   margin-right: 8px;
   transition: background 0.1s;
 }
+html.ds-247420 button.modal-btn:hover,
 .modal-btn:hover { background: var(--green-2); }
+html.ds-247420 button.modal-btn.secondary,
 .modal-btn.secondary { background: var(--bg-4); color: var(--fg); }
+html.ds-247420 button.modal-btn.secondary:hover,
 .modal-btn.secondary:hover { background: var(--bg-3); }
 
 /* Voice panel in sidebar */
@@ -1281,3 +1285,59 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   .voice-controls { padding: 12px 8px; gap: 6px; flex-wrap: wrap; }
   .voice-ptt-pill { padding: 10px 14px; }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   SDK-reset override: SDK 247420.css ships `.ds-247420 button { padding:0;
+   background:none; }` at specificity (0,1,1), which beats every plain
+   `.foo-btn` rule (0,1,0). Re-assert all our button classes at higher
+   specificity so they keep their padding/background/borders.
+   ──────────────────────────────────────────────────────────────────────── */
+html.ds-247420 button.modal-btn { background: var(--accent); color: var(--green-fg); padding: 8px 16px; border-radius: 4px; }
+html.ds-247420 button.modal-btn.secondary { background: var(--bg-4); color: var(--fg); }
+html.ds-247420 button.btn { background: var(--bg-4); color: var(--fg); padding: 8px 16px; border-radius: 4px; }
+html.ds-247420 button.btn-primary { background: var(--accent); color: var(--green-fg); }
+html.ds-247420 button.btn-danger { background: var(--warn); color: var(--green-fg); }
+html.ds-247420 button.btn-ghost { background: transparent; border: 1px solid var(--border-color); color: var(--fg); }
+
+html.ds-247420 button.voice-ctrl-btn { background: var(--bg-4); color: var(--fg-2); width: 48px; height: 48px; border-radius: 50%; padding: 0; }
+html.ds-247420 button.voice-ctrl-btn.active { background: var(--accent); color: var(--green-fg); }
+html.ds-247420 button.voice-ctrl-btn.muted { background: var(--warn); color: var(--green-fg); }
+html.ds-247420 button.voice-ctrl-btn.danger { background: var(--warn); color: var(--green-fg); }
+html.ds-247420 button.voice-panel-btn { color: var(--fg-3); padding: 4px; border-radius: 4px; }
+html.ds-247420 button.voice-panel-btn.disconnect { color: var(--warn); }
+
+html.ds-247420 button.voice-ptt-pill { background: var(--accent); color: var(--green-fg); padding: 10px 18px; border-radius: 999px; }
+html.ds-247420 button.voice-ptt-pill[data-state="live"], html.ds-247420 button.voice-ptt-pill.active { background: var(--live); }
+html.ds-247420 button.voice-ptt-pill[data-state="queued"] { background: #FFD86B; color: #2A2820; }
+
+html.ds-247420 button.input-btn { background: var(--accent); color: var(--green-fg); padding: 6px 10px; border-radius: 4px; }
+html.ds-247420 button.input-icon-btn { color: var(--fg-3); padding: 6px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.attach-btn { color: var(--fg-3); padding: 6px; background: transparent; }
+html.ds-247420 button.toolbar-btn { color: var(--fg-3); padding: 4px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.toolbar-btn.active { color: var(--accent); }
+html.ds-247420 button.user-panel-btn { color: var(--fg-3); padding: 6px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.user-panel-btn.active { color: var(--accent); }
+html.ds-247420 button.user-panel-btn.muted, html.ds-247420 button.user-panel-btn.deafened { color: var(--warn); }
+html.ds-247420 button.server-header-btn { color: var(--fg-2); padding: 4px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.mobile-hamburger { color: var(--fg-2); padding: 4px; background: transparent; }
+html.ds-247420 button.mobile-members-btn { color: var(--fg-2); padding: 4px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.modal-close { color: var(--fg-3); padding: 4px; border-radius: 4px; background: transparent; }
+
+html.ds-247420 button.category-add-btn { color: var(--fg-3); padding: 2px; border-radius: 3px; background: transparent; width: 20px; height: 20px; }
+html.ds-247420 button.channel-action-btn { color: var(--fg-3); padding: 2px; border-radius: 3px; background: transparent; width: 20px; height: 20px; }
+html.ds-247420 button.forum-new-post-btn { background: var(--accent); color: var(--green-fg); padding: 6px 14px; border-radius: 6px; }
+html.ds-247420 button.ptt-btn { background: var(--accent); color: var(--green-fg); padding: 14px 32px; border-radius: 8px; font-size: var(--fs-lg); font-weight: 600; }
+html.ds-247420 button.ctrl-btn { background: var(--bg-4); color: var(--fg-2); padding: 6px 14px; border-radius: 6px; font-size: var(--fs-xs); font-weight: 600; }
+html.ds-247420 button.ctrl-btn.active { background: var(--accent); color: var(--green-fg); }
+html.ds-247420 button.skip-btn { background: var(--bg-4); color: var(--fg); padding: 4px 12px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; }
+html.ds-247420 button.skip-btn.resume { background: var(--accent); color: var(--green-fg); }
+html.ds-247420 button.queue-btn { color: var(--fg-3); padding: 4px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.vptq-skip { color: var(--fg-3); padding: 2px 6px; border-radius: 4px; background: transparent; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+html.ds-247420 button.thread-close { color: var(--fg-3); padding: 4px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.cmdk-input { /* not a button — guard */ }
+
+html.ds-247420 button.msg-action-btn { color: var(--fg-3); padding: 4px 6px; border-radius: 4px; background: transparent; }
+html.ds-247420 button.context-menu-item { /* it's a div — guard */ }
+
+html.ds-247420 .voice-strip button { color: var(--fg-3); padding: 4px; border-radius: 4px; background: transparent; }
+html.ds-247420 .voice-strip button.danger { color: var(--warn); }
