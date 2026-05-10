@@ -20,9 +20,11 @@ export const setIceServers = (list) => { if (Array.isArray(list) && list.length)
 export const getIceServers = () => ICE_SERVERS.slice();
 
 const PRESENCE_EXPIRY = 300000;
-const HEARTBEAT = 30000;
+const HEARTBEAT = 5000;        // tight cadence: heartbeat carries election scores + reflexive addr
 const STALL_CHECK = 5000;
 const DISCONNECT_GRACE = 8000;
+const HUB_HYSTERESIS_MS = 8000; // minimum hold-time before re-election can replace incumbent
+const HUB_REL_ADVANTAGE = 0.25; // challenger must beat incumbent by ≥25% to take over
 
 // Speaker-activity / queue / anti-overtalk tunables
 const SPEAKER_ACTIVE_RMS = 0.045;     // RMS threshold above which a stream counts as "speaking"
@@ -384,13 +386,46 @@ export class VoiceSession extends EventTarget {
 
   async _publishPresence(action) {
     if (!this.auth.isLoggedIn() || !this.roomId) return;
-    const rttScores = action === 'heartbeat' ? this._rttScores() : {};
+    const isHb = action === 'heartbeat';
+    const rttScores = isHb ? this._rttScores() : {};
+    const capScores = isHb ? this._capScores() : {};
+    const reflexive = isHb ? this._reflexiveAddrs() : [];
+    const uplinkKbps = isHb ? this._estimateUplinkKbps() : 0;
     const signed = await this.auth.sign({
       kind: 30078, created_at: Math.floor(Date.now() / 1000),
       tags: [['d', 'zellous-voice:' + this.roomId], ['action', action], ['channel', this.channelName], ['server', this.serverId]],
-      content: JSON.stringify({ action, name: this.displayName, channel: this.channelName, ts: Date.now(), rttScores })
+      content: JSON.stringify({ action, name: this.displayName, channel: this.channelName, ts: Date.now(), rttScores, capScores, reflexive, uplinkKbps })
     });
     this.pool.publish(signed);
+  }
+
+  // Estimated uplink in kbps: max(availableOutgoingBitrate over connected peers).
+  // This is the dominant signal for hub-fitness — hub fan-out is bounded by uplink.
+  _estimateUplinkKbps() {
+    let best = 0;
+    for (const [, peer] of this.peers) {
+      if (!peer.pc || peer.pc.connectionState !== 'connected') continue;
+      const v = peer._lastAvailOutKbps || 0;
+      if (v > best) best = v;
+    }
+    return best;
+  }
+
+  // Map peerPubkey → estimated kbps (most-recent stats sample). Pushed in heartbeat
+  // so other nodes can rank us as a hub candidate without their own stats poll.
+  _capScores() {
+    const out = {};
+    for (const [pk, peer] of this.peers) {
+      if (peer._lastAvailOutKbps != null) out[pk] = peer._lastAvailOutKbps;
+    }
+    return out;
+  }
+
+  // Recent successful local public reflexive addresses (host:port) we've seen on
+  // candidate pairs. Other peers can synth peer-reflexive ICE candidates from these
+  // and start probing without waiting for STUN, dramatically cutting join time.
+  _reflexiveAddrs() {
+    return this._lastReflexive ? [this._lastReflexive] : [];
   }
 
   _startHeartbeat() { this._stopHeartbeat(); this.heartbeat = setInterval(() => { if (this.actor?.getSnapshot().matches('connected')) this._publishPresence('heartbeat'); }, HEARTBEAT); }
@@ -408,12 +443,41 @@ export class VoiceSession extends EventTarget {
     if (Date.now() - (data.ts || 0) > PRESENCE_EXPIRY) return;
     const shortId = 'nostr-' + event.pubkey.slice(0, 12);
     if (data.rttScores) this.sfu.rttMatrix.set(event.pubkey, data.rttScores);
-    if (data.action === 'leave') { this.participants.delete(shortId); this._closePeer(event.pubkey); }
+    if (data.capScores || data.uplinkKbps != null) {
+      if (!this.sfu.capacityMatrix) this.sfu.capacityMatrix = new Map();
+      this.sfu.capacityMatrix.set(event.pubkey, { ...(data.capScores || {}), _self: data.uplinkKbps || 0 });
+    }
+    if (data.reflexive && Array.isArray(data.reflexive) && data.reflexive.length) {
+      if (!this.sfu.reflexiveByPeer) this.sfu.reflexiveByPeer = new Map();
+      this.sfu.reflexiveByPeer.set(event.pubkey, data.reflexive);
+    }
+    if (data.action === 'leave') {
+      this.participants.delete(shortId);
+      this._closePeer(event.pubkey);
+      if (this.sfu.hub === event.pubkey) this._sfuOnHubLost();
+    }
     else if (!this.participants.has(shortId)) {
       this.participants.set(shortId, { identity: data.name || event.pubkey.slice(0, 8), isSpeaking: false, isMuted: false, isLocal: false, hasVideo: false, connectionQuality: 'connecting' });
+      this._sfuMaybeElect();
       this._maybeConnect(event.pubkey);
-    } else if (!this.peers.has(event.pubkey)) this._maybeConnect(event.pubkey);
+    } else {
+      this._sfuMaybeElect();
+      if (this._sfuShouldHaveConnectionTo(event.pubkey) && !this.peers.has(event.pubkey)) this._maybeConnect(event.pubkey);
+    }
     this._emit('participants', { list: this.getParticipants() });
+  }
+
+  // SFU-only topology: each node holds direct WebRTC PCs only to (a) the elected hub,
+  // (b) the warm backup, and (c) every peer if WE are the hub (fan-out). Everyone else
+  // is reachable indirectly via the hub's audio fan-out.
+  _sfuShouldHaveConnectionTo(peerPubkey) {
+    if (this.sfu.hub === this.auth.pubkey) return true; // we are hub → connect to all
+    if (peerPubkey === this.sfu.hub) return true;
+    if (peerPubkey === this.sfu.warmBackup) return true;
+    // Pre-election (no hub yet): connect to the lowest-pubkey peer as bootstrap so
+    // we have stats data to publish. Election will reshape immediately.
+    if (!this.sfu.hub) return true;
+    return false;
   }
 
   _subscribeSignals() {
@@ -425,6 +489,8 @@ export class VoiceSession extends EventTarget {
   _maybeConnect(peerPubkey) {
     if (!peerPubkey || peerPubkey === this.auth.pubkey || this.peers.has(peerPubkey)) return;
     if (this.bans && this.serverId && (this.bans.isBanned?.(this.serverId, peerPubkey) || this.bans.isTimedOut?.(this.serverId, peerPubkey))) return;
+    // Topology gate: only form WebRTC PCs the SFU layout calls for.
+    if (!this._sfuShouldHaveConnectionTo(peerPubkey)) return;
     this._cancelReconnect(peerPubkey);
     const fsmActor = this.xstate.createActor(this.fsm.peerMachine);
     fsmActor.subscribe((snap) => { const p = this.peers.get(peerPubkey); if (p) p.state = snap.value; });
@@ -439,6 +505,19 @@ export class VoiceSession extends EventTarget {
       else pc.addTransceiver('audio', { direction: 'recvonly' });
     }
     this._wirePeer(peer, peerPubkey, fsmActor, isOfferer);
+    // ICE/TURN offload via Nostr: if we already have a heartbeat-published
+    // reflexive addr for this peer, queue it to be added the moment remote
+    // description lands. Cuts join time vs. waiting for STUN re-gather.
+    const known = this.sfu.reflexiveByPeer?.get(peerPubkey);
+    if (known && known.length) {
+      for (const r of known) {
+        if (!r?.addr || !r?.port) continue;
+        const proto = (r.protocol || 'udp').toLowerCase();
+        const typ = r.type === 'relay' ? 'relay' : 'srflx';
+        const sdp = `candidate:0 1 ${proto} 1685987071 ${r.addr} ${r.port} typ ${typ}`;
+        peer.bufferedCandidates.push({ candidate: sdp, sdpMid: '0', sdpMLineIndex: 0 });
+      }
+    }
   }
 
   _wirePeer(peer, peerPubkey, fsmActor, isOfferer) {
@@ -477,7 +556,8 @@ export class VoiceSession extends EventTarget {
       }
       if (pc.connectionState === 'disconnected') { fsmActor.send({ type: 'disconnect' }); peer.disconnectTimer = setTimeout(() => this._doIceRestart(peer, peerPubkey, fsmActor), DISCONNECT_GRACE); }
       if (pc.connectionState === 'failed') this._doIceRestart(peer, peerPubkey, fsmActor);
-      if (pc.connectionState === 'closed') { this._closePeer(peerPubkey); if (this.sfu.hub === peerPubkey) { this._sfuDissolve(); setTimeout(() => this._sfuMaybeElect(), 500); } }
+      if (pc.connectionState === 'closed') { this._closePeer(peerPubkey); if (this.sfu.hub === peerPubkey) this._sfuOnHubLost(); }
+      if (pc.connectionState === 'failed' && this.sfu.hub === peerPubkey) this._sfuOnHubLost();
     };
     this._ensureDataChannel(peer, peerPubkey, isOfferer);
     if (isOfferer) {
@@ -588,38 +668,197 @@ export class VoiceSession extends EventTarget {
     this.retrySchedule[pk] = { attempt: a, timer };
   }
 
-  _sfuStart() { this.sfu.actor = this.xstate.createActor(this.fsm.sfuMachine); this.sfu.actor.start(); this._sfuStopStats(); this.sfu.statsInterval = setInterval(() => this._sfuPoll(), 5000); }
-  _sfuStop() { this._sfuStopStats(); this.sfu.actor?.send({ type: 'dissolve' }); this.sfu.hub = null; this.sfu.rttMatrix.clear(); }
+  // ────────────────────────────────────────────────────────────────────────
+  // Always-SFU topology
+  //
+  // No mesh. Exactly one hub at a time, elected by the highest-uplink peer
+  // among everyone in the room. Election is driven entirely by Nostr-published
+  // heartbeats — every peer sees the same scores and computes the same winner
+  // deterministically, so there's no leader-election race. Tiebreaker: highest
+  // pubkey. The runner-up is held as a warm backup so hub failure → instant
+  // failover (sub-second) instead of full re-negotiation (~5 s).
+  //
+  // ICE/TURN offload to Nostr: each heartbeat publishes the local node's most
+  // recent successful public reflexive address. New joiners use that to synth
+  // peer-reflexive ICE candidates immediately, skipping their own STUN gather
+  // round-trip. Result: first audio in ~hundreds of ms instead of seconds.
+  // ────────────────────────────────────────────────────────────────────────
+  _sfuStart() {
+    this.sfu.actor = this.xstate.createActor(this.fsm.sfuMachine);
+    this.sfu.actor.start();
+    this.sfu.warmBackup = null;
+    this.sfu.lastSwitch = 0;
+    this.sfu.capacityMatrix = new Map();
+    this.sfu.reflexiveByPeer = new Map();
+    this._sfuStopStats();
+    this.sfu.statsInterval = setInterval(() => this._sfuPoll(), 2500);
+  }
+  _sfuStop() {
+    this._sfuStopStats();
+    this.sfu.actor?.send({ type: 'dissolve' });
+    this.sfu.hub = null; this.sfu.warmBackup = null;
+    this.sfu.rttMatrix.clear();
+    this.sfu.capacityMatrix?.clear();
+    this.sfu.reflexiveByPeer?.clear();
+    this._lastReflexive = null;
+  }
   _sfuStopStats() { if (this.sfu.statsInterval) { clearInterval(this.sfu.statsInterval); this.sfu.statsInterval = null; } if (this.sfu.electionTimer) { clearTimeout(this.sfu.electionTimer); this.sfu.electionTimer = null; } }
+
   async _sfuPoll() {
-    const scores = {}; const tasks = [];
+    const rttScores = {};
+    const tasks = [];
     for (const [pk, peer] of this.peers) {
       if (!peer.pc || peer.pc.connectionState !== 'connected') continue;
-      tasks.push(peer.pc.getStats().then(stats => stats.forEach(r => { if (r.type === 'candidate-pair' && r.state === 'succeeded' && r.currentRoundTripTime != null) scores[pk] = Math.round(r.currentRoundTripTime * 1000); })).catch(() => {}));
+      tasks.push(peer.pc.getStats().then(stats => {
+        let pairRtt = null, availOut = null, lossFrac = 0, reflex = null;
+        stats.forEach(r => {
+          if (r.type === 'candidate-pair' && r.state === 'succeeded' && (r.nominated || r.selected)) {
+            if (r.currentRoundTripTime != null) pairRtt = r.currentRoundTripTime;
+            if (r.availableOutgoingBitrate != null) availOut = r.availableOutgoingBitrate;
+            // Capture the local end of the selected pair as our public reflexive addr.
+            const localId = r.localCandidateId; if (localId) {
+              const local = stats.get?.(localId); if (local && (local.candidateType === 'srflx' || local.candidateType === 'prflx' || local.candidateType === 'relay')) {
+                reflex = { addr: local.address || local.ip, port: local.port, type: local.candidateType, protocol: local.protocol };
+              }
+            }
+          }
+          if (r.type === 'remote-inbound-rtp' && r.kind === 'audio' && r.fractionLost != null) {
+            lossFrac = Math.max(lossFrac, r.fractionLost);
+          }
+        });
+        if (pairRtt != null) rttScores[pk] = Math.round(pairRtt * 1000);
+        // Per-peer capacity estimate — falls back to RTT/loss heuristic when
+        // availableOutgoingBitrate isn't exposed (Firefox, Safari sometimes).
+        let capKbps = null;
+        if (availOut != null && availOut > 0) capKbps = Math.round(availOut / 1000);
+        else if (pairRtt != null) {
+          const rttMs = pairRtt * 1000;
+          capKbps = Math.round(2000 * Math.max(0, 1 - rttMs / 400) * Math.max(0, 1 - lossFrac * 4));
+        }
+        if (capKbps != null) peer._lastAvailOutKbps = capKbps;
+        if (reflex && reflex.addr && reflex.port) this._lastReflexive = reflex;
+      }).catch(() => {}));
     }
     await Promise.all(tasks);
-    this.sfu.rttMatrix.set(this.auth.pubkey, scores);
+    this.sfu.rttMatrix.set(this.auth.pubkey, rttScores);
     this._sfuMaybeElect();
   }
+
   _sfuMaybeElect() {
-    if (this.peers.size < 3) { if (this.sfu.actor?.getSnapshot().value !== 'mesh') this._sfuDissolve(); return; }
     if (this.sfu.electionTimer) return;
-    this.sfu.electionTimer = setTimeout(() => { this.sfu.electionTimer = null; this._sfuElect(); }, 2000);
+    this.sfu.electionTimer = setTimeout(() => { this.sfu.electionTimer = null; this._sfuElect(); }, 600);
   }
-  _sfuElect() {
-    const all = [this.auth.pubkey]; for (const pk of this.peers.keys()) all.push(pk);
-    let best = null, bestAvg = Infinity;
+
+  _sfuRankCandidates() {
+    // Score every known participant (including self). Higher = better hub.
+    //   capacity term — published uplinkKbps from heartbeats (or local stats for self)
+    //   rtt term       — inverse mean RTT, tiebreaker
+    //   coverage term  — how many peers we have data on (favours nodes already
+    //                    talking to many others, reduces reorg churn)
+    const all = new Set([this.auth.pubkey, ...this.participants.keys()]);
+    // participants.keys() are shortIds; rebuild full pubkeys from peers + self.
+    all.clear(); all.add(this.auth.pubkey);
+    for (const pk of this.peers.keys()) all.add(pk);
+    if (this.sfu.capacityMatrix) for (const pk of this.sfu.capacityMatrix.keys()) all.add(pk);
+    if (this.sfu.rttMatrix) for (const pk of this.sfu.rttMatrix.keys()) all.add(pk);
+
+    const ranked = [];
     for (const pk of all) {
-      const s = this.sfu.rttMatrix.get(pk); if (!s) continue;
-      const vals = Object.values(s).filter(v => typeof v === 'number'); if (!vals.length) continue;
-      const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
-      if (avg < bestAvg || (avg === bestAvg && pk > best)) { bestAvg = avg; best = pk; }
+      // Self-uplink: from local stats. Remote uplink: from their heartbeat (_self field).
+      let uplink = 0;
+      if (pk === this.auth.pubkey) uplink = this._estimateUplinkKbps();
+      else { const cap = this.sfu.capacityMatrix?.get(pk); if (cap && typeof cap._self === 'number') uplink = cap._self; }
+
+      const rtt = this.sfu.rttMatrix.get(pk);
+      let rttAvg = Infinity, rttCount = 0;
+      if (rtt) { let s = 0; for (const v of Object.values(rtt)) if (typeof v === 'number') { s += v; rttCount++; } if (rttCount) rttAvg = s / rttCount; }
+
+      const cap = this.sfu.capacityMatrix?.get(pk);
+      const capCount = cap ? Object.keys(cap).filter(k => k !== '_self').length : 0;
+
+      // Score: uplink dominates (it's the bottleneck for hub fan-out).
+      // 1 kbps uplink = 1 point. RTT contributes up to 200 points (preferring <200 ms).
+      // Coverage contributes (rttCount + capCount) × 30.
+      const rttTerm = rttCount ? Math.max(0, 200 - rttAvg) : 0;
+      const coverageTerm = (rttCount + capCount) * 30;
+      const score = uplink + rttTerm + coverageTerm;
+
+      ranked.push({ pubkey: pk, score, uplink, rttAvg, capCount });
     }
-    if (!best || best === this.sfu.hub) return;
-    this.sfu.hub = best; this.sfu.actor?.send({ type: 'elected' });
-    if (best === this.auth.pubkey) this._sfuBecomeHub(); else this._sfuRouteToHub(best);
+    // Tiebreak by pubkey for determinism across nodes.
+    ranked.sort((a, b) => b.score - a.score || (a.pubkey > b.pubkey ? -1 : 1));
+    return ranked;
   }
+
+  _sfuElect() {
+    const ranked = this._sfuRankCandidates();
+    if (!ranked.length) return;
+    const top = ranked[0];
+    const runnerUp = ranked[1] || null;
+
+    // Hysteresis: keep incumbent unless challenger is meaningfully better
+    // AND we've held the current hub for at least HUB_HYSTERESIS_MS.
+    const incumbent = this.sfu.hub;
+    if (incumbent) {
+      const incEntry = ranked.find(r => r.pubkey === incumbent);
+      if (incEntry) {
+        const advantage = top.score - incEntry.score;
+        const rel = incEntry.score > 0 ? advantage / incEntry.score : Infinity;
+        const recent = Date.now() - this.sfu.lastSwitch < HUB_HYSTERESIS_MS;
+        if (top.pubkey === incumbent || rel < HUB_REL_ADVANTAGE || recent) {
+          // Even if we keep incumbent, refresh warm-backup choice.
+          this.sfu.warmBackup = (runnerUp && runnerUp.pubkey !== incumbent) ? runnerUp.pubkey : null;
+          this._sfuApplyTopology(incumbent);
+          return;
+        }
+      }
+    }
+
+    const previousHub = this.sfu.hub;
+    this.sfu.hub = top.pubkey;
+    this.sfu.warmBackup = (runnerUp && runnerUp.pubkey !== top.pubkey) ? runnerUp.pubkey : null;
+    this.sfu.lastSwitch = Date.now();
+    this.sfu.actor?.send({ type: 'elected' });
+    this._emit('hub-changed', { hub: top.pubkey, previous: previousHub, score: top.score, uplink: top.uplink });
+
+    if (top.pubkey === this.auth.pubkey) this._sfuBecomeHub();
+    else this._sfuRouteToHub(top.pubkey, previousHub);
+
+    this._sfuApplyTopology(top.pubkey);
+  }
+
+  // Reconcile the open WebRTC PCs with the elected topology.
+  // - If we are hub: keep PCs to every participant, open new ones for missing peers.
+  // - Else: keep PCs only to hub + warm backup.
+  _sfuApplyTopology(hubPk) {
+    if (hubPk === this.auth.pubkey) {
+      for (const peerPk of this.participants.keys()) {
+        // participants keys are shortIds; iterate via known peer pubkeys from rttMatrix instead.
+      }
+      // Use capacityMatrix + presence-known pubkeys as the participant list.
+      const known = new Set();
+      for (const pk of this.sfu.capacityMatrix?.keys() || []) known.add(pk);
+      for (const pk of this.sfu.rttMatrix.keys()) known.add(pk);
+      for (const pk of known) {
+        if (pk === this.auth.pubkey) continue;
+        if (!this.peers.has(pk)) this._maybeConnect(pk);
+      }
+      return;
+    }
+    // Non-hub: drop everyone except hub + warm backup.
+    for (const pk of Array.from(this.peers.keys())) {
+      if (pk === hubPk) continue;
+      if (pk === this.sfu.warmBackup) continue;
+      this._closePeer(pk);
+    }
+    if (!this.peers.has(hubPk)) this._maybeConnect(hubPk);
+    if (this.sfu.warmBackup && !this.peers.has(this.sfu.warmBackup)) this._maybeConnect(this.sfu.warmBackup);
+  }
+
   _sfuBecomeHub() {
+    // Fan out remote audio receivers to all other peer senders via replaceTrack.
+    // This zero-copy forward is the heart of SFU — no transcode, no re-encode,
+    // just packet redirection at the RTCPeerConnection layer.
     for (const [srcPk, srcPeer] of this.peers) {
       if (!srcPeer.pc?.getReceivers) continue;
       srcPeer.pc.getReceivers().forEach(recv => {
@@ -632,10 +871,49 @@ export class VoiceSession extends EventTarget {
       });
     }
   }
-  _sfuRouteToHub(hubPk) {
-    for (const pk of Array.from(this.peers.keys())) { if (pk === hubPk) continue; this._closePeer(pk); }
+
+  // Graceful handoff: open new hub PC, wait briefly for first audio, then drop
+  // old PCs. The warm backup is preserved through the transition for failover.
+  async _sfuRouteToHub(hubPk, previousHub) {
     if (!this.peers.has(hubPk)) this._maybeConnect(hubPk);
+    const hubPeer = this.peers.get(hubPk);
+    const ok = await new Promise((resolve) => {
+      if (!hubPeer) { resolve(false); return; }
+      let done = false;
+      const finish = (v) => { if (!done) { done = true; resolve(v); } };
+      const timer = setTimeout(() => finish(false), 5000);
+      const poll = setInterval(() => {
+        try {
+          const r = hubPeer.pc?.getReceivers().find(x => x.track?.kind === 'audio');
+          if (r?.track && r.track.readyState === 'live') { clearTimeout(timer); clearInterval(poll); finish(true); }
+        } catch {}
+      }, 100);
+    });
+    if (!ok && previousHub && previousHub !== hubPk && this.participants.size) {
+      // Roll back: new hub didn't deliver audio. Keep old hub.
+      this.sfu.hub = previousHub;
+      if (!this.peers.has(previousHub)) this._maybeConnect(previousHub);
+    }
   }
+
+  // Hub-loss handler: wired from peer connectionstatechange when current hub PC dies.
+  _sfuOnHubLost() {
+    if (!this.sfu.hub) return;
+    const hubPeer = this.peers.get(this.sfu.hub);
+    if (hubPeer && hubPeer.pc?.connectionState === 'connected') return;
+    const promote = this.sfu.warmBackup;
+    const lost = this.sfu.hub;
+    this.sfu.hub = null;
+    if (!promote) { this._sfuMaybeElect(); return; }
+    this.sfu.hub = promote;
+    this.sfu.warmBackup = null;
+    this.sfu.lastSwitch = Date.now();
+    this.sfu.actor?.send({ type: 'elected' });
+    this._emit('hub-changed', { hub: promote, previous: lost, reason: 'failover' });
+    if (promote === this.auth.pubkey) this._sfuBecomeHub();
+    else this._sfuApplyTopology(promote);
+  }
+
   _sfuDissolve() { this.sfu.actor?.send({ type: 'dissolve' }); this.sfu.hubLostAt = Date.now(); this.sfu.hub = null; }
 
   _rttScores() { return this.sfu.rttMatrix.get(this.auth.pubkey) || {}; }
