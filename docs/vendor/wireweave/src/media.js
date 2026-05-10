@@ -54,10 +54,48 @@ export class Media {
     throw new Error('upload failed: ' + errors.join('; '));
   }
 
+  async download(url, { onProgress = null } = {}) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('download failed: ' + res.status);
+    const total = Number(res.headers.get('content-length')) || 0;
+    if (!onProgress || !res.body?.getReader) {
+      const buf = await res.arrayBuffer();
+      return { bytes: new Uint8Array(buf), type: res.headers.get('content-type') || '', size: buf.byteLength };
+    }
+    const reader = res.body.getReader();
+    const chunks = [];
+    let received = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      onProgress({ received, total });
+    }
+    const out = new Uint8Array(received);
+    let off = 0;
+    for (const c of chunks) { out.set(c, off); off += c.length; }
+    return { bytes: out, type: res.headers.get('content-type') || '', size: received };
+  }
+
+  async fetchBlob(hash) {
+    const errors = [];
+    for (const srv of this.servers) {
+      try {
+        const url = srv.replace(/\/$/, '') + '/' + hash;
+        const res = await fetch(url);
+        if (!res.ok) { errors.push(srv + ': ' + res.status); continue; }
+        const buf = await res.arrayBuffer();
+        return { url, bytes: new Uint8Array(buf), type: res.headers.get('content-type') || '' };
+      } catch (e) { errors.push(srv + ': ' + e.message); }
+    }
+    throw new Error('fetchBlob failed: ' + errors.join('; '));
+  }
+
   isMedia(url) {
     if (typeof url !== 'string') return null;
-    if (/\.(png|jpe?g|gif|webp|svg|avif)(\?|$)/i.test(url)) return 'image';
-    if (/\.(mp4|webm|mov|ogg)(\?|$)/i.test(url)) return 'video';
+    if (/\.(png|jpe?g|gif|webp|svg|avif|heic|heif|tiff?|bmp)(\?|$)/i.test(url)) return 'image';
+    if (/\.(mp4|webm|mov|ogg|ogv|mkv|m4v|avi)(\?|$)/i.test(url)) return 'video';
     return null;
   }
 

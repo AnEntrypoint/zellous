@@ -2,14 +2,31 @@ const DEFAULT_RELAYS = [
   'wss://relay.damus.io',
   'wss://relay.primal.net',
   'wss://nos.lol',
-  'wss://relay.snort.social'
+  'wss://relay.snort.social',
+  'wss://relay.nostr.band',
+  'wss://nostr.wine',
+  'wss://relay.current.fyi',
+  'wss://offchain.pub',
+  'wss://nostr-pub.wellorder.net',
+  'wss://relay.0xchat.com'
 ];
 
-const trim = (set, max, keep) => {
-  if (set.size <= max) return set;
-  const arr = Array.from(set);
-  return new Set(arr.slice(arr.length - keep));
+const SEEN_MAX = 10000;
+
+const lruTouch = (map, key) => {
+  if (map.has(key)) { map.delete(key); map.set(key, 1); return false; }
+  map.set(key, 1);
+  if (map.size > SEEN_MAX) { const first = map.keys().next().value; map.delete(first); }
+  return true;
 };
+
+const fnv1a = (s) => {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0; }
+  return h.toString(16).padStart(8, '0');
+};
+
+const safeSubId = (subId) => subId.length <= 64 ? subId : subId.slice(0, 55) + '-' + fnv1a(subId);
 
 export class RelayPool extends EventTarget {
   constructor({ relays = DEFAULT_RELAYS, verifyEvent = null, WebSocketImpl = null } = {}) {
@@ -18,7 +35,7 @@ export class RelayPool extends EventTarget {
     this.relays = new Map();
     this.subs = new Map();
     this.pending = [];
-    this.seen = new Set();
+    this.seen = new Map();
     this.verifyEvent = verifyEvent;
     this.WS = WebSocketImpl || (typeof WebSocket !== 'undefined' ? WebSocket : null);
     if (!this.WS) throw new Error('No WebSocket implementation available');
@@ -30,7 +47,12 @@ export class RelayPool extends EventTarget {
 
   disconnect() {
     for (const [, r] of this.relays) {
-      if (r.ws) { r.ws.onclose = null; r.ws.onerror = null; try { r.ws.close(); } catch {} }
+      if (r.ws) {
+        r.ws.onclose = null; r.ws.onerror = null; r.ws.onopen = null; r.ws.onmessage = null;
+        if (typeof r.ws.removeAllListeners === 'function') r.ws.removeAllListeners();
+        if (typeof r.ws.on === 'function') r.ws.on('error', () => {});
+        try { r.ws.close(); } catch {}
+      }
     }
     this.relays.clear();
   }
@@ -88,8 +110,7 @@ export class RelayPool extends EventTarget {
       if (this.verifyEvent) {
         try { if (!this.verifyEvent(event)) return; } catch { return; }
       }
-      this.seen.add(event.id);
-      this.seen = trim(this.seen, 10000, 5000);
+      lruTouch(this.seen, event.id);
       const sub = this.subs.get(subId);
       sub?.onEvent?.(event);
       this._emit('event', { subId, event });
@@ -104,7 +125,7 @@ export class RelayPool extends EventTarget {
   }
 
   subscribe(subId, filters, onEvent, onEose) {
-    subId = subId.length > 64 ? subId.slice(0, 64) : subId;
+    subId = safeSubId(subId);
     this.subs.set(subId, { filters, onEvent, onEose });
     for (const [, relay] of this.relays) {
       if (relay.ws?.readyState === 1) {
@@ -117,7 +138,7 @@ export class RelayPool extends EventTarget {
   }
 
   unsubscribe(subId) {
-    subId = subId.length > 64 ? subId.slice(0, 64) : subId;
+    subId = safeSubId(subId);
     for (const [, relay] of this.relays) {
       if (relay.ws?.readyState === 1 && relay.subIds.has(subId)) {
         relay.ws.send(JSON.stringify(['CLOSE', subId]));

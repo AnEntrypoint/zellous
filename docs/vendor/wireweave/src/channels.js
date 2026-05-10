@@ -1,3 +1,5 @@
+import { dtag } from './dtag.js';
+
 const DEFAULT_CATEGORIES = [
   { id: 'general', name: 'TEXT CHANNELS', position: 0 },
   { id: 'voice', name: 'VOICE CHANNELS', position: 1 }
@@ -23,7 +25,7 @@ export class Channels extends EventTarget {
     this.serverId = serverId;
     this.channels = []; this.categories = [];
     const ownerPubkey = serverId.split(':')[0];
-    const dTag = 'zellous-channels:' + serverId;
+    const dTag = dtag('channels', serverId);
     this.pool.subscribe('channels-' + serverId,
       [{ kinds: [30078], authors: [ownerPubkey], '#d': [dTag] }],
       (event) => {
@@ -53,7 +55,7 @@ export class Channels extends EventTarget {
     if (!this.isOwner()) return;
     const signed = await this.auth.sign({
       kind: 30078, created_at: Math.floor(Date.now() / 1000),
-      tags: [['d', 'zellous-channels:' + this.serverId]],
+      tags: [['d', dtag('channels', this.serverId)]],
       content: JSON.stringify({ channels: this.channels, categories: this.categories })
     });
     this.pool.publish(signed);

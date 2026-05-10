@@ -39,6 +39,16 @@ export const createFSM = (xstate) => {
         error: { on: { reconnect: 'connecting' } }
       }
     }),
+    dataMachine: xstate.createMachine({
+      initial: 'idle',
+      states: {
+        idle: { on: { connect: 'connecting' } },
+        connecting: { on: { connected: 'connected', fail: 'idle' } },
+        connected: { on: { disconnect: 'disconnecting', degrade: 'reconnecting' } },
+        reconnecting: { on: { connected: 'connected', disconnect: 'disconnecting', fail: 'idle' } },
+        disconnecting: { on: { done: 'idle' } }
+      }
+    }),
     sfuMachine: xstate.createMachine({
       initial: 'mesh',
       states: {

@@ -1,3 +1,5 @@
+import { dtag } from './dtag.js';
+
 export class Roles extends EventTarget {
   constructor({ relayPool, auth }) {
     super();
@@ -31,7 +33,7 @@ export class Roles extends EventTarget {
     else if (role === 'moderator') mods = [...mods, targetPubkey];
     const next = { admins, mods };
     this.store.set(serverId, next);
-    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', 'zellous-roles:' + serverId]], content: JSON.stringify(next) });
+    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', dtag('roles', serverId)]], content: JSON.stringify(next) });
     this.pool.publish(signed);
     this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next } }));
   }
@@ -43,7 +45,7 @@ export class Roles extends EventTarget {
     if (!creator) return;
     this.sub = 'roles-' + serverId;
     this.pool.subscribe(this.sub,
-      [{ kinds: [30078], authors: [creator], '#d': ['zellous-roles:' + serverId] }],
+      [{ kinds: [30078], authors: [creator], '#d': [dtag('roles', serverId)] }],
       (event) => {
         if (event.pubkey !== creator) return;
         try {

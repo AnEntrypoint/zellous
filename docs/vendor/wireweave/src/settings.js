@@ -1,3 +1,5 @@
+import { dtag } from './dtag.js';
+
 const VALID_BITRATES = [8000, 16000, 24000, 48000, 96000];
 const clampBitrate = (v) => VALID_BITRATES.reduce((prev, cur) => Math.abs(cur - v) < Math.abs(prev - v) ? cur : prev);
 
@@ -18,7 +20,7 @@ export class Settings extends EventTarget {
     const existing = this.store.get(serverId) || {};
     const next = { ...existing, opusBitrate: clamped };
     this.store.set(serverId, next);
-    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', 'zellous-settings:' + serverId]], content: JSON.stringify(next) });
+    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', dtag('settings', serverId)]], content: JSON.stringify(next) });
     this.pool.publish(signed);
     this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next } }));
     return clamped;
@@ -36,7 +38,7 @@ export class Settings extends EventTarget {
     const existing = this.store.get(serverId) || {};
     const next = { ...existing, embedAllowlist: domains };
     this.store.set(serverId, next);
-    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', 'zellous-settings:' + serverId]], content: JSON.stringify(next) });
+    const signed = await this.auth.sign({ kind: 30078, created_at: Math.floor(Date.now() / 1000), tags: [['d', dtag('settings', serverId)]], content: JSON.stringify(next) });
     this.pool.publish(signed);
     this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next } }));
     return domains;
@@ -61,7 +63,7 @@ export class Settings extends EventTarget {
     if (!creator) return;
     this.sub = 'settings-' + serverId;
     this.pool.subscribe(this.sub,
-      [{ kinds: [30078], authors: [creator], '#d': ['zellous-settings:' + serverId] }],
+      [{ kinds: [30078], authors: [creator], '#d': [dtag('settings', serverId)] }],
       (event) => {
         if (event.pubkey !== creator) return;
         try { this.store.set(serverId, JSON.parse(event.content)); this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next: this.store.get(serverId) } })); } catch {}

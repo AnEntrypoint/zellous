@@ -293,8 +293,24 @@ window.__wireweaveReady = (async () => {
       serverId: state.currentServerId || '',
       displayName: state.nostrProfile?.name || (a.pubkey ? a.npubShort() : 'Guest'),
       onAudioTrack: ({ peer, stream, peerPubkey }) => {
-        if (!peer.audioEl) { peer.audioEl = new Audio(); peer.audioEl.autoplay = true; peer.audioEl.muted = state.voiceDeafened; document.body.appendChild(peer.audioEl); }
+        if (!peer.audioEl) {
+          const el = new Audio();
+          el.autoplay = true;
+          el.playsInline = true;
+          el.muted = !!state.voiceDeafened;
+          el.volume = 1.0;
+          el.style.display = 'none';
+          document.body.appendChild(el);
+          peer.audioEl = el;
+        }
         peer.audioEl.srcObject = stream;
+        const tryPlay = () => peer.audioEl.play().catch(() => {
+          const resume = () => { peer.audioEl?.play().catch(() => {}); document.removeEventListener('click', resume); document.removeEventListener('keydown', resume); document.removeEventListener('touchstart', resume); };
+          document.addEventListener('click', resume, { once: true });
+          document.addEventListener('keydown', resume, { once: true });
+          document.addEventListener('touchstart', resume, { once: true });
+        });
+        tryPlay();
       },
       onVideoTrack: ({ peerPubkey, stream }) => {
         const key = 'nostr-' + peerPubkey.slice(0, 12);
