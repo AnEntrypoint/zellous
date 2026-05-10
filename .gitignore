@@ -40,6 +40,7 @@ verify-assets.js
 *.stackdump
 preview-*.png
 _test/
+lang/
 # >>> gm managed (do not edit between markers)
 .gm-stop-verified
 .gm/prd-state.json
@@ -60,6 +61,8 @@ _test/
 .gm/exec-spool.started
 # tracked: .gm/rs-learn.db, .gm/code-search/, AGENTS.md, .gm/prd.yml
 # <<< gm managed
+
+
 dist/
 .gm/
 .codeinsight/
