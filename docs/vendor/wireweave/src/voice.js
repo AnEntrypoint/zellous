@@ -453,14 +453,17 @@ export class VoiceSession extends EventTarget {
     }
     if (data.action === 'leave') {
       this.participants.delete(shortId);
+      this.sfu.pubkeyByShortId?.delete(shortId);
       this._closePeer(event.pubkey);
       if (this.sfu.hub === event.pubkey) this._sfuOnHubLost();
     }
     else if (!this.participants.has(shortId)) {
       this.participants.set(shortId, { identity: data.name || event.pubkey.slice(0, 8), isSpeaking: false, isMuted: false, isLocal: false, hasVideo: false, connectionQuality: 'connecting' });
+      if (this.sfu.pubkeyByShortId) this.sfu.pubkeyByShortId.set(shortId, event.pubkey);
       this._sfuMaybeElect();
       this._maybeConnect(event.pubkey);
     } else {
+      if (this.sfu.pubkeyByShortId && !this.sfu.pubkeyByShortId.has(shortId)) this.sfu.pubkeyByShortId.set(shortId, event.pubkey);
       this._sfuMaybeElect();
       if (this._sfuShouldHaveConnectionTo(event.pubkey) && !this.peers.has(event.pubkey)) this._maybeConnect(event.pubkey);
     }
@@ -690,6 +693,7 @@ export class VoiceSession extends EventTarget {
     this.sfu.lastSwitch = 0;
     this.sfu.capacityMatrix = new Map();
     this.sfu.reflexiveByPeer = new Map();
+    this.sfu.pubkeyByShortId = new Map();
     this._sfuStopStats();
     this.sfu.statsInterval = setInterval(() => this._sfuPoll(), 2500);
   }
@@ -818,6 +822,7 @@ export class VoiceSession extends EventTarget {
     this.sfu.hub = top.pubkey;
     this.sfu.warmBackup = (runnerUp && runnerUp.pubkey !== top.pubkey) ? runnerUp.pubkey : null;
     this.sfu.lastSwitch = Date.now();
+    try { this.sfu.actor?.send({ type: 'elect' }); } catch {}
     this.sfu.actor?.send({ type: 'elected' });
     this._emit('hub-changed', { hub: top.pubkey, previous: previousHub, score: top.score, uplink: top.uplink });
 
@@ -832,11 +837,13 @@ export class VoiceSession extends EventTarget {
   // - Else: keep PCs only to hub + warm backup.
   _sfuApplyTopology(hubPk) {
     if (hubPk === this.auth.pubkey) {
-      for (const peerPk of this.participants.keys()) {
-        // participants keys are shortIds; iterate via known peer pubkeys from rttMatrix instead.
-      }
-      // Use capacityMatrix + presence-known pubkeys as the participant list.
+      // Hub connects to every known participant. Build the pubkey set from
+      // every available source — pubkeyByShortId (presence-derived), peers,
+      // capacityMatrix, rttMatrix — because at the moment of the very first
+      // election the matrices may not be populated yet.
       const known = new Set();
+      if (this.sfu.pubkeyByShortId) for (const pk of this.sfu.pubkeyByShortId.values()) known.add(pk);
+      for (const pk of this.peers.keys()) known.add(pk);
       for (const pk of this.sfu.capacityMatrix?.keys() || []) known.add(pk);
       for (const pk of this.sfu.rttMatrix.keys()) known.add(pk);
       for (const pk of known) {
@@ -908,6 +915,7 @@ export class VoiceSession extends EventTarget {
     this.sfu.hub = promote;
     this.sfu.warmBackup = null;
     this.sfu.lastSwitch = Date.now();
+    try { this.sfu.actor?.send({ type: 'elect' }); } catch {}
     this.sfu.actor?.send({ type: 'elected' });
     this._emit('hub-changed', { hub: promote, previous: lost, reason: 'failover' });
     if (promote === this.auth.pubkey) this._sfuBecomeHub();
