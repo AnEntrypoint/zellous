@@ -237,11 +237,11 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 }
 .server-header-chevron { font-size: 10px; color: var(--fg-2); }
 .server-header-btn {
-  background: none !important; border: none; cursor: pointer;
+  background: none; border: none; cursor: pointer;
   color: var(--fg-2); font-size: 20px; line-height: 1;
-  padding: 4px !important; border-radius: 4px !important;
+  padding: 4px; border-radius: 4px;
 }
-.server-header-btn:hover { background: var(--bg-3) !important; color: var(--fg); }
+.server-header-btn:hover { background: var(--bg-3); color: var(--fg); }
 
 .channel-list {
   flex: 1; overflow-y: auto; overflow-x: hidden;
@@ -294,13 +294,13 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 .voice-panel-channel { font-size: var(--fs-xs); color: var(--fg-2); margin-bottom: 8px; }
 .voice-panel-actions { display: flex; gap: 4px; }
 .voice-panel-btn {
-  background: none !important; border: none; cursor: pointer;
-  color: var(--fg-3); padding: 4px !important; border-radius: 4px !important;
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); padding: 4px; border-radius: 4px;
   display: flex; align-items: center;
 }
-.voice-panel-btn:hover { background: var(--bg-4) !important; color: var(--fg); }
+.voice-panel-btn:hover { background: var(--bg-4); color: var(--fg); }
 .voice-panel-btn.disconnect { color: var(--warn); }
-.voice-panel-btn.disconnect:hover { background: var(--warn) !important; color: var(--green-fg); }
+.voice-panel-btn.disconnect:hover { background: var(--warn); color: var(--green-fg); }
 
 .voice-users { padding-left: 24px; margin: 2px 0 4px; }
 .voice-user {
@@ -350,11 +350,11 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 }
 .user-panel-controls { display: flex; gap: 2px; }
 .user-panel-btn {
-  background: none !important; border: none; cursor: pointer;
-  color: var(--fg-3); padding: 6px !important; border-radius: 4px !important;
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); padding: 6px; border-radius: 4px;
   display: flex; align-items: center;
 }
-.user-panel-btn:hover { background: var(--bg-3) !important; color: var(--fg); }
+.user-panel-btn:hover { background: var(--bg-3); color: var(--fg); }
 .user-panel-btn.active { color: var(--accent); }
 .user-panel-btn.muted, .user-panel-btn.deafened { color: var(--warn); }
 
@@ -379,11 +379,11 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
   gap: 12px;
 }
 .mobile-hamburger {
-  background: none !important; border: none; cursor: pointer;
-  color: var(--fg-2); font-size: 20px; padding: 4px !important;
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-2); font-size: 20px; padding: 4px;
 }
 .mobile-title { flex: 1; font-weight: 600; color: var(--fg); font-size: var(--fs-sm); }
-.mobile-members-btn { background: none !important; border: none; cursor: pointer; color: var(--fg-2); display: flex; padding: 4px !important; border-radius: 4px !important; }
+.mobile-members-btn { background: none; border: none; cursor: pointer; color: var(--fg-2); display: flex; padding: 4px; border-radius: 4px; }
 
 /* Chat header */
 .chat-header-bar {
@@ -401,12 +401,12 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 .chat-header-topic { flex: 1; font-size: var(--fs-xs); color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .chat-header-toolbar { display: flex; gap: 4px; flex-shrink: 0; }
 .toolbar-btn {
-  background: none !important; border: none; cursor: pointer;
-  color: var(--fg-3); padding: 4px !important; border-radius: 4px !important;
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); padding: 4px; border-radius: 4px;
   display: flex; align-items: center;
   transition: color 0.1s, background 0.1s;
 }
-.toolbar-btn:hover { background: var(--bg-4) !important; color: var(--fg); }
+.toolbar-btn:hover { background: var(--bg-4); color: var(--fg); }
 .toolbar-btn.active { color: var(--accent); }
 
 /* Chat area */
@@ -460,10 +460,10 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 }
 .msg:hover .msg-actions { display: flex; }
 .msg-action-btn {
-  background: none !important; border: none; cursor: pointer;
-  color: var(--fg-3); padding: 4px 6px !important; border-radius: 4px !important; font-size: var(--fs-xs);
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); padding: 4px 6px; border-radius: 4px; font-size: var(--fs-xs);
 }
-.msg-action-btn:hover { background: var(--bg-3) !important; color: var(--fg); }
+.msg-action-btn:hover { background: var(--bg-3); color: var(--fg); }
 .msg-mention { background: rgba(36,116,32,0.15); color: var(--accent); padding: 0 2px; border-radius: 2px; }
 .msg-system { color: var(--fg-3); font-size: var(--fs-xs); font-style: italic; text-align: center; margin: 8px 0; }
 
@@ -484,9 +484,9 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 .chat-input-bar .chat-composer .send { background: var(--accent) !important; color: var(--green-fg) !important; }
 .chat-input-bar .chat-composer .send:disabled { background: var(--bg-3) !important; color: var(--fg-3) !important; }
 .attach-btn {
-  background: none !important; border: none; cursor: pointer;
+  background: none; border: none; cursor: pointer;
   color: var(--fg-3); font-size: 22px; line-height: 1;
-  padding: 6px !important; border-radius: 4px !important; flex-shrink: 0; transition: color 0.1s;
+  padding: 6px; border-radius: 4px; flex-shrink: 0; transition: color 0.1s;
 }
 .attach-btn:hover { color: var(--fg); }
 .chat-input {
@@ -496,7 +496,7 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 }
 .chat-input::placeholder { color: var(--fg-3); }
 .input-buttons { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.input-icon-btn { background: none !important; border: none; cursor: pointer; color: var(--fg-3); padding: 6px !important; border-radius: 4px !important; display: flex; }
+.input-icon-btn { background: none; border: none; cursor: pointer; color: var(--fg-3); padding: 6px; border-radius: 4px; display: flex; }
 .input-icon-btn:hover { color: var(--fg); }
 .input-btn {
   background: var(--accent); border: none; cursor: pointer;
@@ -685,16 +685,16 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 .rail-toggle {
   position: fixed; z-index: 100;
   width: 20px; height: 40px;
-  background: var(--bg-2) !important;
-  border-radius: 0 4px 4px 0 !important;
+  background: var(--bg-2);
+  border-radius: 0 4px 4px 0;
   color: var(--fg-2);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   font-size: 14px;
   transition: background 0.1s, color 0.1s;
-  padding: 0 !important;
+  padding: 0;
 }
-.rail-toggle:hover { background: var(--bg-3) !important; color: var(--fg); }
+.rail-toggle:hover { background: var(--bg-3); color: var(--fg); }
 .rail-toggle.servers { top: 50%; transform: translateY(-50%); left: 72px; }
 .rail-toggle.servers.collapsed { left: 0; }
 .rail-toggle.channels { top: 50%; transform: translateY(-50%); left: calc(72px + 240px); }
@@ -748,10 +748,10 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 .vs-channel { display: block; font-size: var(--fs-xs); font-weight: 600; color: var(--live); }
 .vs-status { display: block; font-size: 10px; color: var(--fg-3); }
 .voice-strip button {
-  background: none !important; border: none; cursor: pointer;
-  color: var(--fg-3); font-size: 16px; padding: 4px !important; border-radius: 4px !important;
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); font-size: 16px; padding: 4px; border-radius: 4px;
 }
-.voice-strip button:hover { background: var(--bg-3) !important; color: var(--fg); }
+.voice-strip button:hover { background: var(--bg-3); color: var(--fg); }
 .voice-strip button.danger { color: var(--warn); }
 
 /* ── Modals ── */
@@ -771,7 +771,7 @@ body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
   padding: 16px 20px; background: var(--bg-3);
 }
 .modal-title { font-weight: 600; font-size: var(--fs-lg); color: var(--fg); }
-.modal-close { background: none !important; border: none; cursor: pointer; color: var(--fg-3); font-size: 20px; padding: 4px !important; border-radius: 4px !important; }
+.modal-close { background: none; border: none; cursor: pointer; color: var(--fg-3); font-size: 20px; padding: 4px; border-radius: 4px; }
 .modal-close:hover { color: var(--fg); }
 .modal-body { padding: 20px; }
 .modal-footer {
@@ -843,7 +843,7 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   padding: 12px 16px; background: var(--bg-3); flex-shrink: 0;
 }
 .thread-title { font-weight: 600; color: var(--fg); }
-.thread-close { background: none !important; border: none; cursor: pointer; color: var(--fg-3); font-size: 18px; padding: 4px !important; border-radius: 4px !important; }
+.thread-close { background: none; border: none; cursor: pointer; color: var(--fg-3); font-size: 18px; padding: 4px; border-radius: 4px; }
 .thread-close:hover { color: var(--fg); }
 .thread-messages { flex: 1; overflow-y: auto; padding: 12px 0; }
 .thread-input { padding: 0 12px 12px; flex-shrink: 0; }
