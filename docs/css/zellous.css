@@ -1065,3 +1065,219 @@ textarea.form-input { resize: vertical; min-height: 80px; }
   margin-bottom: 4px;
 }
 .server-back-link:hover { color: var(--fg); }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   2026-05-10 sweep: rules for every classname rendered by JS that previously
+   had no CSS. Aligned with the AnEntrypoint design bible (soft surfaces,
+   rounded shapes, no hard borders, colour-coded rails, generous spacing).
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Modal button row — primary + secondary side by side with breathing room */
+.modal-box .modal-btn { margin: 0; }
+.modal-box .modal-btn + .modal-btn { margin-left: 8px; }
+.modal-box form > .modal-btn,
+.modal-box > .modal-btn {
+  margin-top: 12px;
+}
+.modal-box form > .modal-btn + .modal-btn,
+.modal-box > .modal-btn + .modal-btn {
+  margin-left: 8px;
+}
+
+/* Voice tiles: centred grid with comfortable size; speaking ring uses live token */
+.voice-grid {
+  align-content: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+}
+.voice-tile {
+  width: 240px; height: 180px;
+  background: var(--bg-3);
+  border-radius: 12px;
+  border: 2px solid transparent;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  position: relative;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.voice-tile.speaking { border-color: var(--live); transform: translateY(-1px); }
+.voice-tile-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--green-fg);
+  font-weight: 600; font-size: 24px;
+  transition: box-shadow 0.15s;
+}
+.voice-tile-avatar.speaking { box-shadow: 0 0 0 3px var(--live); }
+.voice-tile-name {
+  position: absolute; bottom: 8px; left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.55);
+  color: var(--fg);
+  font-size: var(--fs-xs); font-weight: 600;
+  padding: 3px 10px; border-radius: 999px;
+  max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.voice-tile-muted {
+  position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--warn);
+  color: var(--green-fg);
+  display: flex; align-items: center; justify-content: center;
+}
+.voice-tile-muted svg { display: block; }
+.voice-tile-role-badge {
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--green-fg);
+  padding: 1px 5px; border-radius: 4px;
+}
+.quality-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--fg-3); flex-shrink: 0;
+}
+.quality-dot.good { background: var(--live); }
+.quality-dot.fair { background: #FFD86B; }
+.quality-dot.poor { background: var(--warn); }
+.quality-dot.connecting { background: var(--fg-3); animation: pulse 1.2s infinite; }
+
+/* Voice control bar PTT pill + queue badge */
+.voice-controls {
+  justify-content: center;
+  gap: 10px;
+  border-radius: 12px 12px 0 0;
+}
+.voice-ptt-pill {
+  background: var(--accent);
+  color: var(--green-fg);
+  border: none; cursor: pointer;
+  border-radius: 999px;
+  padding: 10px 18px;
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: var(--fs-sm); font-weight: 600;
+  transition: background 0.1s, transform 0.05s, box-shadow 0.1s;
+  user-select: none;
+}
+.voice-ptt-pill:hover { background: var(--green-2); }
+.voice-ptt-pill.active,
+.voice-ptt-pill[data-state="live"] {
+  background: var(--live); color: var(--green-fg);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--live) 30%, transparent);
+}
+.voice-ptt-pill[data-state="queued"] {
+  background: #FFD86B; color: #2A2820;
+}
+.voice-ptt-pill svg { fill: currentColor; }
+
+.voice-ptt-queue {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg-3); color: var(--fg-2);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: var(--fs-xs); font-weight: 600;
+}
+.voice-ptt-queue[data-empty="true"] { opacity: 0.55; }
+.voice-ptt-queue.playing { background: color-mix(in oklab, var(--live) 25%, var(--bg-3)); color: var(--live); }
+.vptq-label { text-transform: uppercase; letter-spacing: 0.04em; font-size: 10px; }
+.vptq-count {
+  min-width: 18px; text-align: center;
+  background: var(--bg); color: var(--fg);
+  border-radius: 999px;
+  padding: 0 6px;
+}
+.vptq-skip {
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 2px 6px; border-radius: 4px;
+}
+.vptq-skip:hover { color: var(--fg); background: var(--bg-4); }
+
+/* Voice users (under voice channel in sidebar) */
+.voice-user-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Audio queue panel inside voice view */
+.skip-btn {
+  background: var(--bg-4); border: none; cursor: pointer;
+  color: var(--fg); border-radius: 999px;
+  padding: 4px 12px; font-size: var(--fs-xs); font-weight: 600;
+  margin: 0 16px 8px; align-self: flex-start;
+}
+.skip-btn:hover { background: var(--bg-3); }
+.skip-btn.resume { background: var(--accent); color: var(--green-fg); }
+
+.queue-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 16px;
+  font-size: var(--fs-xs); color: var(--fg-2);
+}
+.queue-item.replaying { color: var(--live); }
+.queue-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.queue-info { flex: 1; min-width: 0; }
+.queue-name { font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.queue-meta { font-size: 10px; color: var(--fg-3); }
+.queue-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.queue-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-3); padding: 4px; border-radius: 4px;
+  display: inline-flex; align-items: center;
+}
+.queue-btn:hover { color: var(--fg); background: var(--bg-3); }
+
+/* Member-list role headers + badges */
+.member-role-header {
+  padding: 16px 16px 4px;
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.02em;
+  color: var(--fg-3);
+}
+.member-role-badge {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.04em;
+  margin-left: 6px;
+}
+.member-section-separator { height: 1px; background: var(--bg-3); margin: 8px 16px; opacity: 0.5; }
+.member-status.online { background: var(--live); }
+.member-status.offline { background: var(--fg-3); }
+.member-item.speaking { color: var(--live); }
+.member-item.speaking .member-name { color: var(--live); }
+
+/* Voice strip (the always-on connected indicator at bottom-left) */
+.voice-strip { border-radius: 0 12px 0 0; }
+.voice-strip .vs-channel { display: inline-flex; align-items: center; gap: 4px; }
+
+/* Voice connecting spinner already defined above; ensure it's visible inside row */
+.channel-item.voice-connecting .ch-icon { opacity: 1; color: var(--accent); }
+.channel-item.voice-active { color: var(--live); }
+.channel-item.voice-active .ch-icon { color: var(--live); opacity: 1; }
+
+/* Voice channel users-under-row alignment */
+.voice-users .voice-user {
+  padding: 3px 8px 3px 16px;
+}
+
+/* SDK button reset inside our chat input bar (cosmetic safety) */
+.chat-input-bar button { font-family: inherit; }
+
+/* Tighten the join-preview address + actions */
+#serverJoinPreviewModal .modal-box { padding: 24px 28px; }
+#serverJoinPreviewModal .modal-btn + .modal-btn { margin-left: 8px; }
+
+/* Channel-action-btn icon-only styling consistency */
+.channel-action-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+/* Reconnect banner uses warn token; readable on light theme too */
+.reconnect-banner { color: var(--green-fg); }
+
+/* ── Mobile polish for voice ── */
+@media (max-width: 768px) {
+  .voice-tile { width: calc(50% - 12px); height: 160px; }
+  .voice-controls { padding: 12px 8px; gap: 6px; flex-wrap: wrap; }
+  .voice-ptt-pill { padding: 10px 14px; }
+}
