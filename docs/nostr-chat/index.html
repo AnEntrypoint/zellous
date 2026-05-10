@@ -606,6 +606,93 @@ async function initNostr() {
     if (window.lk && lk.toggleCamera) lk.toggleCamera();
   });
 
+  // Voice control bar: mic, deafen, leave wire-up. The icons render with the
+  // correct state from voice events, but the click bindings live here.
+  document.getElementById('voiceMicBtn')?.addEventListener('click', function() {
+    if (window.lk?.toggleMic) lk.toggleMic();
+  });
+  document.getElementById('voiceDeafenBtn')?.addEventListener('click', function() {
+    if (window.lk?.toggleDeafen) lk.toggleDeafen();
+  });
+  document.getElementById('voiceLeaveBtn')?.addEventListener('click', function() {
+    if (window.lk?.disconnect) lk.disconnect();
+  });
+
+  // Voice settings modal: device pickers, master volume, server-side bitrate
+  // when admin. Built on the existing modal-box vocabulary so it inherits
+  // every fix from the recent CSS sweep.
+  document.getElementById('voiceSettingsBtn')?.addEventListener('click', async function() {
+    document.getElementById('voiceSettingsModal')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'voiceSettingsModal';
+    modal.className = 'modal-overlay open';
+    const isAdmin = window.serverRoles && state.currentServerId &&
+      (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
+    const curBitrate = (window.serverSettings && state.currentServerId) ? serverSettings.getBitrate(state.currentServerId) : 48000;
+    const vol = Math.round(((state.masterVolume ?? 1) * 100));
+    modal.innerHTML =
+      '<div class="modal-box" style="max-width:420px">' +
+        '<div class="modal-title">Voice Settings</div>' +
+        '<div class="modal-subtitle">Devices, volume and quality</div>' +
+        '<div class="modal-field"><label class="modal-label">Input device</label>' +
+          '<select class="modal-input" id="vsInputDevice"></select></div>' +
+        '<div class="modal-field"><label class="modal-label">Output device</label>' +
+          '<select class="modal-input" id="vsOutputDevice"></select></div>' +
+        '<div class="modal-field"><label class="modal-label">Master volume <span id="vsVolValue" style="float:right;color:var(--fg-3)">' + vol + '%</span></label>' +
+          '<input type="range" id="vsVolume" min="0" max="100" value="' + vol + '" style="width:100%;accent-color:var(--accent)"></div>' +
+        (isAdmin ?
+          '<div class="modal-field"><label class="modal-label">Voice quality (Opus bitrate)</label>' +
+            '<select class="modal-input" id="vsBitrate">' +
+            [8000,16000,24000,48000,96000].map(function(b){
+              return '<option value="' + b + '"' + (b === curBitrate ? ' selected' : '') + '>' + (b/1000) + ' kbps</option>';
+            }).join('') +
+            '</select>' +
+            '<div style="font-size:11px;color:var(--fg-3);margin-top:4px">Server-wide setting (admin only).</div></div>'
+          : '') +
+        '<button type="button" class="modal-btn" id="vsSave">Save</button>' +
+        '<button type="button" class="modal-btn secondary" id="vsClose">Close</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    const fillDevices = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
+        const devs = await navigator.mediaDevices.enumerateDevices();
+        const inSel = modal.querySelector('#vsInputDevice');
+        const outSel = modal.querySelector('#vsOutputDevice');
+        inSel.innerHTML = devs.filter(d => d.kind === 'audioinput').map(d => '<option value="' + d.deviceId + '">' + (d.label || 'Microphone') + '</option>').join('') || '<option>(no devices)</option>';
+        outSel.innerHTML = devs.filter(d => d.kind === 'audiooutput').map(d => '<option value="' + d.deviceId + '">' + (d.label || 'Speakers') + '</option>').join('') || '<option>(default)</option>';
+        if (state.preferredInputDevice) inSel.value = state.preferredInputDevice;
+        if (state.preferredOutputDevice) outSel.value = state.preferredOutputDevice;
+      } catch (e) { /* permission denied — leave selects empty */ }
+    };
+    fillDevices();
+
+    const volEl = modal.querySelector('#vsVolume');
+    const volLabel = modal.querySelector('#vsVolValue');
+    volEl.addEventListener('input', () => {
+      volLabel.textContent = volEl.value + '%';
+      const v = parseInt(volEl.value, 10) / 100;
+      state.masterVolume = v;
+      document.querySelectorAll('audio').forEach(a => { try { a.volume = v; } catch {} });
+    });
+
+    modal.querySelector('#vsSave').addEventListener('click', async () => {
+      const inSel = modal.querySelector('#vsInputDevice');
+      const outSel = modal.querySelector('#vsOutputDevice');
+      if (inSel?.value) state.preferredInputDevice = inSel.value;
+      if (outSel?.value) state.preferredOutputDevice = outSel.value;
+      const bitrateEl = modal.querySelector('#vsBitrate');
+      if (bitrateEl && isAdmin && window.serverSettings) {
+        try { await serverSettings.setBitrate(state.currentServerId, parseInt(bitrateEl.value, 10)); } catch {}
+      }
+      if (window.ui?.showToast) ui.showToast('Voice settings saved');
+      modal.remove();
+    });
+    modal.querySelector('#vsClose').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  });
+
   document.addEventListener('paste', function(e) {
     if (!state.nostrPubkey || !state.currentChannelId) return;
     var items = e.clipboardData && e.clipboardData.items;
