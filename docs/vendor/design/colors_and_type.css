@@ -3,26 +3,27 @@
    Loads before any consumer rule; all var(--*) refs resolve.
    ============================================================ */
 :root {
-  --paper:        #EFE9DD;
-  --ink:          #0B0B09;
-  --acid:         #B8FF00;
-  --link:         #1F4DFF;
-  --warn:         #FF3B1F;
-  --live:         #00A86B;
+  --paper:        #F5F0E4;
+  --ink:          #1F1B16;
+  --acid:         #C8FF4D;
+  --link:         #3A66FF;
+  --warn:         #FF6B4A;
+  --live:         #2BB07F;
 
-  --green:        #247420;
-  --green-2:      #92CEAC;
-  --green-deep:   #1c5a19;
+  --green:        #3F8A4A;
+  --green-2:      #B6DEC1;
+  --green-deep:   #2B6B36;
   --green-fg:     #FFFFFF;
-  --purple:       #420247;
+  --purple:       #6B3A78;
   --purple-fg:    #FFFFFF;
-  --mascot:       #E84B8A;
+  --mascot:       #F07AA8;
   --mascot-fg:    #FFFFFF;
-  --sun:          #FFD100;
+  --sun:          #FFD86B;
 
-  --ff-display:   'Archivo Black', 'Archivo', system-ui, sans-serif;
+  --ff-display:   'Archivo Black', 'Archivo', 'Nunito', system-ui, sans-serif;
   --ff-mono:      'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --ff-prose:     'Instrument Serif', Georgia, serif;
+  --ff-prose:     'Nunito', 'Inter', 'Space Grotesk', system-ui, sans-serif;
+  --ff-ui:        'Nunito', 'Inter', system-ui, sans-serif;
 
   --fs-hero:      120px;
   --fs-h1:        64px;
@@ -38,14 +39,14 @@
   --surface-2:    rgba(0,0,0,0.04);
   --surface-ink-2: rgba(255,255,255,0.06);
 
-  --r-1:          0;
-  --r-2:          0;
-  --r-3:          0;
+  --r-1:          6px;
+  --r-2:          10px;
+  --r-3:          18px;
   --r-pill:       9999px;
 
   /* Extended brand palette */
-  --flame:        #FF5C1A;
-  --sky:          #3B82F6;
+  --flame:        #FF8454;
+  --sky:          #6FA9FF;
 
   /* Foreground / background aliases — resolved after panel tokens are set;
      these are reset below once panel tokens exist, but raw defaults here
@@ -81,12 +82,12 @@
   --measure:      72ch;
 
   /* Extended type scale */
-  --fs-body:      13px;
-  --fs-lg:        14px;
-  --fs-sm:        12px;
-  --fs-xs:        11px;
-  --fs-tiny:      11px;
-  --fs-micro:     9px;
+  --fs-body:      15px;
+  --fs-lg:        17px;
+  --fs-sm:        14px;
+  --fs-xs:        13px;
+  --fs-tiny:      13px;
+  --fs-micro:     12px;
   --fs-h3:        14px;
   --fs-h4:        13px;
 
@@ -99,7 +100,7 @@
   --tr-caps:      0.05em;
 
   /* Font body alias */
-  --ff-body:      var(--ff-prose);
+  --ff-body:      var(--ff-ui);
 }
 
 /* Rows: no separators, hover surface tint instead */
@@ -110,9 +111,9 @@
 body {
   background: var(--panel-0);
   color: var(--panel-text);
-  font-family: var(--ff-mono);
-  font-size: 13px;
-  line-height: 1.5;
+  font-family: var(--ff-ui);
+  font-size: 15px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
@@ -154,7 +155,7 @@ body {
 
 /* h3 — subsection (mono, colorful-eligible) */
 .t-h3, h3 {
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-h3);
   line-height: var(--lh-snug);
   letter-spacing: 0;
@@ -164,7 +165,7 @@ body {
 
 /* h4 */
 .t-h4, h4 {
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-h4);
   line-height: var(--lh-snug);
   font-weight: 500;
@@ -173,7 +174,7 @@ body {
 
 /* Body UI — mono, the default UI voice */
 .t-body {
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-body);
   line-height: var(--lh-base);
 }
@@ -189,28 +190,26 @@ body {
 }
 .prose p { margin: 0 0 var(--space-4) 0; }
 
-/* Label — mono caps, terminal voice */
+/* Label — mono, gentle */
 .t-label {
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tr-label);
+  letter-spacing: 0.02em;
   font-weight: 500;
 }
 
 /* Meta — mono, small, dim */
 .t-meta {
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-xs);
   color: var(--fg-3);
 }
 
 /* Micro — smallest, datelines */
 .t-micro {
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-micro);
-  letter-spacing: var(--tr-label);
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--fg-3);
 }
 
@@ -225,14 +224,16 @@ body {
 }
 
 /* Code */
-code, .t-code {
+code, .t-code, .t-mono, kbd, samp, pre {
   font-family: var(--ff-mono);
   font-size: 0.9em;
   background: var(--bg-2);
   padding: 0.15em 0.5em;
-  
+
   border-radius: var(--r-1);
 }
+pre { padding: var(--space-3) var(--space-4); }
+pre code { background: transparent; padding: 0; }
 
 /* ============================================================
    COLORFUL MONO — the signature treatment
@@ -281,8 +282,32 @@ code, .t-code {
 }
 
 /* ============================================================
-   Primitives — rules, stamps, buttons
+   Primitives — rails, rules, stamps, buttons
+
+   Rail = a 4px tonal stripe on the inline-start edge of any block.
+   Used to separate concerns by hue without ever drawing a border.
    ============================================================ */
+
+.rail        { box-shadow: inset 4px 0 0 var(--panel-text-3); }
+.rail-green  { box-shadow: inset 4px 0 0 var(--green); }
+.rail-purple { box-shadow: inset 4px 0 0 var(--purple); }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--mascot); }
+.rail-sun    { box-shadow: inset 4px 0 0 var(--sun); }
+.rail-flame  { box-shadow: inset 4px 0 0 var(--flame); }
+.rail-sky    { box-shadow: inset 4px 0 0 var(--sky); }
+.rail-live   { box-shadow: inset 4px 0 0 var(--live); }
+.rail-warn   { box-shadow: inset 4px 0 0 var(--warn); }
+
+/* Dot — 8px tonal status pip. Use for "live", "draft", "shipped" indicators. */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--panel-text-3); vertical-align: middle; margin-right: 8px; }
+.dot.green  { background: var(--green); }
+.dot.purple { background: var(--purple); }
+.dot.mascot { background: var(--mascot); }
+.dot.sun    { background: var(--sun); }
+.dot.flame  { background: var(--flame); }
+.dot.sky    { background: var(--sky); }
+.dot.live   { background: var(--live); }
+.dot.warn   { background: var(--warn); }
 
 .rule       {   margin: 0; }
 .rule-double{    height: var(--bw-rule); margin: 0; }
@@ -295,16 +320,15 @@ code, .t-code {
 .stamp {
   display: inline-block;
   padding: var(--space-1) var(--space-3);
-  
+
   border-radius: var(--r-pill);
   color: var(--fg);
   background: transparent;
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-tiny);
-  letter-spacing: var(--tr-label);
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   font-weight: 600;
-  transform: rotate(-2deg);
+  transform: none;
 }
 .stamp.ink     { background: var(--fg);     color: var(--bg); }
 .stamp.green   { background: var(--green);  color: var(--green-fg);   }
@@ -321,84 +345,81 @@ code, .t-code {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);
   background: var(--fg);
   color: var(--bg);
-  
-  border-radius: var(--r-2);
-  box-shadow: 4px 4px 0 var(--fg);
-  font-family: var(--ff-mono);
+
+  border-radius: var(--r-pill);
+  font-family: var(--ff-ui);
   font-weight: 600;
   font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: var(--tr-caps);
+  letter-spacing: 0.01em;
   text-decoration: none;
   cursor: pointer;
-  transition: transform var(--dur-snap) var(--ease), box-shadow var(--dur-snap) var(--ease);
+  transition: filter var(--dur-base) var(--ease), background var(--dur-base) var(--ease);
 }
-.btn-stamp:hover  { transform: translate(1px, 1px); box-shadow: 3px 3px 0 var(--fg); }
-.btn-stamp:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--fg); }
+.btn-stamp:hover  { filter: brightness(1.05); }
+.btn-stamp:active { filter: brightness(0.96); }
 
-.btn-stamp.green  { background: var(--green);  color: var(--green-fg);   box-shadow: 4px 4px 0 var(--ink); }
-.btn-stamp.purple { background: var(--purple); color: var(--purple-fg);  box-shadow: 4px 4px 0 var(--ink); }
-.btn-stamp.mascot { background: var(--mascot); color: var(--mascot-fg);  box-shadow: 4px 4px 0 var(--ink); }
-.btn-stamp.sun    { background: var(--sun);    color: var(--ink);        box-shadow: 4px 4px 0 var(--ink); }
-.btn-stamp.flame  { background: var(--flame);  color: var(--paper);      box-shadow: 4px 4px 0 var(--ink); }
-.btn-stamp.acid   { background: var(--green);  color: var(--green-fg);   box-shadow: 4px 4px 0 var(--ink); } /* legacy */
+.btn-stamp.green  { background: var(--green);  color: var(--green-fg); }
+.btn-stamp.purple { background: var(--purple); color: var(--purple-fg); }
+.btn-stamp.mascot { background: var(--mascot); color: var(--mascot-fg); }
+.btn-stamp.sun    { background: var(--sun);    color: var(--ink); }
+.btn-stamp.flame  { background: var(--flame);  color: var(--paper); }
+.btn-stamp.acid   { background: var(--green);  color: var(--green-fg); }
 
 /* Plain button — default */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: transparent;
+  padding: var(--space-3) var(--space-5);
+  background: var(--bg-2);
   color: var(--fg);
-  
-  border-radius: var(--r-2);
-  font-family: var(--ff-mono);
+
+  border-radius: var(--r-pill);
+  font-family: var(--ff-ui);
   font-weight: 500;
   font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: var(--tr-caps);
+  letter-spacing: 0.01em;
   text-decoration: none;
   cursor: pointer;
-  transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease);
+  transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
-.btn:hover  { background: var(--fg); color: var(--bg); }
-.btn:active { background: var(--green); color: var(--green-fg);  }
+.btn:hover  { background: var(--green-2); color: var(--ink); }
+.btn:active { background: var(--green); color: var(--green-fg); }
 
 /* Ghost/link button */
 .btn-ghost {
   background: transparent;
-  
+
   color: var(--fg);
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-sm);
-  text-transform: uppercase;
-  letter-spacing: var(--tr-caps);
-  padding: var(--space-2) 0;
+  letter-spacing: 0.01em;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--r-pill);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  text-decoration: none;
+  transition: background var(--dur-base) var(--ease), color var(--dur-base) var(--ease);
 }
-.btn-ghost:hover { color: var(--green-fg); background: var(--green); }
+.btn-ghost:hover { color: var(--ink); background: var(--green-2); }
 
 /* Input — softened: full border, rounded, 2px default */
 .input {
   width: 100%;
   background: var(--bg);
-  
+
   border-radius: var(--r-2);
   padding: var(--space-3) var(--space-3);
-  font-family: var(--ff-mono);
+  font-family: var(--ff-ui);
   font-size: var(--fs-body);
   color: var(--fg);
-  
+
   transition: border-color var(--dur-snap) var(--ease), box-shadow var(--dur-snap) var(--ease);
 }
 .input:focus {
-  
+
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--green) 25%, transparent);
 }
 .input::placeholder { color: var(--fg-3); }
@@ -415,11 +436,11 @@ code, .t-code {
   align-items: baseline;
   gap: var(--space-4);
   padding-bottom: var(--space-2);
-  
-  font-family: var(--ff-mono);
+
+  font-family: var(--ff-ui);
   font-size: var(--fs-xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tr-label);
+  letter-spacing: 0.02em;
+  color: var(--fg-3);
 }
 .dateline > * { white-space: nowrap; }
 .dateline .spread { flex: 1;  align-self: center; }
@@ -430,7 +451,7 @@ code, .t-code {
   grid-template-columns: 80px 1fr auto;
   gap: var(--space-4);
   padding: var(--space-4);
-  
+
   border-radius: var(--r-3);
   background: var(--bg);
   align-items: baseline;
@@ -438,21 +459,21 @@ code, .t-code {
   transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease), transform var(--dur-snap) var(--ease);
 }
 .row + .row { margin-top: var(--space-2); margin-bottom: 0; }
-.row .row-code  { font-family: var(--ff-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tr-label); color: var(--mono-1); }
+.row .row-code  { font-family: var(--ff-mono); font-size: var(--fs-xs); letter-spacing: 0.02em; color: var(--mono-1); }
 .row .row-title { font-family: var(--ff-display); font-weight: 700; font-size: var(--fs-h3); line-height: var(--lh-snug); letter-spacing: var(--tr-tight); }
-.row .row-meta  { font-family: var(--ff-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tr-label); color: var(--fg-3); }
-.row:hover { background: var(--green); color: var(--green-fg); transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
-.row:hover .row-code { color: var(--sun); }
-.row:hover .row-meta { color: var(--green-fg); }
+.row .row-meta  { font-family: var(--ff-ui); font-size: var(--fs-xs); letter-spacing: 0.02em; color: var(--fg-3); }
+.row:hover { background: var(--green-2); color: var(--ink); }
+.row:hover .row-code { color: var(--green-deep); }
+.row:hover .row-meta { color: var(--ink); }
 
 /* Soft card — the generic container */
 .card {
-  
+
   border-radius: var(--r-3);
   background: var(--bg);
   padding: var(--space-5);
 }
-.card.chunk {  }
+.card.chunk { }
 
 /* ============================================================
    Selection
@@ -465,72 +486,72 @@ code, .t-code {
    Light default. Dark via prefers-color-scheme or [data-theme="dark"].
    ============================================================ */
 :root {
-  --panel-0:       var(--paper);  /* #EFE9DD canvas */
-  --panel-1:       #f6f1e7;
-  --panel-2:       #ece5d8;
-  --panel-3:       #ddd4c3;
-  --panel-hover:   #e3dccb;
-  --panel-select:  #c9e8c5;
-  --panel-text:    var(--ink);    /* #0B0B09 */
-  --panel-text-2:  #4a473f;
-  --panel-text-3:  #6d675b;
+  --panel-0:       var(--paper);  /* warm canvas */
+  --panel-1:       #FBF6EB;
+  --panel-2:       #F0E9DA;
+  --panel-3:       #E3DAC7;
+  --panel-hover:   #EBE1CD;
+  --panel-select:  #D8ECCB;
+  --panel-text:    var(--ink);
+  --panel-text-2:  #5A5246;
+  --panel-text-3:  #857B6C;
   --panel-accent:    var(--green);
   --panel-accent-2:  var(--green-deep);
   --panel-accent-fg: #ffffff;
-  --panel-shadow:  none;
+  --panel-shadow: none;
   --panel-shadow-top: none;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --panel-0:       #0B0B09;
-    --panel-1:       #141411;
-    --panel-2:       #1f1f1a;
-    --panel-3:       #2a2a23;
-    --panel-hover:   #2a2a23;
-    --panel-select:  #2a4a2c;
-    --panel-text:    #EFE9DD;
-    --panel-text-2:  #d2cab9;
-    --panel-text-3:  #afa797;
+    --panel-0:       #1A1B1E;
+    --panel-1:       #232428;
+    --panel-2:       #2B2D31;
+    --panel-3:       #36383E;
+    --panel-hover:   #36383E;
+    --panel-select:  #29402F;
+    --panel-text:    #ECEEF2;
+    --panel-text-2:  #BFC3CB;
+    --panel-text-3:  #92979F;
     --panel-accent:    var(--green-2);
     --panel-accent-2:  var(--green-2);
     --panel-accent-fg: var(--ink);
-    --panel-shadow:  none;
+    --panel-shadow: none;
     --panel-shadow-top: none;
   }
 }
 
 [data-theme="dark"] {
-  --panel-0:       #0B0B09;
-  --panel-1:       #141411;
-  --panel-2:       #1f1f1a;
-  --panel-3:       #2a2a23;
-  --panel-hover:   #2a2a23;
-  --panel-select:  #2a4a2c;
-  --panel-text:    #EFE9DD;
-  --panel-text-2:  #d2cab9;
-  --panel-text-3:  #afa797;
+  --panel-0:       #1A1B1E;
+  --panel-1:       #232428;
+  --panel-2:       #2B2D31;
+  --panel-3:       #36383E;
+  --panel-hover:   #36383E;
+  --panel-select:  #29402F;
+  --panel-text:    #ECEEF2;
+  --panel-text-2:  #BFC3CB;
+  --panel-text-3:  #92979F;
   --panel-accent:    var(--green-2);
   --panel-accent-2:  var(--green-2);
   --panel-accent-fg: var(--ink);
-  --panel-shadow:  none;
+  --panel-shadow: none;
   --panel-shadow-top: none;
 }
 
 [data-theme="light"] {
   --panel-0:       var(--paper);
-  --panel-1:       #f6f1e7;
-  --panel-2:       #ece5d8;
-  --panel-3:       #ddd4c3;
-  --panel-hover:   #e3dccb;
-  --panel-select:  #c9e8c5;
+  --panel-1:       #FBF6EB;
+  --panel-2:       #F0E9DA;
+  --panel-3:       #E3DAC7;
+  --panel-hover:   #EBE1CD;
+  --panel-select:  #D8ECCB;
   --panel-text:    var(--ink);
   --panel-text-2:  #4a473f;
   --panel-text-3:  #6d675b;
   --panel-accent:    var(--green);
   --panel-accent-2:  var(--green-deep);
   --panel-accent-fg: #ffffff;
-  --panel-shadow:  none;
+  --panel-shadow: none;
 }
 
 /* Foreground / background aliases derived from panel tokens */
@@ -580,3 +601,25 @@ code, .t-code {
 *, *::before, *::after { box-sizing: border-box; border: 0 !important; outline: 0 !important; }
 :focus-visible { outline: 2px solid var(--panel-accent) !important; outline-offset: 2px; }
 html, body { margin: 0; padding: 0; }
+
+/* Base element padding — browser UA stylesheets strip padding on button/textarea
+   in some reset contexts; restore sane defaults so raw elements look right. */
+button {
+  padding: 8px 18px;
+  border-radius: var(--r-2);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  background: var(--bg-2);
+  color: var(--fg);
+}
+textarea {
+  padding: 10px 12px;
+  border-radius: var(--r-2);
+  font-family: var(--ff-ui);
+  font-size: var(--fs-sm);
+  background: var(--bg-2);
+  color: var(--fg);
+  resize: vertical;
+}
+textarea::placeholder { color: var(--fg-3); }

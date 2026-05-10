@@ -25,31 +25,6 @@
   --mint-on-ink: #92CEAC;     /* 9.18:1 on ink */
   --green-on-paper: #247420;  /* 4.83:1 on paper */
 }
-/* Override vendored design system: spec demands Nunito on chrome, not JetBrains Mono.
-   Vendored colors_and_type.css aliases --ff-ui -> --ff-mono on this page; reassert. */
-html.ds-247420 {
-  --ff-ui: 'Nunito', 'Noto Sans', sans-serif !important;
-  --ff-prose: 'Nunito', 'Noto Sans', sans-serif !important;
-}
-html.ds-247420 body {
-  font-family: var(--ff-ui) !important;
-  font-size: 15px;
-  line-height: 1.55;
-}
-/* Vendored sheet hard-codes ALL CAPS + ff-mono on chrome elements; force lowercase ff-ui. */
-html.ds-247420 .btn-stamp,
-html.ds-247420 .btn-ghost,
-html.ds-247420 h3.section-head,
-html.ds-247420 .hero .tag,
-html.ds-247420 .tech .k,
-html.ds-247420 .theme-toggle,
-html.ds-247420 .app-topbar .brand,
-html.ds-247420 .app-topbar nav a,
-html.ds-247420 .dateline {
-  font-family: var(--ff-ui) !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-}
 /* Page-local — landing uses no sidebar */
 body {
   background: var(--panel-0);
