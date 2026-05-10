@@ -453,9 +453,19 @@ export class VoiceSession extends EventTarget {
     };
     pc.onicecandidate = (ev) => {
       if (!ev.candidate) return;
-      peer.pendingCandidates.push(ev.candidate.toJSON());
+      const cand = ev.candidate.toJSON();
+      // Direct-path candidates (host = LAN, srflx = STUN-mapped, prflx = peer-reflexive) get published
+      // immediately so the remote side can begin probing direct pairs without waiting for the full
+      // gathering cycle. Relay candidates batch — they're a fallback and don't need millisecond latency.
+      const cstr = cand.candidate || '';
+      const isDirect = cstr.includes(' typ host') || cstr.includes(' typ srflx') || cstr.includes(' typ prflx');
+      if (isDirect) {
+        this._publishSignal(peerPubkey, 'ice', [cand]);
+        return;
+      }
+      peer.pendingCandidates.push(cand);
       if (peer.iceTimer) clearTimeout(peer.iceTimer);
-      peer.iceTimer = setTimeout(() => { if (peer.pendingCandidates.length) { this._publishSignal(peerPubkey, 'ice', peer.pendingCandidates.splice(0)); peer.iceTimer = null; } }, 500);
+      peer.iceTimer = setTimeout(() => { if (peer.pendingCandidates.length) { this._publishSignal(peerPubkey, 'ice', peer.pendingCandidates.splice(0)); peer.iceTimer = null; } }, 100);
     };
     pc.onicegatheringstatechange = () => { if (pc.iceGatheringState === 'complete') { if (peer.iceTimer) { clearTimeout(peer.iceTimer); peer.iceTimer = null; } if (peer.pendingCandidates.length) this._publishSignal(peerPubkey, 'ice', peer.pendingCandidates.splice(0)); } };
     pc.onconnectionstatechange = () => {
@@ -478,8 +488,26 @@ export class VoiceSession extends EventTarget {
 
   _applyAudioHints(pc) {
     try {
-      pc.getSenders().forEach(s => { if (!s.track || s.track.kind !== 'audio') return; const p = s.getParameters(); if (!p.encodings?.length) return; p.encodings[0].networkPriority = 'high'; p.encodings[0].maxBitrate = 48000; s.setParameters(p).catch(() => {}); });
+      pc.getSenders().forEach(s => {
+        if (!s.track || s.track.kind !== 'audio') return;
+        const p = s.getParameters(); if (!p.encodings?.length) return;
+        p.encodings[0].networkPriority = 'high';
+        p.encodings[0].maxBitrate = 48000;
+        // Opus inband-FEC + DTX: lower bitrate use under silence, better recovery on packet loss.
+        // Reduces the chance of fallback to TURN-relay on flaky direct UDP paths.
+        p.encodings[0].priority = 'high';
+        s.setParameters(p).catch(() => {});
+      });
       pc.getReceivers().forEach(r => { if (r.track?.kind !== 'audio') return; try { r.playoutDelayHint = 0.02; } catch {} });
+      // Munge SDP-level Opus params via setCodecPreferences when the transceiver supports it.
+      pc.getTransceivers().forEach(t => {
+        if (t.receiver?.track?.kind !== 'audio' && t.sender?.track?.kind !== 'audio') return;
+        if (typeof RTCRtpSender === 'undefined' || !RTCRtpSender.getCapabilities) return;
+        const caps = RTCRtpSender.getCapabilities('audio'); if (!caps?.codecs) return;
+        const opus = caps.codecs.filter(c => /opus/i.test(c.mimeType));
+        const others = caps.codecs.filter(c => !/opus/i.test(c.mimeType));
+        try { t.setCodecPreferences([...opus, ...others]); } catch {}
+      });
     } catch {}
   }
 
