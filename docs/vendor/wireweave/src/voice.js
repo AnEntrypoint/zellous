@@ -1,13 +1,23 @@
-const ICE_SERVERS = [
+// ICE servers. STUN handles same-LAN / non-symmetric-NAT cases; TURN is required
+// when both peers sit behind symmetric or restricted-cone NAT (typical home routers,
+// most carrier-grade NAT, corporate networks). The legacy openrelay.metered.ca
+// hostname was retired; the current public-credential endpoint is global.relay.metered.ca.
+// We include UDP, TCP, and TLS variants so at least one path survives strict egress filtering.
+const DEFAULT_ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: 'stun:stun.cloudflare.com:3478' },
-  { urls: 'stun:stun.nextcloud.com:443' },
-  { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
-  { urls: 'turns:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+  { urls: 'stun:global.stun.twilio.com:3478' },
+  { urls: 'turn:global.relay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:80?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:global.relay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turns:global.relay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+  // Legacy hostname kept as a low-priority fallback in case some deployments still resolve it.
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
 ];
+let ICE_SERVERS = DEFAULT_ICE_SERVERS;
+export const setIceServers = (list) => { if (Array.isArray(list) && list.length) ICE_SERVERS = list; };
+export const getIceServers = () => ICE_SERVERS.slice();
 
 const PRESENCE_EXPIRY = 300000;
 const HEARTBEAT = 30000;
@@ -421,7 +431,7 @@ export class VoiceSession extends EventTarget {
     fsmActor.start();
     const peer = { pc: null, audioEl: null, pendingCandidates: [], bufferedCandidates: [], iceTimer: null, disconnectTimer: null, failCount: 0, state: 'new', fsm: fsmActor, _stallInterval: null, remoteDescSet: false, trackEndedRestart: false };
     this.peers.set(peerPubkey, peer);
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, bundlePolicy: 'max-bundle' });
+    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, bundlePolicy: 'max-bundle', iceCandidatePoolSize: 4, iceTransportPolicy: 'all' });
     peer.pc = pc;
     const isOfferer = this.auth.pubkey > peerPubkey;
     if (isOfferer) {
