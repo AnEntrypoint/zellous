@@ -13,6 +13,10 @@ html, body {
 :root {
   --bg-3:       var(--cream-3);
   --bg-4:       #C8C0A8;
+  --accent:     #247420;
+  --accent-alt: #420247;
+  --green-fg:   #ECEEF2;
+  --green-2:    #1a5a17;
 }
 [data-theme="ink"], .theme-ink {
   --bg-3: #36383E;
@@ -33,6 +37,10 @@ html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
   --fg:   #0B0B09;
   --fg-2: #2A2820;
   --fg-3: #4A4638;
+  --accent:     #247420;
+  --accent-alt: #420247;
+  --green-fg:   #ECEEF2;
+  --green-2:    #1a5a17;
   --panel-0: #EFE9DD;
   --panel-1: #E5DECB;
   --panel-2: #D9D0B8;
@@ -50,12 +58,17 @@ html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
   --fg:   #ECEEF2;
   --fg-2: #B5BAC1;
   --fg-3: #80848E;
+  --accent:     #247420;
+  --accent-alt: #420247;
+  --green-fg:   #ECEEF2;
+  --green-2:    #1a5a17;
   --panel-0: #1A1B1E;
   --panel-1: #232428;
   --panel-2: #2B2D31;
   --panel-text: #ECEEF2;
   --panel-text-2: #B5BAC1;
   --panel-text-3: #80848E;
+  --border-color: color-mix(in oklab, #ECEEF2 12%, transparent);
 }
 
 /* ── 247420 design primitives — rail / dot / chip ── */
@@ -107,13 +120,15 @@ html.ds-247420 .app, .app {
   top: 0; left: 0; right: 0;
   z-index: 9999;
   background: var(--warn);
-  color: var(--green-fg);
+  color: #fff;
   text-align: center;
   padding: 6px 12px;
   font-size: var(--fs-xs);
   font-weight: 600;
 }
 .reconnect-banner.visible { display: block; }
+/* When banner is visible, shift the app down so it isn't covered */
+body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
 
 /* ── Server list rail ── */
 .server-list {
@@ -455,13 +470,19 @@ html.ds-247420 .app, .app {
 /* Chat input */
 .chat-input-wrapper { padding: 0 16px 16px; flex-shrink: 0; }
 .chat-input-bar {
-  display: flex; align-items: center;
+  display: flex; align-items: stretch;
   background: var(--bg-4);
   border-radius: 8px;
-  padding: 0 8px;
-  gap: 8px;
+  gap: 0;
   border: 1px solid var(--border-color);
+  overflow: hidden;
 }
+/* SDK-injected composer must fill the bar */
+.chat-input-bar .chat-composer { flex: 1; min-width: 0; background: transparent !important; padding: 0 8px; }
+.chat-input-bar .chat-composer textarea { background: transparent !important; color: var(--fg) !important; }
+/* SDK send button */
+.chat-input-bar .chat-composer .send { background: var(--accent) !important; color: var(--green-fg) !important; }
+.chat-input-bar .chat-composer .send:disabled { background: var(--bg-3) !important; color: var(--fg-3) !important; }
 .attach-btn {
   background: none; border: none; cursor: pointer;
   color: var(--fg-3); font-size: 22px; line-height: 1;
