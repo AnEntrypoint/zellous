@@ -127,12 +127,36 @@ channelManager.showContextMenu = function(channelId, x, y) {
   channelManager.hideContextMenu();
   var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
   if (!ch) return;
-  _mkMenu('channelContextMenu', x, y,
-    '<div class="context-menu-item" data-action="rename">Rename</div><div class="context-menu-item danger" data-action="delete">Delete Channel</div>',
+  var items = '';
+  if (ch.type === 'voice') {
+    var curMode = (window.__zellous && window.__zellous.voiceMode) ? window.__zellous.voiceMode.get(ch.id) : 'ptt';
+    items += '<div class="context-menu-item" data-action="settings">Channel Settings…</div>';
+    items += '<div class="context-menu-item" data-action="mode-ptt"' + (curMode === 'ptt' ? ' style="color:var(--accent)"' : '') + '>' + (curMode === 'ptt' ? '✓ ' : '') + 'Mode: Push-to-talk</div>';
+    items += '<div class="context-menu-item" data-action="mode-realtime"' + (curMode === 'realtime' ? ' style="color:var(--accent)"' : '') + '>' + (curMode === 'realtime' ? '✓ ' : '') + 'Mode: Realtime</div>';
+    items += '<div class="ctx-separator" style="height:1px;background:var(--bg-3);margin:4px 0"></div>';
+  }
+  items += '<div class="context-menu-item" data-action="rename">Rename</div>';
+  items += '<div class="context-menu-item danger" data-action="delete">Delete Channel</div>';
+  _mkMenu('channelContextMenu', x, y, items,
     function(action) {
       channelManager.hideContextMenu();
       if (action === 'rename') channelManager.showRenameModal(channelId, ch.name);
       else if (action === 'delete') channelManager.showDeleteConfirm(channelId);
+      else if (action === 'mode-ptt' && window.__zellous?.voiceMode) {
+        window.__zellous.voiceMode.set(ch.id, 'ptt');
+        if (state.voiceConnected && state.currentChannel?.id === ch.id) window.__zellous.voiceMode.apply();
+        if (window.ui?.showToast) ui.showToast('Channel mode: push-to-talk');
+      }
+      else if (action === 'mode-realtime' && window.__zellous?.voiceMode) {
+        window.__zellous.voiceMode.set(ch.id, 'realtime');
+        if (state.voiceConnected && state.currentChannel?.id === ch.id) window.__zellous.voiceMode.apply();
+        if (window.ui?.showToast) ui.showToast('Channel mode: realtime');
+      }
+      else if (action === 'settings') {
+        // Switch to channel first so the settings modal context matches.
+        if (state.currentChannel?.id !== ch.id && window.ui?.actions?.switchChannel) ui.actions.switchChannel(ch);
+        document.getElementById('voiceSettingsBtn')?.click();
+      }
     });
 };
 

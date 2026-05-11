@@ -21,6 +21,26 @@
   let playerEl = null;          // <audio>
   let unsubs = [];
 
+  // Per-channel mode is sticky across reloads. Default is 'ptt'.
+  // 'realtime' opens the mic on connect and hides the pill.
+  function modeKey(channelId) { return 'zn_voice_mode_' + (channelId || 'default'); }
+  function getChannelMode(channelId) {
+    try { return localStorage.getItem(modeKey(channelId)) || 'ptt'; } catch { return 'ptt'; }
+  }
+  function setChannelMode(channelId, mode) {
+    try { localStorage.setItem(modeKey(channelId), mode); } catch {}
+  }
+  function currentChannelMode() {
+    return getChannelMode(window.state?.currentChannel?.id);
+  }
+  // Public so the settings modal can drive it without ad-hoc DOM access.
+  window.__zellous = window.__zellous || {};
+  window.__zellous.voiceMode = {
+    get: getChannelMode,
+    set: setChannelMode,
+    apply: () => applyMode(currentChannelMode())
+  };
+
   function pillEl()  { return document.getElementById(PILL_ID); }
   function queueEl() { return document.getElementById(QUEUE_ID); }
 
@@ -75,6 +95,7 @@
 
   function holdStart() {
     if (pttHeld || !connected) return;
+    if (currentChannelMode() === 'realtime') return; // no PTT in realtime mode
     if (window.state?.voiceDeafened) return;
     pttHeld = true;
     const live = window.lk?.requestTransmit?.();
@@ -157,11 +178,41 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden) holdEnd(); });
   }
 
+  // Switch the pill / mic between PTT and Realtime modes. In realtime mode
+  // we keep the mic open (lk.setMuted(false)) and replace the pill with a
+  // static "Live mic" badge so the user knows their voice is going through.
+  function applyMode(mode) {
+    const pill = pillEl();
+    if (mode === 'realtime') {
+      // Mic stays open; set state visually then mute toggling is via the
+      // mic icon on the right side of the bar.
+      try { window.lk?.setMuted?.(false); } catch {}
+      if (pill) {
+        pill.setAttribute('data-state', 'realtime');
+        pill.classList.remove('active', 'queued');
+        pill.querySelector('.voice-ptt-label').textContent = 'Live';
+        pill.setAttribute('title', 'Live — mic is open. Use the mic button to mute.');
+        // Disable hold semantics in realtime mode.
+        pill.disabled = true;
+      }
+    } else {
+      // PTT default — close mic on entry, restore pill behaviour.
+      try { window.lk?.setMuted?.(true); } catch {}
+      if (pill) {
+        pill.setAttribute('data-state', 'idle');
+        pill.querySelector('.voice-ptt-label').textContent = 'Hold to talk';
+        pill.setAttribute('title', 'Hold to talk (or hold Space)');
+        pill.disabled = false;
+      }
+    }
+  }
+
   function onVoiceConnected() {
     connected = true;
     ensurePill();
     setPillState('idle');
     renderQueue();
+    applyMode(currentChannelMode());
     // bind voice events
     if (window.lk?.on) {
       unsubs.push(window.lk.on('transmit', onTransmit));

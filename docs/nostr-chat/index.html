@@ -187,6 +187,16 @@ window.nostrFsm = null;
         <button class="mobile-members-btn" id="mobileMembersBtn" onclick="ui.actions.toggleMembers()"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></button>
       </div>
 
+      <!-- In-voice banner: shown whenever we're connected to a voice channel
+           but viewing a different (text/page) channel. Clicking jumps back. -->
+      <div class="voice-connected-banner" id="voiceConnectedBanner" role="region" aria-label="Voice connection">
+        <span class="vcb-dot"></span>
+        <span>In voice: <span class="vcb-channel" id="vcbChannelName">—</span></span>
+        <span class="vcb-spacer"></span>
+        <span class="vcb-jump">click to return</span>
+        <button type="button" id="vcbLeaveBtn" title="Leave voice">Leave</button>
+      </div>
+
       <!-- Chat header (desktop) -->
       <div class="chat-header-bar" id="chatHeaderBar">
         <span class="chat-header-icon" id="chatHeaderIcon">#</span>
@@ -618,6 +628,47 @@ async function initNostr() {
     if (window.lk?.disconnect) lk.disconnect();
   });
 
+  // Connected banner — drives visibility from voice state. Hidden while
+  // viewing the same channel we're in; visible everywhere else.
+  (function() {
+    const banner = document.getElementById('voiceConnectedBanner');
+    const nameEl = document.getElementById('vcbChannelName');
+    const leaveBtn = document.getElementById('vcbLeaveBtn');
+    if (!banner) return;
+    const update = () => {
+      const connected = !!state.voiceConnected;
+      const voiceCh = state.voiceChannelName || '';
+      const curCh = state.currentChannel?.name || '';
+      const curType = state.currentChannel?.type;
+      const sameChannelView = connected && voiceCh && voiceCh === curCh && curType === 'voice';
+      const show = connected && !sameChannelView;
+      banner.classList.toggle('visible', show);
+      if (nameEl) nameEl.textContent = voiceCh || '—';
+    };
+    banner.addEventListener('click', (e) => {
+      if (e.target === leaveBtn || leaveBtn?.contains(e.target)) return;
+      const voiceCh = state.voiceChannelName;
+      if (!voiceCh) return;
+      const ch = (state.channels || []).find(c => c.type === 'voice' && c.name === voiceCh);
+      if (ch && window.ui?.actions?.switchChannel) ui.actions.switchChannel(ch);
+    });
+    leaveBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window.lk?.disconnect) lk.disconnect();
+    });
+    if (typeof window.__effect === 'function') {
+      window.__effect(() => {
+        window.stateSignals?.voiceConnected?.value;
+        window.stateSignals?.voiceChannelName?.value;
+        window.stateSignals?.currentChannel?.value;
+        update();
+      });
+    } else {
+      setInterval(update, 500);
+    }
+    update();
+  })();
+
   // Voice settings modal: device pickers, master volume, server-side bitrate
   // when admin. Built on the existing modal-box vocabulary so it inherits
   // every fix from the recent CSS sweep.
@@ -630,10 +681,25 @@ async function initNostr() {
       (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
     const curBitrate = (window.serverSettings && state.currentServerId) ? serverSettings.getBitrate(state.currentServerId) : 48000;
     const vol = Math.round(((state.masterVolume ?? 1) * 100));
+    const curChannelId = state.currentChannel?.id || '';
+    const curMode = (window.__zellous?.voiceMode?.get?.(curChannelId)) || 'ptt';
     modal.innerHTML =
       '<div class="modal-box" style="max-width:420px">' +
         '<div class="modal-title">Voice Settings</div>' +
-        '<div class="modal-subtitle">Devices, volume and quality</div>' +
+        '<div class="modal-subtitle">Devices, volume and channel mode</div>' +
+        '<div class="modal-field"><label class="modal-label">Channel mode</label>' +
+          '<div style="display:flex;gap:8px">' +
+            '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:pointer;background:' + (curMode === 'ptt' ? 'var(--bg-4)' : 'var(--bg-3)') + '">' +
+              '<input type="radio" name="vsMode" value="ptt"' + (curMode === 'ptt' ? ' checked' : '') + ' style="accent-color:var(--accent)">' +
+              '<span><strong style="color:var(--fg)">Push-to-talk</strong><br><span style="font-size:11px;color:var(--fg-3)">Hold to speak. Anti-overtalk queues you if someone else is talking.</span></span>' +
+            '</label>' +
+            '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:pointer;background:' + (curMode === 'realtime' ? 'var(--bg-4)' : 'var(--bg-3)') + '">' +
+              '<input type="radio" name="vsMode" value="realtime"' + (curMode === 'realtime' ? ' checked' : '') + ' style="accent-color:var(--accent)">' +
+              '<span><strong style="color:var(--fg)">Realtime</strong><br><span style="font-size:11px;color:var(--fg-3)">Mic always open. Toggle with the mic button.</span></span>' +
+            '</label>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--fg-3);margin-top:6px">Per-channel; remembered for next time.</div>' +
+        '</div>' +
         '<div class="modal-field"><label class="modal-label">Input device</label>' +
           '<select class="modal-input" id="vsInputDevice"></select></div>' +
         '<div class="modal-field"><label class="modal-label">Output device</label>' +
@@ -685,6 +751,13 @@ async function initNostr() {
       const bitrateEl = modal.querySelector('#vsBitrate');
       if (bitrateEl && isAdmin && window.serverSettings) {
         try { await serverSettings.setBitrate(state.currentServerId, parseInt(bitrateEl.value, 10)); } catch {}
+      }
+      const modeEl = modal.querySelector('input[name="vsMode"]:checked');
+      if (modeEl && window.__zellous?.voiceMode) {
+        window.__zellous.voiceMode.set(curChannelId, modeEl.value);
+        if (state.voiceConnected && state.currentChannel?.id === curChannelId) {
+          window.__zellous.voiceMode.apply();
+        }
       }
       if (window.ui?.showToast) ui.showToast('Voice settings saved');
       modal.remove();
