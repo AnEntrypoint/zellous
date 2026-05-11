@@ -855,16 +855,18 @@ html.ds-247420 button.modal-btn.secondary:hover,
 }
 .cmdk-empty { padding: 20px; text-align: center; color: var(--fg-3); font-size: var(--fs-sm); }
 
-/* ── Voice strip ── replaces user-panel area when connected, taller and louder */
+/* ── Voice strip ── inline above the user-panel inside the channel-sidebar.
+   Matches the user-panel's height/surface vocabulary; only the inset rail
+   and pulsing dot distinguish it as the live-voice indicator. */
 .voice-strip {
-  display: none; position: fixed;
-  bottom: 0; left: 72px;
-  width: 240px;
-  background: linear-gradient(180deg, color-mix(in oklab, var(--live) 18%, var(--bg-2)) 0%, var(--bg) 100%);
-  box-shadow: inset 4px 0 0 var(--live), 0 -2px 12px rgba(0,0,0,0.2);
-  padding: 12px 12px 12px 16px; z-index: 200;
-  align-items: center; gap: 10px;
-  border-top-right-radius: 12px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  height: 52px;
+  background: var(--bg-2);
+  box-shadow: inset 3px 0 0 var(--live), inset 0 1px 0 var(--bg-3);
+  flex-shrink: 0;
 }
 .voice-strip.open { display: flex; }
 .voice-strip::before {
@@ -873,18 +875,37 @@ html.ds-247420 button.modal-btn.secondary:hover,
   background: var(--live);
   flex-shrink: 0;
   animation: pulse 1.4s infinite;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 35%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 30%, transparent);
 }
-.vs-label { flex: 1; overflow: hidden; }
-.vs-channel { display: block; font-size: var(--fs-sm); font-weight: 700; color: var(--live); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vs-status { display: block; font-size: 10px; color: var(--fg-2); text-transform: uppercase; letter-spacing: 0.04em; }
+.vs-label { flex: 1; overflow: hidden; min-width: 0; }
+.vs-channel {
+  display: block;
+  font-size: var(--fs-xs); font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.vs-status {
+  display: block;
+  font-size: 10px;
+  color: var(--live);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
 .voice-strip button {
   background: none; border: none; cursor: pointer;
-  color: var(--fg-2); font-size: 16px; padding: 6px; border-radius: 6px;
+  color: var(--fg-3); padding: 6px; border-radius: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .voice-strip button:hover { background: var(--bg-3); color: var(--fg); }
 .voice-strip button.danger { color: var(--warn); }
 .voice-strip button.danger:hover { background: var(--warn); color: var(--green-fg); }
+.voice-strip button svg { display: block; }
+
+/* When the voice-strip is shown, fold the redundant mic/deafen buttons in the
+   user-panel below it so the bottom of the sidebar isn't doubled up. */
+.channel-sidebar.has-voice-strip .user-panel .user-panel-controls #micToggleBtn,
+.channel-sidebar.has-voice-strip .user-panel .user-panel-controls #deafenToggleBtn {
+  display: none;
+}
 
 /* Top connected banner — shown while in voice but viewing a different channel
    (text/page). Persistent, screen-wide, hard to miss. */
@@ -1407,5 +1428,6 @@ html.ds-247420 button.cmdk-input { /* not a button — guard */ }
 html.ds-247420 button.msg-action-btn { color: var(--fg-3); padding: 4px 6px; border-radius: 4px; background: transparent; }
 html.ds-247420 button.context-menu-item { /* it's a div — guard */ }
 
-html.ds-247420 .voice-strip button { color: var(--fg-3); padding: 4px; border-radius: 4px; background: transparent; }
+html.ds-247420 .voice-strip button { color: var(--fg-3); padding: 6px; border-radius: 4px; background: transparent; }
 html.ds-247420 .voice-strip button.danger { color: var(--warn); }
+html.ds-247420 .voice-strip button:hover { background: var(--bg-3); color: var(--fg); }

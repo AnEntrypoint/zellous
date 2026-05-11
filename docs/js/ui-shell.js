@@ -147,6 +147,9 @@
   })();
 
   // -------- Persistent voice strip --------
+  // Slotted as a sibling above the user-panel inside the channel-sidebar so
+  // it can't overlap. When the strip is open the user-panel hides itself via
+  // .has-voice-strip on the sidebar to avoid duplicate mic/deafen controls.
   const voiceStrip = (() => {
     const strip = ensureNode(`
       <div class="voice-strip" id="voiceStrip" role="region" aria-label="Voice connection status">
@@ -154,11 +157,14 @@
           <span class="vs-channel" id="vsChannel">voice</span>
           <span class="vs-status" id="vsStatus">connected</span>
         </div>
-        <button id="vsMute" title="Mute">🎤</button>
-        <button id="vsDeafen" title="Deafen">🎧</button>
-        <button id="vsLeave" class="danger" title="Leave voice">✕</button>
+        <button id="vsMute" title="Mute"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 15c1.66 0 2.99-1.34 2.99-3L15 6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 15 6.7 12H5c0 3.42 2.72 6.23 6 6.72V22h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
+        <button id="vsDeafen" title="Deafen"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button>
+        <button id="vsLeave" class="danger" title="Leave voice"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg></button>
       </div>`);
-    document.body.appendChild(strip);
+    const sidebar = document.querySelector('.channel-sidebar');
+    const userPanel = sidebar?.querySelector('.user-panel');
+    if (sidebar && userPanel) sidebar.insertBefore(strip, userPanel);
+    else document.body.appendChild(strip);
     $('vsMute').addEventListener('click', () => $('voiceMicBtn')?.click() || $('micToggleBtn')?.click());
     $('vsDeafen').addEventListener('click', () => $('voiceDeafenBtn')?.click() || $('deafenToggleBtn')?.click());
     $('vsLeave').addEventListener('click', () => window.lk?.disconnect?.());
@@ -168,8 +174,9 @@
       if (!ss) return;
       const connected = !!ss.voiceConnected?.value;
       strip.classList.toggle('open', connected);
-      const ch = ss.currentChannel?.value;
-      $('vsChannel').textContent = ch?.name ? '🔊 ' + ch.name : '🔊 voice';
+      document.querySelector('.channel-sidebar')?.classList.toggle('has-voice-strip', connected);
+      const chName = ss.voiceChannelName?.value || ss.currentChannel?.value?.name || 'voice';
+      $('vsChannel').textContent = chName;
       const cs = ss.voiceConnectionState?.value;
       $('vsStatus').textContent = cs || (connected ? 'connected' : 'idle');
     };
