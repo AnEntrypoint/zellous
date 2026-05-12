@@ -127,37 +127,91 @@ channelManager.showContextMenu = function(channelId, x, y) {
   channelManager.hideContextMenu();
   var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
   if (!ch) return;
-  var items = '';
-  if (ch.type === 'voice') {
-    var curMode = (window.__zellous && window.__zellous.voiceMode) ? window.__zellous.voiceMode.get(ch.id) : 'ptt';
-    items += '<div class="context-menu-item" data-action="settings">Channel Settings…</div>';
-    items += '<div class="context-menu-item" data-action="mode-ptt"' + (curMode === 'ptt' ? ' style="color:var(--accent)"' : '') + '>' + (curMode === 'ptt' ? '✓ ' : '') + 'Mode: Push-to-talk</div>';
-    items += '<div class="context-menu-item" data-action="mode-realtime"' + (curMode === 'realtime' ? ' style="color:var(--accent)"' : '') + '>' + (curMode === 'realtime' ? '✓ ' : '') + 'Mode: Realtime</div>';
-    items += '<div class="ctx-separator" style="height:1px;background:var(--bg-3);margin:4px 0"></div>';
-  }
-  items += '<div class="context-menu-item" data-action="rename">Rename</div>';
-  items += '<div class="context-menu-item danger" data-action="delete">Delete Channel</div>';
+  var items = ''
+    + '<div class="context-menu-item" data-action="settings">Channel Settings…</div>'
+    + '<div class="context-menu-item" data-action="rename">Rename</div>'
+    + '<div class="context-menu-item danger" data-action="delete">Delete Channel</div>';
   _mkMenu('channelContextMenu', x, y, items,
     function(action) {
       channelManager.hideContextMenu();
       if (action === 'rename') channelManager.showRenameModal(channelId, ch.name);
       else if (action === 'delete') channelManager.showDeleteConfirm(channelId);
-      else if (action === 'mode-ptt' && window.__zellous?.voiceMode) {
-        window.__zellous.voiceMode.set(ch.id, 'ptt');
-        if (state.voiceConnected && state.currentChannel?.id === ch.id) window.__zellous.voiceMode.apply();
-        if (window.ui?.showToast) ui.showToast('Channel mode: push-to-talk');
-      }
-      else if (action === 'mode-realtime' && window.__zellous?.voiceMode) {
-        window.__zellous.voiceMode.set(ch.id, 'realtime');
-        if (state.voiceConnected && state.currentChannel?.id === ch.id) window.__zellous.voiceMode.apply();
-        if (window.ui?.showToast) ui.showToast('Channel mode: realtime');
-      }
-      else if (action === 'settings') {
-        // Switch to channel first so the settings modal context matches.
-        if (state.currentChannel?.id !== ch.id && window.ui?.actions?.switchChannel) ui.actions.switchChannel(ch);
-        document.getElementById('voiceSettingsBtn')?.click();
-      }
+      else if (action === 'settings') channelManager.showSettingsModal(channelId);
     });
+};
+
+// Unified channel-settings modal. Works for any channel type. Voice channels
+// get an extra Mode (PTT/Realtime) section. The mode lives on the channel
+// metadata so all participants see the same setting — it is not a per-user
+// preference. Only the server owner can save; others see read-only.
+channelManager.showSettingsModal = function(channelId) {
+  var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
+  if (!ch) return;
+  document.getElementById('channelSettingsModal')?.remove();
+
+  var isOwner = window.serverRoles && state.currentServerId &&
+    (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
+  var typeLabel = { text: 'Text', voice: 'Voice', announcement: 'Announcement', threaded: 'Threaded', forum: 'Forum' }[ch.type] || ch.type;
+  var modeNow = ch.voiceMode || 'ptt';
+  var topicNow = ch.topic || '';
+
+  var voiceSection = '';
+  if (ch.type === 'voice') {
+    voiceSection =
+      '<div class="modal-field"><label class="modal-label">Channel Mode</label>' +
+        '<div style="display:flex;gap:8px">' +
+          '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:' + (isOwner ? 'pointer' : 'not-allowed') + ';background:' + (modeNow === 'ptt' ? 'var(--bg-4)' : 'var(--bg-3)') + ';opacity:' + (isOwner ? '1' : '0.7') + '">' +
+            '<input type="radio" name="csMode" value="ptt"' + (modeNow === 'ptt' ? ' checked' : '') + (isOwner ? '' : ' disabled') + ' style="accent-color:var(--accent)">' +
+            '<span><strong style="color:var(--fg)">Push-to-talk</strong><br><span style="font-size:11px;color:var(--fg-3)">Hold to speak. Anti-overtalk queues you if someone else is talking.</span></span>' +
+          '</label>' +
+          '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:' + (isOwner ? 'pointer' : 'not-allowed') + ';background:' + (modeNow === 'realtime' ? 'var(--bg-4)' : 'var(--bg-3)') + ';opacity:' + (isOwner ? '1' : '0.7') + '">' +
+            '<input type="radio" name="csMode" value="realtime"' + (modeNow === 'realtime' ? ' checked' : '') + (isOwner ? '' : ' disabled') + ' style="accent-color:var(--accent)">' +
+            '<span><strong style="color:var(--fg)">Realtime</strong><br><span style="font-size:11px;color:var(--fg-3)">Mic always open. Toggle with the mic button.</span></span>' +
+          '</label>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--fg-3);margin-top:6px">Applies to every participant in this channel.' + (isOwner ? '' : ' Only the server owner can change this.') + '</div>' +
+      '</div>';
+  }
+
+  var modal = document.createElement('div');
+  modal.id = 'channelSettingsModal';
+  modal.className = 'modal-overlay open';
+  modal.innerHTML =
+    '<div class="modal-box" style="max-width:460px">' +
+      '<div class="modal-title">' + typeLabel + ' Channel Settings</div>' +
+      '<div class="modal-subtitle">#' + (ch.name || '') + '</div>' +
+      '<div class="modal-field"><label class="modal-label">Name</label>' +
+        '<input type="text" class="modal-input" id="csName" value="' + (ch.name || '').replace(/"/g, '&quot;') + '" maxlength="40"' + (isOwner ? '' : ' disabled') + '></div>' +
+      '<div class="modal-field"><label class="modal-label">Topic</label>' +
+        '<input type="text" class="modal-input" id="csTopic" value="' + topicNow.replace(/"/g, '&quot;') + '" maxlength="200" placeholder="What is this channel about?"' + (isOwner ? '' : ' disabled') + '></div>' +
+      voiceSection +
+      (isOwner
+        ? '<button type="button" class="modal-btn" id="csSave">Save</button><button type="button" class="modal-btn secondary" id="csCancel">Cancel</button>'
+        : '<button type="button" class="modal-btn secondary" id="csCancel">Close</button>') +
+    '</div>';
+  document.body.appendChild(modal);
+
+  if (isOwner) {
+    modal.querySelector('#csSave').addEventListener('click', async function() {
+      var patch = {};
+      var newName = (modal.querySelector('#csName').value || '').trim();
+      var newTopic = (modal.querySelector('#csTopic').value || '').trim();
+      if (newName && newName !== ch.name) patch.name = newName;
+      if (newTopic !== topicNow) patch.topic = newTopic;
+      if (ch.type === 'voice') {
+        var modeEl = modal.querySelector('input[name="csMode"]:checked');
+        if (modeEl && modeEl.value !== modeNow) patch.voiceMode = modeEl.value;
+      }
+      if (!Object.keys(patch).length) { modal.remove(); return; }
+      try {
+        await channelManager.update(channelId, patch);
+        if (window.ui?.showToast) ui.showToast('Channel settings saved');
+        modal.remove();
+      } catch (e) { console.warn('[Channel] update failed:', e.message); }
+    });
+  }
+  modal.querySelector('#csCancel').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
 };
 
 channelManager.initDragAndDrop = function() {

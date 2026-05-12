@@ -72,6 +72,12 @@ export class Channels extends EventTarget {
     await this._publish(); this._emit('updated', { channels: this.channels, categories: this.categories });
   }
 
+  async update(id, patch) {
+    if (!patch || typeof patch !== 'object') return;
+    this.channels = this.channels.map(c => c.id === id ? { ...c, ...patch } : c);
+    await this._publish(); this._emit('updated', { channels: this.channels, categories: this.categories });
+  }
+
   async remove(id) {
     this.channels = this.channels.filter(c => c.id !== id);
     await this._publish(); this._emit('updated', { channels: this.channels, categories: this.categories });

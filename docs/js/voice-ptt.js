@@ -21,23 +21,27 @@
   let playerEl = null;          // <audio>
   let unsubs = [];
 
-  // Per-channel mode is sticky across reloads. Default is 'ptt'.
-  // 'realtime' opens the mic on connect and hides the pill.
+  // Channel mode is published with the channel metadata (owner-controlled),
+  // so every participant sees the same mode. We read it off the live channel
+  // object from state; localStorage is only consulted as a last-ditch fallback
+  // for older clients that wrote there before the migration.
   function modeKey(channelId) { return 'zn_voice_mode_' + (channelId || 'default'); }
   function getChannelMode(channelId) {
+    var chs = (window.state && window.state.channels) || [];
+    for (var i = 0; i < chs.length; i++) {
+      if (chs[i].id === channelId) {
+        if (chs[i].voiceMode) return chs[i].voiceMode;
+        break;
+      }
+    }
     try { return localStorage.getItem(modeKey(channelId)) || 'ptt'; } catch { return 'ptt'; }
-  }
-  function setChannelMode(channelId, mode) {
-    try { localStorage.setItem(modeKey(channelId), mode); } catch {}
   }
   function currentChannelMode() {
     return getChannelMode(window.state?.currentChannel?.id);
   }
-  // Public so the settings modal can drive it without ad-hoc DOM access.
   window.__zellous = window.__zellous || {};
   window.__zellous.voiceMode = {
     get: getChannelMode,
-    set: setChannelMode,
     apply: () => applyMode(currentChannelMode())
   };
 
