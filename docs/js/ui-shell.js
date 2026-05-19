@@ -146,11 +146,8 @@
     return { open, close, render, isOpen: () => overlay.classList.contains('open') };
   })();
 
-  // -------- Persistent voice strip --------
-  // Slotted as a sibling above the user-panel inside the channel-sidebar so
-  // it can't overlap. When the strip is open the user-panel hides itself via
-  // .has-voice-strip on the sidebar to avoid duplicate mic/deafen controls.
-  const voiceStrip = (() => {
+  // -------- Persistent voice strip (SDK-mounted by sdk-voice-strip.js) --------
+  const voiceStrip = (() => { if (true) return null;
     const strip = ensureNode(`
       <div class="voice-strip" id="voiceStrip" role="region" aria-label="Voice connection status">
         <div class="vs-label">

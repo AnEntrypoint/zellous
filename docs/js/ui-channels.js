@@ -212,24 +212,24 @@ const uiChannels = {
     if (ui.chatHeaderIcon) {
       ui.chatHeaderIcon.innerHTML = window.getIcon ? getIcon(iconMap[ch.type]||'text') : '#';
     }
-    ui.chatHeaderName.textContent = ch.name;
+    if (ui.chatHeaderName) ui.chatHeaderName.textContent = ch.name;
     if (ui.chatHeaderTopic) ui.chatHeaderTopic.textContent = ch.topic || '';
 
     if (ch.type === 'text' || ch.type === 'announcement') {
-      ui.chatArea.style.display = 'flex';
+      if (ui.chatArea) ui.chatArea.style.display = 'flex';
       if (ui.chatInput) ui.chatInput.placeholder = `Message #${ch.name}`;
     } else if (ch.type === 'voice') {
-      ui.voiceView.style.display = 'flex';
-      if (window.uiVoice) { uiVoice.renderGrid(); uiVoice.renderTurnOrder(); }
+      if (ui.voiceView) ui.voiceView.style.display = 'flex';
+      if (window.uiVoice) { uiVoice.renderGrid?.(); uiVoice.renderTurnOrder?.(); }
     } else if (ch.type === 'threaded') {
-      ui.threadedView.style.display = 'flex';
+      if (ui.threadedView) ui.threadedView.style.display = 'flex';
     } else if (ch.type === 'forum' && forumView) {
       forumView.style.display = 'flex';
     } else if (ch.type === 'page' && pageView && window.serverPages) {
       pageView.style.display = 'flex';
       serverPages.renderPageView(ch._serverId, ch._slug);
     } else {
-      ui.chatArea.style.display = 'flex';
+      if (ui.chatArea) ui.chatArea.style.display = 'flex';
       if (ui.chatInput) ui.chatInput.placeholder = `Message #${ch.name}`;
     }
     if (ui.mobileTitle) ui.mobileTitle.textContent = (ch.type === 'text' ? '# ' : '') + ch.name;
