@@ -68,3 +68,5 @@ dist/
 .gm/
 .codeinsight/
 rs-learn.db
+.gm/browser-profile/
+.gm/browser-profile-*/
