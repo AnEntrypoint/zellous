@@ -136,12 +136,28 @@
       const user = state.currentUser || window.auth?.user || {};
       const name = user.displayName || user.username || 'Connecting...';
       const npub = state.nostrPubkey ? (window.auth?.npubShort?.(state.nostrPubkey) || state.nostrPubkey.slice(0, 12) + '…') : '';
+      const theme = (document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'dark');
       return {
         name,
         tag: npub,
         color: avatarColor(state.nostrPubkey || name),
         muted: !!state.micMuted,
         deafened: !!state.voiceDeafened,
+        extraButtons: [
+          {
+            title: theme === 'dark' ? 'Light theme' : 'Dark theme',
+            icon: theme === 'dark' ? '☀' : '☾',
+            onClick: () => {
+              const next = (document.documentElement.getAttribute('data-theme') === 'dark') ? 'light' : 'dark';
+              document.documentElement.setAttribute('data-theme', next);
+              try { localStorage.setItem('theme', next); } catch (_) {}
+              if (window.stateSignals?.currentChannel) {
+                const cur = window.stateSignals.currentChannel.value;
+                window.stateSignals.currentChannel.value = cur ? { ...cur } : cur;
+              }
+            }
+          }
+        ],
         onMute: () => { if (window.lk?.toggleMic) window.lk.toggleMic(); else state.micMuted = !state.micMuted; },
         onDeafen: () => { if (window.lk?.toggleDeafen) window.lk.toggleDeafen(); else state.voiceDeafened = !state.voiceDeafened; },
         onSettings: () => {
