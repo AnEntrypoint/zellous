@@ -128,16 +128,8 @@ window.nostrFsm = null;
   </script>
   <div class="reconnect-banner" id="reconnectBanner">No relay connected. Reconnecting...</div>
   <div class="app">
-    <!-- SERVER LIST -->
-    <div class="server-list" id="serverList">
-      <a href="../" class="server-back-link" title="back to zellous.io">←</a>
-      <div class="server-icon home active" id="homeServer" title="Zellous">
-        <div class="server-pill"></div>
-        Z
-      </div>
-      <div class="server-separator"></div>
-      <div id="serverIcons"></div>
-    </div>
+    <!-- SERVER LIST (SDK ServerRail) -->
+    <div class="server-list" id="serverList"></div>
 
     <!-- CHANNEL SIDEBAR -->
     <div class="channel-sidebar" id="channelSidebar">
@@ -488,6 +480,7 @@ window.nostrFsm = null;
       'js/nostr-channels-ui.js',
       'js/threads.js',
       'js/nostr-servers-ui.js',
+      'js/sdk-server-rail.js',
       'js/moderation.js',
       'js/ptt.js',
       'js/webcam.js',
@@ -602,15 +595,7 @@ async function initNostr() {
 
   window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt, nostrVoice };
 
-  document.getElementById('homeServer')?.addEventListener('click', function() {
-    state.homeMode = true;
-    state.currentServerId = null;
-    document.querySelectorAll('.server-icon').forEach(el => el.classList.remove('active'));
-    this.classList.add('active');
-    if (window.ui) ui.render.all();
-  });
-
-  document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
+document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
     if (window.lk && lk.toggleCamera) lk.toggleCamera();
   });
   document.getElementById('voiceVideoBtn')?.addEventListener('click', function() {
