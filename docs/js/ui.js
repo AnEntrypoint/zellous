@@ -110,7 +110,14 @@ ui.render = {
   }
 };
 
-ui.showToast = function(msg, duration) {
+ui.showToast = function(msg, duration, tone) {
+  const sig = window.stateSignals?.toastQueue;
+  if (sig) {
+    const id = 't' + Date.now() + Math.random().toString(36).slice(2, 6);
+    sig.value = [...(sig.value || []), { id, message: String(msg), tone: tone || 'info', duration: duration || 2000 }];
+    return;
+  }
+  // Fallback (state not yet booted) — original inline toast.
   document.getElementById('uiToast')?.remove();
   const el = document.createElement('div');
   el.id = 'uiToast';

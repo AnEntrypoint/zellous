@@ -101,10 +101,20 @@ const state = {
   membersVisible: signal(true),
   queueVisible: signal(true),
   settingsOpen: signal(false),
+  settingsAnchor: signal({ x: 0, y: 0 }),
+
+  rnnoiseEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('rnnoise') !== '0' : true),
+  autoGainEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('autoGain') !== '0' : true),
+  forceTurnEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('forceRelay') === '1' : false),
+  dataChannelEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('dataChannel') === '1' : false),
+  micRawLevel: signal(0),
+  micProcessedLevel: signal(0),
 
   servers: signal([]),
   currentServerId: signal(null),
   cameraEnabled: signal(false),
+
+  toastQueue: signal([]),
 };
 
 const _isSignal = (v) => v !== null && typeof v === 'object' && 'value' in v && typeof v.subscribe === 'function';
