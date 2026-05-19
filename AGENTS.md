@@ -10,12 +10,59 @@ Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave
 
 | Goal | Edit here |
 |---|---|
-| Change UI render / layout | `docs/js/ui*.js`, `docs/css/*.css`, `docs/nostr-chat/index.html` |
+| Change UI render / layout for an SDK-mounted surface | `docs/js/sdk-*.js` (subtree mounts of `anentrypoint-design` components) |
+| Change UI render / layout for a not-yet-migrated surface | `docs/js/ui*.js`, `docs/css/zellous.css`, `docs/nostr-chat/index.html` |
 | Change protocol behavior (Nostr events, voice signaling, etc.) | `docs/vendor/wireweave/src/*.js` |
 | Expose / rename a window global | `docs/js/wireweave-bridge.js` (mirror under `window.__zellous`) |
 | Add a vendored dep | `scripts/fetch-vendor.js`, then add an importmap entry inside the inline injector script in `docs/nostr-chat/index.html` |
 | Touch state | `docs/js/state.js` (single source of truth for signals) |
+| Improve an SDK component (or add a missing one) | edit `C:\dev\anentrypoint-design\src\components\*.js` + `community.css`, run `node scripts/build.mjs`, `npm version patch`, `npm publish`. Zellous's importmap pins `@latest` so propagation is automatic after unpkg cache fills (~60-90s). |
 | Marketing landing | `docs/index.html` (live) and/or `site/` + `flatspace.config.mjs` (CI-built `dist/`) |
+
+## SDK migration status (2026-05-19)
+
+The community-surface migration to `anentrypoint-design` is partial — ~70% of visible chrome runs through SDK subtree mounts now. Each SDK subtree mount lives in its own `docs/js/sdk-*.js` IIFE:
+
+| Surface | Host element | Mount module | SDK component |
+|---|---|---|---|
+| Server rail | `#serverList` | `sdk-server-rail.js` | `C.ServerRail` |
+| Channel sidebar + user panel | `#channelSidebar` | `sdk-channel-sidebar.js` | `C.ChannelSidebar` (with `userPanelProps`) |
+| Chat header | `#chatHeaderBar` | `sdk-chat.js` | `C.ChatHeader` |
+| Chat body + composer | `#chatArea` | `sdk-chat.js` | `C.Chat` |
+| Member list | `#memberList` | `sdk-member-list.js` | `C.MemberList` |
+| Voice strip (above user panel) | `#voiceStripSlot` | `sdk-voice-strip.js` | `C.VoiceStrip` |
+| Voice grid tiles | `#voiceGrid` | `sdk-voice-grid.js` | `C.VoiceUser` |
+| Voice controls bar | `#voiceControlsBar` | `sdk-voice-controls.js` | `C.VoiceControls` |
+| Video lightbox | `#videoLightboxHost` (body-appended) | `sdk-video-lightbox.js` | `C.VideoLightbox` |
+| Thread panel | `#threadPanel` | `sdk-thread-panel.js` | `C.ThreadPanel` |
+| Forum view | adjacent to `#forumView` | `sdk-forum-view.js` | `C.ForumView` |
+| Page view | adjacent to `#pageView` | `sdk-page-view.js` | `C.PageView` |
+| Auth modal | body-appended | `sdk-auth-modal.js` | `C.AuthModal` |
+
+Pattern for each `sdk-*.js`: IIFE that waits for `window.__sdk` + `window.__effect` + relevant globals, clears its host, calls `applyDiff(host, view())` inside an `effect()` reading signals.
+
+### Not yet migrated (zellous-native, still in `zellous.css` + legacy `ui-*.js`)
+
+- Settings popover — directly DOM-coupled to `audio.js`/voice modules by id (`#settingsInputDevice`, `#micRawBar`, etc.); needs state-signal extraction first
+- Voice settings modal — no existing host today; would be net-new UI
+- Boot overlay (`#zellousBoot`)
+- Mobile header / drawer overlay
+- Toast (`ui.showToast`)
+- Context menus (`_mkMenu` in `nostr-servers-ui.js`, etc.)
+- Emoji picker
+- Reply bar (currently inline in chat composer flow)
+- Command palette (Cmd+K)
+- Audio queue UI (`docs/js/queue.js` direct DOM)
+- PTT button, VAD meter, webcam preview — `docs/js/ptt.js`/`voice-ptt.js`/`webcam.js` direct DOM
+
+SDK components for all of these exist in `anentrypoint-design@0.0.122` — they just don't have consumer modules in zellous yet.
+
+### Final cleanup deferred (high blast radius)
+
+- Deleting `docs/css/zellous.css` entirely — must wait until ALL surfaces above are migrated
+- Switching from subtree mounts to top-level `mount(#app)` — same prerequisite
+
+Until then, `zellous.css` co-exists with SDK's `community.css` (the SDK's `cm-*` classes don't collide with zellous's class names).
 
 If you find yourself editing `docs/vendor/<thirdparty>/` other than `wireweave/`, stop — that's a third-party drop, not first-party code.
 
