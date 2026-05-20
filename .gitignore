@@ -25,6 +25,7 @@ bin/
 livekit.yaml
 search.exe
 vendor/
+!docs/css/vendor/
 docs/vendor/livekit-client.mjs
 docs/vendor/rnnoise-sync.js
 docs/vendor/rnnoise-worklet.js
