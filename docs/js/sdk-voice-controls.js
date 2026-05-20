@@ -32,6 +32,7 @@
         },
         onScreenShare: null,
         onSettings: () => {
+          if (state.voiceConnected && typeof window.openVoiceSettings === 'function') return window.openVoiceSettings();
           if (typeof window.openSettings === 'function') window.openSettings();
           else document.getElementById('voiceSettingsBtn')?.click();
         },

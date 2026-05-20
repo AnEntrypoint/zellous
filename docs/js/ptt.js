@@ -1,6 +1,8 @@
 const ptt = {
   start: () => {
     state.isSpeaking = true;
+    state.pttHeld = true;
+    state.pttUiMode = 'live';
     ui.ptt?.classList.add('recording');
     if (ui.pttStatus) ui.pttStatus.classList.add('recording');
     if (ui.pttStatusText) ui.pttStatusText.textContent = 'Recording...';
@@ -16,6 +18,8 @@ const ptt = {
   },
   stop: async () => {
     state.isSpeaking = false;
+    state.pttHeld = false;
+    state.pttUiMode = 'idle';
     ui.ptt?.classList.remove('recording');
     if (ui.pttStatus) ui.pttStatus.classList.remove('recording');
     if (ui.pttStatusText) ui.pttStatusText.textContent = 'Ready';
@@ -55,7 +59,8 @@ const vad = {
     if (ui.vadBtn) ui.vadBtn.innerHTML = '\u{1F3A4} VAD Active';
     ui.vadControls?.classList.remove('hidden');
     ui.vadMeterContainer?.classList.remove('hidden');
-    if (ui.ptt) { ui.ptt.innerHTML = 'VAD MODE'; ui.ptt.style.pointerEvents = 'none'; ui.ptt.style.opacity = '0.6'; }
+    state.pttUiMode = 'vad';
+    if (ui.ptt && !ui.ptt.dataset.sdkOwned) { ui.ptt.innerHTML = 'VAD MODE'; ui.ptt.style.pointerEvents = 'none'; ui.ptt.style.opacity = '0.6'; }
     vad.startMonitoring();
   },
   deactivate: () => {
@@ -63,7 +68,8 @@ const vad = {
     if (ui.vadBtn) ui.vadBtn.innerHTML = '\u{1F3A4} VAD';
     ui.vadControls?.classList.add('hidden');
     ui.vadMeterContainer?.classList.add('hidden');
-    if (ui.ptt) { ui.ptt.innerHTML = 'Hold to Talk'; ui.ptt.style.pointerEvents = 'auto'; ui.ptt.style.opacity = '1'; }
+    state.pttUiMode = 'idle';
+    if (ui.ptt && !ui.ptt.dataset.sdkOwned) { ui.ptt.innerHTML = 'Hold to Talk'; ui.ptt.style.pointerEvents = 'auto'; ui.ptt.style.opacity = '1'; }
     vad.stopMonitoring();
     if (state.isSpeaking) ptt.stop();
   },
@@ -82,6 +88,7 @@ const vad = {
       state.vadAnalyser.getByteFrequencyData(data);
       let sum = 0; for (let i = 0; i < data.length; i++) sum += data[i] * data[i];
       const rms = Math.sqrt(sum / data.length) / 255;
+      state.micRawLevel = rms;
       if (ui.vadMeter) ui.vadMeter.style.width = (rms * 100) + '%';
       if (rms > state.vadThreshold) {
         if (state.vadSilenceTimer) { clearTimeout(state.vadSilenceTimer); state.vadSilenceTimer = null; }
@@ -97,7 +104,7 @@ const vad = {
     if (vad._rafHandle) { cancelAnimationFrame(vad._rafHandle); vad._rafHandle = null; }
     if (state.vadSilenceTimer) { clearTimeout(state.vadSilenceTimer); state.vadSilenceTimer = null; }
   },
-  setThreshold: (v) => { state.vadThreshold = v / 100; ui.vadThresholdMarker.style.left = v + '%'; }
+  setThreshold: (v) => { state.vadThreshold = v / 100; if (ui.vadThresholdMarker) ui.vadThresholdMarker.style.left = v + '%'; }
 };
 window.__zellous.ptt = ptt;
 window.ptt = ptt;

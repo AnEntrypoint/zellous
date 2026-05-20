@@ -109,12 +109,23 @@ const state = {
   dataChannelEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('dataChannel') === '1' : false),
   micRawLevel: signal(0),
   micProcessedLevel: signal(0),
+  pttHeld: signal(false),
+  pttUiMode: signal('idle'),
 
   servers: signal([]),
   currentServerId: signal(null),
   cameraEnabled: signal(false),
 
   toastQueue: signal([]),
+
+  audioQueueItems: signal([]),
+  audioQueueCurrentId: signal(null),
+  audioQueuePaused: signal(false),
+
+  voiceSettingsOpen: signal(false),
+  voiceBitrate: signal(typeof localStorage !== 'undefined' ? Number(localStorage.getItem('voiceBitrate') || 64) : 64),
+
+  replyTarget: signal(null),
 };
 
 const _isSignal = (v) => v !== null && typeof v === 'object' && 'value' in v && typeof v.subscribe === 'function';
