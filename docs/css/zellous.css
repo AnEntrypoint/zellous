@@ -11,12 +11,10 @@ html, body {
 
 /* Extension tokens — surface hierarchy beyond --bg/--bg-2 */
 :root {
-  --bg-3:       var(--cream-3);
+  --bg-3:       var(--paper-3, #DFDED9);
   --bg-4:       #C8C0A8;
-  --accent:     #247420;
   --accent-alt: #420247;
-  --green-fg:   #ECEEF2;
-  --green-2:    #1a5a17;
+  --green-fg:   var(--paper, #F6F5F1);
 }
 [data-theme="ink"], .theme-ink {
   --bg-3: #36383E;
@@ -49,26 +47,18 @@ html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
   --panel-text-3: #4A4638;
   --border-color: color-mix(in oklab, #0B0B09 12%, transparent);
 }
-/* Dark surface — explicit so toggle is reversible */
+/* Dark surface — defer to canonical 247420 tokens (--ink/--ink-2/--green). Only add the bg-3/bg-4 extension. */
 html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
-  --bg:   #1A1B1E;
-  --bg-2: #2B2D31;
-  --bg-3: #36383E;
+  --bg-3: #34343C;
   --bg-4: #42444B;
-  --fg:   #ECEEF2;
-  --fg-2: #B5BAC1;
-  --fg-3: #80848E;
-  --accent:     #247420;
-  --accent-alt: #420247;
-  --green-fg:   #ECEEF2;
-  --green-2:    #1a5a17;
-  --panel-0: #1A1B1E;
-  --panel-1: #232428;
-  --panel-2: #2B2D31;
-  --panel-text: #ECEEF2;
-  --panel-text-2: #B5BAC1;
-  --panel-text-3: #80848E;
-  --border-color: color-mix(in oklab, #ECEEF2 12%, transparent);
+  --green-fg:   var(--ink);
+  --panel-0: var(--ink);
+  --panel-1: var(--ink-2);
+  --panel-2: #34343C;
+  --panel-text: var(--paper);
+  --panel-text-2: var(--paper-2);
+  --panel-text-3: var(--ink-3);
+  --border-color: color-mix(in oklab, var(--paper) 12%, transparent);
 }
 
 /* ── 247420 design primitives — rail / dot / chip ── */
@@ -240,18 +230,17 @@ html.ds-247420 button.modal-btn.secondary:hover,
 .mobile-title { flex: 1; font-weight: 600; color: var(--fg); font-size: var(--fs-sm); }
 .mobile-members-btn { background: none; border: none; cursor: pointer; color: var(--fg-2); display: flex; padding: 4px; border-radius: 4px; }
 
-/* Chat header */
-.chat-header-bar {
-  display: flex;
-  align-items: center;
-  height: 48px;
-  padding: 0 16px;
-  gap: 8px;
-  background: var(--bg-2);
-  flex-shrink: 0;
-}
-/* Chat area */
-.chat-area { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: var(--bg-2); }
+/* Chat area host — transparent; canonical .chat / .chat-head / .chat-thread / .chat-composer come from 247420.css */
+.chat-area { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: transparent; }
+.chat-header-bar { display: none; } /* legacy zellous header — replaced by C.Chat's inline chat-head */
+
+/* zellous is a live app — main area should fill height, scroll the thread, sit tight to topbar */
+html.ds-247420 .app-main { padding: 24px 32px; display: flex; flex-direction: column; overflow: hidden; }
+html.ds-247420 .main-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+html.ds-247420 .chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+html.ds-247420 .chat-thread { flex: 1; overflow-y: auto; min-height: 0; }
+html.ds-247420 .app-body { height: calc(100vh - 74px - 36px - 48px); }
+html.ds-247420 .app-side-shell { overflow-y: auto; }
 
 .chat-messages {
   flex: 1; overflow-y: auto; overflow-x: hidden;

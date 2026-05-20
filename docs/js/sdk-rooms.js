@@ -38,7 +38,42 @@
 
       const out = [];
 
-      // Server group: list of joined servers + home
+      // Rooms group: text + announcement + forum + page channels for current server
+      const textLike = sorted.filter(c => c.type !== 'voice' && c.type !== 'threaded');
+      if (textLike.length) {
+        out.push(group('rooms'));
+        for (const c of textLike) {
+          const isActive = cur.id === c.id;
+          const glyph = c.type === 'forum' ? '◻' : c.type === 'page' ? '§' : c.type === 'announcement' ? '📣' : '#';
+          out.push(pill({
+            active: isActive,
+            glyph,
+            label: c.name || c.id,
+            count: c.unreadCount || null,
+            onClick: () => { try { window.ui.actions.switchChannel(c); } catch (_) {} },
+            onContext: (e) => { try { window.channelManager.showContextMenu(c.id, e.clientX, e.clientY); } catch (_) {} }
+          }));
+        }
+      }
+
+      // Voice group
+      const voice = sorted.filter(c => c.type === 'voice' || c.type === 'threaded');
+      if (voice.length) {
+        out.push(group('voice'));
+        for (const c of voice) {
+          const isActive = cur.id === c.id;
+          const inVoice = state.voiceConnected && state.voiceChannelName === c.name;
+          out.push(pill({
+            active: isActive,
+            glyph: inVoice ? '●' : (c.type === 'threaded' ? '◉' : '🔊'),
+            label: c.name || c.id,
+            onClick: () => { try { window.ui.actions.switchChannel(c); } catch (_) {} },
+            onContext: (e) => { try { window.channelManager.showContextMenu(c.id, e.clientX, e.clientY); } catch (_) {} }
+          }));
+        }
+      }
+
+      // Servers group: switch between joined servers
       const servers = state.servers || [];
       if (servers.length) {
         out.push(group('servers'));
@@ -68,50 +103,13 @@
         }
       }
 
-      // Rooms group: text + announcement + forum + page channels for current server
-      if (!home && (sorted.length || categories.length)) {
-        const textLike = sorted.filter(c => c.type !== 'voice' && c.type !== 'threaded');
-        if (textLike.length) {
-          out.push(group('rooms'));
-          for (const c of textLike) {
-            const isActive = cur.id === c.id;
-            const glyph = c.type === 'forum' ? '◻' : c.type === 'page' ? '§' : c.type === 'announcement' ? '📣' : '#';
-            out.push(pill({
-              active: isActive,
-              glyph,
-              label: c.name || c.id,
-              count: c.unreadCount || null,
-              onClick: () => { try { window.ui.actions.switchChannel(c); } catch (_) {} },
-              onContext: (e) => { try { window.channelManager.showContextMenu(c.id, e.clientX, e.clientY); } catch (_) {} }
-            }));
-          }
-        }
-
-        // Voice group
-        const voice = sorted.filter(c => c.type === 'voice' || c.type === 'threaded');
-        if (voice.length) {
-          out.push(group('voice'));
-          for (const c of voice) {
-            const isActive = cur.id === c.id;
-            const inVoice = state.voiceConnected && state.voiceChannelName === c.name;
-            out.push(pill({
-              active: isActive,
-              glyph: inVoice ? '●' : (c.type === 'threaded' ? '◉' : '🔊'),
-              label: c.name || c.id,
-              onClick: () => { try { window.ui.actions.switchChannel(c); } catch (_) {} },
-              onContext: (e) => { try { window.channelManager.showContextMenu(c.id, e.clientX, e.clientY); } catch (_) {} }
-            }));
-          }
-        }
-      }
-
-      // Direct messages — synthetic self entry when in home
+      // Direct messages — placeholder + self when home
       if (home) {
         out.push(group('direct'));
         const user = state.currentUser || (window.auth && window.auth.user) || {};
         const name = user.displayName || user.username || 'you';
         out.push(pill({
-          active: true,
+          active: !textLike.length,
           glyph: '·',
           label: name + ' (you)',
           onClick: () => {}

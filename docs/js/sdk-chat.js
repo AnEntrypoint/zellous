@@ -159,8 +159,15 @@
     }
 
     function areaView() {
+      const ch = state.currentChannel || {};
+      const sub = ch.type === 'voice' ? 'voice'
+        : ch.type === 'forum' ? 'forum'
+        : ch.type === 'page' ? 'page'
+        : ch.type === 'announcement' ? 'announcement'
+        : 'public';
       return C.Chat({
-        title: state.currentChannel?.name || 'general',
+        title: ch.name || 'general',
+        sub,
         messages: mapMessages(),
         header: null,
         composer: composerView()
