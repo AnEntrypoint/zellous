@@ -101,18 +101,7 @@ html.ds-247420 .chip.sun    { background: color-mix(in oklab, #FFD86B 22%, var(-
 html.ds-247420 .chip.flame  { background: color-mix(in oklab, #FF8454 22%, var(--bg-3)); color: #FF8454; }
 html.ds-247420 .chip.sky    { background: color-mix(in oklab, #6FA9FF 22%, var(--bg-3)); color: #6FA9FF; }
 
-/* ── App shell ── */
-/* Specificity must beat the SDK's ".ds-247420 .app{flex-direction:column}" rule */
-html.ds-247420 .app, .app {
-  display: flex;
-  flex-direction: row;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-}
-@media (max-width: 899px) {
-  html.ds-247420 .app, .app { flex-direction: column; }
-}
+/* ── App shell — let SDK's app-shell.css drive the column layout (topbar/crumb/body/status) ── */
 
 .reconnect-banner {
   display: none;

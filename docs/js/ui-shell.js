@@ -12,6 +12,7 @@
 
   // -------- Collapsible rails --------
   const rail = (() => {
+    if (true) return null; // rail toggles disabled — app-side layout supersedes the legacy collapsible rails
     const sl = document.querySelector('.server-list');
     const cs = document.querySelector('.channel-sidebar');
     if (!sl || !cs) return null;

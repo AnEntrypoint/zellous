@@ -8,11 +8,12 @@
     }
     const headerHost = document.getElementById('chatHeaderBar');
     const areaHost = document.getElementById('chatArea');
-    if (!headerHost || !areaHost) return;
+    if (!areaHost) return;
 
     const { h, applyDiff, C } = sdk;
 
-    headerHost.innerHTML = '';
+    // Hide legacy chat-header-bar; C.Chat renders its own canonical chat-head
+    if (headerHost) headerHost.style.display = 'none';
     areaHost.innerHTML = '';
 
     const ICONS = {
@@ -166,14 +167,7 @@
       });
     }
 
-    function renderHeader() { applyDiff(headerHost, headerView()); }
     function renderArea() { applyDiff(areaHost, areaView()); }
-
-    effect(() => {
-      window.stateSignals.currentChannel.value;
-      window.stateSignals.currentServerId.value;
-      renderHeader();
-    });
 
     effect(() => {
       window.stateSignals.chatMessages.value;
