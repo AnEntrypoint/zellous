@@ -76,14 +76,14 @@ window.uiChannels = null;
 window.moderation = null;
 window.nostrFsm = null;
 </script>
+  <!-- Canonical 247420 design system stylesheets (vendored from anentrypoint-design GH-Pages reference).
+       colors_and_type.css owns tokens + Space Grotesk + JetBrains Mono @import.
+       app-shell.css owns .app-topbar / .app-side / .app-main / .chat structure. -->
+  <link rel="stylesheet" href="../css/vendor/colors_and_type.css">
+  <link rel="stylesheet" href="../css/vendor/app-shell.css">
   <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <!-- Non-blocking webfonts: system font stack renders first, swap when CDN responds.
-       Single combined URL replaces three separate @import statements that previously
-       held the page-load event hostage when the CDN was slow or unreachable. -->
-  <link rel="stylesheet" media="print" onload="this.media='all'"
-        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
   <style>
     /* Boot overlay — visible before any module CSS resolves. Inline so it never blocks on a fetch. */
     /* Boot tokens — must paint before zellous.css; mirror its ink/paper palette. */
@@ -418,7 +418,8 @@ window.nostrFsm = null;
 
     try {
       const sdk = await import('anentrypoint-design');
-      await sdk.installStyles?.();
+      // NOTE: do NOT call sdk.installStyles() — it injects ~3.4MB of bundled CSS that fights
+      // the canonical 30KB stylesheet pair (colors_and_type.css + app-shell.css) loaded in <head>.
       window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components };
     } catch (e) {
       console.error('SDK load failed', e);

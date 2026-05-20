@@ -26,28 +26,8 @@ html, body {
     --bg-4: #42444B;
   }
 }
-/* Light surface — overrides SDK panel token aliases at higher specificity */
-html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
-  --bg:   #EFE9DD;
-  --bg-2: #E5DECB;
-  --bg-3: #D9D0B8;
-  --bg-4: #C8C0A8;
-  --fg:   #0B0B09;
-  --fg-2: #2A2820;
-  --fg-3: #4A4638;
-  --accent:     #247420;
-  --accent-alt: #420247;
-  --green-fg:   #ECEEF2;
-  --green-2:    #1a5a17;
-  --panel-0: #EFE9DD;
-  --panel-1: #E5DECB;
-  --panel-2: #D9D0B8;
-  --panel-text: #0B0B09;
-  --panel-text-2: #2A2820;
-  --panel-text-3: #4A4638;
-  --border-color: color-mix(in oklab, #0B0B09 12%, transparent);
-}
-/* Dark surface — defer to canonical 247420 tokens (--ink/--ink-2/--green). Only add the bg-3/bg-4 extension. */
+/* Surface tokens — extend canonical (which only defines --bg/--bg-2) with bg-3/bg-4 + panel aliases used by legacy zellous chrome.
+   Canonical colors_and_type.css owns --bg/--fg/--accent/--ink/--paper toggling via [data-theme]. We do NOT redefine those. */
 html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
   --bg-3: #34343C;
   --bg-4: #42444B;
@@ -59,6 +39,17 @@ html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
   --panel-text-2: var(--paper-2);
   --panel-text-3: var(--ink-3);
   --border-color: color-mix(in oklab, var(--paper) 12%, transparent);
+}
+html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
+  --bg-3: var(--paper-3);
+  --bg-4: #C8C0A8;
+  --panel-0: var(--paper);
+  --panel-1: var(--paper-2);
+  --panel-2: var(--paper-3);
+  --panel-text: var(--ink);
+  --panel-text-2: var(--ink-2);
+  --panel-text-3: var(--ink-3);
+  --border-color: color-mix(in oklab, var(--ink) 12%, transparent);
 }
 
 /* ── 247420 design primitives — rail / dot / chip ── */
@@ -233,6 +224,108 @@ html.ds-247420 button.modal-btn.secondary:hover,
 /* Chat area host — transparent; canonical .chat / .chat-head / .chat-thread / .chat-composer come from 247420.css */
 .chat-area { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: transparent; }
 .chat-header-bar { display: none; } /* legacy zellous header — replaced by C.Chat's inline chat-head */
+
+/* Chat surface — fill the canonical app-main flex column */
+html.ds-247420 .chat-head {
+  display: flex; align-items: baseline; gap: 6px;
+  padding: 0 2px 14px;
+  font-size: var(--fs-sm); color: var(--fg-2);
+}
+html.ds-247420 .chat-head .spread { flex: 1; }
+html.ds-247420 .chat-head > span:nth-child(2) {
+  font-size: var(--fs-h2, 32px); font-weight: 600;
+  color: var(--fg); letter-spacing: var(--tr-tight, -0.01em);
+  font-family: var(--ff-display, 'Space Grotesk');
+  line-height: 1.2;
+}
+html.ds-247420 .chat-head .dot { background: var(--accent); }
+
+/* Chat composer — textarea has white default; make it match the canonical input look */
+html.ds-247420 .chat-composer {
+  display: flex; gap: 8px; padding: var(--space-3, 14px) 0 0;
+  border-top: 1px solid var(--border-color, color-mix(in oklab, var(--fg) 12%, transparent));
+  margin-top: 8px;
+}
+html.ds-247420 .chat-composer textarea {
+  flex: 1; padding: 12px 16px;
+  background: var(--bg-2); color: var(--fg);
+  border: 0; border-radius: var(--r-pill, 999px);
+  font-family: inherit; font-size: var(--fs-sm);
+  outline: 0; resize: none; line-height: 1.4;
+  min-height: 44px; max-height: 200px;
+}
+html.ds-247420 .chat-composer textarea:focus {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+html.ds-247420 .chat-composer textarea::placeholder { color: var(--fg-3); }
+html.ds-247420 .chat-composer .send,
+html.ds-247420 .chat-composer button {
+  width: 44px; height: 44px; border-radius: var(--r-pill, 999px);
+  background: var(--accent); color: var(--accent-fg);
+  border: 0; cursor: pointer; font-size: 18px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+html.ds-247420 .chat-composer button:disabled {
+  background: var(--bg-3); color: var(--fg-3); cursor: not-allowed;
+}
+
+/* Chat messages — give them breathing room similar to canonical */
+html.ds-247420 .chat-thread {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 8px 0 16px;
+}
+html.ds-247420 .chat-msg {
+  display: flex; gap: 12px; align-items: flex-start;
+}
+html.ds-247420 .chat-msg.you { flex-direction: row-reverse; }
+html.ds-247420 .chat-avatar {
+  width: 36px; height: 36px; flex-shrink: 0;
+  border-radius: 50%; background: var(--bg-3); color: var(--fg);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  font-family: var(--ff-mono, 'JetBrains Mono', monospace);
+  text-transform: lowercase;
+}
+html.ds-247420 .chat-stack {
+  display: flex; flex-direction: column; gap: 4px;
+  max-width: 70%; min-width: 0;
+}
+html.ds-247420 .chat-msg.you .chat-stack { align-items: flex-end; }
+html.ds-247420 .chat-bubble {
+  padding: 10px 14px; background: var(--bg-2); color: var(--fg);
+  border-radius: 14px; line-height: 1.5; word-break: break-word;
+  font-size: var(--fs-sm);
+}
+html.ds-247420 .chat-msg.you .chat-bubble {
+  background: var(--accent); color: var(--accent-fg);
+}
+html.ds-247420 .chat-bubble code {
+  font-family: var(--ff-mono, 'JetBrains Mono', monospace);
+  background: color-mix(in oklab, var(--fg) 12%, transparent);
+  padding: 1px 5px; border-radius: 4px; font-size: 0.9em;
+}
+html.ds-247420 .chat-bubble a { color: inherit; text-decoration: underline; }
+html.ds-247420 .chat-meta {
+  display: flex; gap: 6px; font-size: var(--fs-xs, 12px); color: var(--fg-3);
+  font-family: var(--ff-mono, 'JetBrains Mono', monospace);
+  padding: 0 4px;
+}
+html.ds-247420 .chat-reactions {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin-top: 2px;
+}
+html.ds-247420 .chat-reactions .rxn,
+html.ds-247420 .chat-reactions span:not(.e):not(.n) {
+  display: inline-flex; gap: 3px; align-items: center;
+  padding: 2px 8px; background: var(--bg-2);
+  border-radius: var(--r-pill, 999px);
+  font-size: var(--fs-xs, 11px); cursor: pointer;
+}
+html.ds-247420 .chat-reactions .rxn.you {
+  background: color-mix(in oklab, var(--accent) 22%, var(--bg-2));
+  outline: 1px solid var(--accent);
+}
+html.ds-247420 .chat-reactions .n { font-weight: 600; }
 
 /* zellous is a live app — main area should fill height, scroll the thread, sit tight to topbar */
 html.ds-247420 .app-main { padding: 24px 32px; display: flex; flex-direction: column; overflow: hidden; }
