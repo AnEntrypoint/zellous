@@ -264,7 +264,7 @@ pre .n { color: var(--green-2); }
 }
 
 .app-main {
-  padding: var(--space-5) var(--pad-x) calc(var(--app-status-h) + var(--space-2));
+  padding: var(--space-5) var(--pad-x) 0;
   min-width: 0;
 }
 .app-main.narrow { max-width: 760px; margin: 0 auto; }
@@ -910,6 +910,7 @@ table tr.clickable:hover td { background: var(--bg-2); }
 .chat {
   display: flex; flex-direction: column;
   flex: 1; min-height: 0; gap: var(--space-3);
+  padding-bottom: calc(var(--app-status-h, 42px) + var(--space-2));
 }
 .chat-head {
   display: flex; align-items: baseline; gap: 8px;

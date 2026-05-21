@@ -1092,8 +1092,11 @@ html.ds-247420 .mobile-header { display: none !important; }
   html.ds-247420 .mobile-header {
     display: flex !important;
     position: fixed; left: 8px; top: 8px;
-    height: 40px; width: 40px;
-    padding: 0; background: var(--bg-2);
+    height: 44px; width: 44px;
+    padding: 0;
+    background: var(--bg-2);
+    border: 1px solid color-mix(in oklab, var(--fg) 12%, transparent);
+    color: var(--fg);
     border-radius: var(--r-pill, 999px);
     z-index: 60;
     align-items: center; justify-content: center;
@@ -1101,10 +1104,10 @@ html.ds-247420 .mobile-header { display: none !important; }
   html.ds-247420 .mobile-header .mobile-title,
   html.ds-247420 .mobile-header .mobile-members-btn { display: none !important; }
   html.ds-247420 .mobile-header .mobile-hamburger { display: inline-flex; color: var(--fg); font-size: 20px; }
-  html.ds-247420 .app-topbar { padding-left: 56px !important; }
+  html.ds-247420 .app-topbar { padding-left: 60px !important; }
 }
 html.ds-247420 .chat-area { padding: 0; border: 0; background: transparent; box-shadow: none; }
-html.ds-247420 .chat { padding: 0; background: transparent; }
+html.ds-247420 .chat { padding: 0 0 calc(var(--app-status-h, 42px) + var(--space-2)) 0 !important; background: transparent; }
 html.ds-247420 .chat .chat-composer { padding: var(--space-3) var(--space-5); background: transparent; }
 
 /* Active room pill: keep glyph + count visible on accent background */
