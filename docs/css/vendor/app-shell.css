@@ -950,7 +950,7 @@ table tr.clickable:hover td { background: var(--bg-2); }
   pointer-events: none;
 }
 
-.chat-msg { display: flex; gap: 12px; align-items: flex-start; padding: 2px 0; position: relative; }
+.chat-msg { display: flex; gap: 12px; align-items: flex-start; padding: 2px 0; position: relative; min-width: 0; }
 .chat-msg.you { flex-direction: row-reverse; }
 .chat-msg.you .chat-stack { align-items: flex-end; }
 .chat-msg:hover { background: color-mix(in oklab, var(--fg) 1%, transparent); padding: 2px 0; margin: 0; border-radius: 8px; transition: background var(--dur-base) var(--ease); }
@@ -977,6 +977,7 @@ table tr.clickable:hover td { background: var(--bg-2); }
 .chat-stack {
   display: flex; flex-direction: column; gap: 4px;
   max-width: min(70%, 56ch); min-width: 0;
+  flex: 0 1 auto; overflow: hidden;
 }
 
 .chat-bubble {
@@ -984,7 +985,8 @@ table tr.clickable:hover td { background: var(--bg-2); }
   border-radius: 14px; line-height: 1.55;
   word-wrap: break-word; overflow-wrap: anywhere;
   font-size: var(--fs-sm);
-  max-width: clamp(200px, 80vw, 480px);
+  max-width: 100%;
+  min-width: 0;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .chat-msg:hover .chat-bubble { transform: translateY(-1px); box-shadow: 0 2px 8px color-mix(in oklab, var(--fg) 6%, transparent); transition: transform var(--dur-base) var(--ease), box-shadow var(--dur-base) var(--ease); }
@@ -1042,7 +1044,21 @@ table tr.clickable:hover td { background: var(--bg-2); }
   padding: 0; background: var(--bg);
   color: var(--fg);
   border: 1px solid color-mix(in oklab, var(--fg) 12%, transparent);
-  overflow: hidden; max-width: min(90%, 72ch);
+  overflow: hidden; max-width: 100%; min-width: 0;
+}
+.chat-bubble.chat-code pre,
+.chat-bubble pre,
+.chat-msg pre {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--bg-3) transparent;
+}
+.chat-bubble pre code,
+.chat-msg pre code {
+  display: block;
+  white-space: pre;
+  min-width: 0;
 }
 .chat-code-head {
   display: flex; align-items: center; gap: 10px;
