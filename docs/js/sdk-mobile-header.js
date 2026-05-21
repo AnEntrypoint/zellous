@@ -14,7 +14,13 @@
       const title = ch?.type === 'voice' ? '🔊 ' + (ch.name || '') : '# ' + (ch?.name || '');
       applyDiff(host, C.MobileHeader({
         title,
-        onMenu: () => window.ui?.actions?.openMobileMenu?.(),
+        onMenu: () => {
+          const s = document.querySelector('.app-side-shell') || document.querySelector('.app-side');
+          if (s) s.classList.toggle('open');
+          const b = document.querySelector('.app-body');
+          if (b) b.classList.toggle('side-open');
+          window.ui?.actions?.openMobileMenu?.();
+        },
         onMembers: () => window.ui?.actions?.toggleMembers?.(),
       }));
     }

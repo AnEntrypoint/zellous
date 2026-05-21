@@ -1,0 +1,1052 @@
+/* ============================================================
+   247420 design system — community surface (Discord-style chat)
+   Tonal surfaces over borders. Indicator rails over hairlines.
+   All tokens sourced from colors_and_type.css.
+   ============================================================ */
+
+/* ============================================================
+   Shell — top-level flex container for the community layout
+   ============================================================ */
+.cm-shell {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--ff-body);
+  font-size: var(--fs-sm);
+}
+
+.cm-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  background: var(--bg);
+  position: relative;
+}
+
+/* ============================================================
+   Server rail — thin vertical column, leftmost
+   ============================================================ */
+.cm-server-rail {
+  flex: 0 0 72px;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  background: color-mix(in oklab, var(--bg) 70%, var(--ink));
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none;
+}
+.cm-server-rail::-webkit-scrollbar { display: none; }
+
+.cm-server-icon {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-3);
+  background: var(--bg-2);
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-body);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  letter-spacing: var(--tr-tight);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-radius var(--dur-base) var(--ease),
+    background var(--dur-snap) var(--ease),
+    color var(--dur-snap) var(--ease),
+    transform var(--dur-snap) var(--ease);
+  user-select: none;
+}
+.cm-server-icon img,
+.cm-server-icon svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cm-server-icon:hover {
+  border-radius: var(--r-2);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.cm-server-icon.active {
+  border-radius: var(--r-2);
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.cm-server-pill {
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 8px;
+  background: var(--fg);
+  border-radius: 0 4px 4px 0;
+  transition: height var(--dur-base) var(--ease);
+}
+.cm-server-icon:hover .cm-server-pill { height: 20px; }
+.cm-server-icon.active .cm-server-pill { height: 36px; background: var(--fg); }
+
+.cm-server-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: var(--warn);
+  color: var(--paper);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  border-radius: var(--r-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--bg) 70%, var(--ink));
+}
+
+.cm-server-back,
+.cm-server-add {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-3);
+  background: var(--bg-2);
+  color: var(--green-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  cursor: pointer;
+  border: 0;
+  transition:
+    border-radius var(--dur-base) var(--ease),
+    background var(--dur-snap) var(--ease),
+    color var(--dur-snap) var(--ease);
+}
+.cm-server-back { color: var(--fg-2); }
+.cm-server-back:hover,
+.cm-server-add:hover {
+  border-radius: var(--r-2);
+  background: var(--green-2);
+  color: var(--paper);
+}
+
+.cm-server-sep {
+  width: 32px;
+  height: 2px;
+  background: color-mix(in oklab, var(--fg) 12%, transparent);
+  border-radius: 2px;
+  margin: 4px 0;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Channel sidebar — server name header + channel list
+   ============================================================ */
+.cm-channel-sidebar {
+  flex: 0 0 240px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-2);
+  position: relative;
+}
+
+.cm-server-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--bg-2);
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--fg) 8%, transparent);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background var(--dur-snap) var(--ease);
+  user-select: none;
+  flex-shrink: 0;
+}
+.cm-server-header:hover {
+  background: color-mix(in oklab, var(--fg) 6%, var(--bg-2));
+}
+.cm-server-header-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-channel-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--fg) 18%, transparent) transparent;
+}
+.cm-channel-list::-webkit-scrollbar { width: 8px; }
+.cm-channel-list::-webkit-scrollbar-track { background: transparent; }
+.cm-channel-list::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--fg) 18%, transparent);
+  border-radius: 4px;
+}
+
+/* ============================================================
+   Channel category — collapsible group header
+   ============================================================ */
+.cm-channel-category {
+  display: flex;
+  flex-direction: column;
+  margin-top: 12px;
+}
+.cm-channel-category:first-child { margin-top: 4px; }
+
+.cm-category-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px 4px 8px;
+  font-family: var(--ff-body);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--fg-3);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--dur-snap) var(--ease);
+}
+.cm-category-header:hover { color: var(--fg); }
+.cm-category-header:hover .cm-cat-add { opacity: 1; }
+
+.cm-cat-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  font-size: 10px;
+  transform: rotate(90deg);
+  transition: transform var(--dur-base) var(--ease);
+  flex-shrink: 0;
+}
+.cm-category-header.collapsed .cm-cat-arrow { transform: rotate(0deg); }
+
+.cm-cat-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-cat-extra {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  color: var(--fg-3);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.cm-cat-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-3);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  opacity: 0;
+  border-radius: var(--r-1);
+  transition: opacity var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease), background var(--dur-snap) var(--ease);
+}
+.cm-cat-add:hover {
+  color: var(--fg);
+  background: color-mix(in oklab, var(--fg) 8%, transparent);
+}
+.cm-cat-add:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cm-cat-channels {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 0;
+}
+
+/* ============================================================
+   Channel item — pillish row with active rail and hover state
+   ============================================================ */
+.cm-channel-item-wrap {
+  position: relative;
+  padding: 0 8px;
+}
+
+.cm-channel-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--r-1);
+  color: var(--fg-3);
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background var(--dur-snap) var(--ease),
+    color var(--dur-snap) var(--ease);
+}
+.cm-channel-item:hover {
+  background: color-mix(in oklab, var(--fg) 6%, transparent);
+  color: var(--fg);
+}
+.cm-channel-item:hover .cm-ch-actions { opacity: 1; }
+
+.cm-channel-item.active {
+  background: color-mix(in oklab, var(--fg) 10%, transparent);
+  color: var(--fg);
+  font-weight: 500;
+}
+.cm-channel-item.active::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+
+.cm-channel-item.voice-active {
+  color: var(--green-2);
+}
+.cm-channel-item.voice-active .cm-ch-icon { color: var(--green-2); }
+.cm-channel-item.voice-active:hover {
+  background: color-mix(in oklab, var(--green) 12%, transparent);
+}
+
+.cm-channel-item.voice-connecting {
+  color: var(--sun);
+}
+
+.cm-ch-icon {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+  opacity: 0.85;
+}
+.cm-channel-item.active .cm-ch-icon { color: var(--fg-2); opacity: 1; }
+
+.cm-ch-spinner {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in oklab, var(--sun) 30%, transparent);
+  border-top-color: var(--sun);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cm-ch-spinner {
+    animation: cm-spin var(--dur-slow) steps(8, end) infinite;
+    will-change: transform;
+    contain: layout;
+  }
+  @keyframes cm-spin {
+    to { transform: rotate(360deg); }
+  }
+}
+
+.cm-ch-icon.voice-active-badge {
+  color: var(--green-2);
+  text-shadow: 0 0 8px var(--green-2);
+}
+
+.cm-ch-voice-badge {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green-2);
+  flex-shrink: 0;
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cm-ch-voice-badge {
+    animation: cm-voice-pulse 2s ease-in-out infinite;
+  }
+  @keyframes cm-voice-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+}
+
+.cm-ch-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+
+.cm-ch-badge {
+  flex-shrink: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 5px;
+  background: var(--warn);
+  color: var(--paper);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  border-radius: var(--r-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.cm-ch-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--dur-snap) var(--ease);
+  flex-shrink: 0;
+}
+.cm-channel-item.active .cm-ch-actions { opacity: 0.6; }
+
+.cm-ch-action-btn {
+  width: 44px;
+  height: 44px;
+  padding: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  color: var(--fg-3);
+  cursor: pointer;
+  border-radius: var(--r-1);
+  font-size: var(--fs-tiny);
+  transition: color var(--dur-snap) var(--ease), background var(--dur-snap) var(--ease);
+}
+.cm-ch-action-btn:hover {
+  color: var(--fg);
+  background: color-mix(in oklab, var(--fg) 10%, transparent);
+}
+.cm-ch-action-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Voice users nested under a voice channel */
+.cm-ch-voice-users {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 8px 4px 32px;
+}
+
+.cm-ch-voice-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px;
+  border-radius: var(--r-1);
+  color: var(--fg-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease);
+}
+.cm-ch-voice-user:hover {
+  background: color-mix(in oklab, var(--fg) 6%, transparent);
+  color: var(--fg);
+}
+.cm-ch-voice-user.speaking {
+  color: var(--green-2);
+}
+.cm-ch-voice-user.speaking .cm-ch-voice-user-avatar {
+  box-shadow: 0 0 0 2px var(--green-2);
+}
+
+.cm-ch-voice-user-avatar {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--fg-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  overflow: hidden;
+  transition: box-shadow var(--dur-snap) var(--ease);
+}
+.cm-ch-voice-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cm-ch-voice-user-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================
+   Voice strip — slots above user panel when in voice
+   ============================================================ */
+.cm-voice-strip {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: color-mix(in oklab, var(--green) 18%, var(--bg-2));
+  color: var(--fg);
+  box-shadow: 0 -1px 0 color-mix(in oklab, var(--fg) 10%, transparent);
+  flex-shrink: 0;
+}
+.cm-voice-strip.open { display: flex; }
+
+.cm-vs-label {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--tr-caps);
+  color: var(--green-2);
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cm-vs-label::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--green-2) 30%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cm-vs-label::before {
+    animation: cm-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes cm-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px color-mix(in oklab, var(--green-2) 30%, transparent); }
+    50%      { box-shadow: 0 0 0 6px color-mix(in oklab, var(--green-2) 0%,  transparent); }
+  }
+}
+
+.cm-vs-channel {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-vs-status {
+  font-size: var(--fs-xs);
+  color: var(--fg-2);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cm-vs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  background: color-mix(in oklab, var(--fg) 10%, transparent);
+  color: var(--fg);
+  border: 0;
+  border-radius: var(--r-1);
+  font-family: var(--ff-body);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease);
+}
+.cm-vs-btn:hover {
+  background: color-mix(in oklab, var(--fg) 18%, transparent);
+}
+.cm-vs-btn.danger {
+  background: var(--warn);
+  color: var(--paper);
+}
+.cm-vs-btn.danger:hover {
+  background: color-mix(in oklab, var(--warn) 80%, var(--ink));
+}
+
+/* ============================================================
+   User panel — bottom of channel sidebar
+   ============================================================ */
+.cm-user-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px;
+  background: color-mix(in oklab, var(--fg) 5%, var(--bg-2));
+  flex-shrink: 0;
+}
+
+.cm-user-avatar {
+  position: relative;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--fg-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  overflow: hidden;
+}
+.cm-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cm-user-status-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--green-2);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--fg) 5%, var(--bg-2));
+}
+
+.cm-user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.cm-user-name {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cm-user-tag {
+  font-family: var(--ff-mono);
+  font-size: var(--fs-micro);
+  color: var(--fg-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-user-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cm-user-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  color: var(--fg-2);
+  cursor: pointer;
+  border-radius: var(--r-1);
+  font-size: var(--fs-sm);
+  transition: color var(--dur-snap) var(--ease), background var(--dur-snap) var(--ease);
+}
+.cm-user-btn:hover {
+  background: color-mix(in oklab, var(--fg) 10%, transparent);
+  color: var(--fg);
+}
+.cm-user-btn.muted {
+  color: var(--warn);
+}
+.cm-user-btn.deafened {
+  color: var(--warn);
+  background: color-mix(in oklab, var(--warn) 18%, transparent);
+}
+
+/* ============================================================
+   Chat header — top of main column
+   ============================================================ */
+.cm-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--bg);
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--fg) 8%, transparent);
+  flex-shrink: 0;
+  min-height: 48px;
+}
+
+.cm-chat-header-icon {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ff-mono);
+  font-size: var(--fs-lg);
+  color: var(--fg-3);
+}
+
+.cm-chat-header-name {
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+.cm-chat-header-topic {
+  flex: 1;
+  min-width: 0;
+  padding-left: 12px;
+  margin-left: 4px;
+  border-left: 1px solid color-mix(in oklab, var(--fg) 12%, transparent);
+  color: var(--fg-3);
+  font-size: var(--fs-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cm-chat-header-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Member list — right column
+   ============================================================ */
+.cm-member-list {
+  flex: 0 0 240px;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg-2);
+  padding: 16px 0;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in oklab, var(--fg) 18%, transparent) transparent;
+  transition: width var(--dur-base) var(--ease), flex-basis var(--dur-base) var(--ease);
+  will-change: width, flex-basis, opacity, transform; contain: layout style;
+}
+.cm-member-list:not(.open) {
+  width: 0;
+  flex-basis: 0;
+  padding: 0;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateX(100%);
+}
+.cm-member-list::-webkit-scrollbar { width: 8px; }
+.cm-member-list::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--fg) 18%, transparent);
+  border-radius: 4px;
+}
+
+.cm-member-category {
+  padding: 12px 16px 6px;
+  font-family: var(--ff-body);
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  color: var(--fg-3);
+  letter-spacing: var(--tr-caps);
+  text-transform: uppercase;
+}
+
+.cm-member-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  margin: 0 8px;
+  border-radius: var(--r-1);
+  color: var(--fg-2);
+  cursor: pointer;
+  transition: background var(--dur-snap) var(--ease), color var(--dur-snap) var(--ease);
+  max-width: 100%;
+  min-width: 0;
+}
+.cm-member-item:hover {
+  background: color-mix(in oklab, var(--fg) 6%, transparent);
+  color: var(--fg);
+}
+
+.cm-member-avatar {
+  position: relative;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--fg-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  overflow: hidden;
+}
+.cm-member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cm-member-status {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  box-shadow: 0 0 0 2px var(--bg-2);
+}
+.cm-member-status.online {
+  background: var(--green-2);
+}
+
+.cm-member-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+
+/* ============================================================
+   Voice user (standalone, e.g. in voice stage area)
+   ============================================================ */
+.cm-voice-user {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--r-2);
+  background: var(--bg-2);
+  transition: box-shadow var(--dur-snap) var(--ease), background var(--dur-snap) var(--ease);
+}
+.cm-voice-user.speaking {
+  background: color-mix(in oklab, var(--green-2) 12%, var(--bg-2));
+  box-shadow: 0 0 0 2px var(--green-2);
+}
+
+.cm-voice-user-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--bg-3);
+  color: var(--fg-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  overflow: hidden;
+}
+.cm-voice-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.cm-voice-user.speaking .cm-voice-user-avatar {
+  box-shadow: 0 0 0 2px var(--green-2);
+}
+
+.cm-voice-user-name {
+  font-size: var(--fs-xs);
+  color: var(--fg);
+  font-weight: 500;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* ============================================================
+   Responsive — collapse sidebars on narrow viewports
+   ============================================================ */
+@media (max-width: 768px) {
+  .cm-channel-sidebar {
+    position: absolute;
+    z-index: 20;
+    top: 0;
+    left: 72px;
+    bottom: 0;
+    transform: translateX(-110%);
+    transition: transform var(--dur-base) var(--ease);
+    box-shadow: 2px 0 16px color-mix(in oklab, var(--ink) 30%, transparent);
+  }
+  .cm-channel-sidebar.open { transform: translateX(0); }
+  .cm-member-list { display: none; }
+  .cm-member-list.open {
+    display: flex;
+    position: absolute;
+    z-index: 20;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 240px;
+    flex-basis: 240px;
+    box-shadow: -2px 0 16px color-mix(in oklab, var(--ink) 30%, transparent);
+  }
+  .cm-chat-header-topic { display: none; }
+}
+
+@media (max-width: 480px) {
+  .cm-server-rail {
+    flex: 0 0 56px;
+    width: 56px;
+  }
+  .cm-server-icon,
+  .cm-server-add,
+  .cm-server-back {
+    width: 44px;
+    height: 44px;
+    padding: 4px;
+  }
+  .cm-channel-sidebar {
+    left: 56px;
+    width: 80vw;
+    max-width: 200px;
+  }
+  .cm-channel-sidebar.open {
+    width: 80vw;
+    max-width: 200px;
+  }
+
+  /* Mobile touch target fixes for icon buttons */
+  .cm-cat-add,
+  .cm-ch-action-btn {
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+  }
+  .cm-ch-icon {
+    flex: 0 0 24px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+/* ---------- a11y polish: focus-visible coverage on community interactive elements ---------- */
+/* Every interactive surface with a :hover state must also have a :focus-visible state so
+   keyboard users get equivalent feedback. The selectors here mirror the existing :hover rules. */
+
+.cm-server-icon:focus-visible,
+.cm-server-back:focus-visible,
+.cm-server-add:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-2);
+}
+
+.cm-channel-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--r-1);
+}
+
+.cm-member-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--r-1);
+}
+
+.cm-vs-btn:focus-visible,
+.cm-user-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-1);
+}
+
+/* ---------- prefers-reduced-motion: kill the transitions that were not previously guarded ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .cm-server-icon,
+  .cm-channel-item,
+  .cm-member-item,
+  .cm-vs-btn,
+  .cm-user-btn,
+  .cm-ch-spinner,
+  .cm-ch-voice-badge {
+    transition: none !important;
+    animation: none !important;
+  }
+}
