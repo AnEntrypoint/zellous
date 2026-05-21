@@ -270,9 +270,11 @@ pre .n { color: var(--green-2); }
 .app-main.narrow { max-width: 760px; margin: 0 auto; }
 
 @media (min-width: 1400px) {
+  .app { max-width: 1400px; margin-left: auto; margin-right: auto; }
   .app-main .chat,
   .app-main > .chat-area,
-  .app-main > .main-content { max-width: 1100px; margin-left: auto; margin-right: auto; width: 100%; }
+  .app-main > .main-content { max-width: none; margin: 0; width: 100%; }
+  .app-status { max-width: 1400px; margin-left: auto; margin-right: auto; left: 0; right: 0; }
 }
 
 .app-status {
