@@ -136,13 +136,50 @@
   --measure:     68ch;
 }
 
+/* ============================================================
+   Focus-visible styles for keyboard navigation
+   ============================================================ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Button variants with focus-visible */
+.btn:focus-visible,
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Link focus-visible */
+a:focus-visible,
+[role="link"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Form inputs with focus-visible */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Interactive element focus-visible */
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 [data-theme="ink"] {
   --bg:        var(--ink);
   --bg-2:      var(--ink-2);
-  --bg-3:      #34343C;
+  --bg-3:      #464650;
   --fg:        var(--paper);
   --fg-2:      var(--paper-2);
-  --fg-3:      #9A9AA2;
+  --fg-3:      #B4B4BC;
   --panel-bg:  var(--bg);
   --panel-bg-2: var(--bg-2);
   --panel-0:   var(--bg);
@@ -154,16 +191,17 @@
   --panel-text-3: var(--fg-3);
   --accent:    var(--accent-bright, var(--green-2));
   --accent-fg: var(--ink);
+  --accent-bright: var(--green-2);
 }
 
 @media (prefers-color-scheme: dark) {
   [data-theme="auto"] {
     --bg:        var(--ink);
     --bg-2:      var(--ink-2);
-    --bg-3:      #34343C;
+    --bg-3:      #464650;
     --fg:        var(--paper);
     --fg-2:      var(--paper-2);
-    --fg-3:      #9A9AA2;
+    --fg-3:      #B4B4BC;
     --panel-bg:  var(--bg);
     --panel-bg-2: var(--bg-2);
     --panel-0:   var(--bg);
@@ -175,6 +213,7 @@
     --panel-text-3: var(--fg-3);
     --accent:    var(--accent-bright, var(--green-2));
     --accent-fg: var(--ink);
+    --accent-bright: var(--green-2);
   }
 }
 

@@ -38,8 +38,9 @@
 
       const out = [];
 
-      // Rooms group: text + announcement + forum + page channels for current server
       const textLike = sorted.filter(c => c.type !== 'voice' && c.type !== 'threaded');
+      const servers = state.servers || [];
+      const useFallback = !textLike.length && !servers.length;
       if (textLike.length) {
         out.push(group('rooms'));
         for (const c of textLike) {
@@ -52,6 +53,25 @@
             count: c.unreadCount || null,
             onClick: () => { try { window.ui.actions.switchChannel(c); } catch (_) {} },
             onContext: (e) => { try { window.channelManager.showContextMenu(c.id, e.clientX, e.clientY); } catch (_) {} }
+          }));
+        }
+      } else if (useFallback) {
+        out.push(group('rooms'));
+        const stub = [
+          { id: 'general', name: 'general', count: 2 },
+          { id: 'design', name: 'design', count: 4 },
+          { id: 'releases', name: 'releases', count: 1 },
+          { id: 'lore', name: 'lore', count: 0 }
+        ];
+        for (const c of stub) {
+          out.push(pill({
+            active: cur.id === c.id,
+            glyph: '#',
+            label: c.name,
+            count: c.count,
+            onClick: () => {
+              try { state.currentChannel = { id: c.id, type: 'text', name: c.name }; } catch (_) {}
+            }
           }));
         }
       }
@@ -73,8 +93,6 @@
         }
       }
 
-      // Servers group: switch between joined servers
-      const servers = state.servers || [];
       if (servers.length) {
         out.push(group('servers'));
         out.push(pill({
@@ -103,33 +121,20 @@
         }
       }
 
-      // Direct messages — placeholder + self when home
-      if (home) {
+      if (home || useFallback) {
         out.push(group('direct'));
-        const user = state.currentUser || (window.auth && window.auth.user) || {};
-        const name = user.displayName || user.username || 'you';
-        out.push(pill({
-          active: !textLike.length,
-          glyph: '·',
-          label: name + ' (you)',
-          onClick: () => {}
-        }));
+        if (useFallback) {
+          out.push(pill({ active: false, glyph: '·', label: 'jordan', onClick: () => {} }));
+          out.push(pill({ active: false, glyph: '·', label: 'mai', onClick: () => {} }));
+          out.push(pill({ active: false, glyph: '·', label: 'aicat', onClick: () => {} }));
+        } else {
+          const user = state.currentUser || (window.auth && window.auth.user) || {};
+          let name = user.displayName || user.username || '';
+          if (!name || /^npub1/.test(name)) name = 'you';
+          else if (name.length > 16) name = name.slice(0, 14) + '…';
+          out.push(pill({ active: false, glyph: '·', label: name, onClick: () => {} }));
+        }
       }
-
-      // User bar at bottom — name + mic/deafen/settings buttons
-      const user = state.currentUser || (window.auth && window.auth.user) || {};
-      const npub = state.nostrPubkey ? ((window.auth && window.auth.npubShort && window.auth.npubShort(state.nostrPubkey)) || (state.nostrPubkey || '').slice(0, 12) + '…') : '';
-      const uname = user.displayName || user.username || (state.nostrPubkey ? 'connecting…' : 'sign in');
-      out.push(h('div', { class: 'group', style: 'margin-top:auto' }, ''));
-      out.push(h('div', { class: 'app-side-user', style: 'padding:8px 12px;border-top:1px solid var(--bg-2);font-size:13px;color:var(--fg-2);display:flex;align-items:center;gap:8px' },
-        h('span', { class: 'glyph', style: 'color:var(--accent)' }, '·'),
-        h('span', { style: 'flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' }, uname),
-        h('button', {
-          title: 'Settings',
-          style: 'background:none;border:none;color:var(--fg-3);cursor:pointer;padding:4px',
-          onclick: () => { try { window.openSettings && window.openSettings(); } catch (_) {} }
-        }, '⚙')
-      ));
 
       return out;
     }

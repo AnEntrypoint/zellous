@@ -92,7 +92,7 @@
 
     function composerView() {
       const ch = state.currentChannel;
-      const placeholder = 'Message ' + (ch?.name ? '#' + ch.name : '#general');
+      const placeholder = 'message #' + (ch?.name || 'general') + '…';
       return C.ChatComposer({
         value: state.chatInputValue || '',
         placeholder,
@@ -121,13 +121,16 @@
         : ch.type === 'page' ? 'page'
         : ch.type === 'announcement' ? 'announcement'
         : 'public';
-      return C.Chat({
-        title: ch.name || 'general',
-        sub,
-        messages: mapMessages(),
-        header: null,
-        composer: composerView()
-      });
+      const msgs = mapMessages();
+      return h('div', { class: 'chat-area-wrap', style: 'display:flex;flex-direction:column;flex:1;min-height:0' },
+        C.Chat({
+          title: ch.name || 'general',
+          sub,
+          messages: msgs,
+          header: null,
+          composer: composerView()
+        })
+      );
     }
 
     function renderArea() { applyDiff(areaHost, areaView()); }

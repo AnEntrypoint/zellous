@@ -328,12 +328,15 @@ html.ds-247420 .chat-reactions .rxn.you {
 html.ds-247420 .chat-reactions .n { font-weight: 600; }
 
 /* zellous is a live app — main area should fill height, scroll the thread, sit tight to topbar */
-html.ds-247420 .app-main { padding: 24px 32px; display: flex; flex-direction: column; overflow: hidden; }
-html.ds-247420 .main-content { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-html.ds-247420 .chat { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-html.ds-247420 .chat-thread { flex: 1; overflow-y: auto; min-height: 0; }
-html.ds-247420 .app-body { height: calc(100vh - 74px - 36px - 48px); }
-html.ds-247420 .app-side-shell { overflow-y: auto; }
+html.ds-247420 .app-main { padding: 0; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+html.ds-247420 .main-content { display: flex; flex-direction: column; flex: 1; min-height: 0; background: transparent; }
+html.ds-247420 .chat { display: flex; flex-direction: column; flex: 1; min-height: 0; background: transparent; }
+html.ds-247420 .chat-thread { flex: 1; overflow-y: auto; min-height: 0; background: transparent; padding: var(--space-4) var(--space-5); }
+html.ds-247420 .chat-head { padding: var(--space-3) var(--space-5); border-bottom: 1px solid var(--rule); }
+html.ds-247420 .chat-area { background: transparent; display: flex; flex-direction: column; flex: 1; min-height: 0; }
+html.ds-247420 .app-body { height: calc(100vh - 56px - 32px - 36px); min-height: 0; }
+html.ds-247420 .app-side-shell { overflow-y: auto; min-height: 0; }
+html.ds-247420 .ds-pattern-notes p { margin: 0 0 8px; font-size: var(--fs-sm); color: var(--fg-2); line-height: 1.5; }
 
 .chat-messages {
   flex: 1; overflow-y: auto; overflow-x: hidden;
@@ -1081,3 +1084,106 @@ html.ds-247420 button.msg-action-btn { color: var(--fg-3); padding: 4px 6px; bor
 html.ds-247420 .voice-strip button { color: var(--fg-3); padding: 6px; border-radius: 4px; background: transparent; }
 html.ds-247420 .voice-strip button.danger { color: var(--warn); }
 html.ds-247420 .voice-strip button:hover { background: var(--bg-3); color: var(--fg); }
+
+/* SDK chat-kit surface — keep area transparent, kill legacy duplicate header strips */
+html.ds-247420 .chat-header-bar { display: none !important; }
+html.ds-247420 .mobile-header { display: none; }
+@media (max-width: 768px) {
+  html.ds-247420 .mobile-header { display: flex; }
+}
+html.ds-247420 .chat-area { padding: 0; border: 0; background: transparent; box-shadow: none; }
+html.ds-247420 .chat { padding: 0; background: transparent; }
+html.ds-247420 .chat .chat-composer { padding: var(--space-3) var(--space-5); background: transparent; }
+
+/* Active room pill: keep glyph + count visible on accent background */
+html.ds-247420 .app-side a.active .glyph { color: var(--accent-fg) !important; }
+html.ds-247420 .app-side a.active .count { background: var(--warn, #ff4d4f); color: #fff; }
+html.ds-247420 .app-side .count {
+  background: var(--warn, #ff4d4f); color: #fff;
+  font-family: var(--ff-mono); font-size: 10px; font-weight: 700;
+  min-width: 20px; height: 18px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-pill, 999px); letter-spacing: 0.02em;
+}
+html.ds-247420 .app-side a {
+  min-height: 36px; padding: 8px 12px; margin-bottom: 2px;
+  grid-template-columns: 18px 1fr auto; gap: 10px;
+}
+
+/* Chat-head: align with rooms group label vertically (kill gap above) */
+html.ds-247420 .chat-head {
+  padding: var(--space-5) var(--space-5) var(--space-3) !important;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Composer: rounded rectangle with send button INSIDE on right */
+html.ds-247420 .chat-composer {
+  position: relative;
+  padding: var(--space-3) var(--space-5) var(--space-5) !important;
+  border-top: 0;
+  background: transparent;
+}
+html.ds-247420 .chat-composer textarea {
+  width: 100%; flex: 1;
+  padding: 14px 56px 14px 18px !important;
+  background: var(--bg-2); color: var(--fg);
+  border-radius: var(--r-2, 14px) !important;
+  min-height: 52px; max-height: 200px;
+  font-size: var(--fs-sm); line-height: 1.4;
+  border: 0; outline: 0; resize: none;
+}
+html.ds-247420 .chat-composer textarea:focus {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+html.ds-247420 .chat-composer .send,
+html.ds-247420 .chat-composer button {
+  position: absolute;
+  right: calc(var(--space-5) + 8px);
+  bottom: calc(var(--space-4) + 8px);
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--accent); color: var(--accent-fg);
+  font-size: 14px;
+}
+.chat-input-bar .chat-composer .send,
+.chat-input-bar .chat-composer button {
+  position: static;
+}
+
+/* Status bar — make sure it's visible and styled */
+html.ds-247420 .app-status {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 10px var(--space-5);
+  font-family: var(--ff-mono); font-size: var(--fs-xs);
+  color: var(--fg-3);
+  border-top: 1px solid var(--rule);
+  flex-shrink: 0;
+}
+html.ds-247420 .app-status .item:first-of-type { color: var(--accent); }
+html.ds-247420 .app-status .spread { flex: 1; }
+html.ds-247420 .app-body {
+  height: auto !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+}
+html.ds-247420 .app { height: calc(100vh - 42px) !important; overflow: hidden; }
+html.ds-247420 .app-status {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  height: 42px; z-index: 100;
+  background: var(--bg);
+}
+
+/* Empty chat-thread placeholder — sentinel child blocks :empty, so target sentinel-only */
+html.ds-247420 .chat-thread:has(> [data-scroll-sentinel]:only-child)::before,
+html.ds-247420 .chat-thread[data-msg-count="0"]::before {
+  content: 'no messages yet\Astart the conversation';
+  white-space: pre;
+  color: var(--fg-3);
+  font-family: var(--ff-mono);
+  font-size: var(--fs-sm);
+  text-align: center;
+  margin: auto;
+  opacity: 0.6;
+  pointer-events: none;
+  line-height: 1.6;
+}

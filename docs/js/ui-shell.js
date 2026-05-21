@@ -4,6 +4,48 @@
   const LS = { servers: 'zn_rail_servers', channels: 'zn_rail_channels' };
   const $ = (id) => document.getElementById(id);
 
+  (function wireCrumb() {
+    const breadName = document.getElementById('zBreadName');
+    const crumbServer = document.getElementById('zCrumbServer');
+    const crumbChannel = document.getElementById('zCrumbChannel');
+    const statServer = document.getElementById('zStatusServer');
+    const statChannel = document.getElementById('zStatusChannel');
+    const statMsgs = document.getElementById('zStatusMsgs');
+    const statRooms = document.getElementById('zStatusRooms');
+    if (!breadName && !crumbChannel) return;
+    function tick() {
+      try {
+        const ch = window.stateSignals?.currentChannel?.value || { name: 'general' };
+        const servers = window.stateSignals?.servers?.value || [];
+        const sid = window.stateSignals?.currentServerId?.value;
+        const home = window.state?.homeMode;
+        const srv = home ? 'home' : (servers.find(s => s.id === sid)?.name || 'home');
+        const msgCount = (window.stateSignals?.chatMessages?.value || []).length;
+        if (breadName) breadName.textContent = ch.name || 'general';
+        if (crumbServer) crumbServer.textContent = srv;
+        if (crumbChannel) crumbChannel.textContent = ch.name || 'general';
+        if (statServer) statServer.textContent = srv;
+        if (statChannel) statChannel.textContent = '• ' + (ch.name || 'general');
+        if (statMsgs) statMsgs.textContent = '• ' + msgCount + ' messages';
+        if (statRooms) {
+          const ch = (window.stateSignals?.channels?.value || []).filter(c => c.type !== 'voice' && c.type !== 'threaded');
+          const n = ch.length || 4;
+          statRooms.textContent = '• ' + n + ' rooms';
+        }
+      } catch (_) {}
+    }
+    if (typeof window.__effect === 'function') {
+      window.__effect(() => {
+        window.stateSignals?.currentChannel?.value;
+        window.stateSignals?.servers?.value;
+        window.stateSignals?.currentServerId?.value;
+        window.stateSignals?.chatMessages?.value;
+        tick();
+      });
+    }
+    tick();
+  })();
+
   function ensureNode(html) {
     const t = document.createElement('template');
     t.innerHTML = html.trim();
