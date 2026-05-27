@@ -16,7 +16,7 @@ Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave
 | Expose / rename a window global | `docs/js/wireweave-bridge.js` (mirror under `window.__zellous`) |
 | Add a vendored dep | `scripts/fetch-vendor.js`, then add an importmap entry inside the inline injector script in `docs/nostr-chat/index.html` |
 | Touch state | `docs/js/state.js` (single source of truth for signals) |
-| Improve an SDK component (or add a missing one) | edit `C:\dev\anentrypoint-design\src\components\*.js` + `community.css`, run `node scripts/build.mjs`, `npm version patch`, `npm publish`. Zellous's importmap pins `@latest` so propagation is automatic after unpkg cache fills (~60-90s). |
+| Improve an SDK component (or add a missing one) | edit `C:\dev\anentrypoint-design\src\components\*.js` + the relevant cssPart (`community.css`/`editor-primitives.css`/`app-shell.css`), re-export from `src/components.js` (barrel re-export is what makes it `C.X`), run `node scripts/build.mjs`. **Then vendor the built dist into zellous** (see SDK-load note below) — do NOT rely on `npm publish`; npm auth is unavailable in this environment (401/404) and the live importmap no longer points at unpkg. |
 | Marketing landing | `docs/index.html` (live) and/or `site/` + `flatspace.config.mjs` (CI-built `dist/`) |
 
 ## SDK migration status (2026-05-19)
@@ -140,6 +140,12 @@ If `errors` is non-empty (after filtering external Google Fonts failures, which 
 **Flatspace build command and output** — Flatspace is invoked via `npx --yes flatspace@latest build` (see .github/workflows/gh-pages.yml). There is no local build script in package.json; the command must be run directly. Build output goes to ./dist.
 
 **docs/sdk/ vs docs/vendor/ gitignore split** — `docs/vendor/` is gitignored (third-party drops). `docs/sdk/` is NOT gitignored and is committed. SDK assets (e.g. `247420.js` copied from `node_modules/anentrypoint-design/dist/`) belong in `docs/sdk/`, not `docs/vendor/`.
+
+**SDK JS is vendored locally, NOT loaded from unpkg (2026-05-27)** — the inline importmap injector in `docs/nostr-chat/index.html` maps `anentrypoint-design` → `../sdk/247420.js` (a committed copy of `C:\dev\anentrypoint-design\dist\247420.js`), because npm publish is blocked (no auth). To propagate an SDK change to the live site: `node scripts/build.mjs` in the SDK repo, then `cp dist/247420.js docs/sdk/247420.js` (and `dist/247420.css` → `docs/sdk/247420.css`), and refresh the vendored cssParts under `docs/css/vendor/`. The built dist is self-contained (esbuild inlines webjsx), so the relative importmap entry resolves with no further deps.
+
+**SDK CSS cssParts must be `<link>`ed in index.html or component styles silently don't apply** — the SDK splits styling across `colors_and_type.css`, `app-shell.css`, `community.css` (community surface `.cm-*` + voice `.vx-*`), and `editor-primitives.css` (overlay `.ov-*`). zellous originally linked only colors + app-shell, so `.cm-*`/`.vx-*`/`.ov-*` component classes rendered unstyled. All four vendored cssParts are now linked. When adding a component whose CSS lives in a not-yet-linked cssPart, add the `<link>`.
+
+**SDK component reaches consumers as `C.X` only via the barrel** — `src/components.js` does `import * as components` and a consumer reads `sdk.C.X`. A new `export function Foo` in a component file is invisible until re-exported from `src/components.js`. The zellous `docs/js/sdk-*.js` mounts poll `setTimeout(init,30)` forever on `!sdk.C.Foo`, so a missing barrel re-export = a silently dead feature (no error), not a crash.
 
 **Static dev server must set MIME types** — When serving `docs/` locally for module script testing, the dev server must send explicit `Content-Type` headers (e.g. `text/javascript` for `.js` files). Browsers enforce strict MIME checking for ES modules and will refuse to execute scripts served without the correct type, even if the file content is correct.
 
