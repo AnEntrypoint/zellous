@@ -236,7 +236,25 @@ window.__wireweaveReady = (async () => {
       }
       if (window.ui) ui.render.all();
     },
-    init: () => srv.init(),
+    init: async () => {
+      srv.init();
+      // First-run experience: a brand-new identity has zero servers, so the rail
+      // and channel list render empty and the user sees "no voice, no servers".
+      // Auto-create a personal "Zellous" server so they immediately land in a
+      // populated space — switching to it triggers onSwitch → channels.load →
+      // the default general(text) + General(voice) channels, making voice & a
+      // server visible on first load. Guarded so it only fires once.
+      if (!srv.servers.length && srv.auth?.pubkey && srv.storage.getItem('zn_firstRunDone') !== '1') {
+        try {
+          await srv.create('Zellous', '#5865F2');
+          srv.storage.setItem('zn_firstRunDone', '1');
+          // create() emits 'updated' but the first-paint signal read can race it;
+          // sync state explicitly so the new server pill shows on the first load.
+          state.servers = srv.servers;
+          if (window.ui) ui.render.all();
+        } catch (e) { console.warn('[zellous] first-run server create failed', e?.message); }
+      }
+    },
     renderList: () => { /* handled by nostr-servers-ui.js which remains */ }
   };
 

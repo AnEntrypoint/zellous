@@ -26,6 +26,10 @@ export class Channels extends EventTarget {
     this.channels = []; this.categories = [];
     const ownerPubkey = serverId.split(':')[0];
     const dTag = dtag('channels', serverId);
+    // Optimistically seed the default channel set immediately so the UI never
+    // shows an empty channel list during the relay round-trip. A relay event
+    // (if any) overrides this below; EOSE with no event keeps these defaults.
+    this._setDefaults();
     this.pool.subscribe('channels-' + serverId,
       [{ kinds: [30078], authors: [ownerPubkey], '#d': [dTag] }],
       (event) => {
