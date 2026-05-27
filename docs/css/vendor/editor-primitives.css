@@ -847,3 +847,43 @@ input.ov-set-control[type="range"] { padding: 0; accent-color: var(--accent); }
     border: 0; border-radius: var(--r-1, 10px);
     padding: var(--space-2, 8px); font: inherit;
 }
+
+/* AuthModal — ov-auth-* */
+.ov-auth-backdrop {
+    position: fixed; inset: 0; z-index: var(--z-overlay, 1000);
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55);
+}
+.ov-auth-panel {
+    width: min(420px, 92vw);
+    display: flex; flex-direction: column;
+    background: var(--bg-2); color: var(--fg);
+    border: 1px solid var(--rule); border-radius: var(--r-2, 8px);
+    box-shadow: var(--shadow-2, 0 12px 40px rgba(0,0,0,.4));
+    overflow: hidden;
+}
+.ov-auth-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3); border-bottom: 1px solid var(--rule); }
+.ov-auth-title { margin: 0; font-size: var(--fs-2, 16px); font-weight: 700; }
+.ov-auth-x { border: none; background: transparent; color: var(--fg-2, var(--fg)); font-size: 22px; line-height: 1; cursor: pointer; }
+.ov-auth-x:hover { color: var(--fg); }
+.ov-auth-tabs { display: flex; gap: var(--space-1); padding: var(--space-2) var(--space-3) 0; }
+.ov-auth-tab { flex: 1; padding: var(--space-1) var(--space-2); border: 1px solid var(--rule); border-bottom: none; border-radius: var(--r-1) var(--r-1) 0 0; background: var(--bg-3); color: var(--fg-2, var(--fg)); cursor: pointer; }
+.ov-auth-tab.is-active { background: var(--bg-2); color: var(--fg); font-weight: 700; }
+.ov-auth-body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); }
+.ov-auth-hint { margin: 0; font-size: var(--fs-0, 12px); color: var(--fg-2, var(--fg)); }
+.ov-auth-input { padding: var(--space-2); border: 1px solid var(--rule-strong); border-radius: var(--r-1); background: var(--bg-3); color: var(--fg); }
+.ov-auth-primary { padding: var(--space-2); border: none; border-radius: var(--r-1); background: var(--accent); color: var(--accent-fg, #fff); font-weight: 700; cursor: pointer; }
+.ov-auth-primary:disabled { opacity: .6; cursor: progress; }
+.ov-auth-error { margin: 0 var(--space-3) var(--space-3); padding: var(--space-2); border-radius: var(--r-1); background: var(--danger-bg, rgba(208,69,69,.15)); color: var(--danger, #d04545); font-size: var(--fs-0, 12px); }
+
+/* VideoLightbox — ov-lightbox-* */
+.ov-lightbox-backdrop {
+    position: fixed; inset: 0; z-index: var(--z-overlay-top, 1100);
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.85);
+}
+.ov-lightbox-x { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border: none; border-radius: 50%; background: rgba(255,255,255,.12); color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
+.ov-lightbox-x:hover { background: rgba(255,255,255,.24); }
+.ov-lightbox-stage { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); max-width: 92vw; max-height: 90vh; }
+.ov-lightbox-video { max-width: 92vw; max-height: 82vh; border-radius: var(--r-1); background: #000; }
+.ov-lightbox-label { color: #fff; font-size: var(--fs-0, 12px); opacity: .85; }

@@ -19,9 +19,9 @@ Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave
 | Improve an SDK component (or add a missing one) | edit `C:\dev\anentrypoint-design\src\components\*.js` + the relevant cssPart (`community.css`/`editor-primitives.css`/`app-shell.css`), re-export from `src/components.js` (barrel re-export is what makes it `C.X`), run `node scripts/build.mjs`. **Then vendor the built dist into zellous** (see SDK-load note below) — do NOT rely on `npm publish`; npm auth is unavailable in this environment (401/404) and the live importmap no longer points at unpkg. |
 | Marketing landing | `docs/index.html` (live) and/or `site/` + `flatspace.config.mjs` (CI-built `dist/`) |
 
-## SDK migration status (2026-05-19)
+## SDK migration status (2026-05-27)
 
-The community-surface migration to `anentrypoint-design` is partial — ~70% of visible chrome runs through SDK subtree mounts now. Each SDK subtree mount lives in its own `docs/js/sdk-*.js` IIFE:
+The community-surface migration to `anentrypoint-design` is **complete** — all visible chrome runs through SDK subtree mounts. There are 26 `sdk-*.js` mounts, every one loaded in the `scripts` array of `docs/nostr-chat/index.html`. Each SDK subtree mount lives in its own `docs/js/sdk-*.js` IIFE:
 
 | Surface | Host element | Mount module | SDK component |
 |---|---|---|---|
@@ -41,21 +41,31 @@ The community-surface migration to `anentrypoint-design` is partial — ~70% of 
 
 Pattern for each `sdk-*.js`: IIFE that waits for `window.__sdk` + `window.__effect` + relevant globals, clears its host, calls `applyDiff(host, view())` inside an `effect()` reading signals.
 
-### Not yet migrated (zellous-native, still in `zellous.css` + legacy `ui-*.js`)
+### Also migrated (additional `sdk-*.js` mounts, all loaded in index.html)
 
-- Settings popover — directly DOM-coupled to `audio.js`/voice modules by id (`#settingsInputDevice`, `#micRawBar`, etc.); needs state-signal extraction first
-- Voice settings modal — no existing host today; would be net-new UI
-- Boot overlay (`#zellousBoot`)
-- Mobile header / drawer overlay
-- Toast (`ui.showToast`)
-- Context menus (`_mkMenu` in `nostr-servers-ui.js`, etc.)
-- Emoji picker
-- Reply bar (currently inline in chat composer flow)
-- Command palette (Cmd+K)
-- Audio queue UI (`docs/js/queue.js` direct DOM)
-- PTT button, VAD meter, webcam preview — `docs/js/ptt.js`/`voice-ptt.js`/`webcam.js` direct DOM
+These were formerly listed as "not yet migrated"; they each now have a loaded consumer module:
 
-SDK components for all of these exist in `anentrypoint-design@0.0.122` — they just don't have consumer modules in zellous yet.
+| Surface | Mount module | SDK component |
+|---|---|---|
+| Settings popover | `sdk-settings-popover.js` | `C.SettingsPopover` |
+| Voice settings modal | `sdk-voice-settings-modal.js` | `C.VoiceSettingsModal` |
+| Boot overlay | `sdk-boot-overlay.js` | `C.BootOverlay` |
+| Mobile header / drawer | `sdk-mobile-header.js` | `C.MobileHeader` |
+| Toast | `sdk-toast.js` | `C.Toast` |
+| Context menus | `sdk-context-menu.js` | `C.ContextMenu` |
+| Emoji picker | `sdk-emoji-picker.js` | `C.EmojiPicker` |
+| Reply bar | `sdk-reply-bar.js` | `C.ReplyBar` |
+| Command palette (Cmd+K) | `sdk-command-palette.js` | `C.CommandPalette` |
+| Audio queue UI | `sdk-audio-queue.js` | `C.AudioQueue` |
+| PTT button | `sdk-ptt-button.js` | `C.PttButton` |
+| VAD meter | `sdk-vad-meter.js` | `C.VadMeter` |
+| Webcam preview | `sdk-webcam-preview.js` | `C.WebcamPreview` |
+| Connection/voice banners | `sdk-banners.js` | `C.Banner` |
+| Auth modal | `sdk-auth-modal.js` | `C.AuthModal` |
+
+### 2026-05-27 fix: 6 mounts were silently dead (SDK gap, now closed)
+
+`sdk-auth-modal.js`, `sdk-forum-view.js`, `sdk-page-view.js`, `sdk-thread-panel.js`, `sdk-video-lightbox.js`, and `sdk-voice-controls.js` referenced `C.AuthModal` / `C.ForumView` / `C.PageView` / `C.ThreadPanel` / `C.VideoLightbox` / `C.VoiceControls`, but **none of those six components existed** in `anentrypoint-design` (absent from the barrel, `src/components/`, and the built dist). Each mount polls `setTimeout(init, 30)` forever on a missing `C.X`, so the feature was dead with no error. They are now implemented (`VoiceControls` in `voice.js`; `AuthModal`/`VideoLightbox` in `overlay-primitives.js`; `ThreadPanel`/`ForumView`/`PageView` in `community.js`), re-exported from the barrel, with CSS in the `community.css`/`editor-primitives.css` cssParts, built, and re-vendored into `docs/sdk/` + `docs/css/vendor/`. Browser-witnessed live: all six are now `typeof function`, AuthModal/VideoLightbox/VoiceControls render expected DOM, zero console errors.
 
 ### Final cleanup deferred (high blast radius)
 

@@ -4080,6 +4080,87 @@
   color: var(--green); font-weight: 700; letter-spacing: var(--tr-caps);
 }
 
+/* VoiceControls — vx-vc-* */
+.ds-247420 .vx-vc {
+  display: flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-2);
+  border-top: var(--bw-hair) solid var(--rule);
+}
+.ds-247420 .vx-vc-btn {
+  width: 36px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: var(--bw-hair) solid var(--rule-strong);
+  border-radius: var(--r-1);
+  background: var(--bg-3); color: var(--fg);
+  cursor: pointer; font-size: 16px; line-height: 1;
+}
+.ds-247420 .vx-vc-btn:hover { background: var(--bg-4, var(--bg-3)); }
+.ds-247420 .vx-vc-on { background: var(--accent); color: var(--accent-fg, #fff); border-color: var(--accent); }
+.ds-247420 .vx-vc-disabled, .ds-247420 .vx-vc-btn:disabled { opacity: .4; cursor: not-allowed; }
+.ds-247420 .vx-vc-leave { margin-left: auto; background: var(--danger, #d04545); color: #fff; border-color: var(--danger, #d04545); }
+.ds-247420 .vx-vc-glyph { pointer-events: none; }
+
+/* ThreadPanel — cm-thread-panel / cm-tp-* */
+.ds-247420 .cm-thread-panel {
+  display: flex; flex-direction: column;
+  height: 100%; min-height: 0;
+  background: var(--bg-2); color: var(--fg);
+  border-left: var(--bw-hair) solid var(--rule);
+}
+.ds-247420 .cm-tp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-2); border-bottom: var(--bw-hair) solid var(--rule);
+}
+.ds-247420 .cm-tp-title { font-weight: 700; font-size: var(--fs-1, 14px); }
+.ds-247420 .cm-tp-head-actions { display: flex; gap: var(--space-1); }
+.ds-247420 .cm-tp-new, .ds-247420 .cm-tp-close {
+  border: none; background: transparent; color: var(--fg-2, var(--fg));
+  cursor: pointer; font-size: 16px; width: 24px; height: 24px; border-radius: var(--r-1);
+}
+.ds-247420 .cm-tp-new:hover, .ds-247420 .cm-tp-close:hover { background: var(--bg-3); color: var(--fg); }
+.ds-247420 .cm-tp-list { flex: 1; min-height: 0; overflow-y: auto; }
+.ds-247420 .cm-tp-item {
+  display: flex; flex-direction: column; gap: 2px;
+  width: 100%; text-align: left; cursor: pointer;
+  padding: var(--space-2); border: none; background: transparent;
+  border-bottom: var(--bw-hair) solid var(--rule);
+  color: var(--fg);
+}
+.ds-247420 .cm-tp-item:hover { background: var(--bg-3); }
+.ds-247420 .cm-tp-item.is-active { background: var(--bg-3); box-shadow: inset 3px 0 0 var(--accent); }
+.ds-247420 .cm-tp-item.is-unread .cm-tp-item-title { font-weight: 700; }
+.ds-247420 .cm-tp-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.ds-247420 .cm-tp-item-title { font-size: var(--fs-1, 14px); }
+.ds-247420 .cm-tp-item-snippet { font-size: var(--fs-0, 12px); color: var(--fg-2, var(--fg)); opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ds-247420 .cm-tp-item-meta { display: flex; gap: var(--space-2); font-size: var(--fs-micro, 11px); color: var(--fg-2, var(--fg)); opacity: .7; }
+.ds-247420 .cm-tp-empty, .ds-247420 .cm-forum-empty { padding: var(--space-3); text-align: center; color: var(--fg-2, var(--fg)); opacity: .7; }
+
+/* ForumView — cm-forum / cm-forum-* */
+.ds-247420 .cm-forum { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--bg-1, var(--bg-2)); color: var(--fg); }
+.ds-247420 .cm-forum-toolbar { display: flex; gap: var(--space-2); align-items: center; padding: var(--space-2); border-bottom: var(--bw-hair) solid var(--rule); }
+.ds-247420 .cm-forum-search { flex: 1; padding: var(--space-1) var(--space-2); border: var(--bw-hair) solid var(--rule-strong); border-radius: var(--r-1); background: var(--bg-3); color: var(--fg); }
+.ds-247420 .cm-forum-sort { padding: var(--space-1); border: var(--bw-hair) solid var(--rule-strong); border-radius: var(--r-1); background: var(--bg-3); color: var(--fg); }
+.ds-247420 .cm-forum-new { padding: var(--space-1) var(--space-2); border: none; border-radius: var(--r-1); background: var(--accent); color: var(--accent-fg, #fff); cursor: pointer; }
+.ds-247420 .cm-forum-list { flex: 1; min-height: 0; overflow-y: auto; }
+.ds-247420 .cm-forum-item { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; text-align: left; cursor: pointer; padding: var(--space-2) var(--space-3); border: none; background: transparent; border-bottom: var(--bw-hair) solid var(--rule); color: var(--fg); }
+.ds-247420 .cm-forum-item:hover { background: var(--bg-3); }
+.ds-247420 .cm-forum-item-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ds-247420 .cm-forum-item-title { font-weight: 700; font-size: var(--fs-1, 14px); }
+.ds-247420 .cm-forum-item-replies { font-size: var(--fs-0, 12px); color: var(--fg-2, var(--fg)); opacity: .8; white-space: nowrap; }
+.ds-247420 .cm-forum-item-snippet { font-size: var(--fs-0, 12px); color: var(--fg-2, var(--fg)); opacity: .85; }
+.ds-247420 .cm-forum-item-meta { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; font-size: var(--fs-micro, 11px); color: var(--fg-2, var(--fg)); opacity: .7; }
+.ds-247420 .cm-forum-item-tags { display: inline-flex; gap: 4px; }
+.ds-247420 .cm-forum-tag { padding: 1px 6px; border-radius: var(--r-1); background: var(--bg-3); border: var(--bw-hair) solid var(--rule); }
+
+/* PageView — cm-page / cm-page-* */
+.ds-247420 .cm-page { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow-y: auto; background: var(--bg-1, var(--bg-2)); color: var(--fg); }
+.ds-247420 .cm-page-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); padding: var(--space-3); border-bottom: var(--bw-hair) solid var(--rule); }
+.ds-247420 .cm-page-title { margin: 0; font-size: var(--fs-3, 20px); font-weight: 700; }
+.ds-247420 .cm-page-edit { padding: var(--space-1) var(--space-2); border: var(--bw-hair) solid var(--rule-strong); border-radius: var(--r-1); background: var(--bg-3); color: var(--fg); cursor: pointer; }
+.ds-247420 .cm-page-body { padding: var(--space-3); line-height: 1.6; }
+.ds-247420 .cm-page-empty { color: var(--fg-2, var(--fg)); opacity: .7; }
+
 /* chat.css */
 /* chat.css — chat-specific styles. Currently empty; all chat styles live in
    app-shell.css under the .chat-* prefix. Reserved for future split. */
@@ -4934,3 +5015,43 @@
     border: 0; border-radius: var(--r-1, 10px);
     padding: var(--space-2, 8px); font: inherit;
 }
+
+/* AuthModal — ov-auth-* */
+.ds-247420 .ov-auth-backdrop {
+    position: fixed; inset: 0; z-index: var(--z-overlay, 1000);
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.55);
+}
+.ds-247420 .ov-auth-panel {
+    width: min(420px, 92vw);
+    display: flex; flex-direction: column;
+    background: var(--bg-2); color: var(--fg);
+    border: 1px solid var(--rule); border-radius: var(--r-2, 8px);
+    box-shadow: var(--shadow-2, 0 12px 40px rgba(0,0,0,.4));
+    overflow: hidden;
+}
+.ds-247420 .ov-auth-head { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3); border-bottom: 1px solid var(--rule); }
+.ds-247420 .ov-auth-title { margin: 0; font-size: var(--fs-2, 16px); font-weight: 700; }
+.ds-247420 .ov-auth-x { border: none; background: transparent; color: var(--fg-2, var(--fg)); font-size: 22px; line-height: 1; cursor: pointer; }
+.ds-247420 .ov-auth-x:hover { color: var(--fg); }
+.ds-247420 .ov-auth-tabs { display: flex; gap: var(--space-1); padding: var(--space-2) var(--space-3) 0; }
+.ds-247420 .ov-auth-tab { flex: 1; padding: var(--space-1) var(--space-2); border: 1px solid var(--rule); border-bottom: none; border-radius: var(--r-1) var(--r-1) 0 0; background: var(--bg-3); color: var(--fg-2, var(--fg)); cursor: pointer; }
+.ds-247420 .ov-auth-tab.is-active { background: var(--bg-2); color: var(--fg); font-weight: 700; }
+.ds-247420 .ov-auth-body { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); }
+.ds-247420 .ov-auth-hint { margin: 0; font-size: var(--fs-0, 12px); color: var(--fg-2, var(--fg)); }
+.ds-247420 .ov-auth-input { padding: var(--space-2); border: 1px solid var(--rule-strong); border-radius: var(--r-1); background: var(--bg-3); color: var(--fg); }
+.ds-247420 .ov-auth-primary { padding: var(--space-2); border: none; border-radius: var(--r-1); background: var(--accent); color: var(--accent-fg, #fff); font-weight: 700; cursor: pointer; }
+.ds-247420 .ov-auth-primary:disabled { opacity: .6; cursor: progress; }
+.ds-247420 .ov-auth-error { margin: 0 var(--space-3) var(--space-3); padding: var(--space-2); border-radius: var(--r-1); background: var(--danger-bg, rgba(208,69,69,.15)); color: var(--danger, #d04545); font-size: var(--fs-0, 12px); }
+
+/* VideoLightbox — ov-lightbox-* */
+.ds-247420 .ov-lightbox-backdrop {
+    position: fixed; inset: 0; z-index: var(--z-overlay-top, 1100);
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.85);
+}
+.ds-247420 .ov-lightbox-x { position: absolute; top: 16px; right: 16px; width: 40px; height: 40px; border: none; border-radius: 50%; background: rgba(255,255,255,.12); color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
+.ds-247420 .ov-lightbox-x:hover { background: rgba(255,255,255,.24); }
+.ds-247420 .ov-lightbox-stage { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); max-width: 92vw; max-height: 90vh; }
+.ds-247420 .ov-lightbox-video { max-width: 92vw; max-height: 82vh; border-radius: var(--r-1); background: #000; }
+.ds-247420 .ov-lightbox-label { color: #fff; font-size: var(--fs-0, 12px); opacity: .85; }
