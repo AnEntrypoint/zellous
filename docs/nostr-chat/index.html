@@ -32,7 +32,7 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       '@preact/signals-core': '../vendor/signals-core.mjs',
       'nostr-tools': '../vendor/nostr-tools.mjs',
       xstate: '../vendor/xstate.mjs',
-      'anentrypoint-design': 'https://unpkg.com/anentrypoint-design@latest/dist/247420.js'
+      'anentrypoint-design': '../sdk/247420.js'
     }
   })
 }));
@@ -81,6 +81,8 @@ window.nostrFsm = null;
        app-shell.css owns .app-topbar / .app-side / .app-main / .chat structure. -->
   <link rel="stylesheet" href="../css/vendor/colors_and_type.css">
   <link rel="stylesheet" href="../css/vendor/app-shell.css">
+  <link rel="stylesheet" href="../css/vendor/community.css">
+  <link rel="stylesheet" href="../css/vendor/editor-primitives.css">
   <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -13,7 +13,7 @@
   --paper-3:     #DFDED9;
   --ink:         #131318;
   --ink-2:       #25252C;
-  --ink-3:       #6A6A70;
+  --ink-3:       #54545A; /* WCAG AAA on --paper (~7.1:1); was #6A6A70 (AA only) */
 
   /* Lore palette */
   --green:       #247420;
@@ -33,6 +33,8 @@
   --flame:       #FF5A1F;
   --sky:         #3A6EFF;
   --warn:        #E0241A;
+  --danger:      oklch(0.55 0.18 25);
+  --success:     var(--green-2);
   --live:        var(--green);
 
   /* Semantic surfaces */
@@ -173,7 +175,8 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-[data-theme="ink"] {
+[data-theme="ink"],
+[data-theme="dark"] {
   --bg:        var(--ink);
   --bg-2:      var(--ink-2);
   --bg-3:      #464650;
@@ -192,6 +195,7 @@ select:focus-visible {
   --accent:    var(--accent-bright, var(--green-2));
   --accent-fg: var(--ink);
   --accent-bright: var(--green-2);
+  --danger:    oklch(0.68 0.19 25);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -262,4 +266,33 @@ select:focus-visible {
     linear-gradient(to right, rgba(232,75,138,0.15) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(232,75,138,0.15) 1px, transparent 1px);
   background-size: 8px 8px;
+}
+
+/* Reduced-motion guard — neutralizes every transition/animation/transform
+   inside the design-system scope when the user requests reduced motion.
+   Components remain free to opt back in with
+   `@media (prefers-reduced-motion: no-preference) { ... }`. */
+@media (prefers-reduced-motion: reduce) {
+  .ds-247420 *,
+  .ds-247420 *::before,
+  .ds-247420 *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Elevation tokens consumed by overlays (Tooltip, Popover, Dropdown, Dialog). */
+:root {
+  --shadow-1: 0 1px 2px color-mix(in oklab, var(--fg) 8%, transparent);
+  --shadow-2: 0 4px 12px color-mix(in oklab, var(--fg) 10%, transparent),
+              0 2px 4px  color-mix(in oklab, var(--fg) 6%,  transparent);
+  --shadow-3: 0 12px 32px color-mix(in oklab, var(--fg) 14%, transparent),
+              0 4px 8px   color-mix(in oklab, var(--fg) 8%,  transparent);
+  --z-dropdown:  600;
+  --z-popover:   700;
+  --z-modal:     800;
+  --z-toast:     900;
+  --z-tooltip:  1000;
 }
