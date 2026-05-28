@@ -57,23 +57,7 @@
         }
       } else if (useFallback) {
         out.push(group('rooms'));
-        const stub = [
-          { id: 'general', name: 'general', count: 2 },
-          { id: 'design', name: 'design', count: 4 },
-          { id: 'releases', name: 'releases', count: 1 },
-          { id: 'lore', name: 'lore', count: 0 }
-        ];
-        for (const c of stub) {
-          out.push(pill({
-            active: cur.id === c.id,
-            glyph: '#',
-            label: c.name,
-            count: c.count,
-            onClick: () => {
-              try { state.currentChannel = { id: c.id, type: 'text', name: c.name }; } catch (_) {}
-            }
-          }));
-        }
+        out.push(h('div', { class: 'rail-empty' }, 'no channels yet'));
       }
 
       // Voice group
@@ -118,21 +102,6 @@
               try { window.serverManager.showContextMenu(s.id, e.clientX, e.clientY); } catch (_) {}
             }
           }));
-        }
-      }
-
-      if (home || useFallback) {
-        out.push(group('direct'));
-        if (useFallback) {
-          out.push(pill({ active: false, glyph: '·', label: 'jordan', onClick: () => {} }));
-          out.push(pill({ active: false, glyph: '·', label: 'mai', onClick: () => {} }));
-          out.push(pill({ active: false, glyph: '·', label: 'aicat', onClick: () => {} }));
-        } else {
-          const user = state.currentUser || (window.auth && window.auth.user) || {};
-          let name = user.displayName || user.username || '';
-          if (!name || /^npub1/.test(name)) name = 'you';
-          else if (name.length > 16) name = name.slice(0, 14) + '…';
-          out.push(pill({ active: false, glyph: '·', label: name, onClick: () => {} }));
         }
       }
 

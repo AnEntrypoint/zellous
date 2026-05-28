@@ -19,13 +19,13 @@
     let state = { open: false, x: 0, y: 0, items: [] };
 
     function render() {
-      applyDiff(host, C.ContextMenu({
-        open: state.open,
-        x: state.x,
-        y: state.y,
-        items: state.items,
-        onClose: close,
-      }));
+      applyDiff(host, state.open
+        ? C.ContextMenu({
+            items: state.items,
+            anchor: { x: state.x, y: state.y },
+            onClose: close,
+          })
+        : sdk.h('div'));
     }
 
     function show(items, x, y) {

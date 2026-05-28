@@ -1249,3 +1249,20 @@ html.ds-247420 .hidden-input {
   clip: rect(0,0,0,0);
   border: 0;
 }
+
+/* SDK ThreadPanel / ForumView own their chrome; hide the legacy duplicate
+   header/list/search that threadManager used to render into, so the panels
+   don't show two close buttons / two post lists. */
+html.ds-247420 #threadPanel > .thread-panel-header,
+html.ds-247420 #threadPanel > #threadList,
+html.ds-247420 #threadPanel > div:has(> #createThreadBtn),
+html.ds-247420 #forumView > .forum-header-bar,
+html.ds-247420 #forumView > #forumPosts { display: none !important; }
+
+html.ds-247420 .rail-empty {
+  padding: 8px 12px;
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+  opacity: 0.6;
+  font-family: var(--ff-mono);
+}
