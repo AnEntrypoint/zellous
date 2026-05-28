@@ -1202,3 +1202,50 @@ html.ds-247420 .chat-thread[data-msg-count="0"]::before {
   pointer-events: none;
   line-height: 1.6;
 }
+
+/* Legacy overlays (#videoPlayback, #settingsPopover) carried no position rule,
+   so they sat in normal flow below the SDK app and inflated document.body
+   scrollHeight. They are fixed overlays, hidden until their controller activates them. */
+html.ds-247420 .video-playback {
+  position: fixed;
+  right: 16px;
+  bottom: 64px;
+  z-index: 2600;
+  display: none;
+  max-width: 320px;
+  background: var(--bg-2);
+  border: 1px solid var(--bg-4);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+html.ds-247420 .video-playback video { display: block; width: 100%; height: auto; }
+html.ds-247420 .video-playback .video-label {
+  padding: 4px 8px;
+  font-size: var(--fs-sm);
+  color: var(--fg-2);
+}
+html.ds-247420 .settings-popover {
+  position: fixed;
+  right: 16px;
+  bottom: 64px;
+  z-index: 2600;
+  display: none;
+  width: 280px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 16px;
+  background: var(--bg-2);
+  border: 1px solid var(--bg-4);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+html.ds-247420 .settings-popover.open { display: block; }
+html.ds-247420 .hidden-input {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
