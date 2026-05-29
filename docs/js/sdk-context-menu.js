@@ -1,9 +1,8 @@
 (function () {
   // Body-mounted SDK ContextMenu host. Exposes
-  // window.__contextMenu = { show(items, x, y), close() }
-  // for future migration of _mkMenu/showContextMenu call-sites. Existing
-  // imperative callers (nostr-servers-ui, nostr-channels-ui, ui-chat) are
-  // NOT refactored in this turn — they continue to work in parallel.
+  // window.__contextMenu = { show(items, x, y), close() }.
+  // Item shape: { label, danger, disabled, icon, onSelect, separator }.
+  // moderation.showMemberMenu is the reference caller.
   function init() {
     const sdk = window.__sdk;
     if (!sdk || !sdk.C || !sdk.C.ContextMenu) { setTimeout(init, 30); return; }

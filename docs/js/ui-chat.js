@@ -29,7 +29,7 @@ const uiChat = {
     merged.forEach(m => {
       if (m.type === 'system') {
         lastUser = null; lastTime = 0;
-        html += `<div class="msg-system"><span class="msg-system-icon">→</span>${escHtml(m.text)}</div>`;
+        html += `<div class="msg-system"><span class="msg-system-icon">-</span>${escHtml(m.text)}</div>`;
         return;
       }
       const sameUser = m.userId === lastUser && (m.timestamp - lastTime) < 420000;
@@ -45,7 +45,7 @@ const uiChat = {
       const canDelete = selfId && String(m.userId) === String(selfId);
 
       const ic = (k, fb) => window.getIcon ? getIcon(k) : fb;
-      const actions = `<div class="msg-actions"><button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">${ic('emoji','…')}</button><button class="msg-action-btn" data-reply="${m.id}" title="Reply">${ic('reply','↩')}</button>${canEdit?`<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${ic('edit','✏')}</button>`:''}<button class="msg-action-btn" data-pin="${m.id}" title="Pin">${ic('pin','📌')}</button>${canDelete?`<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${ic('delete','🗑')}</button>`:''}</div>`;
+      const actions = `<div class="msg-actions"><button class="msg-action-btn" data-react="${m.id}" title="Add Reaction">${ic('emoji','react')}</button><button class="msg-action-btn" data-reply="${m.id}" title="Reply">${ic('reply','reply')}</button>${canEdit?`<button class="msg-action-btn" data-edit="${m.id}" title="Edit">${ic('edit','edit')}</button>`:''}<button class="msg-action-btn" data-pin="${m.id}" title="Pin">${ic('pin','pin')}</button>${canDelete?`<button class="msg-action-btn danger" data-delete="${m.id}" title="Delete">${ic('delete','del')}</button>`:''}</div>`;
 
       const replyHtml = m.replyTo ? `<div class="msg-reply-bar"><div class="msg-reply-avatar" style="background:${getAvatarColor(m.replyTo.userId)}">${getInitial(m.replyTo.username||'')}</div><span class="msg-reply-name" style="color:${getAvatarColor(m.replyTo.userId)}">@${escHtml(m.replyTo.username||'User')}</span><span class="msg-reply-content">${escHtml((m.replyTo.content||'').substring(0,80))}</span></div>` : '';
 
@@ -201,18 +201,10 @@ const uiChat = {
   },
 
   showEmojiPicker(msgId, anchorBtn) {
-    document.getElementById('emojiPicker')?.remove();
-    const emojis = ['👍','❤️','😂','🎉','😮','😢','😡','🔥','✅','👀'];
-    const picker = document.createElement('div');
-    picker.id = 'emojiPicker';
-    picker.style.cssText = 'position:fixed;z-index:3000;background:var(--bg-2);border-radius:8px;padding:8px;display:flex;gap:4px';
-    picker.innerHTML = emojis.map(e => `<button style="background:transparent;border:none;font-size:20px;cursor:pointer;border-radius:4px;padding:4px" data-emoji="${e}">${e}</button>`).join('');
     const rect = anchorBtn.getBoundingClientRect();
-    picker.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
-    picker.style.left = rect.left + 'px';
-    document.body.appendChild(picker);
-    picker.addEventListener('click', (e) => { const b = e.target.closest('[data-emoji]'); if (b) { chat?.toggleReaction?.(msgId, b.dataset.emoji); picker.remove(); } });
-    setTimeout(() => document.addEventListener('click', () => picker.remove(), { once: true }), 0);
+    if (window.__emojiPicker) {
+      window.__emojiPicker.show(rect.left, rect.top, (emoji) => { chat?.toggleReaction?.(msgId, emoji); });
+    }
   },
 
   showContextMenu(msg, x, y) {
@@ -257,7 +249,7 @@ const uiChat = {
       html += `<div style="margin-bottom:8px"><span style="color:var(--text-muted)">Reactions:</span><br><span>${msg.reactions.map(r=>`${r.emoji} <span style="color:var(--text-muted)">${r.users?.length||1}</span>`).join(' ')}</span></div>`;
     }
     if (msg.threadId || msg.replyCount) {
-      html += `<div style="margin-bottom:8px"><span style="color:var(--accent)">📌 Thread</span><br><span style="color:var(--text-muted)">${msg.replyCount||1} reply${msg.replyCount!==1?'ies':''}</span></div>`;
+      html += `<div style="margin-bottom:8px"><span style="color:var(--accent)">Thread</span><br><span style="color:var(--text-muted)">${msg.replyCount||1} reply${msg.replyCount!==1?'ies':''}</span></div>`;
     }
     html += `<div style="color:var(--text-muted);font-size:11px">${formatTime(msg.timestamp)}</div>`;
     popup.innerHTML = html;

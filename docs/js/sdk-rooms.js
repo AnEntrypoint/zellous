@@ -11,15 +11,19 @@
     const { h, applyDiff } = sdk;
     host.innerHTML = '';
 
+    const C = sdk.C || {};
+    function icon(name) { return C.Icon ? C.Icon(name, { size: 15 }) : h('span', { class: 'glyph' }, '#'); }
+
     function pill(opts) {
-      const { active, glyph, label, count, onClick, onContext, danger } = opts;
+      const { active, glyph, iconName, label, count, onClick, onContext, danger } = opts;
+      const mark = iconName ? icon(iconName) : h('span', { class: 'glyph' }, glyph || '#');
       return h('a', {
         href: '#',
         class: (active ? 'active' : '') + (danger ? ' danger' : ''),
         onclick: (e) => { e.preventDefault(); onClick && onClick(e); },
         oncontextmenu: onContext ? (e) => { e.preventDefault(); onContext(e); } : null
       },
-        h('span', { class: 'glyph' }, glyph || '#'),
+        h('span', { class: 'glyph' }, mark),
         h('span', {}, label || ''),
         count != null ? h('span', { class: 'count' }, count > 99 ? '99+' : String(count)) : null
       );
@@ -45,10 +49,10 @@
         out.push(group('rooms'));
         for (const c of textLike) {
           const isActive = cur.id === c.id;
-          const glyph = c.type === 'forum' ? '◻' : c.type === 'page' ? '§' : c.type === 'announcement' ? '📣' : '#';
+          const iconName = c.type === 'forum' ? 'forum' : c.type === 'page' ? 'page' : c.type === 'announcement' ? 'megaphone' : 'hash';
           out.push(pill({
             active: isActive,
-            glyph,
+            iconName,
             label: c.name || c.id,
             count: c.unreadCount || null,
             onClick: () => { try { window.ui.actions.switchChannel(c); } catch (_) {} },
@@ -67,9 +71,11 @@
         for (const c of voice) {
           const isActive = cur.id === c.id;
           const inVoice = state.voiceConnected && state.voiceChannelName === c.name;
+          const voiceGlyph = inVoice ? '●' : (c.type === 'threaded' ? '◉' : null);
           out.push(pill({
             active: isActive,
-            glyph: inVoice ? '●' : (c.type === 'threaded' ? '◉' : '🔊'),
+            glyph: voiceGlyph,
+            iconName: voiceGlyph ? null : 'speaker',
             label: c.name || c.id,
             onClick: () => { try { window.ui.actions.switchChannel(c); } catch (_) {} },
             onContext: (e) => { try { window.channelManager.showContextMenu(c.id, e.clientX, e.clientY); } catch (_) {} }

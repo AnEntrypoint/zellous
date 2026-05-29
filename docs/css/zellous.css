@@ -15,6 +15,15 @@ html, body {
   --bg-4:       #C8C0A8;
   --accent-alt: #420247;
   --green-fg:   var(--paper, #F6F5F1);
+  /* Category / avatar palette — zellous brand color-coding tokens (mirror of AVATAR_COLORS) */
+  --cat-green:  #3F8A4A;
+  --cat-purple: #6B3A78;
+  --cat-mascot: #F07AA8;
+  --cat-sun:    #FFD86B;
+  --cat-flame:  #FF8454;
+  --cat-sky:    #6FA9FF;
+  --cat-sun-fg: #2A2820;
+  --warn:       #ff4d4f;
 }
 [data-theme="ink"], .theme-ink {
   --bg-3: #36383E;
@@ -54,12 +63,12 @@ html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
 
 /* ── 247420 design primitives — rail / dot / chip ── */
 .rail        { box-shadow: inset 4px 0 0 var(--fg-3); }
-.rail-green  { box-shadow: inset 4px 0 0 #3F8A4A; }
-.rail-purple { box-shadow: inset 4px 0 0 #6B3A78; }
-.rail-mascot { box-shadow: inset 4px 0 0 #F07AA8; }
-.rail-sun    { box-shadow: inset 4px 0 0 #FFD86B; }
-.rail-flame  { box-shadow: inset 4px 0 0 #FF8454; }
-.rail-sky    { box-shadow: inset 4px 0 0 #6FA9FF; }
+.rail-green  { box-shadow: inset 4px 0 0 var(--cat-green); }
+.rail-purple { box-shadow: inset 4px 0 0 var(--cat-purple); }
+.rail-mascot { box-shadow: inset 4px 0 0 var(--cat-mascot); }
+.rail-sun    { box-shadow: inset 4px 0 0 var(--cat-sun); }
+.rail-flame  { box-shadow: inset 4px 0 0 var(--cat-flame); }
+.rail-sky    { box-shadow: inset 4px 0 0 var(--cat-sky); }
 
 .dot {
   display: inline-block; width: 8px; height: 8px;
@@ -67,20 +76,20 @@ html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
   vertical-align: middle; flex-shrink: 0;
 }
 .dot.live   { background: var(--live); }
-.dot.green  { background: #3F8A4A; }
-.dot.purple { background: #6B3A78; }
-.dot.mascot { background: #F07AA8; }
-.dot.sun    { background: #FFD86B; }
-.dot.flame  { background: #FF8454; }
-.dot.sky    { background: #6FA9FF; }
+.dot.green  { background: var(--cat-green); }
+.dot.purple { background: var(--cat-purple); }
+.dot.mascot { background: var(--cat-mascot); }
+.dot.sun    { background: var(--cat-sun); }
+.dot.flame  { background: var(--cat-flame); }
+.dot.sky    { background: var(--cat-sky); }
 
 /* .chip base comes from the SDK; assert per-hue variants at higher specificity. */
-html.ds-247420 .chip.green  { background: color-mix(in oklab, #3F8A4A 22%, var(--bg-3)); color: #3F8A4A; }
-html.ds-247420 .chip.purple { background: color-mix(in oklab, #6B3A78 22%, var(--bg-3)); color: #6B3A78; }
-html.ds-247420 .chip.mascot { background: color-mix(in oklab, #F07AA8 22%, var(--bg-3)); color: #F07AA8; }
-html.ds-247420 .chip.sun    { background: color-mix(in oklab, #FFD86B 22%, var(--bg-3)); color: var(--fg); }
-html.ds-247420 .chip.flame  { background: color-mix(in oklab, #FF8454 22%, var(--bg-3)); color: #FF8454; }
-html.ds-247420 .chip.sky    { background: color-mix(in oklab, #6FA9FF 22%, var(--bg-3)); color: #6FA9FF; }
+html.ds-247420 .chip.green  { background: color-mix(in oklab, var(--cat-green) 22%, var(--bg-3)); color: var(--cat-green); }
+html.ds-247420 .chip.purple { background: color-mix(in oklab, var(--cat-purple) 22%, var(--bg-3)); color: var(--cat-purple); }
+html.ds-247420 .chip.mascot { background: color-mix(in oklab, var(--cat-mascot) 22%, var(--bg-3)); color: var(--cat-mascot); }
+html.ds-247420 .chip.sun    { background: color-mix(in oklab, var(--cat-sun) 22%, var(--bg-3)); color: var(--fg); }
+html.ds-247420 .chip.flame  { background: color-mix(in oklab, var(--cat-flame) 22%, var(--bg-3)); color: var(--cat-flame); }
+html.ds-247420 .chip.sky    { background: color-mix(in oklab, var(--cat-sky) 22%, var(--bg-3)); color: var(--cat-sky); }
 
 /* ── App shell — let SDK's app-shell.css drive the column layout (topbar/crumb/body/status) ── */
 
@@ -920,7 +929,7 @@ html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
   background: var(--fg-3); flex-shrink: 0;
 }
 .quality-dot.good { background: var(--live); }
-.quality-dot.fair { background: #FFD86B; }
+.quality-dot.fair { background: var(--cat-sun); }
 .quality-dot.poor { background: var(--warn); }
 .quality-dot.connecting { background: var(--fg-3); animation: pulse 1.2s infinite; }
 
@@ -948,7 +957,7 @@ html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
   box-shadow: 0 0 0 4px color-mix(in oklab, var(--live) 30%, transparent);
 }
 .voice-ptt-pill[data-state="queued"] {
-  background: #FFD86B; color: #2A2820;
+  background: var(--cat-sun); color: var(--cat-sun-fg);
 }
 .voice-ptt-pill svg { fill: currentColor; }
 
@@ -1062,7 +1071,7 @@ html.ds-247420 button.voice-ctrl-btn.danger { background: var(--warn); color: va
 
 html.ds-247420 button.voice-ptt-pill { background: var(--accent); color: var(--green-fg); padding: 10px 18px; border-radius: 999px; }
 html.ds-247420 button.voice-ptt-pill[data-state="live"], html.ds-247420 button.voice-ptt-pill.active { background: var(--live); }
-html.ds-247420 button.voice-ptt-pill[data-state="queued"] { background: #FFD86B; color: #2A2820; }
+html.ds-247420 button.voice-ptt-pill[data-state="queued"] { background: var(--cat-sun); color: var(--cat-sun-fg); }
 
 html.ds-247420 button.input-btn { background: var(--accent); color: var(--green-fg); padding: 6px 10px; border-radius: 4px; }
 html.ds-247420 button.input-icon-btn { color: var(--fg-3); padding: 6px; border-radius: 4px; background: transparent; }
@@ -1112,9 +1121,9 @@ html.ds-247420 .chat .chat-composer { padding: var(--space-3) var(--space-5); ba
 
 /* Active room pill: keep glyph + count visible on accent background */
 html.ds-247420 .app-side a.active .glyph { color: var(--accent-fg) !important; }
-html.ds-247420 .app-side a.active .count { background: var(--warn, #ff4d4f); color: #fff; }
+html.ds-247420 .app-side a.active .count { background: var(--warn); color: #fff; }
 html.ds-247420 .app-side .count {
-  background: var(--warn, #ff4d4f); color: #fff;
+  background: var(--warn); color: #fff;
   font-family: var(--ff-mono); font-size: 10px; font-weight: 700;
   min-width: 20px; height: 18px; padding: 0 6px;
   display: inline-flex; align-items: center; justify-content: center;

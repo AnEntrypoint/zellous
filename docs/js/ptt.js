@@ -40,13 +40,13 @@ const deafen = {
   toggle: () => { state.isDeafened = !state.isDeafened; state.isDeafened ? deafen.activate() : deafen.deactivate(); },
   activate: () => {
     ui.deafenBtn?.classList.add('active');
-    if (ui.deafenBtn) ui.deafenBtn.innerHTML = '\u{1F507} Deafened';
+    if (ui.deafenBtn) ui.deafenBtn.textContent = 'Deafened';
     document.getElementById('deafenToggleBtn')?.classList.add('muted');
     ui.render.queue();
   },
   deactivate: () => {
     ui.deafenBtn?.classList.remove('active');
-    if (ui.deafenBtn) ui.deafenBtn.innerHTML = '\u{1F50A} Deafen';
+    if (ui.deafenBtn) ui.deafenBtn.textContent = 'Deafen';
     document.getElementById('deafenToggleBtn')?.classList.remove('muted');
     queue.resumePlayback();
     ui.render.queue();
@@ -56,7 +56,7 @@ const vad = {
   toggle: () => { state.vadEnabled = !state.vadEnabled; state.vadEnabled ? vad.activate() : vad.deactivate(); },
   activate: () => {
     ui.vadBtn?.classList.add('active');
-    if (ui.vadBtn) ui.vadBtn.innerHTML = '\u{1F3A4} VAD Active';
+    if (ui.vadBtn) ui.vadBtn.textContent = 'VAD Active';
     ui.vadControls?.classList.remove('hidden');
     ui.vadMeterContainer?.classList.remove('hidden');
     state.pttUiMode = 'vad';
@@ -65,7 +65,7 @@ const vad = {
   },
   deactivate: () => {
     ui.vadBtn?.classList.remove('active');
-    if (ui.vadBtn) ui.vadBtn.innerHTML = '\u{1F3A4} VAD';
+    if (ui.vadBtn) ui.vadBtn.textContent = 'VAD';
     ui.vadControls?.classList.add('hidden');
     ui.vadMeterContainer?.classList.add('hidden');
     state.pttUiMode = 'idle';

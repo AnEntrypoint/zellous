@@ -117,7 +117,7 @@
         }
         const channels = (window.stateSignals?.channels?.value) || [];
         for (const c of channels) {
-          const sym = c.type === 'voice' ? '🔊' : '#';
+          const sym = c.type === 'voice' ? 'voice' : '#';
           out.push({ kind: 'channel', label: sym + ' ' + (c.name || c.id), sub: '', run: () => window.ui?.actions?.switchChannel?.(c.id) });
         }
       } catch (e) { }

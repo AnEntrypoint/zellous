@@ -11,9 +11,9 @@
     function render() {
       const ss = window.stateSignals;
       const ch = ss?.currentChannel?.value;
-      const title = ch?.type === 'voice' ? '🔊 ' + (ch.name || '') : '# ' + (ch?.name || '');
       applyDiff(host, C.MobileHeader({
-        title,
+        channelType: ch?.type || 'text',
+        channelName: ch?.name || '',
         onMenu: () => {
           const s = document.querySelector('.app-side-shell') || document.querySelector('.app-side');
           if (s) s.classList.toggle('open');

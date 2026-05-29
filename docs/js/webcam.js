@@ -7,16 +7,16 @@ const webcam = {
       ui.webcamVideo.srcObject = state.webcamStream;
       ui.webcamPreview.style.display = 'block';
       ui.webcamBtn.classList.add('active');
-      ui.webcamBtn.innerHTML = '📷 Webcam On';
+      ui.webcamBtn.textContent = 'Webcam On';
       state.webcamEnabled = true;
-    } catch (e) { ui.webcamBtn.innerHTML = '📷 Webcam Denied'; }
+    } catch (e) { ui.webcamBtn.textContent = 'Webcam Denied'; }
   },
   disable: () => {
     if (state.webcamStream) { state.webcamStream.getTracks().forEach(t => t.stop()); state.webcamStream = null; }
     ui.webcamVideo.srcObject = null;
     ui.webcamPreview.style.display = 'none';
     ui.webcamBtn.classList.remove('active');
-    ui.webcamBtn.innerHTML = '📷 Webcam Off';
+    ui.webcamBtn.textContent = 'Webcam Off';
     state.webcamEnabled = false;
     webcam.stopCapture();
   },
