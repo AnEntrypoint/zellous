@@ -6,13 +6,11 @@
 
   (function wireCrumb() {
     const breadName = document.getElementById('zBreadName');
-    const crumbServer = document.getElementById('zCrumbServer');
-    const crumbChannel = document.getElementById('zCrumbChannel');
     const statServer = document.getElementById('zStatusServer');
     const statChannel = document.getElementById('zStatusChannel');
     const statMsgs = document.getElementById('zStatusMsgs');
     const statRooms = document.getElementById('zStatusRooms');
-    if (!breadName && !crumbChannel) return;
+    if (!breadName && !statChannel) return;
     function tick() {
       try {
         const ch = window.stateSignals?.currentChannel?.value || { name: 'general' };
@@ -22,15 +20,13 @@
         const srv = home ? 'home' : (servers.find(s => s.id === sid)?.name || 'home');
         const msgCount = (window.stateSignals?.chatMessages?.value || []).length;
         if (breadName) breadName.textContent = ch.name || 'general';
-        if (crumbServer) crumbServer.textContent = srv;
-        if (crumbChannel) crumbChannel.textContent = ch.name || 'general';
         if (statServer) statServer.textContent = srv;
-        if (statChannel) statChannel.textContent = '• ' + (ch.name || 'general');
-        if (statMsgs) statMsgs.textContent = '• ' + msgCount + ' messages';
+        if (statChannel) statChannel.textContent = ch.name || 'general';
+        if (statMsgs) statMsgs.textContent = msgCount === 0 ? 'no messages' : (msgCount + (msgCount === 1 ? ' message' : ' messages'));
         if (statRooms) {
-          const ch = (window.stateSignals?.channels?.value || []).filter(c => c.type !== 'voice' && c.type !== 'threaded');
-          const n = ch.length || 4;
-          statRooms.textContent = '• ' + n + ' rooms';
+          const rooms = (window.stateSignals?.channels?.value || []).filter(c => c.type !== 'voice' && c.type !== 'threaded');
+          const n = rooms.length;
+          statRooms.textContent = n + (n === 1 ? ' room' : ' rooms');
         }
       } catch (_) {}
     }
