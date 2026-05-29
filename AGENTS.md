@@ -19,9 +19,36 @@ Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave
 | Improve an SDK component (or add a missing one) | edit `C:\dev\anentrypoint-design\src\components\*.js` + the relevant cssPart (`community.css`/`editor-primitives.css`/`app-shell.css`), re-export from `src/components.js` (barrel re-export is what makes it `C.X`), run `node scripts/build.mjs`, then **commit + push the SDK repo**. Its GitHub Pages deploy (`https://anentrypoint.github.io/design/247420.js` + `247420.css`) is what zellous consumes live — there is **no re-vendor step in zellous anymore** (see SDK-load note below). npm publish is still blocked (no auth); gh-pages is the propagation path. |
 | Marketing landing | `docs/index.html` (live) and/or `site/` + `flatspace.config.mjs` (CI-built `dist/`) |
 
-## SDK migration status (2026-05-27)
+## GUI ownership: the SDK owns the whole app (`mountCommunityApp`)
 
-The community-surface migration to `anentrypoint-design` is **complete** — all visible chrome runs through SDK subtree mounts. There are 26 `sdk-*.js` mounts, every one loaded in the `scripts` array of `docs/nostr-chat/index.html`. Each SDK subtree mount lives in its own `docs/js/sdk-*.js` IIFE:
+The entire chat/community GUI lives in `anentrypoint-design`. `src/community-app.js`
+exports `mountCommunityApp(root, adapter)` — it composes every surface (topbar, server+channel
+rail, chat body, member list, voice view with grid/controls/ptt/vad/webcam, user panel, and all
+overlays: context-menu, emoji-picker, command-palette, auth-modal, boot-overlay, settings-popover,
+voice-settings-modal, video-lightbox, audio-queue, thread-panel; channel-type bodies forum/page)
+and wires them to an injected `adapter`. It is barrel-exported (`window.__sdk.C.mountCommunityApp`)
+and styled by the `community-app.css` cssPart (`.ca-app`/`.ca-rail`/`.group`/`.rail-empty`/`.vx-view`
++ `--cat-*` tokens). A reference kit lives at `ui_kits/community-app/` (mock adapter, no backend).
+
+**zellous is a thin consumer.** `docs/js/nostr-adapter.js` maps `window.stateSignals` (preact
+signals) + the feature-module actions (chat/lk/serverManager/channelManager/moderation/auth/queue/ui)
+to the adapter contract `{get()->snapshot, subscribe(cb), actions, helpers}` and calls
+`mountCommunityApp(#app, adapter)`. `subscribe` registers a `window.__effect` over the ~20 reactive
+signals so any change re-renders. The imperative overlay globals (`__contextMenu`/`__emojiPicker`/
+`__commandPalette`) are re-exposed from the returned `app.api`. The legacy `.app` scaffold in
+`index.html` is retained `display:none` (feature modules still query its hosts for state plumbing;
+also a one-step revert). The 28 old `docs/js/sdk-*.js` mount IIFEs are removed from the index.html
+`scripts[]` (files remain on disk, unloaded — deletable later). To change the GUI, edit
+`anentrypoint-design` (additively) and let gh-pages redeploy.
+
+**Adapter contract** is documented at the top of `src/community-app.js`. To add a surface: compose it
+in `mountCommunityApp` reading from the adapter, add any new adapter field, and the consumer maps it.
+
+### Historical: pre-migration there were 28 `docs/js/sdk-*.js` subtree-mount IIFEs
+
+(superseded by `mountCommunityApp`; recall "zellous community-app migration" for detail.) Each was an
+IIFE that waited for `window.__sdk`+`window.__effect`, cleared a host, and `applyDiff(host, view())`
+in an `effect()`. The table below documents the old host→component mapping for reference:
 
 | Surface | Host element | Mount module | SDK component |
 |---|---|---|---|
