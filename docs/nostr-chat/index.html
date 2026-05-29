@@ -128,7 +128,13 @@ window.nostrFsm = null;
     })();
   </script>
   <div class="reconnect-banner" id="reconnectBanner">No relay connected. Reconnecting...</div>
-  <div class="app">
+  <!-- SDK community-app render target. mountCommunityApp (anentrypoint-design) renders the
+       full GUI here, driven by the Nostr adapter (js/nostr-adapter.js). The legacy .app
+       scaffold below is retained but display:none — its DOM hosts are still queried by some
+       feature modules (ui.js/ui-shell.js/etc) for state plumbing, so removing them would throw.
+       It is no longer the visible chrome. -->
+  <div id="app"></div>
+  <div class="app" style="display:none">
     <header class="app-topbar">
       <span class="brand">zellous<span class="slash"> / </span><span id="zBreadName">general</span></span>
       <span></span>
@@ -427,53 +433,16 @@ window.nostrFsm = null;
     window.__nostrMode = true;
 
     const scripts = [
-      'js/wireweave-bridge.js',
-      'js/sdk-auth-modal.js',
-      'js/sdk-boot-overlay.js',
-      'js/sdk-toast.js',
-      'js/sdk-banners.js',
-      'js/sdk-mobile-header.js',
-      'js/sdk-context-menu.js',
-      'js/palette.js',
+      'js/wireweave-bridge.js',      'js/palette.js',
       'js/icons.js',
       'js/ui.js',
       'js/ui-actions.js',
-      'js/ui-channels.js',
-      'js/sdk-page-view.js',
-      'js/ui-chat.js',
-      'js/sdk-chat.js',
-      'js/ui-voice.js',
-      'js/sdk-member-list.js',
-      'js/sdk-voice-strip.js',
-      'js/sdk-user-panel.js',
-      'js/sdk-voice-grid.js',
-      'js/sdk-voice-controls.js',
-      'js/sdk-video-lightbox.js',
-      'js/audio.js',
-      'js/sdk-settings-popover.js',
-      'js/sdk-voice-settings-modal.js',
-      'js/sdk-emoji-picker.js',
-      'js/sdk-command-palette.js',
-      'js/queue.js',
-      'js/sdk-audio-queue.js',
-      'js/sdk-reply-bar.js',
-      'js/files.js',
-      'js/nostr-channels-ui.js',
-      'js/sdk-channel-sidebar.js',
-      'js/sdk-rooms.js',
-      'js/threads.js',
-      'js/sdk-thread-panel.js',
-      'js/sdk-forum-view.js',
-      'js/nostr-servers-ui.js',
-      'js/sdk-server-rail.js',
-      'js/moderation.js',
+      'js/ui-channels.js',      'js/ui-chat.js',      'js/ui-voice.js',      'js/audio.js',      'js/queue.js',      'js/files.js',
+      'js/nostr-channels-ui.js',      'js/threads.js',      'js/nostr-servers-ui.js',      'js/moderation.js',
       'js/ptt.js',
-      'js/webcam.js',
-      'js/sdk-ptt-button.js',
-      'js/sdk-vad-meter.js',
-      'js/sdk-webcam-preview.js',
-      'js/voice-ptt.js',
-      'js/ui-shell.js'
+      'js/webcam.js',      'js/voice-ptt.js',
+      'js/ui-shell.js',
+      'js/nostr-adapter.js'
     ];
 
     // Two-phase parallel loader: wireweave-bridge runs first (creates managers
