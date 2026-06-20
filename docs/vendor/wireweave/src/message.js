@@ -10,7 +10,7 @@ export class MessageBus extends EventTarget {
   register(type, fn) { this.handlers[type] = fn; }
 
   add(text, { audioData = null, userId = null, username = null } = {}) {
-    const msg = { id: Date.now() + Math.random(), text, time: Date.now(), userId, username, audioData };
+    const msg = { id: Date.now().toString(36) + Math.random().toString(36).slice(2), text, time: Date.now(), userId, username, audioData };
     this.messages = [...this.messages, msg];
     if (this.messages.length > this.max) this.messages = this.messages.slice(-this.max);
     this.dispatchEvent(new CustomEvent('message', { detail: msg }));

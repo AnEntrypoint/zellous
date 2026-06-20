@@ -11,6 +11,8 @@ import { createRoles } from './roles.js';
 import { createSettings } from './settings.js';
 import { createMedia } from './media.js';
 import { createPages } from './pages.js';
+import { createDM } from './dm.js';
+import { createDataSession } from './data.js';
 import { register } from './debug.js';
 
 export const createWireweave = ({
@@ -76,10 +78,33 @@ export const createWireweave = ({
 
   const setCurrentChannel = (id) => { currentChannelId = id; if (id) chat.loadHistory(id); };
 
+  // DM is lazy: nip44 encryption requires a privkey-backed signer (not extension)
+  // and nostr-tools built with nip44. Constructing it eagerly would throw for
+  // builds without nip44, so we defer to first use — mirrors ensureVoice.
+  let dm = null;
+  const ensureDM = () => {
+    if (!dm) dm = createDM({ relayPool: pool, auth, nostrTools });
+    return dm;
+  };
+
+  // DataSession is lazy for the same reason as DM: requires xstate and FSM.
+  // onSwitch accumulates subscriptions across all visited servers (idempotent
+  // Map pattern) — no unsubscribe on server switch by design so offline data
+  // from prior servers remains cached.
+  let data = null;
+  const ensureData = ({ room = '', displayName = 'Guest', namespace = '' } = {}) => {
+    if (!data) data = createDataSession({ fsm, xstate, relayPool: pool, auth, namespace });
+    return data;
+  };
+
   const api = {
     pool, auth, fsm, message, bans, roles, settings, pages, media, channels, servers, chat,
     get voice() { return voice; },
     ensureVoice,
+    get dm() { return dm; },
+    ensureDM,
+    get data() { return data; },
+    ensureData,
     setCurrentChannel,
     get currentChannelId() { return currentChannelId; },
     get currentServerId() { return servers.currentServerId; }

@@ -34,7 +34,8 @@ export class DataSession extends EventTarget {
   }
 
   _initActor() {
-    const machine = this.fsm.dataMachine || this.fsm.voiceMachine;
+    const machine = this.fsm.dataMachine;
+    if (!machine) throw new Error('DataSession: fsm.dataMachine missing');
     this.actor = this.xstate.createActor(machine);
     this.actor.subscribe((snap) => this.dispatchEvent(new CustomEvent('state', { detail: { value: snap.value } })));
     this.actor.start();
@@ -72,6 +73,7 @@ export class DataSession extends EventTarget {
     this._stopHeartbeat();
     for (const pk of Array.from(this.peers.keys())) this._closePeer(pk);
     this.peers.clear();
+    for (const pk of Object.keys(this.retrySchedule)) this._cancelReconnect(pk);
     if (this.roomId) {
       this.pool.unsubscribe('data-presence-' + this.roomId);
       this.pool.unsubscribe('data-signals-' + this.roomId);

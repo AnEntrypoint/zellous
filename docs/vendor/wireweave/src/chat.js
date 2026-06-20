@@ -52,6 +52,11 @@ export class Chat extends EventTarget {
   }
 
   async deleteMessage(id) {
+    const msg = this.messages.find(m => m.id === id);
+    if (!msg) return;
+    const { serverId } = this.getChannelContext();
+    const isAuthor = msg.userId === this.auth.pubkey;
+    if (!isAuthor && !this.isAdmin(serverId)) throw new Error('Cannot delete: not author or admin');
     const signed = await this.auth.sign({ kind: 5, created_at: Math.floor(Date.now() / 1000), tags: [['e', id]], content: 'deleted' });
     this.pool.publish(signed);
     this.messages = this.messages.filter(m => m.id !== id);

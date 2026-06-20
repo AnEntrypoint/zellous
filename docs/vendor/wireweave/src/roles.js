@@ -6,7 +6,7 @@ export class Roles extends EventTarget {
     if (!relayPool || !auth) throw new Error('Roles: deps required');
     this.pool = relayPool; this.auth = auth;
     this.store = new Map();
-    this.sub = null;
+    this.subs = new Map();
   }
 
   _creatorOf(serverId) { return serverId ? serverId.split(':')[0] : null; }
@@ -39,12 +39,13 @@ export class Roles extends EventTarget {
   }
 
   subscribe(serverId) {
-    if (this.sub) { this.pool.unsubscribe(this.sub); this.sub = null; }
+    if (this.subs.has(serverId)) return;
     if (!serverId) return;
     const creator = this._creatorOf(serverId);
     if (!creator) return;
-    this.sub = 'roles-' + serverId;
-    this.pool.subscribe(this.sub,
+    const subId = 'roles-' + serverId;
+    this.subs.set(serverId, subId);
+    this.pool.subscribe(subId,
       [{ kinds: [30078], authors: [creator], '#d': [dtag('roles', serverId)] }],
       (event) => {
         if (event.pubkey !== creator) return;
@@ -54,6 +55,11 @@ export class Roles extends EventTarget {
           this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next: this.store.get(serverId) } }));
         } catch {}
       });
+  }
+
+  unsubscribe(serverId) {
+    const subId = this.subs.get(serverId);
+    if (subId) { this.pool.unsubscribe(subId); this.subs.delete(serverId); }
   }
 }
 

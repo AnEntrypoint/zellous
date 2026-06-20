@@ -103,6 +103,7 @@ export class VoiceSession extends EventTarget {
     this._sfuStop();
     for (const pk of Array.from(this.peers.keys())) this._closePeer(pk);
     this.peers.clear();
+    for (const pk of Object.keys(this.retrySchedule)) this._cancelReconnect(pk);
     if (this._activityTimer) { clearInterval(this._activityTimer); this._activityTimer = null; }
     if (this._activeAnalyzers) { for (const k of Array.from(this._activeAnalyzers.keys())) this._detachAnalyzer(k); }
     if (this._outboundRec) { try { this._outboundRec.rec.stop(); } catch {} this._outboundRec = null; }

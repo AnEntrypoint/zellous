@@ -6,10 +6,11 @@ export class Bans extends EventTarget {
     if (!relayPool) throw new Error('Bans: relayPool required');
     this.pool = relayPool; this.auth = auth; this.roles = roles;
     this.store = new Map();
-    this.sub = null;
+    this.subs = new Map();
   }
 
   isBanned(serverId, pubkey) { return !!(this.store.get(serverId)?.banned || []).includes(pubkey); }
+  isKicked(serverId, pubkey) { return !!(this.store.get(serverId)?.kicked || []).includes(pubkey); }
 
   isTimedOut(serverId, pubkey) {
     const t = this.store.get(serverId)?.timeouts?.[pubkey];
@@ -51,12 +52,13 @@ export class Bans extends EventTarget {
   }
 
   subscribe(serverId) {
-    if (this.sub) { this.pool.unsubscribe(this.sub); this.sub = null; }
+    if (this.subs.has(serverId)) return;
     if (!serverId) return;
     const creator = serverId.split(':')[0];
     if (!creator) return;
-    this.sub = 'bans-' + serverId;
-    this.pool.subscribe(this.sub,
+    const subId = 'bans-' + serverId;
+    this.subs.set(serverId, subId);
+    this.pool.subscribe(subId,
       [{ kinds: [30078], authors: [creator], '#server': [serverId] }],
       (event) => {
         if (event.pubkey !== creator) return;
@@ -64,19 +66,27 @@ export class Bans extends EventTarget {
           const dTag = event.tags.find(t => t[0] === 'd');
           if (!dTag?.[1]) return;
           const parsed = parseDtag(dTag[1]);
-          if (!parsed || (parsed.ns !== 'ban' && parsed.ns !== 'timeout')) return;
+          if (!parsed || !['ban', 'timeout', 'kick'].includes(parsed.ns)) return;
           const pubkey = parsed.parts[parsed.parts.length - 1];
-          const data = this.store.get(serverId) || { banned: [], timeouts: {} };
+          const data = this.store.get(serverId) || { banned: [], timeouts: {}, kicked: [] };
           if (parsed.ns === 'ban' && pubkey && !data.banned.includes(pubkey)) data.banned.push(pubkey);
-          else if (parsed.ns === 'timeout' && pubkey) {
-            const parsed = JSON.parse(event.content);
-            if (parsed.expiry > Math.floor(Date.now() / 1000)) (data.timeouts = data.timeouts || {})[pubkey] = { expiry: parsed.expiry };
+          else if (parsed.ns === 'kick' && pubkey) {
+            data.kicked = data.kicked || [];
+            if (!data.kicked.includes(pubkey)) data.kicked.push(pubkey);
+          } else if (parsed.ns === 'timeout' && pubkey) {
+            const body = JSON.parse(event.content);
+            if (body.expiry > Math.floor(Date.now() / 1000)) (data.timeouts = data.timeouts || {})[pubkey] = { expiry: body.expiry };
             else if (data.timeouts?.[pubkey]) delete data.timeouts[pubkey];
           }
           this.store.set(serverId, data);
           this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, data } }));
         } catch {}
       });
+  }
+
+  unsubscribe(serverId) {
+    const subId = this.subs.get(serverId);
+    if (subId) { this.pool.unsubscribe(subId); this.subs.delete(serverId); }
   }
 }
 

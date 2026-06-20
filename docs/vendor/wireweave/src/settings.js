@@ -9,7 +9,7 @@ export class Settings extends EventTarget {
     if (!relayPool || !auth || !roles) throw new Error('Settings: deps required');
     this.pool = relayPool; this.auth = auth; this.roles = roles;
     this.store = new Map();
-    this.sub = null;
+    this.subs = new Map();
   }
 
   getBitrate(serverId) { return this.store.get(serverId)?.opusBitrate || 24000; }
@@ -57,17 +57,23 @@ export class Settings extends EventTarget {
   }
 
   subscribe(serverId) {
-    if (this.sub) { this.pool.unsubscribe(this.sub); this.sub = null; }
+    if (this.subs.has(serverId)) return;
     if (!serverId) return;
     const creator = serverId.split(':')[0];
     if (!creator) return;
-    this.sub = 'settings-' + serverId;
-    this.pool.subscribe(this.sub,
+    const subId = 'settings-' + serverId;
+    this.subs.set(serverId, subId);
+    this.pool.subscribe(subId,
       [{ kinds: [30078], authors: [creator], '#d': [dtag('settings', serverId)] }],
       (event) => {
         if (event.pubkey !== creator) return;
         try { this.store.set(serverId, JSON.parse(event.content)); this.dispatchEvent(new CustomEvent('updated', { detail: { serverId, next: this.store.get(serverId) } })); } catch {}
       });
+  }
+
+  unsubscribe(serverId) {
+    const subId = this.subs.get(serverId);
+    if (subId) { this.pool.unsubscribe(subId); this.subs.delete(serverId); }
   }
 }
 
