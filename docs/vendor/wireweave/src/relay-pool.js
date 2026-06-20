@@ -12,6 +12,9 @@ const DEFAULT_RELAYS = [
 ];
 
 const SEEN_MAX = 10000;
+const PENDING_MAX = 500;
+const PENDING_TTL_MS = 120000;
+const jitter = (ms) => Math.round(ms * (0.75 + Math.random() * 0.5));
 
 const lruTouch = (map, key) => {
   if (map.has(key)) { map.delete(key); map.set(key, 1); return false; }
@@ -36,16 +39,22 @@ export class RelayPool extends EventTarget {
     this.subs = new Map();
     this.pending = [];
     this.seen = new Map();
+    this._reconnectTimers = new Map();
+    this._closed = false;
     this.verifyEvent = verifyEvent;
     this.WS = WebSocketImpl || (typeof WebSocket !== 'undefined' ? WebSocket : null);
     if (!this.WS) throw new Error('No WebSocket implementation available');
   }
 
   connect() {
+    this._closed = false;
     for (const url of this.urls) this._open(url);
   }
 
   disconnect() {
+    this._closed = true;
+    for (const [, t] of this._reconnectTimers) clearTimeout(t);
+    this._reconnectTimers.clear();
     for (const [, r] of this.relays) {
       if (r.ws) {
         r.ws.onclose = null; r.ws.onerror = null; r.ws.onopen = null; r.ws.onmessage = null;
@@ -58,6 +67,8 @@ export class RelayPool extends EventTarget {
   }
 
   _open(url) {
+    if (this._closed) return;
+    this._reconnectTimers.delete(url);
     const existing = this.relays.get(url);
     if (existing?.ws && (existing.ws.readyState === 0 || existing.ws.readyState === 1)) return;
     const relay = existing || { ws: null, status: 'connecting', subIds: new Set(), latencyMs: null, failCount: 0, reconnectDelay: 1000, _reqSentAt: null, _openedAt: null };
@@ -94,7 +105,9 @@ export class RelayPool extends EventTarget {
       if (sustained) { relay.failCount = 0; relay.reconnectDelay = 1000; }
       else { relay.failCount++; relay.reconnectDelay = Math.min(relay.reconnectDelay * 2, 30000); }
       relay._openedAt = null;
-      setTimeout(() => this._open(url), relay.reconnectDelay);
+      if (this._closed) return;
+      const t = setTimeout(() => this._open(url), jitter(relay.reconnectDelay));
+      this._reconnectTimers.set(url, t);
     };
   }
 
@@ -156,13 +169,17 @@ export class RelayPool extends EventTarget {
         sent = true;
       }
     }
-    if (!sent) this.pending.push(event);
+    if (!sent) {
+      this.pending.push({ event, ts: Date.now() });
+      if (this.pending.length > PENDING_MAX) this.pending.splice(0, this.pending.length - PENDING_MAX);
+    }
     return sent;
   }
 
   _drainPending() {
+    const cutoff = Date.now() - PENDING_TTL_MS;
     const pending = this.pending.splice(0);
-    for (const e of pending) this.publish(e);
+    for (const p of pending) { if (p.ts >= cutoff) this.publish(p.event); }
   }
 
   isConnected() {
