@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Parse-check first-party JS
+        run: |
+          node -e '
+            const {execSync}=require("child_process");
+            const fs=require("fs"),p=require("path");
+            function walk(d,a=[]){for(const e of fs.readdirSync(d,{withFileTypes:true})){if(e.name.startsWith(".")||e.name==="vendor")continue;const fp=p.join(d,e.name);e.isDirectory()?walk(fp,a):/\.(m?js)$/.test(e.name)&&a.push(fp);}return a;}
+            const targets=[...walk("docs/js"),...(fs.existsSync("site")?walk("site"):[]),"flatspace.config.mjs"].filter(fs.existsSync);
+            const fails=[];
+            for(const f of targets){try{execSync(`node --check "${f}"`,{stdio:"pipe"});}catch(e){fails.push(f+": "+String(e.stderr).split("\n")[0]);}}
+            if(fails.length){console.error("parse FAIL\n"+fails.join("\n"));process.exit(1);}
+            console.log("parse OK ("+targets.length+" files)");
+          '
+
+      - name: Static-serve smoke (HTTP-witness the app entry is served)
+        run: |
+          node -e '
+            const http=require("http"),fs=require("fs"),p=require("path"),url=require("url");
+            const ROOT=p.resolve("docs");
+            const MIME={".js":"text/javascript",".mjs":"text/javascript",".css":"text/css",".html":"text/html",".json":"application/json",".svg":"image/svg+xml"};
+            const srv=http.createServer((q,s)=>{
+              let f=p.normalize(p.join(ROOT,decodeURIComponent(url.parse(q.url).pathname)));
+              if(!f.startsWith(ROOT))return s.writeHead(403).end();
+              if(fs.existsSync(f)&&fs.statSync(f).isDirectory())f=p.join(f,"index.html");
+              if(!fs.existsSync(f))return s.writeHead(404).end("404");
+              s.writeHead(200,{"Content-Type":MIME[p.extname(f)]||"application/octet-stream"}).end(fs.readFileSync(f));
+            });
+            srv.listen(5173,()=>{
+              http.get("http://127.0.0.1:5173/nostr-chat/",(r)=>{
+                let b="";r.on("data",c=>b+=c);r.on("end",()=>{
+                  srv.close();
+                  if(r.statusCode!==200){console.error("app entry status "+r.statusCode);process.exit(1);}
+                  if(!/<html/i.test(b)){console.error("app entry not HTML");process.exit(1);}
+                  console.log("static-serve OK: /nostr-chat/ -> 200 ("+b.length+" bytes)");
+                });
+              }).on("error",e=>{srv.close();console.error(e.message);process.exit(1);});
+            });
+          '
