@@ -141,6 +141,17 @@ console.log('surface',surface,'errors',errors.filter(e=>!/fonts\.googleapis/.tes
 
 If `errors` is non-empty (after filtering external Google Fonts failures, which are expected when offline), fix at root cause before continuing — never proceed past a known-bad signal.
 
+## CI workflow
+
+`.github/workflows/ci.yml` operationalizes the validation loop on every push/PR:
+(1) a `node --check` parse-gate over `docs/js` + `site` + `flatspace.config.mjs`
+(skips `vendor/`), and (2) a static-serve smoke that HTTP-witnesses
+`/nostr-chat/` returns 200 HTML with explicit MIME types (`.js`/`.mjs` ->
+`text/javascript`). The full Playwright browser-witness (validation loop step 3)
+is NOT in CI yet — it needs `anentrypoint.github.io` reachable at run time and a
+chromium install; add it as a follow-up job if flake is acceptable. Keep the
+parse + static-serve gate green before pushing.
+
 ## Things that look broken but aren't
 
 - **No `<script type="importmap">` in raw HTML.** It is *injected at runtime* by an early classic script. Static greps will miss it; the importmap is real.
