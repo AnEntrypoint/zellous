@@ -103,6 +103,11 @@ const state = {
   settingsOpen: signal(false),
   settingsAnchor: signal({ x: 0, y: 0 }),
 
+  themePref: signal(typeof localStorage !== 'undefined' && localStorage.getItem('zellous-theme') === 'light' ? 'light' : 'ink'),
+  notificationsEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-notifications') !== '0' : true),
+  messagePreviewEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-message-preview') !== '0' : true),
+  soundEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-sound') !== '0' : true),
+
   rnnoiseEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('rnnoise') !== '0' : true),
   autoGainEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('autoGain') !== '0' : true),
   forceTurnEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('forceRelay') === '1' : false),

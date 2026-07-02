@@ -16,6 +16,26 @@
     const S = window.stateSignals;
     const v = (name, fallback) => (S[name] && 'value' in S[name]) ? S[name].value : fallback;
 
+    const persistBool = (signalName, key, val) => {
+      if (S[signalName]) S[signalName].value = !!val;
+      try { localStorage.setItem(key, val ? '1' : '0'); } catch (_) {}
+    };
+    // The SDK bundle owns its own theme system (its own localStorage key
+    // '247420:theme', vocabulary auto/paper/ink/thebird) and self-applies it
+    // via a microtask right after the module evaluates — before this init()
+    // runs. Route through sdk.applyTheme so we win the last write instead of
+    // fighting it with a second, incompatible attribute value.
+    const applyTheme = (next) => {
+      const theme = next === 'light' ? 'light' : 'ink';
+      if (S.themePref) S.themePref.value = theme;
+      if (sdk.applyTheme) sdk.applyTheme(theme === 'light' ? 'paper' : 'ink');
+      else document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem('zellous-theme', theme); } catch (_) {}
+    };
+    // Re-apply zellous's persisted preference now that the SDK's own boot-time
+    // self-init (which may have picked its own default) has already run.
+    applyTheme(v('themePref', 'ink'));
+
     // Snapshot read across the live signals. effect() (below) tracks whichever
     // .value reads happen during render, so any change re-renders.
     const pageChannels = () => {
@@ -59,6 +79,16 @@
       memberListOpen: (window.state && window.state.memberListOpen) || false,
       showAuthModal: v('showAuthModal', false),
       settingsOpen: v('settingsOpen', false),
+      settingsAnchor: v('settingsAnchor', { x: 0, y: 0 }),
+      settingsSections: [{
+        title: 'Preferences',
+        rows: [
+          { label: 'Theme', kind: 'select', value: v('themePref', 'ink'), options: [{ value: 'ink', label: 'Dark' }, { value: 'light', label: 'Light' }], onChange: applyTheme },
+          { label: 'Notifications', kind: 'toggle', value: v('notificationsEnabled', true), onChange: (val) => persistBool('notificationsEnabled', 'zellous-notifications', val) },
+          { label: 'Message preview', kind: 'toggle', value: v('messagePreviewEnabled', true), onChange: (val) => persistBool('messagePreviewEnabled', 'zellous-message-preview', val) },
+          { label: 'Sound', kind: 'toggle', value: v('soundEnabled', true), onChange: (val) => persistBool('soundEnabled', 'zellous-sound', val) },
+        ],
+      }],
       voiceSettingsOpen: v('voiceSettingsOpen', false),
       replyTarget: v('replyTarget', null),
       threadPanelOpen: v('threadPanelOpen', false),
@@ -121,7 +151,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'showAuthModal', 'settingsOpen', 'voiceSettingsOpen', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'showAuthModal', 'settingsOpen', 'voiceSettingsOpen', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });

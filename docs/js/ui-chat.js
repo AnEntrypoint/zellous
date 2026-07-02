@@ -1,9 +1,21 @@
-const mentionify = (text, selfId) => {
+const formatMessage = (text, selfId) => {
   if (!text) return '';
-  return escHtml(text).replace(/@(\w+)/g, (m, name) => {
-    const isSelf = state.currentUser && (state.currentUser.username === name || state.currentUser.displayName === name);
-    return `<span class="mention${isSelf ? ' self' : ''}">@${escHtml(name)}</span>`;
+  const escaped = escHtml(text);
+  const codeBlocks = [];
+  let out = escaped.replace(/```([\s\S]*?)```/g, (m, code) => {
+    codeBlocks.push(code);
+    return `CB${codeBlocks.length - 1}`;
   });
+  out = out.replace(/`([^`\n]+?)`/g, (m, code) => `<code>${code}</code>`);
+  out = out.replace(/\*\*([^\n*]+?)\*\*/g, (m, b) => `<strong>${b}</strong>`);
+  out = out.replace(/(^|[^*])\*([^*\n]+?)\*(?!\*)/g, (m, pre, i) => `${pre}<em>${i}</em>`);
+  out = out.replace(/@(\w+)/g, (m, name) => {
+    const isSelf = state.currentUser && (state.currentUser.username === name || state.currentUser.displayName === name);
+    return `<span class="mention${isSelf ? ' self' : ''}">@${name}</span>`;
+  });
+  out = chat?.linkify ? chat.linkify(out) : out;
+  out = out.replace(/CB(\d+)/g, (m, i) => `<pre><code>${codeBlocks[Number(i)]}</code></pre>`);
+  return out;
 };
 
 const uiChat = {
@@ -53,7 +65,7 @@ const uiChat = {
       if (m.type === 'image') contentHtml = chat?.createImagePreview ? chat.createImagePreview(m) : '';
       else if (m.type === 'file') contentHtml = chat?.createFileAttachment ? chat.createFileAttachment(m) : '';
       else {
-        const body = chat?.linkify ? chat.linkify(mentionify(m.content||'', state.userId)) : mentionify(m.content||'', state.userId);
+        const body = formatMessage(m.content||'', state.userId);
         contentHtml = `<div class="msg-content">${body}</div>`;
       }
 
