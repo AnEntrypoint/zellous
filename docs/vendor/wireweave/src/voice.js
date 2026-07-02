@@ -678,6 +678,7 @@ export class VoiceSession extends EventTarget {
     try { peer.dc?.close(); } catch {}
     try { peer.pc?.close(); } catch {}
     if (peer.audioEl) { peer.audioEl.srcObject = null; peer.audioEl.remove(); }
+    try { peer.fsm?.stop?.(); } catch {}
     this._detachAnalyzer(peerPubkey);
     this.peers.delete(peerPubkey);
     this._emit('peer-closed', { peerPubkey });

@@ -48,6 +48,9 @@ html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
   --panel-text-2: var(--paper-2);
   --panel-text-3: var(--ink-3);
   --border-color: color-mix(in oklab, var(--paper) 12%, transparent);
+  /* Brand-green accent tuned per theme: a single fixed green cannot clear
+     4.5:1 against both the near-black ink bg and the cream paper bg. */
+  --status-accent: #2E9E2A;
 }
 html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
   --bg-3: var(--paper-3);
@@ -59,6 +62,7 @@ html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
   --panel-text-2: var(--ink-2);
   --panel-text-3: var(--ink-3);
   --border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+  --status-accent: #247420;
 }
 
 /* ── 247420 design primitives — rail / dot / chip ── */
@@ -1119,8 +1123,14 @@ html.ds-247420 .chat-area { padding: 0; border: 0; background: transparent; box-
 html.ds-247420 .chat { padding: 0 0 calc(var(--app-status-h, 42px) + var(--space-2)) 0 !important; background: transparent; }
 html.ds-247420 .chat .chat-composer { padding: var(--space-3) var(--space-5); background: transparent; }
 
-/* Active room pill: keep glyph + count visible on accent background */
-html.ds-247420 .app-side a.active .glyph { color: var(--accent-fg) !important; }
+/* Active room pill: a.active bg is a translucent accent tint over the panel
+   bg (not a solid accent fill, and not brighter/darker enough to need its
+   own foreground token), so the glyph should use the same high-contrast
+   text color as everything else on the panel (--fg), not --accent-fg
+   (tuned for text ON a solid accent fill; near-invisible against the tint
+   in both themes) nor --accent (the raw neon accent, illegible on the
+   light theme's cream panel). */
+html.ds-247420 .app-side a.active .glyph { color: var(--fg) !important; }
 html.ds-247420 .app-side a.active .count { background: var(--warn); color: #fff; }
 html.ds-247420 .app-side .count {
   background: var(--warn); color: #fff;
@@ -1183,7 +1193,11 @@ html.ds-247420 .app-status {
   border-top: 1px solid var(--rule);
   flex-shrink: 0;
 }
-html.ds-247420 .app-status .item:first-of-type { color: var(--accent); }
+/* --accent (#B6FF1B neon) is illegible on the light theme's cream --bg
+   (~1.07:1) and no single green clears 4.5:1 against both the near-black
+   ink bg and the cream paper bg, so --status-accent is defined per-theme
+   above (2E9E2A on ink ~5.5:1, 247420 on light/paper ~5.2:1). */
+html.ds-247420 .app-status .item:first-of-type { color: var(--status-accent); }
 html.ds-247420 .app-status .spread { flex: 1; }
 html.ds-247420 .app-body {
   height: auto !important;

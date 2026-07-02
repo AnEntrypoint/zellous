@@ -183,6 +183,35 @@ window.__wireweaveReady = (async () => {
     handleImageMessage() {}, handleFileShared() {}
   };
 
+  // DM bridge — NIP-44 encrypted 1:1 (kind 14), structurally isolated from
+  // the plaintext broadcast Chat (kind 42 filtered by channel-hash '#e' tag).
+  // DM.subscribe filters by '#p'/authors on the user's own pubkey, so a DM
+  // event can never satisfy a channel chat subscription's kind/tag filter,
+  // and vice versa — no shared array, no shared subscription id.
+  const dmMessages = [];
+  let dmSubId = null;
+  window.dm = {
+    get messages() { return dmMessages.slice(); },
+    async send(peerPubkey, text) {
+      if (!peerPubkey || !text?.trim()) return null;
+      const ev = await ww.ensureDM().send(peerPubkey, text.trim());
+      dmMessages.push({ id: ev.id, peer: peerPubkey, from: a.pubkey, text: text.trim(), timestamp: ev.created_at * 1000, mine: true });
+      state.dmMessages = dmMessages.slice();
+      if (window.ui) ui.render.all();
+      return ev;
+    },
+    subscribeAll() {
+      if (dmSubId || !a.pubkey) return dmSubId;
+      dmSubId = ww.ensureDM().subscribe(({ event, plaintext, peer }) => {
+        if (dmMessages.find(m => m.id === event.id)) return;
+        dmMessages.push({ id: event.id, peer, from: event.pubkey, text: plaintext, timestamp: event.created_at * 1000, mine: event.pubkey === a.pubkey });
+        state.dmMessages = dmMessages.slice();
+        if (window.ui) ui.render.all();
+      });
+      return dmSubId;
+    }
+  };
+
   // Channels bridge
   const ch = ww.channels;
   ch.addEventListener('updated', (e) => {
@@ -414,7 +443,10 @@ window.__wireweaveReady = (async () => {
 
   // Ready flag for legacy code
   window.__zellous = window.__zellous || {};
-  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, wireweave: ww });
+  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, wireweave: ww });
+
+  document.addEventListener('nostr:login', () => window.dm.subscribeAll());
+  if (a.pubkey) window.dm.subscribeAll();
 
   document.dispatchEvent(new CustomEvent('wireweave:ready'));
   return true;
