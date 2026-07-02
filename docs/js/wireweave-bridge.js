@@ -40,6 +40,8 @@ window.__wireweaveReady = (async () => {
   // Auth bridge
   const a = ww.auth;
   a.loadFromStorage();
+  a.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage error', 4000, 'error'); });
+  a.addEventListener('persist-failed', () => { if (window.ui) ui.showToast('Could not save your login key — storage is full. Free up space or your session won\'t persist after reload.', 6000, 'error'); });
   window.auth = {
     get user() {
       const pk = a.pubkey; if (!pk) return null;
@@ -213,6 +215,7 @@ window.__wireweaveReady = (async () => {
 
   // Servers bridge
   const srv = ww.servers;
+  srv.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage full — some data may not be saved', 4000, 'error'); });
   srv.addEventListener('updated', (e) => { state.servers = e.detail.servers; if (window.ui) ui.render.all(); });
   srv.addEventListener('switched', (e) => { state.currentServerId = e.detail.serverId; state.chatMessages = []; state.channels = []; state.categories = []; if (window.ui) ui.render.all(); });
   window.serverManager = {

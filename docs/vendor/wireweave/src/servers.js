@@ -1,3 +1,5 @@
+import { safeSetItem } from './safe-storage.js';
+
 export class Servers extends EventTarget {
   constructor({ relayPool, auth, storage, onSwitch = null }) {
     super();
@@ -63,7 +65,7 @@ export class Servers extends EventTarget {
   async join(serverId) {
     try {
       const joined = JSON.parse(this.storage.getItem('zn_joined_servers') || '[]');
-      if (!joined.includes(serverId)) { joined.push(serverId); this.storage.setItem('zn_joined_servers', JSON.stringify(joined)); }
+      if (!joined.includes(serverId)) { joined.push(serverId); safeSetItem(this.storage, this, 'zn_joined_servers', JSON.stringify(joined)); }
     } catch {}
     if (!this.servers.find(s => s.id === serverId)) { this.servers = [...this.servers, { id: serverId, name: serverId.slice(0, 8), iconColor: '#5865F2' }]; this._persist(); }
     await this.switchTo(serverId);
@@ -74,7 +76,7 @@ export class Servers extends EventTarget {
     this._persist();
     try {
       const joined = JSON.parse(this.storage.getItem('zn_joined_servers') || '[]');
-      this.storage.setItem('zn_joined_servers', JSON.stringify(joined.filter(id => id !== serverId)));
+      safeSetItem(this.storage, this, 'zn_joined_servers', JSON.stringify(joined.filter(id => id !== serverId)));
     } catch {}
     if (this.currentServerId === serverId) await this.switchTo(null);
     else this._emit('updated', { servers: this.servers });
@@ -84,7 +86,7 @@ export class Servers extends EventTarget {
 
   async switchTo(serverId) {
     this.currentServerId = serverId;
-    if (serverId) this.storage.setItem('zn_lastServer', serverId); else this.storage.removeItem('zn_lastServer');
+    if (serverId) safeSetItem(this.storage, this, 'zn_lastServer', serverId); else this.storage.removeItem('zn_lastServer');
     this._emit('switched', { serverId });
     await this.onSwitch?.(serverId);
   }
@@ -97,7 +99,7 @@ export class Servers extends EventTarget {
   }
 
   getOrder() { try { return JSON.parse(this.storage.getItem('zn_serverOrder') || '[]'); } catch { return []; } }
-  saveOrder(ids) { this.storage.setItem('zn_serverOrder', JSON.stringify(ids)); this._emit('updated', { servers: this.servers }); }
+  saveOrder(ids) { safeSetItem(this.storage, this, 'zn_serverOrder', JSON.stringify(ids)); this._emit('updated', { servers: this.servers }); }
   sorted() {
     const order = this.getOrder();
     if (!order.length) return this.servers;
@@ -105,7 +107,7 @@ export class Servers extends EventTarget {
     return this.servers.slice().sort((a, b) => (idx[a.id] ?? Infinity) - (idx[b.id] ?? Infinity));
   }
 
-  _persist() { this.storage.setItem('zn_servers', JSON.stringify(this.servers)); }
+  _persist() { safeSetItem(this.storage, this, 'zn_servers', JSON.stringify(this.servers)); }
   _emit(t, d) { this.dispatchEvent(new CustomEvent(t, { detail: d })); }
 }
 

@@ -1,3 +1,5 @@
+import { safeSetItem } from './safe-storage.js';
+
 const b2hex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 const hex2b = (hex) => {
   const a = new Uint8Array(hex.length / 2);
@@ -87,8 +89,13 @@ export class NostrAuth extends EventTarget {
   _persist(sk, pk) {
     this.privkey = sk;
     this.pubkey = pk;
-    this.storage?.setItem('zn_sk', b2hex(sk));
-    this.storage?.setItem('zn_pk', pk);
+    if (!this.storage) return;
+    const okSk = safeSetItem(this.storage, this, 'zn_sk', b2hex(sk));
+    const okPk = safeSetItem(this.storage, this, 'zn_pk', pk);
+    if (!okSk || !okPk) {
+      try { this.storage.removeItem('zn_sk'); this.storage.removeItem('zn_pk'); } catch {}
+      this._emit('persist-failed', { pubkey: pk });
+    }
   }
 
   _emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }

@@ -88,7 +88,7 @@ export class RelayPool extends EventTarget {
         relay.subIds.add(subId);
         if (!relay._reqSentAt) relay._reqSentAt = Date.now();
       }
-      this._drainPending();
+      this._drainPending(url, ws);
     };
     ws.onmessage = (e) => {
       if (relay._reqSentAt && relay.latencyMs === null) {
@@ -163,23 +163,45 @@ export class RelayPool extends EventTarget {
 
   publish(event) {
     let sent = false;
+    let allConnectedSent = true;
+    let anyDisconnected = false;
     for (const [, relay] of this.relays) {
       if (relay.ws?.readyState === 1) {
         relay.ws.send(JSON.stringify(['EVENT', event]));
         sent = true;
+      } else {
+        anyDisconnected = true;
+        allConnectedSent = false;
       }
     }
-    if (!sent) {
-      this.pending.push({ event, ts: Date.now() });
-      if (this.pending.length > PENDING_MAX) this.pending.splice(0, this.pending.length - PENDING_MAX);
-    }
+    if (anyDisconnected || !sent) this._enqueuePending(event, sent);
     return sent;
   }
 
-  _drainPending() {
+  _enqueuePending(event, alreadySentToConnected) {
+    const sentTo = new Set();
+    if (alreadySentToConnected) {
+      for (const [url, relay] of this.relays) if (relay.ws?.readyState === 1) sentTo.add(url);
+    }
+    this.pending.push({ event, sentTo, ts: Date.now() });
+    if (this.pending.length > PENDING_MAX) this.pending.shift();
+  }
+
+  _drainPending(url, ws) {
     const cutoff = Date.now() - PENDING_TTL_MS;
-    const pending = this.pending.splice(0);
-    for (const p of pending) { if (p.ts >= cutoff) this.publish(p.event); }
+    this.pending = this.pending.filter((entry) => entry.ts >= cutoff);
+    for (const entry of this.pending) {
+      if (entry.sentTo.has(url)) continue;
+      ws.send(JSON.stringify(['EVENT', entry.event]));
+      entry.sentTo.add(url);
+    }
+    this.pending = this.pending.filter(entry => {
+      let allKnownSent = true;
+      for (const [u, r] of this.relays) {
+        if (r.ws?.readyState === 1 && !entry.sentTo.has(u)) { allKnownSent = false; break; }
+      }
+      return !allKnownSent;
+    });
   }
 
   isConnected() {

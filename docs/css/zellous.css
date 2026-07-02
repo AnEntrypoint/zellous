@@ -1197,6 +1197,21 @@ html.ds-247420 .app-status {
   background: var(--bg);
 }
 
+/* Touch-target floor (WCAG 2.5.5): SDK ships 36/28px icon buttons that fall
+   short of the 44x44 minimum on touch viewports. Enlarge the hit area
+   without changing the visual glyph size (padding grows the box, icon stays
+   put via flex centering already present on these classes upstream). */
+@media (max-width: 900px) {
+  html.ds-247420 button.cm-mh-btn,
+  html.ds-247420 button.cm-user-btn,
+  html.ds-247420 .chat-composer button.send {
+    min-width: 44px; min-height: 44px;
+    width: 44px; height: 44px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  html.ds-247420 .app-side a { min-height: 44px; }
+}
+
 /* Empty chat-thread placeholder — sentinel child blocks :empty, so target sentinel-only */
 html.ds-247420 .chat-thread:has(> [data-scroll-sentinel]:only-child)::before,
 html.ds-247420 .chat-thread[data-msg-count="0"]::before {
