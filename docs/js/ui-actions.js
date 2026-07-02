@@ -18,7 +18,8 @@ ui.actions = {
       if (state.voiceConnected && state.voiceChannelName === channel.name) {
         lk.disconnect();
       } else if (!state.voiceConnected) {
-        lk.connect(channel.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' });
+        lk.connect(channel.name, { forceRelay: localStorage.getItem('zellous_forceRelay') === 'true' })
+          .catch((e) => { if (window.ui?.showToast) ui.showToast('Voice connect failed: ' + (e?.message || 'unknown error'), 3000, 'error'); });
       }
     }
     ui.channelSidebar?.classList.remove('open');

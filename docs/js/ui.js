@@ -111,13 +111,12 @@ ui.render = {
 };
 
 ui.showToast = function(msg, duration, tone) {
-  const sig = window.stateSignals?.toastQueue;
-  if (sig) {
-    const id = 't' + Date.now() + Math.random().toString(36).slice(2, 6);
-    sig.value = [...(sig.value || []), { id, message: String(msg), tone: tone || 'info', duration: duration || 2000 }];
+  const sdkToast = window.__sdk?.C?.toast;
+  if (typeof sdkToast === 'function') {
+    sdkToast({ message: String(msg), kind: tone || 'info', duration: duration || 3000 });
     return;
   }
-  // Fallback (state not yet booted) — original inline toast.
+  // Fallback (SDK not loaded yet, or failed to load) — original inline toast.
   document.getElementById('uiToast')?.remove();
   const el = document.createElement('div');
   el.id = 'uiToast';
