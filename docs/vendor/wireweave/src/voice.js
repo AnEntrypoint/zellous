@@ -56,6 +56,7 @@ export class VoiceSession extends EventTarget {
     this.muted = false; this.deafened = false;
     this.sfu = { mode: 'mesh', hub: null, hubLostAt: null, rttMatrix: new Map(), electionTimer: null, statsInterval: null, actor: null };
     this.retrySchedule = {};
+    this._epoch = 0;
   }
 
   _initActor() {
@@ -64,16 +65,31 @@ export class VoiceSession extends EventTarget {
     this.actor.start();
   }
 
+  // Reentrancy guard: connect()/disconnect() are async and mutate shared
+  // instance state (peers, participants, localStream, roomId) across several
+  // await points. Rapid join→leave→rejoin (or a double-click join) used to
+  // interleave two in-flight calls: a stale connect() resuming after a newer
+  // disconnect() had already torn everything down would re-populate roomId/
+  // participants and re-send 'connected' into an actor the fresh call had
+  // already returned to idle, leaking the stale heartbeat/presence
+  // subscriptions and getUserMedia stream. Every call captures the epoch at
+  // entry and re-checks it after each await; a superseded call unwinds
+  // whatever it acquired instead of mutating shared state.
   async connect(channelName, { displayName = 'Guest' } = {}) {
     if (!this.actor) this._initActor();
     if (!this.actor.getSnapshot().can({ type: 'connect' })) await this.disconnect();
+    const epoch = ++this._epoch;
     this.actor.send({ type: 'connect' });
     this.channelName = channelName;
     this.joinTs = Math.floor(Date.now() / 1000);
     this.displayName = displayName;
     try {
-      this.roomId = await deriveRoomId(this.serverId, channelName);
-      this.localStream = await this.md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      const roomId = await deriveRoomId(this.serverId, channelName);
+      if (epoch !== this._epoch) return;
+      const stream = await this.md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      if (epoch !== this._epoch) { stream.getTracks().forEach(t => t.stop()); return; }
+      this.roomId = roomId;
+      this.localStream = stream;
       // PTT default: gate closed at join. Apps that want always-on call setMuted(false).
       this.muted = true;
       this.localStream.getAudioTracks().forEach(t => t.enabled = false);
@@ -84,10 +100,12 @@ export class VoiceSession extends EventTarget {
       this._subscribeSignals();
       this._subscribePresence();
       await this._publishPresence('join');
+      if (epoch !== this._epoch) return;
       this._startHeartbeat();
       this._sfuStart();
       this._emit('connected', { roomId: this.roomId, channelName });
     } catch (e) {
+      if (epoch !== this._epoch) return;
       this.actor.send({ type: 'fail' });
       this._emit('error', { message: 'connect failed: ' + e.message });
       throw e;
@@ -97,6 +115,7 @@ export class VoiceSession extends EventTarget {
   async disconnect() {
     if (!this.actor || this.actor.getSnapshot().matches('idle')) return;
     if (!this.actor.getSnapshot().can({ type: 'disconnect' })) return;
+    ++this._epoch;
     this.actor.send({ type: 'disconnect' });
     await this._publishPresence('leave');
     this._stopHeartbeat();

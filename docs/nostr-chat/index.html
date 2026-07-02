@@ -157,9 +157,9 @@ window.nostrFsm = null;
         <div class="main-content" id="mainContent">
       <!-- Mobile header -->
       <div class="mobile-header" id="mobileHeader">
-        <button class="mobile-hamburger" id="mobileMenuBtn" onclick="(function(){var s=document.querySelector('.app-side-shell')||document.querySelector('.app-side');if(s){s.classList.toggle('open');var b=document.querySelector('.app-body');if(b)b.classList.toggle('side-open');}try{ui.actions.openMobileMenu&&ui.actions.openMobileMenu()}catch(e){}})()">&#9776;</button>
+        <button class="mobile-hamburger" id="mobileMenuBtn" aria-label="Open menu" onclick="(function(){var s=document.querySelector('.app-side-shell')||document.querySelector('.app-side');if(s){s.classList.toggle('open');var b=document.querySelector('.app-body');if(b)b.classList.toggle('side-open');}try{ui.actions.openMobileMenu&&ui.actions.openMobileMenu()}catch(e){}})()">&#9776;</button>
         <div class="mobile-title" id="mobileTitle"># general</div>
-        <button class="mobile-members-btn" id="mobileMembersBtn" onclick="ui.actions.toggleMembers()"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></button>
+        <button class="mobile-members-btn" id="mobileMembersBtn" aria-label="Toggle member list" onclick="ui.actions.toggleMembers()"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></button>
       </div>
 
       <!-- In-voice banner: shown whenever we're connected to a voice channel
@@ -286,7 +286,7 @@ window.nostrFsm = null;
     <div class="thread-panel" id="threadPanel">
       <div class="thread-panel-header">
         <span>Threads</span>
-        <button class="thread-panel-close" id="threadPanelClose">&#10005;</button>
+        <button class="thread-panel-close" id="threadPanelClose" aria-label="Close thread panel">&#10005;</button>
       </div>
       <div class="thread-list" id="threadList">
         <div class="empty-state">No threads yet</div>
@@ -425,6 +425,8 @@ window.nostrFsm = null;
     } catch (e) {
       console.error('SDK load failed', e);
       window.__sdk = null;
+      window.__boot?.fail('Could not load the app UI (design SDK unreachable). Check your connection and reload.');
+      throw e;
     }
     window.__boot?.progress(7, 'core libs ready');
 
