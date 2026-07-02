@@ -192,7 +192,7 @@ const uiChannels = {
     });
     document.getElementById('addPageBtn')?.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (window.serverPages) serverPages.showEditModal(state.currentServerId, null);
+      if (window.serverPages && typeof serverPages.showEditModal === 'function') serverPages.showEditModal(state.currentServerId, null);
     });
   },
 
@@ -225,9 +225,8 @@ const uiChannels = {
       if (ui.threadedView) ui.threadedView.style.display = 'flex';
     } else if (ch.type === 'forum' && forumView) {
       forumView.style.display = 'flex';
-    } else if (ch.type === 'page' && pageView && window.serverPages) {
+    } else if (ch.type === 'page' && pageView) {
       pageView.style.display = 'flex';
-      serverPages.renderPageView(ch._serverId, ch._slug);
     } else {
       if (ui.chatArea) ui.chatArea.style.display = 'flex';
       if (ui.chatInput) ui.chatInput.placeholder = `Message #${ch.name}`;

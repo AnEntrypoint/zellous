@@ -80,7 +80,11 @@ ui.actions = {
   },
   toggleMembers() { document.getElementById('memberList')?.classList.toggle('open'); },
   toggleQueue() { document.getElementById('queueSidebar')?.classList.toggle('open'); },
-  toggleSettings() { ui.settingsPopover?.classList.toggle('open'); },
+  toggleSettings() {
+    const sig = window.stateSignals && window.stateSignals.settingsOpen;
+    if (sig) { sig.value = !sig.value; return; }
+    ui.settingsPopover?.classList.toggle('open');
+  },
   openMobileMenu() { ui.channelSidebar?.classList.add('open'); ui.drawerOverlay?.classList.add('open'); },
   closeMobileMenu() {
     ui.channelSidebar?.classList.remove('open'); ui.drawerOverlay?.classList.remove('open');

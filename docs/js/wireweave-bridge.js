@@ -301,7 +301,7 @@ window.__wireweaveReady = (async () => {
   };
 
   const pages = ww.pages;
-  pages.addEventListener('updated', () => { if (window.uiChannels?.render) uiChannels.render(); });
+  pages.addEventListener('updated', () => { state.pagesVersion = (state.pagesVersion || 0) + 1; if (window.uiChannels?.render) uiChannels.render(); });
   window.serverPages = {
     _store: pages.store,
     getPages: (sid) => pages.getPages(sid),

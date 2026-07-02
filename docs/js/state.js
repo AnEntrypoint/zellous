@@ -126,6 +126,11 @@ const state = {
   voiceBitrate: signal(typeof localStorage !== 'undefined' ? Number(localStorage.getItem('voiceBitrate') || 64) : 64),
 
   replyTarget: signal(null),
+
+  threadPanelOpen: signal(false),
+  activeThreadId: signal(null),
+  threads: signal([]),
+  pagesVersion: signal(0),
 };
 
 const _isSignal = (v) => v !== null && typeof v === 'object' && 'value' in v && typeof v.subscribe === 'function';

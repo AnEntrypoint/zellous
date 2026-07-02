@@ -51,103 +51,12 @@
   const rail = null;
 
   // -------- Command palette --------
-  const palette = (() => {
-    const overlay = ensureNode(`
-      <div class="cmdk-overlay" id="commandPalette" role="dialog" aria-label="Command palette" aria-hidden="true">
-        <div class="cmdk-box">
-          <input class="cmdk-input" id="cmdkInput" placeholder="Search channels, servers, actions…" autocomplete="off" spellcheck="false" />
-          <div class="cmdk-list" id="cmdkList"></div>
-        </div>
-      </div>`);
-    document.body.appendChild(overlay);
-    const input = $('cmdkInput');
-    const list = $('cmdkList');
-    let active = 0;
-    let items = [];
-
-    const collect = () => {
-      const out = [];
-      const sm = window.serverManager;
-      const cm = window.channelManager;
-      const st = window.state;
-      try {
-        const servers = (window.stateSignals?.servers?.value) || [];
-        for (const s of servers) {
-          out.push({ kind: 'server', label: s.name || s.id || 'server', sub: '', run: () => sm?.switchServer?.(s.id) });
-        }
-        const channels = (window.stateSignals?.channels?.value) || [];
-        for (const c of channels) {
-          const sym = c.type === 'voice' ? 'voice' : '#';
-          out.push({ kind: 'channel', label: sym + ' ' + (c.name || c.id), sub: '', run: () => window.ui?.actions?.switchChannel?.(c.id) });
-        }
-      } catch (e) { }
-      out.push({ kind: 'action', label: 'Toggle theme', run: () => $('themeToggleBtn')?.click() });
-      out.push({ kind: 'action', label: 'Toggle mute', run: () => $('micToggleBtn')?.click() || $('voiceMicBtn')?.click() });
-      out.push({ kind: 'action', label: 'Toggle deafen', run: () => $('deafenToggleBtn')?.click() || $('voiceDeafenBtn')?.click() });
-      out.push({ kind: 'action', label: 'Open settings', run: () => $('settingsBtn')?.click() });
-      out.push({ kind: 'action', label: 'Toggle members', run: () => window.ui?.actions?.toggleMembers?.() });
-      out.push({ kind: 'action', label: 'Disconnect voice', run: () => window.lk?.disconnect?.() });
-      return out;
-    };
-
-    const render = () => {
-      const q = input.value.trim().toLowerCase();
-      const all = collect();
-      items = q ? all.filter(i => i.label.toLowerCase().includes(q)) : all;
-      if (active >= items.length) active = 0;
-      list.innerHTML = '';
-      if (!items.length) {
-        list.innerHTML = '<div class="cmdk-empty">no matches</div>';
-        return;
-      }
-      items.forEach((it, i) => {
-        const row = document.createElement('div');
-        row.className = 'cmdk-item' + (i === active ? ' active' : '');
-        row.innerHTML = `<span class="cmdk-kind">${it.kind}</span><span>${it.label}</span>`;
-        row.addEventListener('click', () => { run(i); });
-        row.addEventListener('mouseenter', () => { active = i; render(); });
-        list.appendChild(row);
-      });
-    };
-
-    const open = () => {
-      overlay.classList.add('open');
-      overlay.setAttribute('aria-hidden', 'false');
-      input.value = '';
-      active = 0;
-      render();
-      setTimeout(() => input.focus(), 10);
-    };
-    const close = () => {
-      overlay.classList.remove('open');
-      overlay.setAttribute('aria-hidden', 'true');
-      input.blur();
-    };
-    const run = (i) => {
-      const it = items[i];
-      if (!it) return;
-      close();
-      try { it.run?.(); } catch (e) { console.error('palette run', e); }
-    };
-
-    input.addEventListener('input', render);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); close(); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); active = Math.min(items.length - 1, active + 1); render(); }
-      else if (e.key === 'ArrowUp') { e.preventDefault(); active = Math.max(0, active - 1); render(); }
-      else if (e.key === 'Enter') { e.preventDefault(); run(active); }
-    });
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
-
-    document.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        if (overlay.classList.contains('open')) close(); else open();
-      }
-    });
-
-    return { open, close, render, isOpen: () => overlay.classList.contains('open') };
-  })();
+  // Superseded by the SDK's C.CommandPalette (window.__commandPalette, wired
+  // in js/sdk-command-palette.js). This module used to hand-roll its own
+  // `#commandPalette .cmdk-overlay` and its own Ctrl/Cmd+K listener, which
+  // raced the SDK overlay for the same shortcut and always won (leaving the
+  // real C.CommandPalette permanently empty). Removed; see AGENTS.md.
+  const palette = null;
 
   // -------- Persistent voice strip (SDK-mounted by sdk-voice-strip.js) --------
   const voiceStrip = null;
