@@ -41,9 +41,14 @@ export class NostrAuth extends EventTarget {
   }
 
   importKey(input) {
-    const sk = input.startsWith('nsec')
-      ? (() => { const d = this.NT.nip19.decode(input); if (d.type !== 'nsec') throw new Error('not nsec'); return d.data; })()
-      : hex2b(input);
+    const trimmed = (input || '').trim();
+    if (!trimmed) throw new Error('Enter a key');
+    const sk = trimmed.startsWith('nsec')
+      ? (() => { const d = this.NT.nip19.decode(trimmed); if (d.type !== 'nsec') throw new Error('not nsec'); return d.data; })()
+      : (() => {
+          if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) throw new Error('Expected an nsec1… key or a 64-character hex secret key');
+          return hex2b(trimmed);
+        })();
     const pk = this.NT.getPublicKey(sk);
     this._persist(sk, pk);
     this._emit('login', { pubkey: pk });

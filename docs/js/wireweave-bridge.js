@@ -141,11 +141,20 @@ window.__wireweaveReady = (async () => {
   // Chat bridge
   const chat = ww.chat;
   chat.addEventListener('messages', (e) => { state.chatMessages = e.detail.list; _updateChatMembers(e.detail.list); if (window.ui) ui.render.all(); });
+  setInterval(() => { if ((state.chatMessages||[]).length) { _updateChatMembers(state.chatMessages); if (window.ui) ui.render.all(); } }, 60000);
   chat.addEventListener('profile', () => { if (window.ui) ui.render.all(); });
+  const ONLINE_WINDOW_MS = 5 * 60 * 1000;
   function _updateChatMembers(msgs) {
-    const seen = new Map();
-    (msgs || []).forEach(m => { if (m.userId && !seen.has(m.userId)) seen.set(m.userId, chat.resolveProfile(m.userId)); });
-    state.roomMembers = Array.from(seen.entries()).map(([id, username]) => ({ id, username, online: true }));
+    const lastSeen = new Map();
+    (msgs || []).forEach(m => {
+      if (!m.userId) return;
+      const ts = m.timestamp || 0;
+      if (!lastSeen.has(m.userId) || ts > lastSeen.get(m.userId)) lastSeen.set(m.userId, ts);
+    });
+    const now = Date.now();
+    state.roomMembers = Array.from(lastSeen.entries()).map(([id, ts]) => ({
+      id, username: chat.resolveProfile(id), online: (now - ts) <= ONLINE_WINDOW_MS
+    }));
   }
   window.chat = {
     activeChannelId: null,

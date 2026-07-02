@@ -69,6 +69,9 @@ const state = {
 
   activePanel: signal('main'),
   showAuthModal: signal(false),
+  authMode: signal('extension'),
+  authError: signal(''),
+  authBusy: signal(false),
   showSettingsModal: signal(false),
 
   isConnected: signal(false),

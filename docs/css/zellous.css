@@ -268,13 +268,13 @@ html.ds-247420 .chat-composer textarea:focus {
 }
 html.ds-247420 .chat-composer textarea::placeholder { color: var(--fg-3); }
 html.ds-247420 .chat-composer .send,
-html.ds-247420 .chat-composer button {
+html.ds-247420 .chat-composer-toolbar button {
   width: 44px; height: 44px; border-radius: var(--r-pill, 999px);
   background: var(--accent); color: var(--accent-fg);
   border: 0; cursor: pointer; font-size: 18px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
 }
-html.ds-247420 .chat-composer button:disabled {
+html.ds-247420 .chat-composer-toolbar button:disabled {
   background: var(--bg-3); color: var(--fg-3); cursor: not-allowed;
 }
 
@@ -1160,7 +1160,7 @@ html.ds-247420 .chat-composer textarea:focus {
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 30%, transparent);
 }
 html.ds-247420 .chat-composer .send,
-html.ds-247420 .chat-composer button {
+html.ds-247420 .chat-composer-toolbar button {
   position: absolute;
   right: calc(var(--space-5) + 8px);
   bottom: calc(var(--space-4) + 8px);
@@ -1170,7 +1170,7 @@ html.ds-247420 .chat-composer button {
   font-size: 14px;
 }
 .chat-input-bar .chat-composer .send,
-.chat-input-bar .chat-composer button {
+.chat-input-bar .chat-composer-toolbar button {
   position: static;
 }
 

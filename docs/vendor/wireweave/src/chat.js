@@ -87,9 +87,14 @@ export class Chat extends EventTarget {
     if (this.fetching.has(pubkey)) return;
     this.fetching.add(pubkey);
     this.pool.subscribe('profile-' + pubkey,
-      [{ kinds: [0], authors: [pubkey], limit: 1 }],
-      (event) => { try { this.profiles.set(pubkey, JSON.parse(event.content)); this._emit('profile', { pubkey, profile: this.profiles.get(pubkey) }); } catch {} },
-      () => { this.pool.unsubscribe('profile-' + pubkey); this.fetching.delete(pubkey); });
+      [{ kinds: [0], authors: [pubkey] }],
+      (event) => {
+        const known = this._profileEvents?.get(pubkey);
+        if (known && known >= event.created_at) return;
+        (this._profileEvents ||= new Map()).set(pubkey, event.created_at);
+        try { this.profiles.set(pubkey, JSON.parse(event.content)); this._emit('profile', { pubkey, profile: this.profiles.get(pubkey) }); } catch {}
+      },
+      () => { this.fetching.delete(pubkey); });
   }
 
   updateProfile(pubkey, profile) { this.profiles.set(pubkey, profile); this._emit('profile', { pubkey, profile }); }

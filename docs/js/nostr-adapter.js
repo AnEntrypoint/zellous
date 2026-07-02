@@ -78,6 +78,9 @@
       memberCategories: (window.uiMembers && window.uiMembers.categories && window.uiMembers.categories()) || [],
       memberListOpen: (window.state && window.state.memberListOpen) || false,
       showAuthModal: v('showAuthModal', false),
+      authMode: v('authMode', 'extension'),
+      authError: v('authError', ''),
+      authBusy: v('authBusy', false),
       settingsOpen: v('settingsOpen', false),
       settingsAnchor: v('settingsAnchor', { x: 0, y: 0 }),
       settingsSections: [{
@@ -87,6 +90,12 @@
           { label: 'Notifications', kind: 'toggle', value: v('notificationsEnabled', true), onChange: (val) => persistBool('notificationsEnabled', 'zellous-notifications', val) },
           { label: 'Message preview', kind: 'toggle', value: v('messagePreviewEnabled', true), onChange: (val) => persistBool('messagePreviewEnabled', 'zellous-message-preview', val) },
           { label: 'Sound', kind: 'toggle', value: v('soundEnabled', true), onChange: (val) => persistBool('soundEnabled', 'zellous-sound', val) },
+        ],
+      }, {
+        title: 'Account',
+        rows: [
+          { label: (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn()) ? ('Signed in as ' + (window.auth.npubShort ? window.auth.npubShort() : '')) : 'Not signed in', kind: 'value', value: '' },
+          { label: 'Switch or import identity', kind: 'button', onClick: () => { if (S.authMode) S.authMode.value = 'import'; if (S.authError) S.authError.value = ''; if (S.settingsOpen) S.settingsOpen.value = false; if (S.showAuthModal) S.showAuthModal.value = true; } },
         ],
       }],
       voiceSettingsOpen: v('voiceSettingsOpen', false),
@@ -134,6 +143,45 @@
       }),
       closeThreadPanel: () => call(() => window.threadManager && window.threadManager.closePanel()),
       newForumPost: () => call(() => window.ui && window.ui.showToast && window.ui.showToast('Forum posts are not yet supported', 3000, 'error')),
+      setAuthMode: (m) => call(() => { if (S.authMode) S.authMode.value = m; if (S.authError) S.authError.value = ''; }),
+      closeAuth: () => call(() => { if (S.showAuthModal) S.showAuthModal.value = false; if (S.authError) S.authError.value = ''; if (S.authBusy) S.authBusy.value = false; }),
+      authExtension: () => call(async () => {
+        if (!window.auth) return;
+        if (S.authBusy) S.authBusy.value = true;
+        try {
+          if (!window.nostr) throw new Error('No Nostr extension found');
+          await window.auth.loginWithExtension();
+          if (S.showAuthModal) S.showAuthModal.value = false;
+          if (S.authError) S.authError.value = '';
+        } catch (e) {
+          if (S.authError) S.authError.value = (e && e.message) || 'Extension login failed';
+        } finally {
+          if (S.authBusy) S.authBusy.value = false;
+        }
+      }),
+      authGenerate: () => call(() => {
+        if (!window.auth) return;
+        try {
+          window.auth.generateKey();
+          if (S.showAuthModal) S.showAuthModal.value = false;
+          if (S.authError) S.authError.value = '';
+          window.ui && window.ui.showToast && window.ui.showToast('New identity created — back it up before clearing browser storage.', 5000);
+        } catch (e) {
+          if (S.authError) S.authError.value = (e && e.message) || 'Failed to generate key';
+        }
+      }),
+      authImport: (key) => call(() => {
+        if (!window.auth) return;
+        const k = (key || '').trim();
+        if (!k) { if (S.authError) S.authError.value = 'Enter a key'; return; }
+        const ok = window.auth.importKey(k);
+        if (ok) {
+          if (S.showAuthModal) S.showAuthModal.value = false;
+          if (S.authError) S.authError.value = '';
+        } else if (S.authError) {
+          S.authError.value = 'Invalid key — expected nsec1… or a 64-character hex secret key';
+        }
+      }),
       editPage: () => call(() => {
         const ch = v('currentChannel', null);
         if (!ch || ch.type !== 'page' || !window.serverPages) return;
@@ -151,7 +199,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'showAuthModal', 'settingsOpen', 'voiceSettingsOpen', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });
