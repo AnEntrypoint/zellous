@@ -233,16 +233,24 @@ export class RelayPool extends EventTarget {
       if (!alive && entry.event?.id) this._pendingIds.delete(entry.event.id);
       return alive;
     });
-    for (const entry of this.pending) {
-      if (entry.sentTo.has(url)) continue;
-      ws.send(JSON.stringify(['EVENT', entry.event]));
-      entry.sentTo.add(url);
+    if (ws) {
+      for (const entry of this.pending) {
+        if (!entry.sentTo) entry.sentTo = new Set();
+        if (entry.sentTo.has(url)) continue;
+        ws.send(JSON.stringify(['EVENT', entry.event]));
+        entry.sentTo.add(url);
+      }
     }
     this.pending = this.pending.filter((entry) => {
+      let anyConnected = false;
       let allKnownSent = true;
       for (const [u, r] of this.relays) {
-        if (r.ws?.readyState === 1 && !entry.sentTo.has(u)) { allKnownSent = false; break; }
+        if (r.ws?.readyState === 1) {
+          anyConnected = true;
+          if (!entry.sentTo?.has(u)) { allKnownSent = false; break; }
+        }
       }
+      if (!anyConnected) allKnownSent = false;
       if (allKnownSent && entry.event?.id) this._pendingIds.delete(entry.event.id);
       return !allKnownSent;
     });
