@@ -137,6 +137,30 @@ const uiChat = {
     }, { passive: true });
   },
   _composerValue: '',
+  _sendTimes: [],
+  RATE_LIMIT_MAX: 5,
+  RATE_LIMIT_WINDOW_MS: 10000,
+  _rateLimitRetryAt: 0,
+  _checkRateLimit() {
+    const now = Date.now();
+    if (this._rateLimitRetryAt && now < this._rateLimitRetryAt) {
+      const secs = Math.ceil((this._rateLimitRetryAt - now) / 1000);
+      if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
+      return false;
+    }
+    this._sendTimes = this._sendTimes.filter(t => now - t < this.RATE_LIMIT_WINDOW_MS);
+    if (this._sendTimes.length >= this.RATE_LIMIT_MAX) {
+      this._rateLimitRetryAt = this._sendTimes[0] + this.RATE_LIMIT_WINDOW_MS;
+      const secs = Math.ceil((this._rateLimitRetryAt - now) / 1000);
+      if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
+      return false;
+    }
+    this._sendTimes.push(now);
+    return true;
+  },
+  _isRateLimited() {
+    return !!(this._rateLimitRetryAt && Date.now() < this._rateLimitRetryAt);
+  },
   _mountComposer() {
     const sdk = window.__sdk;
     if (!sdk?.C?.ChatComposer || !sdk.applyDiff) return;
@@ -147,12 +171,20 @@ const uiChat = {
     const render = () => {
       applyDiff(wrapper, C.ChatComposer({
         value: this._composerValue,
-        placeholder: 'Message ' + (window.stateSignals?.currentChannel?.value?.name ? '#' + window.stateSignals.currentChannel.value.name : '#general'),
+        disabled: this._isRateLimited(),
+        placeholder: this._isRateLimited()
+          ? 'Rate limited — please wait…'
+          : 'Message ' + (window.stateSignals?.currentChannel?.value?.name ? '#' + window.stateSignals.currentChannel.value.name : '#general'),
         onInput: (v) => { this._composerValue = v; },
-        onSend: (v) => { this._composerValue = ''; this._doSend(v); render(); }
+        onSend: (v) => {
+          if (!this._checkRateLimit()) { render(); return; }
+          this._composerValue = ''; this._doSend(v); render();
+        }
       }));
     };
     this._renderComposer = render;
+    if (this._rateLimitTimer) clearInterval(this._rateLimitTimer);
+    this._rateLimitTimer = setInterval(() => { if (this._rateLimitRetryAt) render(); }, 1000);
     render();
   },
   _doSend(content) {
@@ -166,6 +198,7 @@ const uiChat = {
   sendChat() {
     const content = ui.chatInput?.value?.trim();
     if (!content) return;
+    if (!this._checkRateLimit()) return;
     this._doSend(content);
     if (ui.chatInput) ui.chatInput.value = '';
   },

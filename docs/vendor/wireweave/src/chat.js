@@ -71,7 +71,9 @@ export class Chat extends EventTarget {
 
   _addMessage(msg) {
     if (this.messages.find(m => m.id === msg.id)) return;
-    this.messages = [...this.messages, msg];
+    let i = this.messages.length;
+    while (i > 0 && this.messages[i - 1].timestamp > msg.timestamp) i--;
+    this.messages = [...this.messages.slice(0, i), msg, ...this.messages.slice(i)];
     this._emit('message', { message: msg });
     this._emit('messages', { list: this.messages });
   }
