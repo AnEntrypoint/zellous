@@ -30,12 +30,14 @@ export class Channels extends EventTarget {
     this.pool.subscribe('channels-' + serverId,
       [{ kinds: [30078], authors: [ownerPubkey], '#d': [dTag] }],
       (event) => {
+        if (event.pubkey !== ownerPubkey) return;
         const hasTag = event.tags?.some(t => t[0] === 'd' && t[1] === dTag);
         if (!hasTag) return;
         try {
           const data = JSON.parse(event.content);
-          this.channels = data.channels || [];
-          this.categories = data.categories || [];
+          if (!data || typeof data !== 'object' || !Array.isArray(data.channels) || !Array.isArray(data.categories)) return;
+          this.channels = data.channels;
+          this.categories = data.categories;
           this._emit('updated', { channels: this.channels, categories: this.categories });
         } catch {}
       },
