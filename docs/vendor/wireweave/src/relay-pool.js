@@ -38,8 +38,10 @@ export class RelayPool extends EventTarget {
     this.relays = new Map();
     this.subs = new Map();
     this.pending = [];
+    this._pendingIds = new Set();
     this.seen = new Map();
     this._reconnectTimers = new Map();
+    this._acks = new Map();
     this._closed = false;
     this.verifyEvent = verifyEvent;
     this.WS = WebSocketImpl || (typeof WebSocket !== 'undefined' ? WebSocket : null);
@@ -55,6 +57,8 @@ export class RelayPool extends EventTarget {
     this._closed = true;
     for (const [, t] of this._reconnectTimers) clearTimeout(t);
     this._reconnectTimers.clear();
+    for (const [, rec] of this._acks) { clearTimeout(rec.timer); rec.resolve(false); }
+    this._acks.clear();
     for (const [, r] of this.relays) {
       if (r.ws) {
         r.ws.onclose = null; r.ws.onerror = null; r.ws.onopen = null; r.ws.onmessage = null;
@@ -132,8 +136,12 @@ export class RelayPool extends EventTarget {
       this._emit('eose', { subId });
     } else if (type === 'NOTICE') {
       this._emit('notice', { url, message: msg[1] });
-    } else if (type === 'OK' && !msg[2]) {
-      this._emit('reject', { id: msg[1], reason: msg[3] || '' });
+    } else if (type === 'OK') {
+      const accepted = msg[2] === true;
+      const id = msg[1], reason = msg[3] || '';
+      if (accepted) this._emit('ok', { url, id });
+      else this._emit('reject', { url, id, reason });
+      this._settleAck(id, accepted, reason);
     }
   }
 
@@ -163,43 +171,79 @@ export class RelayPool extends EventTarget {
 
   publish(event) {
     let sent = false;
-    let allConnectedSent = true;
     let anyDisconnected = false;
-    for (const [, relay] of this.relays) {
+    const sentTo = new Set();
+    for (const [url, relay] of this.relays) {
       if (relay.ws?.readyState === 1) {
         relay.ws.send(JSON.stringify(['EVENT', event]));
         sent = true;
+        sentTo.add(url);
       } else {
         anyDisconnected = true;
-        allConnectedSent = false;
       }
     }
-    if (anyDisconnected || !sent) this._enqueuePending(event, sent);
+    if (anyDisconnected || !sent) this._queuePending(event, sentTo);
+    else if (event?.id) this._pendingIds.delete(event.id);
     return sent;
   }
 
-  _enqueuePending(event, alreadySentToConnected) {
-    const sentTo = new Set();
-    if (alreadySentToConnected) {
-      for (const [url, relay] of this.relays) if (relay.ws?.readyState === 1) sentTo.add(url);
+  // Tracks delivery per relay URL, not just "sent to at least one" — a relay
+  // mid-reconnect during a partial outage otherwise never gets the event.
+  _queuePending(event, sentTo) {
+    if (event?.id && this._pendingIds.has(event.id)) {
+      const existing = this.pending.find((p) => p.event?.id === event.id);
+      if (existing) { for (const url of sentTo) existing.sentTo.add(url); }
+      return;
     }
+    if (event?.id) this._pendingIds.add(event.id);
     this.pending.push({ event, sentTo, ts: Date.now() });
-    if (this.pending.length > PENDING_MAX) this.pending.shift();
+    while (this.pending.length > PENDING_MAX) {
+      const dropped = this.pending.shift();
+      if (dropped.event?.id) this._pendingIds.delete(dropped.event.id);
+    }
+  }
+
+  // Resolves true once any relay sends OK accepted, false on relay reject,
+  // or false on timeout. Gives callers delivery confidence beyond fire-and-forget.
+  publishAndWait(event, { timeoutMs = 8000 } = {}) {
+    const sent = this.publish(event);
+    if (!event?.id) return Promise.resolve(sent);
+    return new Promise((resolve) => {
+      const prior = this._acks.get(event.id);
+      if (prior) clearTimeout(prior.timer);
+      const settle = (ok) => {
+        const rec = this._acks.get(event.id);
+        if (rec) { clearTimeout(rec.timer); this._acks.delete(event.id); }
+        resolve(ok);
+      };
+      const timer = setTimeout(() => settle(false), timeoutMs);
+      this._acks.set(event.id, { resolve: settle, timer });
+    });
+  }
+
+  _settleAck(id, accepted) {
+    const rec = this._acks.get(id);
+    if (rec) rec.resolve(accepted);
   }
 
   _drainPending(url, ws) {
     const cutoff = Date.now() - PENDING_TTL_MS;
-    this.pending = this.pending.filter((entry) => entry.ts >= cutoff);
+    this.pending = this.pending.filter((entry) => {
+      const alive = entry.ts >= cutoff;
+      if (!alive && entry.event?.id) this._pendingIds.delete(entry.event.id);
+      return alive;
+    });
     for (const entry of this.pending) {
       if (entry.sentTo.has(url)) continue;
       ws.send(JSON.stringify(['EVENT', entry.event]));
       entry.sentTo.add(url);
     }
-    this.pending = this.pending.filter(entry => {
+    this.pending = this.pending.filter((entry) => {
       let allKnownSent = true;
       for (const [u, r] of this.relays) {
         if (r.ws?.readyState === 1 && !entry.sentTo.has(u)) { allKnownSent = false; break; }
       }
+      if (allKnownSent && entry.event?.id) this._pendingIds.delete(entry.event.id);
       return !allKnownSent;
     });
   }
