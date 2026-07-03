@@ -24,7 +24,7 @@ export class Chat extends EventTarget {
     return this._sendTimes[0] + this.rateLimitWindowMs - now;
   }
 
-  async send(content, { announcement = false } = {}) {
+  async send(content, { announcement = false, replyTo = null } = {}) {
     const { channelId, serverId } = this.getChannelContext();
     if (!this.auth.isLoggedIn() || !channelId) return;
     if (announcement && !this.isAdmin(serverId)) return;
@@ -37,6 +37,7 @@ export class Chat extends EventTarget {
     this._sendTimes.push(Date.now());
     const chanHex = await hexChannelId(channelId, serverId);
     const tags = [['e', chanHex, '', 'root']];
+    if (replyTo?.id) tags.push(['e', replyTo.id, '', 'reply']);
     if (announcement) tags.push(['t', 'announcement']);
     const signed = await this.auth.sign({ kind: 42, created_at: Math.floor(Date.now() / 1000), tags, content: trimmed });
     this.pool.publish(signed);
@@ -82,7 +83,13 @@ export class Chat extends EventTarget {
   _eventToMsg(event) {
     const tTags = (event.tags || []).filter(t => t[0] === 't').map(t => t[1]);
     this._fetchProfile(event.pubkey);
-    return { id: event.id, type: 'text', userId: event.pubkey, content: event.content, timestamp: event.created_at * 1000, tags: tTags };
+    const replyTag = (event.tags || []).find(t => t[0] === 'e' && t[3] === 'reply');
+    let replyTo = null;
+    if (replyTag) {
+      const cached = this.messages.find(m => m.id === replyTag[1]);
+      replyTo = cached ? { id: cached.id, userId: cached.userId, content: cached.content } : { id: replyTag[1] };
+    }
+    return { id: event.id, type: 'text', userId: event.pubkey, content: event.content, timestamp: event.created_at * 1000, tags: tTags, replyTo };
   }
 
   _addMessage(msg) {

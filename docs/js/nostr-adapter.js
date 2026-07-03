@@ -110,8 +110,11 @@
     const call = (fn) => { try { return fn && fn(); } catch (_) {} };
     const actions = {
       switchChannel: (ch) => call(() => window.ui.actions.switchChannel(ch)),
-      send: (text, opts) => call(() => window.chat.send(text, opts)),
+      send: (text, opts) => call(() => { window.chat.send(text, opts); if (S.replyTarget) S.replyTarget.value = null; }),
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
+      startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
+      cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
+      deleteMessage: (id) => call(() => window.chat.deleteMessage(id)?.catch?.((e) => window.ui && window.ui.showToast && window.ui.showToast('Delete failed: ' + (e && e.message || 'unknown'), 3000, 'error'))),
       resolveProfile: (id) => (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(id)) || null,
       toggleMic: () => call(() => (window.lk && window.lk.toggleMic) ? window.lk.toggleMic() : (window.state.micMuted = !window.state.micMuted)),
       toggleDeafen: () => call(() => (window.lk && window.lk.toggleDeafen) ? window.lk.toggleDeafen() : (window.state.voiceDeafened = !window.state.voiceDeafened)),

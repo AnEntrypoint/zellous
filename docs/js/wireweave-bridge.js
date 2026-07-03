@@ -164,7 +164,7 @@ window.__wireweaveReady = (async () => {
     activeChannelId: null,
     get messages() { return state.chatMessages || []; },
     set messages(v) { state.chatMessages = v; },
-    send: (c) => chat.send(c),
+    send: (c, opts) => chat.send(c, opts),
     sendAnnouncement: (t) => chat.send(t, { announcement: true }),
     sendImage(file) {
       if (!file) { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,video/*'; i.onchange = () => { if (i.files[0]) window.nostrMedia.sendMedia(i.files[0]).catch(e => window.message.add('Upload failed: ' + e.message)); }; i.click(); return; }
