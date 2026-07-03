@@ -14,6 +14,7 @@ const DEFAULT_RELAYS = [
 const SEEN_MAX = 10000;
 const PENDING_MAX = 500;
 const PENDING_TTL_MS = 120000;
+const CONNECT_TIMEOUT_MS = 10000;
 const jitter = (ms) => Math.round(ms * (0.75 + Math.random() * 0.5));
 
 const lruTouch = (map, key) => {
@@ -60,6 +61,7 @@ export class RelayPool extends EventTarget {
     for (const [, rec] of this._acks) { clearTimeout(rec.timer); rec.resolve(false); }
     this._acks.clear();
     for (const [, r] of this.relays) {
+      if (r._connectTimer) clearTimeout(r._connectTimer);
       if (r.ws) {
         r.ws.onclose = null; r.ws.onerror = null; r.ws.onopen = null; r.ws.onmessage = null;
         if (typeof r.ws.removeAllListeners === 'function') r.ws.removeAllListeners();
@@ -83,7 +85,13 @@ export class RelayPool extends EventTarget {
     try { ws = new this.WS(url); }
     catch (e) { relay.status = 'error'; this._emit('relay-status', { url, status: 'error' }); return; }
     relay.ws = ws;
+    const connectTimer = setTimeout(() => {
+      if (relay.ws !== ws || relay.status !== 'connecting') return;
+      try { ws.close(); } catch {}
+    }, CONNECT_TIMEOUT_MS);
+    relay._connectTimer = connectTimer;
     ws.onopen = () => {
+      clearTimeout(connectTimer);
       relay.status = 'connected';
       relay._openedAt = Date.now();
       this._emit('relay-status', { url, status: 'connected' });
@@ -101,8 +109,9 @@ export class RelayPool extends EventTarget {
       }
       try { this._handle(url, typeof e.data === 'string' ? e.data : e.data.toString()); } catch {}
     };
-    ws.onerror = () => { relay.status = 'error'; this._emit('relay-status', { url, status: 'error' }); };
+    ws.onerror = () => { clearTimeout(connectTimer); relay.status = 'error'; this._emit('relay-status', { url, status: 'error' }); };
     ws.onclose = () => {
+      clearTimeout(connectTimer);
       relay.status = 'closed';
       this._emit('relay-status', { url, status: 'closed' });
       const sustained = relay._openedAt && Date.now() - relay._openedAt > 5000;

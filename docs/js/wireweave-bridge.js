@@ -143,6 +143,10 @@ window.__wireweaveReady = (async () => {
   chat.addEventListener('messages', (e) => { state.chatMessages = e.detail.list; _updateChatMembers(e.detail.list); if (window.ui) ui.render.all(); });
   setInterval(() => { if ((state.chatMessages||[]).length) { _updateChatMembers(state.chatMessages); if (window.ui) ui.render.all(); } }, 60000);
   chat.addEventListener('profile', () => { if (window.ui) ui.render.all(); });
+  chat.addEventListener('rate-limited', (e) => {
+    const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
+    if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
+  });
   const ONLINE_WINDOW_MS = 5 * 60 * 1000;
   function _updateChatMembers(msgs) {
     const lastSeen = new Map();
@@ -282,7 +286,7 @@ window.__wireweaveReady = (async () => {
       // First-run experience: a brand-new identity has zero servers, so the rail
       // and channel list render empty and the user sees "no voice, no servers".
       // Auto-create a personal "Zellous" server so they immediately land in a
-      // populated space — switching to it triggers onSwitch → channels.load →
+      // populated space -- switching to it triggers onSwitch -> channels.load ->
       // the default general(text) + General(voice) channels, making voice & a
       // server visible on first load. Guarded so it only fires once.
       if (!srv.servers.length && srv.auth?.pubkey && srv.storage.getItem('zn_firstRunDone') !== '1') {

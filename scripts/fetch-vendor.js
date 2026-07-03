@@ -80,14 +80,14 @@ async function main() {
       await downloadFile(file.url, dest);
     } catch (err) {
       if (file.optional) {
-        console.warn(`  ⊘ ${file.name}: ${err.message} (optional, skipping)`);
+        console.warn(`  skip ${file.name}: ${err.message} (optional, skipping)`);
       } else {
-        console.error(`  ✗ ${file.name}: ${err.message}`);
+        console.error(`  fail ${file.name}: ${err.message}`);
         process.exit(1);
       }
     }
   }
-  console.log('✓ All vendor files fetched');
+  console.log('done: all vendor files fetched');
 }
 
 main();

@@ -12,6 +12,16 @@ export class Chat extends EventTarget {
     this.activeChannelId = null;
     this.messages = [];
     this.profiles = new Map(); this.fetching = new Set();
+    this._sendTimes = [];
+    this.rateLimitMax = 5;
+    this.rateLimitWindowMs = 10000;
+  }
+
+  rateLimitRetryAfterMs() {
+    const now = Date.now();
+    this._sendTimes = (this._sendTimes || []).filter(t => now - t < this.rateLimitWindowMs);
+    if (this._sendTimes.length < this.rateLimitMax) return 0;
+    return this._sendTimes[0] + this.rateLimitWindowMs - now;
   }
 
   async send(content, { announcement = false } = {}) {
@@ -19,6 +29,12 @@ export class Chat extends EventTarget {
     if (!this.auth.isLoggedIn() || !channelId) return;
     if (announcement && !this.isAdmin(serverId)) return;
     const trimmed = content.trim(); if (!trimmed) return;
+    const retryAfter = this.rateLimitRetryAfterMs();
+    if (retryAfter > 0) {
+      this._emit('rate-limited', { retryAfterMs: retryAfter });
+      return;
+    }
+    this._sendTimes.push(Date.now());
     const chanHex = await hexChannelId(channelId, serverId);
     const tags = [['e', chanHex, '', 'root']];
     if (announcement) tags.push(['t', 'announcement']);
