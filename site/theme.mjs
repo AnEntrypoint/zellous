@@ -177,7 +177,6 @@ export default {
   // Copy original docs/* into dist/ so the app and its assets are served directly.
   assets: {
     '../docs/nostr-chat': 'nostr-chat',
-    '../docs/sdk': 'sdk',
     '../docs/vendor': 'vendor',
     '../docs/css': 'css',
     '../docs/js': 'js',
