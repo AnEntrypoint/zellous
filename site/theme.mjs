@@ -18,7 +18,7 @@ const SDK_URL = 'https://unpkg.com/anentrypoint-design@latest/dist/247420.js';
 const THIS_DIR = dirname(fileURLToPath(import.meta.url));
 
 const landingClient = `
-import { h, applyDiff, installStyles, components as C, initTheme } from 'anentrypoint-design';
+import { h, applyDiff, installStyles, components as C, initTheme, onThemeChange } from 'anentrypoint-design';
 installStyles();
 document.documentElement.classList.add('ds-247420');
 // initTheme picks up data-theme on <html>, reapplies stored override from
@@ -136,13 +136,21 @@ function Footer() {
 
 const navItems = (nav && nav.links ? nav.links : []).map(l => [String(l.label || ''), l.href]);
 
-const App = C.AppShell({
-  topbar: C.Topbar({ brand: '247420', leaf: site.title || '', items: navItems }),
-  crumb: C.Crumb({ trail: ['247420'], leaf: site.title || '' }),
-  main: h('div', {}, Hero(), Rooms(), Features(), Stack(), Manifesto(), Quickstart()),
-  status: Footer()
-});
-applyDiff(document.getElementById('app'), [App]);
+// Rendered as a function (not a one-shot const) so ThemeToggle's compact
+// variant re-reads the live theme mode on every render: its click handler
+// computes "next" from the mode captured at render time, so a click must
+// trigger a fresh render or the cycle sticks after the first click.
+function render() {
+  const App = C.AppShell({
+    topbar: C.Topbar({ brand: '247420', leaf: site.title || '', items: navItems }),
+    crumb: C.Crumb({ trail: ['247420'], leaf: site.title || '' }),
+    main: h('div', {}, Hero(), Rooms(), Features(), Stack(), Manifesto(), Quickstart()),
+    status: Footer()
+  });
+  applyDiff(document.getElementById('app'), [App]);
+}
+render();
+onThemeChange(render);
 `;
 
 
