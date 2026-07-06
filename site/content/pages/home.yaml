@@ -10,7 +10,7 @@ hero:
     - { label: "nostr" }
     - { label: "serverless" }
   ctas:
-    - { label: "open chat ↗", href: "nostr-chat/", primary: true }
+    - { label: "open chat ->", href: "nostr-chat/", primary: true }
     - { label: "source", href: "https://github.com/AnEntrypoint/zellous" }
 rooms:
   heading: "drop-in rooms"
