@@ -1,3 +1,12 @@
+// Fixed serverId every fresh visitor's first-run join() converges on, so
+// independent visitors land in the same chat.js hexChannelId tag scope
+// instead of each getting an unreachable private pubkey:random server.
+// The leading zero-pubkey is not a real generated key (no one holds its
+// private key), so channels.js/roles.js/bans.js/settings.js isOwner()/
+// isAdmin() correctly resolve false for every real visitor -- the room is
+// ownerless/adminless by construction, never a spoofable elevated identity.
+const ZELLOUS_PUBLIC_SERVER_ID = '0000000000000000000000000000000000000000000000000000000000000000:public';
+
 window.__wireweaveReady = (async () => {
   const mod = await import('../vendor/wireweave/src/index.js');
   const NT = window.NostrTools;
@@ -161,7 +170,11 @@ window.__wireweaveReady = (async () => {
     }));
   }
   window.chat = {
-    activeChannelId: null,
+    // Delegates to the library Chat instance's own field rather than tracking
+    // a separate copy -- loadHistory() can be triggered either through this
+    // bridge's wrapper below or directly by wireweave.js's onSwitch callback
+    // (e.g. the first-run auto-join path), and both must be reflected here.
+    get activeChannelId() { return chat.activeChannelId; },
     get messages() { return state.chatMessages || []; },
     set messages(v) { state.chatMessages = v; },
     send: (c, opts) => chat.send(c, opts),
@@ -170,7 +183,7 @@ window.__wireweaveReady = (async () => {
       if (!file) { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,video/*'; i.onchange = () => { if (i.files[0]) window.nostrMedia.sendMedia(i.files[0]).catch(e => window.message.add('Upload failed: ' + e.message)); }; i.click(); return; }
       window.nostrMedia.sendMedia(file).catch(e => window.message.add('Upload failed: ' + e.message));
     },
-    async loadHistory(channelId) { window.chat.activeChannelId = channelId; ww.setCurrentChannel(channelId); await chat.loadHistory(channelId); },
+    async loadHistory(channelId) { ww.setCurrentChannel(channelId); await chat.loadHistory(channelId); },
     deleteMessage: (id) => chat.deleteMessage(id),
     editMessage() { if (window.ui?.showToast) ui.showToast('Nostr messages cannot be edited'); },
     resolveProfile: (pk) => chat.resolveProfile(pk),
@@ -285,19 +298,23 @@ window.__wireweaveReady = (async () => {
       srv.init();
       // First-run experience: a brand-new identity has zero servers, so the rail
       // and channel list render empty and the user sees "no voice, no servers".
-      // Auto-create a personal "Zellous" server so they immediately land in a
-      // populated space -- switching to it triggers onSwitch -> channels.load ->
-      // the default general(text) + General(voice) channels, making voice & a
-      // server visible on first load. Guarded so it only fires once.
+      // Join the shared public room (a fixed, well-known serverId every fresh
+      // visitor converges on) so they immediately land in a populated space
+      // alongside other visitors -- switching to it triggers onSwitch ->
+      // channels.load -> the default general(text) + General(voice) channels.
+      // Using a fixed serverId (not a random per-user one) is load-bearing:
+      // chat.js scopes messages by SHA-256(serverId+channelId), so a private
+      // random serverId per visitor made every fresh visitor mutually invisible
+      // to every other fresh visitor. Guarded so it only fires once.
       if (!srv.servers.length && srv.auth?.pubkey && srv.storage.getItem('zn_firstRunDone') !== '1') {
         try {
-          await srv.create('Zellous', '#5865F2');
+          await srv.join(ZELLOUS_PUBLIC_SERVER_ID, { name: 'Zellous Public' });
           srv.storage.setItem('zn_firstRunDone', '1');
-          // create() emits 'updated' but the first-paint signal read can race it;
+          // join() emits 'updated' but the first-paint signal read can race it;
           // sync state explicitly so the new server pill shows on the first load.
           state.servers = srv.servers;
           if (window.ui) ui.render.all();
-        } catch (e) { console.warn('[zellous] first-run server create failed', e?.message); }
+        } catch (e) { console.warn('[zellous] first-run server join failed', e?.message); }
       }
     },
     renderList: () => { /* handled by nostr-servers-ui.js which remains */ }

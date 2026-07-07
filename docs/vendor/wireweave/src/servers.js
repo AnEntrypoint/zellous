@@ -62,12 +62,12 @@ export class Servers extends EventTarget {
     await this.switchTo(serverId);
   }
 
-  async join(serverId) {
+  async join(serverId, { name = null, iconColor = '#5865F2' } = {}) {
     try {
       const joined = JSON.parse(this.storage.getItem('zn_joined_servers') || '[]');
       if (!joined.includes(serverId)) { joined.push(serverId); safeSetItem(this.storage, this, 'zn_joined_servers', JSON.stringify(joined)); }
     } catch {}
-    if (!this.servers.find(s => s.id === serverId)) { this.servers = [...this.servers, { id: serverId, name: serverId.slice(0, 8), iconColor: '#5865F2' }]; this._persist(); }
+    if (!this.servers.find(s => s.id === serverId)) { this.servers = [...this.servers, { id: serverId, name: name || serverId.slice(0, 8), iconColor }]; this._persist(); }
     await this.switchTo(serverId);
   }
 
