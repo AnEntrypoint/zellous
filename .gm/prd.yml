@@ -1350,3 +1350,31 @@
   text: Residual-triage every porcelain entry, commit md corpus, push to main, witness clean tree + ahead=0 + CI green, record sha
   witness: 'git_finalize 9218: commit b74d59c (corpus + gitignore fix); git_push 9219 branch=master rebased=true pushed ce005c0..252232b to origin/master (repo default branch is master; explicit-branch push per gate). Porcelain triage: staged set was corpus-only, transients ignored'
   status: completed
+- id: verify-md-corpus-project-default
+  description: Verify .gm/memories/ (project default namespace) holds 20 content-hash-keyed md mirroring all 20 mem-*.json under .gm/disciplines/default/ -- zero missing, zero legacy timestamp-only keys unconverted
+  witness: 'comm -23/-13 on numeric memory-id suffix between .gm/disciplines/default/*.json (20 files) and .gm/memories/*.md (20 files): zero missing, zero extra -- full 1:1 coverage confirmed'
+  status: completed
+- id: trigger-conversion-rs-learn-graph-edges
+  description: 'RESCOPED: rs-learn_graph_edges + rs-learn_graph_edges_by_dst disciplines are relation/edge records (src/dst/relation/fact+embedding fields over the SAME memory ids already prose-converted in default/) -- a derived knowledge-graph index, not standalone addressable memory prose. Sampled mem-1779892136865-0-1190.json: fields are src,dst,relation,fact(json-serialized copy),embedding -- graph structure, not primary memory text. No memories/ subdir exists in either discipline and none is expected. Confirmed out of scope for md-corpus conversion; flat stays byte-unchanged as designed.'
+  witness: 'Read .gm/disciplines/rs-learn_graph_edges/mem-1779892136865-0-1190.json: {"id":..,"src":"default","dst":"mem-..","relation":"memorize","fact":"{json}","embedding":[...]} -- edge/relation record over already-converted default memory, no memories/ subdir exists or expected, correctly out of md-conversion scope'
+  status: completed
+- id: confirm-codeinsight-out-of-scope
+  description: codeinsight + codeinsight-vec disciplines (61+300ish flat json each) are the codesearch source-index manifest store, NOT rs-learn memory -- confirm via codesearch/plugkit health that these are excluded from md-corpus conversion scope (different subsystem, byte-unchanged is correct, not a residual)
+  witness: codesearch dispatch (codesearch-1.json) returned namespace=codeinsight hits are raw source-code chunks (docs/msgpackr.min.js:1:1, docs/js/audio.js:88:94 with literal file:line + code text) -- codeinsight/codeinsight-vec are the codesearch source-index manifest store, structurally disjoint from rs-learn memory prose; correctly excluded from md-corpus conversion
+  status: completed
+- id: confirm-default-vec-out-of-scope
+  description: default-vec discipline mirrors default's mem-*.json (vector-index shadow store, paired with default's md-backed rows) -- confirm whether md-corpus conversion also mirrors into a default-vec memories/ dir or whether -vec stores are legitimately flat-only (embedding cache, not prose)
+  witness: default-vec/ holds identical filenames+ids to default/ (mem-<ts>-<n>-<id>.json) but is the embedding-vector shadow index paired 1:1 with default's md-backed prose rows -- it has no independent memories/ subdir and none is expected since default/ already fully converged (20/20 md, verified via .mem-scan-default.json digest). -vec is an embedding cache keyed the same as its prose twin, not a second prose store needing its own md corpus.
+  status: completed
+- id: confirm-rs-learn-router-edges-by-src-out-of-scope
+  description: rs-learn_router/default.json and rs-learn_graph_edges_by_src/default.json are single aggregate keyed-by-'default' files (not per-memory timestamp-keyed) -- confirm these are router/index state, not per-memory records requiring md conversion
+  witness: 'Read .gm/disciplines/rs-learn_router/default.json: single aggregate record {in_dim,targets,epsilon,threshold,version,trained,trajectory_count,...,v:[...],u:[...]} -- router model/embedding state, not memory records. Read .gm/disciplines/rs-learn_graph_edges_by_src/default.json: single comma-separated adjacency-list line of memory-id keys -- index structure, not per-memory prose. Both confirmed aggregate index state, correctly excluded from md-corpus conversion.'
+  status: completed
+- id: post-conversion-residual-triage
+  description: 'After conversion, git status --porcelain triage: new .gm/disciplines/*/memories/*.md are real work (commit); flat legacy json stays byte-unchanged untouched (no diff expected, not a residual); any other dirty file triaged individually'
+  witness: 'git_status: dirty=true, modified=[.gm/mutables.yml,.gm/prd.yml] only (this session''s PRD/mutable bookkeeping), untracked=[] -- .gm/memories/*.md already tracked from prior session (corpus was already converged+committed before this session started), zero new residual files, zero junk to revert'
+  status: completed
+- id: commit-push-corpus-main
+  description: git_add the new/changed md corpus files, git_finalize/git_push to origin main, verify clean tree + remote reflects HEAD
+  witness: branch_status ahead==0 post-push
+  status: pending
