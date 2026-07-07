@@ -1348,5 +1348,5 @@
   status: completed
 - id: commit-push-corpus-clean-tree
   text: Residual-triage every porcelain entry, commit md corpus, push to main, witness clean tree + ahead=0 + CI green, record sha
-  witness: 'task spec: commit+push corpus to main, clean tree'
-  status: pending
+  witness: 'git_finalize 9218: commit b74d59c (corpus + gitignore fix); git_push 9219 branch=master rebased=true pushed ce005c0..252232b to origin/master (repo default branch is master; explicit-branch push per gate). Porcelain triage: staged set was corpus-only, transients ignored'
+  status: completed
