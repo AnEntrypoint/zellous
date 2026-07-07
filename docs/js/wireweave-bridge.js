@@ -1,6 +1,6 @@
-// Fixed serverId every fresh visitor's first-run join() converges on, so
-// independent visitors land in the same chat.js hexChannelId tag scope
-// instead of each getting an unreachable private pubkey:random server.
+// Fixed serverId every visitor's init() converges on, so independent
+// visitors land in the same chat.js hexChannelId tag scope instead of
+// each getting an unreachable private pubkey:random server.
 // The leading zero-pubkey is not a real generated key (no one holds its
 // private key), so channels.js/roles.js/bans.js/settings.js isOwner()/
 // isAdmin() correctly resolve false for every real visitor -- the room is
@@ -296,25 +296,24 @@ window.__wireweaveReady = (async () => {
     },
     init: async () => {
       srv.init();
-      // First-run experience: a brand-new identity has zero servers, so the rail
-      // and channel list render empty and the user sees "no voice, no servers".
-      // Join the shared public room (a fixed, well-known serverId every fresh
-      // visitor converges on) so they immediately land in a populated space
-      // alongside other visitors -- switching to it triggers onSwitch ->
-      // channels.load -> the default general(text) + General(voice) channels.
-      // Using a fixed serverId (not a random per-user one) is load-bearing:
-      // chat.js scopes messages by SHA-256(serverId+channelId), so a private
-      // random serverId per visitor made every fresh visitor mutually invisible
-      // to every other fresh visitor. Guarded so it only fires once.
-      if (!srv.servers.length && srv.auth?.pubkey && srv.storage.getItem('zn_firstRunDone') !== '1') {
+      // Every identity converges on the shared public room (fixed, well-known
+      // serverId) whenever it is missing from the rail -- not only on a
+      // zero-server first run. Pre-fix visitors carry a private per-user
+      // serverId in localStorage; since chat.js and voice.js scope everything
+      // by SHA-256(serverId+channel), two such visitors sit in disjoint rooms
+      // and never see each other (the reported voice-room bug). Membership
+      // check makes the join idempotent across reloads. select is true only
+      // for zero-server fresh visitors: they get landed in the public room,
+      // while a legacy visitor keeps their current selection and merely
+      // gains the public server on the rail as the shared rendezvous.
+      if (srv.auth?.pubkey && !srv.servers.find(s => s.id === ZELLOUS_PUBLIC_SERVER_ID)) {
         try {
-          await srv.join(ZELLOUS_PUBLIC_SERVER_ID, { name: 'Zellous Public' });
-          srv.storage.setItem('zn_firstRunDone', '1');
+          await srv.join(ZELLOUS_PUBLIC_SERVER_ID, { name: 'Zellous Public', select: !srv.servers.length });
           // join() emits 'updated' but the first-paint signal read can race it;
           // sync state explicitly so the new server pill shows on the first load.
           state.servers = srv.servers;
           if (window.ui) ui.render.all();
-        } catch (e) { console.warn('[zellous] first-run server join failed', e?.message); }
+        } catch (e) { console.warn('[zellous] public server join failed', e?.message); }
       }
     },
     renderList: () => { /* handled by nostr-servers-ui.js which remains */ }
