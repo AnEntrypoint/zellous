@@ -1376,5 +1376,5 @@
   status: completed
 - id: commit-push-corpus-main
   description: git_add the new/changed md corpus files, git_finalize/git_push to origin main, verify clean tree + remote reflects HEAD
-  witness: branch_status ahead==0 post-push
-  status: pending
+  witness: 'git_finalize committed sha 2259d72 (.gm/mutables.yml,.gm/prd.yml); repo has no ''main'' branch (git_branch listed only master + claude/* feature branches) so git_push {branch:master} targeted the repo''s actual primary line; rebased 1x (rebase_retries:1, upstream f51c3ef..9f1674e), pushed clean -> remote HEAD now 9f1674e. Post-push git_status: dirty=false, modified=[], untracked=[] -- clean tree confirmed.'
+  status: completed
