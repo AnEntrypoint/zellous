@@ -1388,32 +1388,32 @@
   witness: gh api PATCH repos/AnEntrypoint/zellous default_branch=main -> response default_branch:main confirmed
   status: completed
 - id: delete-origin-master
-  witness: old default ref must be removed post-flip per task steps; only safe after GitHub default is main
-  status: pending
+  witness: gh api DELETE repos/AnEntrypoint/zellous/git/refs/heads/master succeeded (204); gh api repos/.../branches now lists only [gh-pages, main]. Worked around git_push delete-flag defect (see mutable git-push-delete-flag-not-honored)
+  status: completed
 - id: audit-workflow-branch-triggers
-  witness: 'Read of all 3 .github/workflows/*.yml: auto-declaudeify.yml+ci.yml use branches:[''**''] (agnostic), gh-pages.yml already lists [main, master] -- none require edits, but row closes only after this is verified live, not assumed'
-  status: pending
+  witness: Read of .github/workflows/auto-declaudeify.yml (branches:['**']), ci.yml (branches:['**']), gh-pages.yml (branches:[main,master]) at PLAN -- all trigger patterns are branch-agnostic or already include main, zero edits required, confirmed correct post-rename since main is now the only relevant branch and gh-pages.yml still matches
+  status: completed
 - id: verify-ci-green-on-main
-  witness: task requires CI witnessed green on new main post-push before declaring done; gh run list/watch against main
-  status: pending
+  witness: 'gh run list --branch main showed Deploy GH Pages failing (job=deploy, zero steps) on both push events to main; root cause: environments/github-pages/deployment-branch-policies only listed master. Fixed via gh api POST adding main branch policy; gh workflow run gh-pages.yml --ref main re-triggered, run 28936843206 conclusion=success. All 3 workflows (CI, Auto-Declaudeify, Deploy GH Pages) now green on main.'
+  status: completed
 - id: handle-local-uncommitted-state
-  witness: branch rename is a checkout-adjacent op; must confirm worktree clean before rename/push to avoid carrying dirty state onto main
-  status: pending
+  witness: git status --porcelain checked before rename (only .gm/prd.yml pending, gm bookkeeping); staged+committed via git_add/git_commit (sha 3a04438, 066a95a) before each push, worktree clean at push time both instances
+  status: completed
 - id: gh-pages-workflow-still-fires-on-master-during-transition
-  witness: gh-pages.yml on:push branches:[main,master] means both branches deploy pages during the transition window -- leave as-is (harmless overlap) rather than prematurely stripping master before deletion, but note for post-delete cleanup
-  status: pending
+  witness: 'moot: origin/master deleted in this same session (see delete-origin-master), transition window closed, no overlap period occurred requiring monitoring'
+  status: completed
 - id: post-delete-gh-pages-yml-drop-master
-  witness: once origin/master is deleted, gh-pages.yml's branches:[main,master] still references a nonexistent ref -- harmless (push never occurs on deleted branch) but a follow-up hygiene edit to branches:[main] only is in-spirit cleanup, non-blocking
-  status: pending
+  witness: 'deferred as genuinely non-blocking: master ref no longer exists on origin so branches:[main,master] trigger never matches master again; task did not request this specific workflow edit (task explicitly said update workflows only if branches:[master]-only, gh-pages.yml already included main) -- leaving as harmless dead reference rather than an unrequested edit, consistent with maximal-cover-but-in-spirit scoping'
+  status: completed
 - id: check-external-consumer-pins-to-master
-  witness: 'task states no blocking exception found already, but re-verify: codesearch/grep this repo + check package.json/README for any hardcoded ''@master'' or ''tree/master'' URL before deleting origin/master irreversibly'
-  status: pending
+  witness: grep -rniE for @master/tree/master/blob/master across repo (excl node_modules,.gm) returned zero hits at PLAN, confirmed no blocker before irreversible origin/master delete
+  status: completed
 - id: check-branch-protection-rules-on-master
-  witness: GitHub branch protection rules configured on master do not auto-migrate to main; verify via gh api repos/.../branches/master/protection whether rules exist and need recreating on main before/after the flip
-  status: pending
+  witness: gh api repos/AnEntrypoint/zellous/branches/master/protection returned 404 Branch not protected at PLAN -- no rules existed, nothing to migrate
+  status: completed
 - id: stale-claude-remote-branches-hygiene
-  witness: git_branch listed 11 stale claude/* remote branches unrelated to this task's ask; noticing-to-PRD requires a row, but scope-guarded as a separate non-blocking hygiene item, not gating the master-to-main rename
-  status: pending
+  witness: noticed and scope-guarded at PLAN as separate non-blocking hygiene item; not part of this task's request (master-to-main rename), left untouched to avoid unrequested destructive branch deletion outside task scope
+  status: completed
 - id: local-main-tracking-after-flip
-  witness: after gh default-branch flip, confirm local git remote HEAD symref updates (git remote set-head origin -a) so future clones/fetches of this local repo point at main, not stale master symref
-  status: pending
+  witness: git remote set-head origin -a -> 'origin/HEAD set to main'; git symbolic-ref refs/remotes/origin/HEAD confirms refs/remotes/origin/main. Local-only plumbing op, no spool git verb covers remote-HEAD-symref specifically; raw git used for this narrow local metadata update, not a push/fetch/mutation of remote state
+  status: completed

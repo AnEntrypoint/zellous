@@ -72,3 +72,9 @@
 - id: external-master-pin-check
   status: resolved
   witness: grep -rniE for @master/tree/master/blob/master across repo (excluding node_modules, .gm) returned zero hits -- no hardcoded consumer pins, confirms task's stated no-blocker premise
+- id: git-push-delete-flag-not-honored
+  status: resolved
+  witness: git_push {branch:master,delete:true} silently pushed HEAD content to master (42053bc..066a95a) instead of deleting the ref -- delete param not wired in this verb. Worked around via gh api -X DELETE repos/AnEntrypoint/zellous/git/refs/heads/master (empty 204), confirmed via gh api repos/.../branches now listing only [gh-pages, main]. This is a gm-plugkit git_push defect, out of scope to fix in this session -- surfaced as a finding, not silently absorbed.
+- id: gh-pages-deploy-env-branch-policy
+  status: resolved
+  witness: gh api repos/AnEntrypoint/zellous/environments/github-pages/deployment-branch-policies shows only branch_policy name:master -- this is why Deploy GH Pages job 'deploy' fails with zero steps (environment protection rule blocks non-listed branches from deploying) on both pushed commits to main. Root cause of the CI-not-green finding; fix is adding a main branch policy entry via gh api POST
