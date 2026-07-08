@@ -1379,14 +1379,14 @@
   witness: 'git_finalize committed sha 2259d72 (.gm/mutables.yml,.gm/prd.yml); repo has no ''main'' branch (git_branch listed only master + claude/* feature branches) so git_push {branch:master} targeted the repo''s actual primary line; rebased 1x (rebase_retries:1, upstream f51c3ef..9f1674e), pushed clean -> remote HEAD now 9f1674e. Post-push git_status: dirty=false, modified=[], untracked=[] -- clean tree confirmed.'
   status: completed
 - id: rename-local-branch-master-to-main
-  witness: git_branch shows current=master, no main branch exists yet; local rename required first
-  status: pending
+  witness: git_checkout {ref:main,create:true} returned {checked_out:main,created:true}
+  status: completed
 - id: push-main-set-upstream
-  witness: local main must reach origin with upstream tracking before default-branch flip is valid
-  status: pending
+  witness: git_push {branch:main,setUpstream:true} returned 'new branch HEAD -> main' pushed to origin
+  status: completed
 - id: set-github-default-branch-main
-  witness: gh repo view shows defaultBranchRef.name=master currently; gh api/gh repo edit flips it
-  status: pending
+  witness: gh api PATCH repos/AnEntrypoint/zellous default_branch=main -> response default_branch:main confirmed
+  status: completed
 - id: delete-origin-master
   witness: old default ref must be removed post-flip per task steps; only safe after GitHub default is main
   status: pending
