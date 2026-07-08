@@ -63,3 +63,12 @@
   description: update_available reports installed=0.1.824 latest=0.1.826 (gh release exists) but npm dist-tags gm-plugkit resolves latest=2.0.1800 which maps to wasm 0.1.824 -- npm wrapper not yet republished pointing at 0.1.826. bun x gm-plugkit@latest spool --kill-stale-watchers ran, stale_found=0, fresh_found=24, disk_wasm_version stayed 0.1.824. Task requires >=0.1.824 which IS satisfied; proceeding on 0.1.824.
   id: mut-1783455964361
   witness_evidence: 'npm view gm-plugkit dist-tags returned {latest:''2.0.1800''} (Bash background task b1fu48i2f.output) matching installed wrapper 2.0.1800/wasm 0.1.824 exactly -- the 0.1.826 gh-release exists but npm wrapper package has not republished pointing at it yet (external upstream publish-lag, not fixable from this repo). Forced bun x gm-plugkit@latest spool --kill-stale-watchers (stale_found=0, fresh_found=24, disk_wasm_version stayed 0.1.824 -- confirms no stale watcher, current install genuinely IS latest-on-npm). Task''s stated requirement ''plugkit >= 0.1.824'' is satisfied by the running 0.1.824. blockedBy: external (upstream npm republish outside this repo''s control).'
+- id: worktree-clean-check
+  status: resolved
+  witness: git status --porcelain shows only .gm/prd.yml modified (gm bookkeeping, not app code) -- safe to proceed, will commit as part of session close
+- id: branch-protection-check
+  status: resolved
+  witness: gh api repos/AnEntrypoint/zellous/branches/master/protection returned 404 Branch not protected -- no rules to migrate
+- id: external-master-pin-check
+  status: resolved
+  witness: grep -rniE for @master/tree/master/blob/master across repo (excluding node_modules, .gm) returned zero hits -- no hardcoded consumer pins, confirms task's stated no-blocker premise

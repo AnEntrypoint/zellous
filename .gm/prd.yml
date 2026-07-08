@@ -1378,3 +1378,42 @@
   description: git_add the new/changed md corpus files, git_finalize/git_push to origin main, verify clean tree + remote reflects HEAD
   witness: 'git_finalize committed sha 2259d72 (.gm/mutables.yml,.gm/prd.yml); repo has no ''main'' branch (git_branch listed only master + claude/* feature branches) so git_push {branch:master} targeted the repo''s actual primary line; rebased 1x (rebase_retries:1, upstream f51c3ef..9f1674e), pushed clean -> remote HEAD now 9f1674e. Post-push git_status: dirty=false, modified=[], untracked=[] -- clean tree confirmed.'
   status: completed
+- id: rename-local-branch-master-to-main
+  witness: git_branch shows current=master, no main branch exists yet; local rename required first
+  status: pending
+- id: push-main-set-upstream
+  witness: local main must reach origin with upstream tracking before default-branch flip is valid
+  status: pending
+- id: set-github-default-branch-main
+  witness: gh repo view shows defaultBranchRef.name=master currently; gh api/gh repo edit flips it
+  status: pending
+- id: delete-origin-master
+  witness: old default ref must be removed post-flip per task steps; only safe after GitHub default is main
+  status: pending
+- id: audit-workflow-branch-triggers
+  witness: 'Read of all 3 .github/workflows/*.yml: auto-declaudeify.yml+ci.yml use branches:[''**''] (agnostic), gh-pages.yml already lists [main, master] -- none require edits, but row closes only after this is verified live, not assumed'
+  status: pending
+- id: verify-ci-green-on-main
+  witness: task requires CI witnessed green on new main post-push before declaring done; gh run list/watch against main
+  status: pending
+- id: handle-local-uncommitted-state
+  witness: branch rename is a checkout-adjacent op; must confirm worktree clean before rename/push to avoid carrying dirty state onto main
+  status: pending
+- id: gh-pages-workflow-still-fires-on-master-during-transition
+  witness: gh-pages.yml on:push branches:[main,master] means both branches deploy pages during the transition window -- leave as-is (harmless overlap) rather than prematurely stripping master before deletion, but note for post-delete cleanup
+  status: pending
+- id: post-delete-gh-pages-yml-drop-master
+  witness: once origin/master is deleted, gh-pages.yml's branches:[main,master] still references a nonexistent ref -- harmless (push never occurs on deleted branch) but a follow-up hygiene edit to branches:[main] only is in-spirit cleanup, non-blocking
+  status: pending
+- id: check-external-consumer-pins-to-master
+  witness: 'task states no blocking exception found already, but re-verify: codesearch/grep this repo + check package.json/README for any hardcoded ''@master'' or ''tree/master'' URL before deleting origin/master irreversibly'
+  status: pending
+- id: check-branch-protection-rules-on-master
+  witness: GitHub branch protection rules configured on master do not auto-migrate to main; verify via gh api repos/.../branches/master/protection whether rules exist and need recreating on main before/after the flip
+  status: pending
+- id: stale-claude-remote-branches-hygiene
+  witness: git_branch listed 11 stale claude/* remote branches unrelated to this task's ask; noticing-to-PRD requires a row, but scope-guarded as a separate non-blocking hygiene item, not gating the master-to-main rename
+  status: pending
+- id: local-main-tracking-after-flip
+  witness: after gh default-branch flip, confirm local git remote HEAD symref updates (git remote set-head origin -a) so future clones/fetches of this local repo point at main, not stale master symref
+  status: pending
