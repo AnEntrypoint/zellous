@@ -50,6 +50,7 @@ rs-learn.db
 .gm/gm-fired-*
 .gm/needs-gm
 .gm/lastskill
+.gm/.gm-continue-count
 .gm/turn-state.json
 .gm/turn-state.json.corrupted-*
 .gm/residual-check-fired
