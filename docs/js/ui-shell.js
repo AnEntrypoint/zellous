@@ -3,44 +3,6 @@
 
   const $ = (id) => document.getElementById(id);
 
-  (function wireCrumb() {
-    const breadName = document.getElementById('zBreadName');
-    const statServer = document.getElementById('zStatusServer');
-    const statChannel = document.getElementById('zStatusChannel');
-    const statMsgs = document.getElementById('zStatusMsgs');
-    const statRooms = document.getElementById('zStatusRooms');
-    if (!breadName && !statChannel) return;
-    function tick() {
-      try {
-        const ch = window.stateSignals?.currentChannel?.value || { name: 'general' };
-        const servers = window.stateSignals?.servers?.value || [];
-        const sid = window.stateSignals?.currentServerId?.value;
-        const home = window.state?.homeMode;
-        const srv = home ? 'home' : (servers.find(s => s.id === sid)?.name || 'home');
-        const msgCount = (window.stateSignals?.chatMessages?.value || []).length;
-        if (breadName) breadName.textContent = ch.name || 'general';
-        if (statServer) statServer.textContent = srv;
-        if (statChannel) statChannel.textContent = ch.name || 'general';
-        if (statMsgs) statMsgs.textContent = msgCount === 0 ? 'no messages' : (msgCount + (msgCount === 1 ? ' message' : ' messages'));
-        if (statRooms) {
-          const rooms = (window.stateSignals?.channels?.value || []).filter(c => c.type !== 'voice' && c.type !== 'threaded');
-          const n = rooms.length;
-          statRooms.textContent = n + (n === 1 ? ' room' : ' rooms');
-        }
-      } catch (_) {}
-    }
-    if (typeof window.__effect === 'function') {
-      window.__effect(() => {
-        window.stateSignals?.currentChannel?.value;
-        window.stateSignals?.servers?.value;
-        window.stateSignals?.currentServerId?.value;
-        window.stateSignals?.chatMessages?.value;
-        tick();
-      });
-    }
-    tick();
-  })();
-
   function ensureNode(html) {
     const t = document.createElement('template');
     t.innerHTML = html.trim();
@@ -61,7 +23,7 @@
   // -------- Persistent voice strip (SDK-mounted by sdk-voice-strip.js) --------
   const voiceStrip = null;
 
-  // -------- SDK AppShell mount — disabled; canonical .app-topbar in index.html drives the topbar --------
+  // -------- SDK AppShell mount — disabled; mountCommunityApp renders its own .app-topbar --------
   const sdkShell = null;
 
   // Register on __shell directly; also wrap __debug after appReady so
