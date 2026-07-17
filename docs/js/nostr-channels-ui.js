@@ -16,7 +16,7 @@ var _mkMenu = function(id, x, y, html, onAction) {
 channelManager.showCreateModal = function(type, categoryId) {
   document.getElementById('channelCreateModal')?.remove();
   var cats = state.categories || [];
-  var catOpts = cats.map(function(c) { return '<option value="' + c.id + '"' + (c.id === categoryId ? ' selected' : '') + '>' + c.name + '</option>'; }).join('');
+  var catOpts = cats.map(function(c) { return '<option value="' + escHtml(c.id) + '"' + (c.id === categoryId ? ' selected' : '') + '>' + escHtml(c.name) + '</option>'; }).join('');
   var modal = document.createElement('div');
   modal.id = 'channelCreateModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box" style="max-width:400px"><div class="modal-title">Create Channel</div>' +
@@ -45,7 +45,7 @@ channelManager.showRenameModal = function(channelId, currentName) {
   modal.id = 'channelRenameModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box" style="max-width:360px"><div class="modal-title">Rename Channel</div>' +
     '<form id="crForm" onsubmit="return false"><div class="modal-field"><label class="modal-label">Channel Name</label>' +
-    '<input type="text" class="modal-input" id="crName" value="' + currentName + '" maxlength="40" autofocus></div>' +
+    '<input type="text" class="modal-input" id="crName" value="' + escHtml(currentName) + '" maxlength="40" autofocus></div>' +
     '<button type="submit" class="modal-btn">Save</button><button type="button" class="modal-btn secondary" id="crCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
   var input = modal.querySelector('#crName'); input.focus(); input.select();
@@ -91,7 +91,7 @@ channelManager.showRenameCategoryModal = function(categoryId, currentName) {
   modal.id = 'categoryRenameModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box" style="max-width:360px"><div class="modal-title">Rename Category</div>' +
     '<form id="carForm" onsubmit="return false"><div class="modal-field"><label class="modal-label">Category Name</label>' +
-    '<input type="text" class="modal-input" id="carName" value="' + currentName + '" maxlength="50" autofocus></div>' +
+    '<input type="text" class="modal-input" id="carName" value="' + escHtml(currentName) + '" maxlength="50" autofocus></div>' +
     '<button type="submit" class="modal-btn">Save</button><button type="button" class="modal-btn secondary" id="carCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
   var input = modal.querySelector('#carName'); input.focus(); input.select();
@@ -179,11 +179,11 @@ channelManager.showSettingsModal = function(channelId) {
   modal.innerHTML =
     '<div class="modal-box" style="max-width:460px">' +
       '<div class="modal-title">' + typeLabel + ' Channel Settings</div>' +
-      '<div class="modal-subtitle">#' + (ch.name || '') + '</div>' +
+      '<div class="modal-subtitle">#' + escHtml(ch.name || '') + '</div>' +
       '<div class="modal-field"><label class="modal-label">Name</label>' +
-        '<input type="text" class="modal-input" id="csName" value="' + (ch.name || '').replace(/"/g, '&quot;') + '" maxlength="40"' + (isOwner ? '' : ' disabled') + '></div>' +
+        '<input type="text" class="modal-input" id="csName" value="' + escHtml(ch.name || '') + '" maxlength="40"' + (isOwner ? '' : ' disabled') + '></div>' +
       '<div class="modal-field"><label class="modal-label">Topic</label>' +
-        '<input type="text" class="modal-input" id="csTopic" value="' + topicNow.replace(/"/g, '&quot;') + '" maxlength="200" placeholder="What is this channel about?"' + (isOwner ? '' : ' disabled') + '></div>' +
+        '<input type="text" class="modal-input" id="csTopic" value="' + escHtml(topicNow) + '" maxlength="200" placeholder="What is this channel about?"' + (isOwner ? '' : ' disabled') + '></div>' +
       voiceSection +
       (isOwner
         ? '<button type="button" class="modal-btn" id="csSave">Save</button><button type="button" class="modal-btn secondary" id="csCancel">Cancel</button>'

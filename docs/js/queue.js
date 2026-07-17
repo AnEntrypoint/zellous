@@ -71,7 +71,7 @@ const queue = {
       if (s.videoChunks?.length) webcam.showVideo(s.videoChunks, s.username);
       decoder.close();
       state.replayTimeout = setTimeout(() => { state.replayGainNode = null; state.replayTimeout = null; state.replayingSegmentId = null; webcam.hidePlayback(); ui.render.queue(); if (cont && idx + 1 < state.audioQueue.length) queue.replaySegment(state.audioQueue[idx + 1].id, true); }, dur * 1000 + 50);
-    });
+    }).catch((e) => { console.warn('[Queue] replay decode failed:', e.message); decoder.close(); state.replayingSegmentId = null; ui.render.queue(); });
   },
   downloadSegment: (id) => {
     const s = state.audioQueue.find(x => x.id === id);
@@ -92,7 +92,7 @@ const queue = {
       samples.forEach(arr => arr.forEach(x => { v.setInt16(o, Math.max(-1, Math.min(1, x)) * (x < 0 ? 0x8000 : 0x7FFF), true); o += 2; }));
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([wav], { type: 'audio/wav' })); a.download = `${s.username}-${s.timestamp.toISOString().slice(0,19).replace(/:/g,'-')}.wav`; a.click();
       if (s.videoChunks?.length) { const va = document.createElement('a'); va.href = URL.createObjectURL(new Blob(s.videoChunks, { type: 'video/webm' })); va.download = `${s.username}-${s.timestamp.toISOString().slice(0,19).replace(/:/g,'-')}.webm`; va.click(); }
-    });
+    }).catch((e) => { console.warn('[Queue] download decode failed:', e.message); decoder.close(); if (window.ui?.showToast) ui.showToast('Download failed: audio could not be decoded'); });
   }
 };
 window.__zellous.queue = queue;
