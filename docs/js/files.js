@@ -140,7 +140,7 @@ const fileTransfer = {
     if (!files?.length) return;
 
     for (const file of files) {
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
         chat.sendImage(file);
       } else {
         this.upload(file);

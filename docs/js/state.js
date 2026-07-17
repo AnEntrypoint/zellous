@@ -141,6 +141,7 @@ const state = {
   activeThreadId: signal(null),
   threads: signal([]),
   pagesVersion: signal(0),
+  unreadCount: signal(0),
 };
 
 const _isSignal = (v) => v !== null && typeof v === 'object' && 'value' in v && typeof v.subscribe === 'function';

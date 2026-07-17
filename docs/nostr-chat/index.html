@@ -2,7 +2,11 @@
 <html lang="en" data-theme="ink" class="ds-247420">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#3F8A4A" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#3F8A4A" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Serverless voice and text chat over public Nostr relays. No backend, no account — your keys are your identity.">
   <title>Zellous - Nostr</title>
   <script>
     // Theme init — runs before any paint. Shares 'zellous-theme' localStorage with landing.
@@ -18,7 +22,7 @@
       });
     });
   </script>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%235865f2'/><text x='50' y='72' font-size='60' font-weight='700' font-family='sans-serif' fill='white' text-anchor='middle'>Z</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%233F8A4A'/><text x='50' y='72' font-size='60' font-weight='800' font-family='monospace' fill='%23F5F0E4' text-anchor='middle'>Z</text></svg>">
   <script>
 // Use relative URLs to vendor directory (sibling of nostr-chat/)
 document.currentScript.before(Object.assign(document.createElement('script'), {
@@ -123,6 +127,17 @@ window.nostrFsm = null;
       // Catch unhandled module errors so the user sees them instead of a frozen splash.
       window.addEventListener('error',function(e){if(window.appReady)return;if(e&&e.message)fail(e.message);});
       window.addEventListener('unhandledrejection',function(e){if(window.appReady)return;var m=e&&e.reason&&(e.reason.message||String(e.reason));if(m)fail(m);});
+      // Post-boot safety net — an uncaught error/rejection after the splash is gone would
+      // otherwise be console-only and invisible to the user. Rate-limited to one toast per 5s
+      // so a repeating error doesn't spam the UI.
+      var lastRuntimeErrorToast=0;
+      function reportRuntimeError(msg){
+        if(!window.appReady||!window.ui||typeof window.ui.showToast!=='function')return;
+        var now=Date.now();if(now-lastRuntimeErrorToast<5000)return;lastRuntimeErrorToast=now;
+        window.ui.showToast('Something went wrong: '+(msg||'unknown error'),4000,'error');
+      }
+      window.addEventListener('error',function(e){if(!window.appReady)return;if(e&&e.message)reportRuntimeError(e.message);});
+      window.addEventListener('unhandledrejection',function(e){if(!window.appReady)return;var m=e&&e.reason&&(e.reason.message||String(e.reason));if(m)reportRuntimeError(m);});
       log('boot-html');
       setProgress(2,'starting');
     })();
@@ -397,7 +412,7 @@ window.nostrFsm = null;
     </div>
   </div>
 
-  <input type="file" class="hidden-input" id="fileInput" multiple autocomplete="off">
+  <input type="file" class="hidden-input" id="fileInput" accept="image/*,video/*" multiple autocomplete="off">
 
   <script src="../msgpackr.min.js"></script>
   <script type="module">
@@ -522,6 +537,14 @@ window.nostrFsm = null;
       if (window.ui?.render) {
         try { window.ui.render.all?.(); } catch (e) {}
       }
+    });
+    const BASE_TITLE = document.title;
+    effect(() => {
+      const n = window.stateSignals.unreadCount.value;
+      document.title = n > 0 ? '(' + (n > 99 ? '99+' : n) + ') ' + BASE_TITLE : BASE_TITLE;
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) window.stateSignals.unreadCount.value = 0;
     });
     window.appReady = true;
     window.__boot?.progress(100, 'ready');

@@ -140,7 +140,15 @@ window.__wireweaveReady = (async () => {
 
   // Chat bridge
   const chat = ww.chat;
-  chat.addEventListener('messages', (e) => { state.chatMessages = e.detail.list; _updateChatMembers(e.detail.list); if (window.ui) ui.render.all(); });
+  let _lastChatMsgCount = 0;
+  chat.addEventListener('messages', (e) => {
+    const list = e.detail.list || [];
+    if (typeof document !== 'undefined' && document.hidden && list.length > _lastChatMsgCount) {
+      state.unreadCount = (state.unreadCount || 0) + (list.length - _lastChatMsgCount);
+    }
+    _lastChatMsgCount = list.length;
+    state.chatMessages = list; _updateChatMembers(list); if (window.ui) ui.render.all();
+  });
   setInterval(() => { if ((state.chatMessages||[]).length) { _updateChatMembers(state.chatMessages); if (window.ui) ui.render.all(); } }, 60000);
   chat.addEventListener('profile', () => { if (window.ui) ui.render.all(); });
   chat.addEventListener('rate-limited', (e) => {

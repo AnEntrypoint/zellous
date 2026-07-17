@@ -75,7 +75,7 @@ ui.actions = {
   handleFileSelect(e) {
     const files = e.target.files;
     if (!files?.length) return;
-    for (const file of files) { file.type.startsWith('image/') ? chat.sendImage(file) : fileTransfer.upload(file); }
+    for (const file of files) { (file.type.startsWith('image/') || file.type.startsWith('video/')) ? chat.sendImage(file) : fileTransfer.upload(file); }
     e.target.value = '';
   },
   toggleMembers() { document.getElementById('memberList')?.classList.toggle('open'); },
