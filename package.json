@@ -3,6 +3,7 @@
   "version": "2.0.0",
   "description": "Serverless voice and chat over public Nostr relays",
   "type": "module",
+  "license": "MIT",
   "scripts": {
     "start": "npx serve docs"
   },
