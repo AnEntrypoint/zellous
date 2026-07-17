@@ -40,8 +40,11 @@ const queue = {
     s.decodedSamples.forEach(d => { const b = state.audioContext.createBuffer(1, d.length, config.sampleRate); b.getChannelData(0).set(d); const src = state.audioContext.createBufferSource(); src.buffer = b; src.connect(g); src.start(t); t += d.length / config.sampleRate; });
     setTimeout(() => queue.markAsPlayed(s.id), (t - state.audioContext.currentTime) * 1000);
   },
-  pausePlayback: () => {},
-  resumePlayback: () => { if (!state.currentSegmentId) queue.playNext(); },
+  pausePlayback: () => { if (state.audioContext?.state === 'running') state.audioContext.suspend(); },
+  resumePlayback: () => {
+    if (state.audioContext?.state === 'suspended') { state.audioContext.resume(); return; }
+    if (!state.currentSegmentId) queue.playNext();
+  },
   stopReplay: () => {
     if (state.replayGainNode) { state.replayGainNode.disconnect(); state.replayGainNode = null; }
     if (state.replayTimeout) { clearTimeout(state.replayTimeout); state.replayTimeout = null; }
