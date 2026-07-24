@@ -1,3 +1,8 @@
+## [2026-07-24] Fix reported layout/completeness bugs
+
+- `fix(layout): close 8px chat-composer/status-bar overlap on mobile; remove dead legacy topbar wiring` (7b39129) — closed an 8px overlap between the composer and fixed status bar on mobile viewports; removed `ui-shell.js` `wireCrumb()` logic believed dead at the time.
+- `fix(html+state): correct premature .app-div close reparenting legacy overlays to body; restore live status footer; clear composer on send` (50c2556) — the real root cause of the reported "incomplete GUI": a stray extra `</div>` in `docs/nostr-chat/index.html` closed `.app-body`/`.app` one tag early, reparenting the status footer (and thread-panel/member-list) to be direct children of `<body>` instead of the hidden legacy scaffold, so it rendered permanently-frozen placeholder text. Fixed the nesting, moved the footer to a standalone element, restored its live-update wiring (correcting the prior session's mistaken belief it was dead code), and fixed the chat composer not clearing after Enter-to-send.
+
 ## [2026-04-13] Flow UI Enhancements - 13 GUI Improvements
 
 ### Features
