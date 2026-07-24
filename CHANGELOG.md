@@ -1,3 +1,7 @@
+## [2026-07-24] Fix bans never enforced in text chat (voice-only until now)
+
+- `fix(chat): enforce bans/timeouts in text chat, not just voice` (c6edc4f/18c87e2) — bans.isBanned()/isTimedOut() were only ever consulted by voice.js. A banned user could send text messages freely, and their messages were never filtered from anyone's view. Fixed with send-time rejection plus receive-side filtering, verified live (simulated self-ban blocks sending with a real toast; normal sending unaffected).
+
 ## [2026-07-24] Comprehensive audit: fix message deletion never propagating
 
 - `fix(chat): propagate message deletions to other clients (NIP-09 kind:5)` (14fe3ff) — found during a full-app audit prompted by "consider every aspect": no code anywhere subscribed to kind:5 deletion events, so a deleted message stayed visible for everyone except the person who deleted it. Fixed with the same authorization pattern already proven correct in the roles/bans/settings/pages stores. Also re-verified: relay reconnect banner, error surfacing for network/auth/voice failures, empty states across member list/thread panel/forum, voice control accessibility, and dead-code cleanup status -- all found solid, no further gaps.
