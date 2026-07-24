@@ -72,7 +72,7 @@
       voiceConnected: v('voiceConnected', false),
       voiceChannelName: v('voiceChannelName', ''),
       voiceConnectionState: v('voiceConnectionState', 'connected'),
-      voiceParticipants: v('voiceParticipants', []),
+      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, speaking: !!p.isSpeaking, color: (window.getAvatarColor && window.getAvatarColor(p.identity)) || 'var(--accent)' })),
       micMuted: v('micMuted', false),
       voiceDeafened: v('voiceDeafened', false),
       memberCategories: (window.uiMembers && window.uiMembers.categories && window.uiMembers.categories()) || [],
