@@ -155,6 +155,9 @@ window.__wireweaveReady = (async () => {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
     if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
   });
+  chat.addEventListener('send-blocked', () => {
+    if (window.ui?.showToast) ui.showToast('You cannot send messages in this server', 3000, 'error');
+  });
   const ONLINE_WINDOW_MS = 5 * 60 * 1000;
   function _updateChatMembers(msgs) {
     const lastSeen = new Map();

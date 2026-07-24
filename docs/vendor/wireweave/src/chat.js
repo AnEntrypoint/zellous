@@ -4,11 +4,11 @@ const hexChannelId = async (channelId, serverId) => {
 };
 
 export class Chat extends EventTarget {
-  constructor({ relayPool, auth, getChannelContext = () => ({ channelId: null, serverId: '' }), isAdmin = () => false }) {
+  constructor({ relayPool, auth, getChannelContext = () => ({ channelId: null, serverId: '' }), isAdmin = () => false, bans = null }) {
     super();
     if (!relayPool || !auth) throw new Error('Chat: relayPool + auth required');
     this.pool = relayPool; this.auth = auth;
-    this.getChannelContext = getChannelContext; this.isAdmin = isAdmin;
+    this.getChannelContext = getChannelContext; this.isAdmin = isAdmin; this.bans = bans;
     this.activeChannelId = null;
     this.messages = [];
     this.profiles = new Map(); this.fetching = new Set();
@@ -28,6 +28,10 @@ export class Chat extends EventTarget {
     const { channelId, serverId } = this.getChannelContext();
     if (!this.auth.isLoggedIn() || !channelId) return;
     if (announcement && !this.isAdmin(serverId)) return;
+    if (this.bans && serverId && (this.bans.isBanned?.(serverId, this.auth.pubkey) || this.bans.isTimedOut?.(serverId, this.auth.pubkey))) {
+      this._emit('send-blocked', { reason: 'banned' });
+      return;
+    }
     const trimmed = content.trim(); if (!trimmed) return;
     const retryAfter = this.rateLimitRetryAfterMs();
     if (retryAfter > 0) {
@@ -58,7 +62,7 @@ export class Chat extends EventTarget {
     const collected = [];
     this.pool.subscribe('chat-' + channelId,
       [{ kinds: [42], '#e': [chanHex], limit: 50 }],
-      (ev) => collected.push(this._eventToMsg(ev)),
+      (ev) => { if (!this._isBlocked(serverId, ev.pubkey)) collected.push(this._eventToMsg(ev)); },
       () => {
         collected.sort((a, b) => a.timestamp - b.timestamp);
         this.messages = collected;
@@ -66,7 +70,7 @@ export class Chat extends EventTarget {
       });
     this.pool.subscribe('chat-live-' + channelId,
       [{ kinds: [42], '#e': [chanHex], since: Math.floor(Date.now() / 1000) }],
-      (ev) => this._addMessage(this._eventToMsg(ev)));
+      (ev) => { if (!this._isBlocked(serverId, ev.pubkey)) this._addMessage(this._eventToMsg(ev)); });
     // NIP-09 deletion events tag only the deleted message id, not the channel,
     // so this can't be relay-filtered by channel -- _handleDeletion does the
     // channel/relevance check by looking the tagged id up in this.messages.
@@ -87,6 +91,11 @@ export class Chat extends EventTarget {
       this.messages = this.messages.filter(m => m.id !== targetId);
       this._emit('messages', { list: this.messages });
     }
+  }
+
+  _isBlocked(serverId, pubkey) {
+    if (!this.bans || !serverId || !pubkey) return false;
+    return !!(this.bans.isBanned?.(serverId, pubkey) || this.bans.isTimedOut?.(serverId, pubkey));
   }
 
   async deleteMessage(id) {
