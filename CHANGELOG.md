@@ -1,3 +1,7 @@
+## [2026-07-24] Fix mobile triple-header chrome stack
+
+- `fix(mobile): hide redundant app-topbar nav on narrow phones to reclaim vertical space` (b144c12) — three stacked SDK header rows consumed ~40% of a typical phone viewport before any content; hid the redundant home/servers/source nav row below 480px (still reachable via the hamburger drawer), shrinking the topbar 96px->56px.
+
 ## [2026-07-24] Fix bans never enforced in text chat (voice-only until now)
 
 - `fix(chat): enforce bans/timeouts in text chat, not just voice` (c6edc4f/18c87e2) — bans.isBanned()/isTimedOut() were only ever consulted by voice.js. A banned user could send text messages freely, and their messages were never filtered from anyone's view. Fixed with send-time rejection plus receive-side filtering, verified live (simulated self-ban blocks sending with a real toast; normal sending unaffected).
