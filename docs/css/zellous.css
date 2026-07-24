@@ -1207,6 +1207,18 @@ html.ds-247420 .app-status {
   html.ds-247420 .app-side a { min-height: 44px; }
 }
 
+/* Reclaim mobile vertical space: on narrow phones the SDK stacks three
+   header rows before any content (.app-topbar brand+nav ~96px,
+   .cm-mobile-header ~48px, .chat-head ~72px) — ~40% of a 667px viewport.
+   The .app-topbar nav (home/servers/source) duplicates navigation already
+   reachable via the hamburger drawer's server rail once inside the app, so
+   hide it below 480px to cut the stack down without losing functionality
+   (brand + current-channel breadcrumb stays visible). */
+@media (max-width: 480px) {
+  html.ds-247420 .app-topbar nav,
+  html.ds-247420 .app-topbar > :last-child { display: none !important; }
+}
+
 /* Empty chat-thread placeholder — sentinel child blocks :empty, so target sentinel-only */
 html.ds-247420 .chat-thread:has(> [data-scroll-sentinel]:only-child)::before,
 html.ds-247420 .chat-thread[data-msg-count="0"]::before {
