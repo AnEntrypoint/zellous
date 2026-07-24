@@ -1,3 +1,7 @@
+## [2026-07-24] Comprehensive audit: fix message deletion never propagating
+
+- `fix(chat): propagate message deletions to other clients (NIP-09 kind:5)` (14fe3ff) — found during a full-app audit prompted by "consider every aspect": no code anywhere subscribed to kind:5 deletion events, so a deleted message stayed visible for everyone except the person who deleted it. Fixed with the same authorization pattern already proven correct in the roles/bans/settings/pages stores. Also re-verified: relay reconnect banner, error surfacing for network/auth/voice failures, empty states across member list/thread panel/forum, voice control accessibility, and dead-code cleanup status -- all found solid, no further gaps.
+
 ## [2026-07-24] Fix voice grid never rendering participants (regression since SDK migration)
 
 - `fix(voice): seed voiceParticipants on connect so the voice grid actually renders anyone` (ab7cdc0) — the actual bug behind the user's "voice used to work, broken since the redesign" report: `state.voiceParticipants` was only ever populated by a `'participants'` event that never fires for a self-only join, so the voice grid rendered zero tiles even on a fully successful connection. Verified live with a real (fake-device) getUserMedia + WebRTC mesh connect.
