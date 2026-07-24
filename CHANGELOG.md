@@ -1,3 +1,7 @@
+## [2026-07-24] Fix voice grid never rendering participants (regression since SDK migration)
+
+- `fix(voice): seed voiceParticipants on connect so the voice grid actually renders anyone` (ab7cdc0) — the actual bug behind the user's "voice used to work, broken since the redesign" report: `state.voiceParticipants` was only ever populated by a `'participants'` event that never fires for a self-only join, so the voice grid rendered zero tiles even on a fully successful connection. Verified live with a real (fake-device) getUserMedia + WebRTC mesh connect.
+
 ## [2026-07-24] Fix reported layout/completeness bugs
 
 - `fix(layout): close 8px chat-composer/status-bar overlap on mobile; remove dead legacy topbar wiring` (7b39129) — closed an 8px overlap between the composer and fixed status bar on mobile viewports; removed `ui-shell.js` `wireCrumb()` logic believed dead at the time.
