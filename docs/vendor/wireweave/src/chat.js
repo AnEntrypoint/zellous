@@ -49,6 +49,7 @@ export class Chat extends EventTarget {
     if (this.activeChannelId) {
       this.pool.unsubscribe('chat-' + this.activeChannelId);
       this.pool.unsubscribe('chat-live-' + this.activeChannelId);
+      this.pool.unsubscribe('chat-deletions-' + this.activeChannelId);
     }
     this.activeChannelId = channelId;
     this.messages = [];
@@ -66,6 +67,26 @@ export class Chat extends EventTarget {
     this.pool.subscribe('chat-live-' + channelId,
       [{ kinds: [42], '#e': [chanHex], since: Math.floor(Date.now() / 1000) }],
       (ev) => this._addMessage(this._eventToMsg(ev)));
+    // NIP-09 deletion events tag only the deleted message id, not the channel,
+    // so this can't be relay-filtered by channel -- _handleDeletion does the
+    // channel/relevance check by looking the tagged id up in this.messages.
+    this.pool.subscribe('chat-deletions-' + channelId,
+      [{ kinds: [5], since: Math.floor(Date.now() / 1000) }],
+      (ev) => this._handleDeletion(ev));
+  }
+
+  _handleDeletion(deletionEvent) {
+    const { serverId } = this.getChannelContext();
+    for (const tag of deletionEvent.tags || []) {
+      if (tag[0] !== 'e') continue;
+      const targetId = tag[1];
+      const msg = this.messages.find(m => m.id === targetId);
+      if (!msg) continue;
+      const authorized = deletionEvent.pubkey === msg.userId || this.isAdmin(serverId);
+      if (!authorized) continue;
+      this.messages = this.messages.filter(m => m.id !== targetId);
+      this._emit('messages', { list: this.messages });
+    }
   }
 
   async deleteMessage(id) {
