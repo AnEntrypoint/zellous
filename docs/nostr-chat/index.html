@@ -149,6 +149,13 @@ window.nostrFsm = null;
        feature modules (ui.js/ui-shell.js/etc) for state plumbing, so removing them would throw.
        It is no longer the visible chrome. -->
   <div id="app"></div>
+  <footer class="app-status" id="zStatus">
+    <span class="item" id="zStatusServer">home</span>
+    <span class="item" id="zStatusMsgs">no messages</span>
+    <span class="item" id="zStatusRooms"></span>
+    <span class="spread"></span>
+    <span class="item">247420 / mmxxvi</span>
+  </footer>
   <div class="app" style="display:none">
     <header class="app-topbar">
       <span class="brand">zellous<span class="slash"> / </span><span id="zBreadName">general</span></span>
@@ -291,9 +298,7 @@ window.nostrFsm = null;
           </div>
         </div>
       </div>
-    </div>
-
-        </div><!-- /#mainContent -->
+    </div><!-- /#mainContent -->
       </main><!-- /.app-main -->
     </div><!-- /.app-body -->
 
@@ -316,14 +321,6 @@ window.nostrFsm = null;
       <div class="member-role-header" id="onlineHeader">ONLINE - 0</div>
       <div id="onlineMembers"></div>
     </div>
-
-    <footer class="app-status" id="zStatus">
-      <span class="item" id="zStatusServer">home</span>
-      <span class="item" id="zStatusMsgs">no messages</span>
-      <span class="item" id="zStatusRooms"></span>
-      <span class="spread"></span>
-      <span class="item">247420 / mmxxvi</span>
-    </footer>
   </div>
 
   <!-- VIDEO PLAYBACK OVERLAY -->

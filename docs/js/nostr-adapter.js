@@ -110,7 +110,7 @@
     const call = (fn) => { try { return fn && fn(); } catch (_) {} };
     const actions = {
       switchChannel: (ch) => call(() => window.ui.actions.switchChannel(ch)),
-      send: (text, opts) => call(() => { window.chat.send(text, opts); if (S.replyTarget) S.replyTarget.value = null; }),
+      send: (text, opts) => call(() => { window.chat.send(text, opts); if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }),
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),

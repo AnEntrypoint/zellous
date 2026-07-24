@@ -3,6 +3,39 @@
 
   const $ = (id) => document.getElementById(id);
 
+  (function wireStatusBar() {
+    const statServer = document.getElementById('zStatusServer');
+    const statMsgs = document.getElementById('zStatusMsgs');
+    const statRooms = document.getElementById('zStatusRooms');
+    if (!statServer && !statMsgs && !statRooms) return;
+    function tick() {
+      try {
+        const servers = window.stateSignals?.servers?.value || [];
+        const sid = window.stateSignals?.currentServerId?.value;
+        const home = window.state?.homeMode;
+        const srv = home ? 'home' : (servers.find(s => s.id === sid)?.name || 'home');
+        const msgCount = (window.stateSignals?.chatMessages?.value || []).length;
+        if (statServer) statServer.textContent = srv;
+        if (statMsgs) statMsgs.textContent = msgCount === 0 ? 'no messages' : (msgCount + (msgCount === 1 ? ' message' : ' messages'));
+        if (statRooms) {
+          const rooms = (window.stateSignals?.channels?.value || []).filter(c => c.type !== 'voice' && c.type !== 'threaded');
+          const n = rooms.length;
+          statRooms.textContent = n + (n === 1 ? ' room' : ' rooms');
+        }
+      } catch (_) {}
+    }
+    if (typeof window.__effect === 'function') {
+      window.__effect(() => {
+        window.stateSignals?.servers?.value;
+        window.stateSignals?.currentServerId?.value;
+        window.stateSignals?.chatMessages?.value;
+        window.stateSignals?.channels?.value;
+        tick();
+      });
+    }
+    tick();
+  })();
+
   function ensureNode(html) {
     const t = document.createElement('template');
     t.innerHTML = html.trim();
