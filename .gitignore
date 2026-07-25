@@ -50,3 +50,4 @@ rs-learn.db
 .gm/browser-profile/
 .gm/browser-profile-*/
 .gm/pw-sock-*/
+.agentplug/
