@@ -44,57 +44,11 @@ also a one-step revert). The 28 old `docs/js/sdk-*.js` mount IIFEs are removed f
 **Adapter contract** is documented at the top of `src/community-app.js`. To add a surface: compose it
 in `mountCommunityApp` reading from the adapter, add any new adapter field, and the consumer maps it.
 
-### Historical: pre-migration there were 28 `docs/js/sdk-*.js` subtree-mount IIFEs
+### Current mount surface: only `sdk-command-palette.js` remains
 
-(superseded by `mountCommunityApp`; recall "zellous community-app migration" for detail.) Each was an
-IIFE that waited for `window.__sdk`+`window.__effect`, cleared a host, and `applyDiff(host, view())`
-in an `effect()`. The table below documents the old host→component mapping for reference:
-
-| Surface | Host element | Mount module | SDK component |
-|---|---|---|---|
-| Server rail | `#serverList` | `sdk-server-rail.js` | `C.ServerRail` |
-| Server + channel rail | `#zRoomList` | `sdk-rooms.js` | bespoke `pill()` using `C.Icon` (NOT `C.ChannelSidebar`) |
-| User panel (self identity) | `#userPanelSlot` | `sdk-user-panel.js` | `C.UserPanel` |
-| Legacy channel sidebar | `#channelSidebar` | `sdk-channel-sidebar.js` | neuter stub only (hides legacy, no SDK mount) |
-| Chat header | `#chatHeaderBar` | `sdk-chat.js` | `C.ChatHeader` |
-| Chat body + composer | `#chatArea` | `sdk-chat.js` | `C.Chat` |
-| Member list | `#memberList` | `sdk-member-list.js` | `C.MemberList` |
-| Voice strip (above user panel) | `#voiceStripSlot` | `sdk-voice-strip.js` | `C.VoiceStrip` |
-| Voice grid tiles | `#voiceGrid` | `sdk-voice-grid.js` | `C.VoiceUser` |
-| Voice controls bar | `#voiceControlsBar` | `sdk-voice-controls.js` | `C.VoiceControls` |
-| Video lightbox | `#videoLightboxHost` (body-appended) | `sdk-video-lightbox.js` | `C.VideoLightbox` |
-| Thread panel | `#threadPanel` | `sdk-thread-panel.js` | `C.ThreadPanel` |
-| Forum view | adjacent to `#forumView` | `sdk-forum-view.js` | `C.ForumView` |
-| Page view | adjacent to `#pageView` | `sdk-page-view.js` | `C.PageView` |
-| Auth modal | body-appended | `sdk-auth-modal.js` | `C.AuthModal` |
-
-Pattern for each `sdk-*.js`: IIFE that waits for `window.__sdk` + `window.__effect` + relevant globals, clears its host, calls `applyDiff(host, view())` inside an `effect()` reading signals.
-
-### Also migrated (additional `sdk-*.js` mounts, all loaded in index.html)
-
-These were formerly listed as "not yet migrated"; they each now have a loaded consumer module:
-
-| Surface | Mount module | SDK component |
-|---|---|---|
-| Settings popover | `sdk-settings-popover.js` | `C.SettingsPopover` |
-| Voice settings modal | `sdk-voice-settings-modal.js` | `C.VoiceSettingsModal` |
-| Boot overlay | `sdk-boot-overlay.js` | `C.BootOverlay` |
-| Mobile header / drawer | `sdk-mobile-header.js` | `C.MobileHeader` |
-| Toast | `sdk-toast.js` | `C.Toast` |
-| Context menus | `sdk-context-menu.js` | `C.ContextMenu` |
-| Emoji picker | `sdk-emoji-picker.js` | `C.EmojiPicker` |
-| Reply bar | `sdk-reply-bar.js` | `C.ReplyBar` |
-| Command palette (Cmd+K) | `sdk-command-palette.js` | `C.CommandPalette` |
-| Audio queue UI | `sdk-audio-queue.js` | `C.AudioQueue` |
-| PTT button | `sdk-ptt-button.js` | `C.PttButton` |
-| VAD meter | `sdk-vad-meter.js` | `C.VadMeter` |
-| Webcam preview | `sdk-webcam-preview.js` | `C.WebcamPreview` |
-| Connection/voice banners | `sdk-banners.js` | `C.Banner` |
-| Auth modal | `sdk-auth-modal.js` | `C.AuthModal` |
-
-### 2026-05-27 fix: 6 mounts were silently dead (SDK gap, now closed)
-
-`sdk-auth-modal.js`, `sdk-forum-view.js`, `sdk-page-view.js`, `sdk-thread-panel.js`, `sdk-video-lightbox.js`, and `sdk-voice-controls.js` referenced `C.AuthModal` / `C.ForumView` / `C.PageView` / `C.ThreadPanel` / `C.VideoLightbox` / `C.VoiceControls`, but **none of those six components existed** in `anentrypoint-design` (absent from the barrel, `src/components/`, and the built dist). Each mount polls `setTimeout(init, 30)` forever on a missing `C.X`, so the feature was dead with no error. They are now implemented (`VoiceControls` in `voice.js`; `AuthModal`/`VideoLightbox` in `overlay-primitives.js`; `ThreadPanel`/`ForumView`/`PageView` in `community.js`), re-exported from the barrel, with CSS in the `community.css`/`editor-primitives.css` cssParts, built, and re-vendored into `docs/sdk/` + `docs/css/vendor/`. Browser-witnessed live: all six are now `typeof function`, AuthModal/VideoLightbox/VoiceControls render expected DOM, zero console errors.
+`mountCommunityApp` composes every other surface directly (see GUI ownership section above); the
+other 27 legacy `docs/js/sdk-*.js` subtree-mount IIFE files no longer exist on disk. Recall
+"zellous community-app migration mount table" for the historical host→component mapping if needed.
 
 ### Final cleanup deferred (high blast radius)
 
@@ -181,6 +135,10 @@ parse + static-serve gate green before pushing.
 
 **Voice grid only ever showed participants on a `'participants'` wireweave CustomEvent, which never fires for a self-only join** — `docs/js/wireweave-bridge.js`'s `voice.addEventListener('participants', ...)` handler is the only thing that populated `state.voiceParticipants`, and that event only fires on remote peer-list changes. A user joining a voice channel alone (the common first case, and the only case testable without a second real peer) got a permanently-empty `voiceParticipants` signal, so the SDK's voice grid (which correctly maps `voiceParticipants` into `VoiceUser` tiles) rendered zero tiles — looking exactly like "voice is broken", reported by the user as a regression since the community-app migration (the legacy renderer used to call `uiVoice.renderGrid()` imperatively right after connecting; the SDK-driven reactive rendering has no equivalent unless the signal itself is seeded). Fixed by calling `state.voiceParticipants = voice.getParticipants()` directly in the `'connected'` event handler. Also fixed a field-name mismatch: the SDK's `VoiceUser({identity, speaking, color})` reads `speaking`/`color`, but the raw wireweave participant shape only has `isSpeaking` and no color — `docs/js/nostr-adapter.js`'s `voiceParticipants` mapping now derives both. When adding any new voice-state consumer, verify the reactive signal is populated on *connect*, not only on subsequent participant-list-change events — self-only state is the one case those change events don't cover.
 
+**Voice join required a working microphone; no mic meant no voice at all, not even to listen** — `docs/vendor/wireweave/src/voice.js`'s `connect()` awaited `getUserMedia()` unguarded and threw on any device/permission failure, even though every downstream use of `localStream` (mute toggle, recording, peer transceivers) already null-guards it and falls back to a `recvonly` transceiver. Fixed: `getUserMedia` failure is now caught, `localStream` stays `null`, and a `media-warning` event (wired to a toast in `wireweave-bridge.js`) tells the user they joined listen-only instead of the join silently failing. This was the real cause of "voice used to work, now it's broken" — not an SDK/adapter wiring gap, a hard media dependency with no fallback.
+
+**Mobile hamburger menu and member-list toggle drove dead legacy DOM instead of the signals `mountCommunityApp` actually reads** — the SDK reads `adapter.get().mobileMenuOpen`/`memberListOpen` and calls `adapter.actions.openMobileMenu`/`closeMobileMenu`/`toggleMembers` to flip them (confirmed by decompiling the live `247420.js` bundle: `oe("aside",{class:"app-side ca-rail"+(b.mobileMenuOpen?" open":"")}...)`). `docs/js/ui-actions.js`'s `openMobileMenu`/`closeMobileMenu`/`toggleMembers` only toggled classes on the dead legacy `#channelSidebar`/`#drawerOverlay`/`#memberList` scaffold elements, and neither `mobileMenuOpen` nor `memberListOpen` existed as signals at all — so on mobile, tapping either button visually pressed but never opened the real SDK-rendered rail or member panel. Fixed: added both signals to `docs/js/state.js`, wired them from `ui-actions.js`, added `mobileMenuOpen`/`memberListOpen` to `nostr-adapter.js`'s `get()`, and added a `closeMobileMenu` action (was missing entirely). When wiring any adapter boolean the SDK's own render logic branches on, verify against the live `247420.js` bundle (`curl` it, grep the field name) rather than assuming the zellous-side action name implies the right signal is being driven — it's easy to have a same-named action that touches the wrong (dead) DOM.
+
 **SDK AppShell `.app` flex-direction collision** — anentrypoint-design's AppShell renders `<div class="app">` with `flex-direction: column`. Zellous nostr-chat's `discord.css` also uses `.app` with `flex-direction: row` for the chat layout. When `installStyles()` runs, the SDK's inline stylesheet overrides discord.css. Without the override, the chat renders as a column. Fix: `docs/css/sdk-shell.css` declares `html.ds-247420 .app { display:flex !important; flex-direction:row !important }` with mobile `@media` override to `column`.
 
 **CSS specificity + min-width inheritance** — `chat-surface.css` uses `.server-list` and `#serverList` (id selectors), which beat `html.ds-247420 .server-list`. When collapsing the server list via `width:0`, the list doesn't shrink because `discord.css` pins `.server-list { min-width: var(--server-list-width) }`. Fix: on collapsed state, include `#serverList` selector AND `min-width: 0 !important` to override the inherited min-width from discord.css and allow true collapse.
@@ -261,5 +219,6 @@ scripts/fetch-vendor.js              vendored-dep fetcher
 2026-05-01: 5 items sampled (importmap-injection, crlf-html, windows-path-traversal, appshell-flex-collision, playwriter-viewport). Recall: 0/5. All retained in AGENTS.md. All 5 ingested into rs-learn this session. 6 new SDK integration facts also ingested (sdk-bundle-location, sdk-importmap-entry, dev-server-mime-types, sdk-window-global, sdk-wiring-points, appready-no-relay). 2 new AGENTS.md caveats added (docs/sdk/ gitignore split, static server MIME types).
 2026-05-01 (session 2): 5 items sampled (importmap-injection, crlf-html, appshell-flex-collision, playwriter-viewport, docs-sdk-gitignore). Recall: 0/5. All retained. All 5 re-ingested with refined wording. 1 new AGENTS.md caveat added (sdk-shell.css ID selector specificity for dark theme).
 2026-05-01 (session 3): 5 items sampled (importmap-injection, preact-signals, wireweave-protocol, flatspace-build, vendor-gitignore). Recall: 0/5. All retained. 4 new facts ingested into rs-learn (mjs-mime-type-port-5173, zellous-css-rebuild-2026-05-01, zellous-css-load-order, homemode-state-routing). 2 new AGENTS.md caveats added (design-tokens-unification, dev-server-mjs-mime-type).
+2026-07-26: gm-plugkit spool watcher was stale/non-responsive for the memorize-fire step this session (heartbeat ts never advanced after reboot) -- facts landed in AGENTS.md only, not rs-learn; re-fire on a future session when the watcher is healthy. Compressed the 28-entry historical sdk-*.js mount table (only sdk-command-palette.js still exists on disk; mountCommunityApp composes everything else) into a one-line pointer. Found and fixed 2 real live-witnessed defects: voice-join hard-required a mic with no listen-only fallback, and the mobile hamburger/member-list toggles drove dead legacy DOM instead of the mobileMenuOpen/memberListOpen signals the SDK bundle actually reads.
 
 @.gm/next-step.md
