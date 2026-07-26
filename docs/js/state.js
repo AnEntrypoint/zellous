@@ -105,6 +105,8 @@ const state = {
 
   membersVisible: signal(true),
   queueVisible: signal(true),
+  mobileMenuOpen: signal(false),
+  memberListOpen: signal(false),
   settingsOpen: signal(false),
   settingsAnchor: signal({ x: 0, y: 0 }),
 

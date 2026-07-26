@@ -86,16 +86,25 @@ export class VoiceSession extends EventTarget {
     try {
       const roomId = await deriveRoomId(this.serverId, channelName);
       if (epoch !== this._epoch) return;
-      const stream = await this.md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-      if (epoch !== this._epoch) { stream.getTracks().forEach(t => t.stop()); return; }
+      // No mic (denied permission, no device, or a headless/kiosk browser) must not block
+      // joining voice — downstream code already null-guards localStream throughout (mute
+      // toggle, recording, peer transceivers fall back to recvonly), so a mic-less join is
+      // a supported listen-only mode, not a degraded error state.
+      let stream = null;
+      try {
+        stream = await this.md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+      } catch (mediaErr) {
+        this._emit('media-warning', { message: 'joined listen-only: ' + mediaErr.message });
+      }
+      if (epoch !== this._epoch) { if (stream) stream.getTracks().forEach(t => t.stop()); return; }
       this.roomId = roomId;
       this.localStream = stream;
       // PTT default: gate closed at join. Apps that want always-on call setMuted(false).
       this.muted = true;
-      this.localStream.getAudioTracks().forEach(t => t.enabled = false);
+      if (this.localStream) this.localStream.getAudioTracks().forEach(t => t.enabled = false);
       this.participants.clear();
       this.participants.set('local', { identity: displayName, isSpeaking: false, isMuted: true, isLocal: true, hasVideo: false, connectionQuality: 'good' });
-      this._attachAnalyzer('local', this.localStream);
+      if (this.localStream) this._attachAnalyzer('local', this.localStream);
       this.actor.send({ type: 'connected' });
       this._subscribeSignals();
       this._subscribePresence();

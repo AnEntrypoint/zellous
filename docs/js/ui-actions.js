@@ -22,6 +22,7 @@ ui.actions = {
           .catch((e) => { if (window.ui?.showToast) ui.showToast('Voice connect failed: ' + (e?.message || 'unknown error'), 3000, 'error'); });
       }
     }
+    if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
     ui.channelSidebar?.classList.remove('open');
     ui.drawerOverlay?.classList.remove('open');
     ui._replyTarget = null;
@@ -78,15 +79,23 @@ ui.actions = {
     for (const file of files) { (file.type.startsWith('image/') || file.type.startsWith('video/')) ? chat.sendImage(file) : fileTransfer.upload(file); }
     e.target.value = '';
   },
-  toggleMembers() { document.getElementById('memberList')?.classList.toggle('open'); },
+  toggleMembers() {
+    const sig = window.stateSignals && window.stateSignals.memberListOpen;
+    if (sig) sig.value = !sig.value;
+    document.getElementById('memberList')?.classList.toggle('open');
+  },
   toggleQueue() { document.getElementById('queueSidebar')?.classList.toggle('open'); },
   toggleSettings() {
     const sig = window.stateSignals && window.stateSignals.settingsOpen;
     if (sig) { sig.value = !sig.value; return; }
     ui.settingsPopover?.classList.toggle('open');
   },
-  openMobileMenu() { ui.channelSidebar?.classList.add('open'); ui.drawerOverlay?.classList.add('open'); },
+  openMobileMenu() {
+    if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = true;
+    ui.channelSidebar?.classList.add('open'); ui.drawerOverlay?.classList.add('open');
+  },
   closeMobileMenu() {
+    if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
     ui.channelSidebar?.classList.remove('open'); ui.drawerOverlay?.classList.remove('open');
     document.getElementById('memberList')?.classList.remove('open');
     document.getElementById('queueSidebar')?.classList.remove('open');
