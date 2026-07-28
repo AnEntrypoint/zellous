@@ -4,7 +4,7 @@ This file is for agents (Claude Code, etc.) working in this repo. For the archit
 
 ## Repo shape (one-liner)
 
-Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave/src/`, a **git submodule** tracking `AnEntrypoint/wireweave` main. Window globals are wired in `docs/js/wireweave-bridge.js`. No backend, no build for the app itself; `flatspace.config.mjs` + `site/` only build the marketing landing into `dist/`.
+Static GH-Pages app under `docs/`. Real protocol logic is the **`wireweave` npm package**, loaded straight from unpkg `@latest` via the injected importmap — there is no vendored copy and no submodule. Window globals are wired in `docs/js/wireweave-bridge.js`. No backend, no build for the app itself; `flatspace.config.mjs` + `site/` only build the marketing landing into `dist/`.
 
 ## What you almost certainly want to edit
 
@@ -12,41 +12,35 @@ Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave
 |---|---|
 | Change UI render / layout for an SDK-mounted surface | `docs/js/sdk-*.js` (subtree mounts of `anentrypoint-design` components) |
 | Change UI render / layout for a not-yet-migrated surface | `docs/js/ui*.js`, `docs/css/zellous.css`, `docs/nostr-chat/index.html` |
-| Change protocol behavior (Nostr events, voice signaling, etc.) | `docs/vendor/wireweave/src/*.js` — edit in place (it's a real git repo, a submodule checkout), then **commit + push inside `docs/vendor/wireweave/`** to `AnEntrypoint/wireweave` main, then commit the updated submodule pointer in zellous. See "wireweave is a git submodule" below. |
+| Change protocol behavior (Nostr events, voice signaling, etc.) | the `AnEntrypoint/wireweave` repo, then publish it to npm. zellous picks the new build up from unpkg `@latest` on the next page load, with no commit in zellous. See "wireweave is an npm package" below. |
 | Expose / rename a window global | `docs/js/wireweave-bridge.js` (mirror under `window.__zellous`) |
 | Add a vendored dep (not wireweave) | `scripts/fetch-vendor.js`, then add an importmap entry inside the inline injector script in `docs/nostr-chat/index.html` |
 | Touch state | `docs/js/state.js` (single source of truth for signals) |
 | Improve an SDK component (or add a missing one) | edit the `anentrypoint-design` repo's `src/components/*.js` + the relevant cssPart (`community.css`/`editor-primitives.css`/`app-shell.css`), re-export from `src/components.js` (barrel re-export is what makes it `C.X`), run `node scripts/build.mjs`, then **commit + push the SDK repo** (npm publish). unpkg's `@latest` CDN build (`https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}`) is what zellous consumes live — there is **no re-vendor step in zellous anymore** (see SDK-load note below). |
 | Marketing landing | `docs/index.html` (live) and/or `site/` + `flatspace.config.mjs` (CI-built `dist/`) |
 
-## `docs/vendor/wireweave` is a git submodule
+## wireweave is an npm package loaded from unpkg `@latest`
 
-`docs/vendor/wireweave` tracks `AnEntrypoint/wireweave` main as a real git submodule (`.gitmodules`
-maps `path = docs/vendor/wireweave` / `url = https://github.com/AnEntrypoint/wireweave.git`), the
-same pattern `anentrypoint-design` uses for the SDK, and the same pattern wireweave's own AGENTS.md
-documents for its other consumer (`spoint`, `client/vendor/wireweave`). It is a normal git repo
-checked out in place — edit its files directly, then:
+zellous has **no wireweave submodule and no vendored wireweave copy**. The injected importmap in
+`docs/nostr-chat/index.html` maps the bare specifier to
+`https://unpkg.com/wireweave@latest/src/index.js`, exactly the way it already maps
+`anentrypoint-design`, and `docs/js/wireweave-bridge.js` does a plain `await import('wireweave')`.
+`package.json` declares `"wireweave": "latest"` for the same reason it declares the kit at `latest`
+— a declaration of record, never a caret range that would freeze on the `0.3.x` line.
 
-1. `git -C docs/vendor/wireweave add -A && git -C docs/vendor/wireweave commit -m "..."` (author
-   must be `lanmower`, matching this repo's convention — never attribute an AI tool).
-2. `git -C docs/vendor/wireweave push origin main` (wireweave is main-only, no feature branches —
-   its own AGENTS.md states this as a standing policy; push straight to main).
-3. Back in zellous, `git add docs/vendor/wireweave` stages the new submodule commit pointer, then
-   commit + push zellous as usual.
+This works because **wireweave takes its dependencies by injection rather than importing them**:
+`createWireweave({ nostrTools, xstate, storage, ... })`, and `NostrAuth` throws `nostrTools required`
+rather than resolving it itself. Every module under its `src/` imports only relative siblings, so a
+CDN-served entry emits no bare specifier the importmap would have to satisfy — `nostr-tools` and
+`xstate` stay on their existing local `../vendor/` entries, independent of how wireweave is
+delivered. Only `src/`, `README.md` and `LICENSE` are published, so never expect the repo's
+`test.js`, `AGENTS.md` or `site/` from the package.
 
-**Fresh zellous clones need submodule content explicitly.** A plain `git clone` leaves
-`docs/vendor/wireweave/` as an empty directory — `wireweave-bridge.js`'s dynamic
-`import('../vendor/wireweave/src/index.js')` 404s and the app never boots. Use
-`git clone --recurse-submodules <zellous-url>`, or after a plain clone run
-`git submodule update --init --recursive`. CI (`ci.yml`, `gh-pages.yml`) passes
-`submodules: true` to `actions/checkout@v4` for the same reason.
-
-**Upstream moves independently — expect divergence, reconcile by merging, never overwrite.**
-Wireweave is actively developed outside zellous; `docs/vendor/wireweave`'s pinned commit can lag
-or, if someone edits the submodule checkout directly without pushing upstream, can hold local-only
-changes upstream lacks. Before bulk-syncing to a new upstream commit, diff file-by-file
-(`diff -rq <sibling-clone-or-fresh-fetch>/src docs/vendor/wireweave/src`) rather than assuming a
-fast-forward is safe — both sides can carry genuine unmerged work in the same file.
+To change wireweave, work in the `AnEntrypoint/wireweave` repo and publish it; zellous picks the new
+build up on the next page load. **Accepted tradeoff, identical to the kit's:** a wireweave publish
+can change zellous's behavior with no commit in zellous, and boot depends on `unpkg.com` being
+reachable. If that ever needs to stop floating, pin the importmap entry to an exact version — the
+`@latest` choice is deliberate and matches every other browser-delivered consumer.
 
 ## GUI ownership: the SDK owns the whole app (`mountCommunityApp`)
 
@@ -188,7 +182,7 @@ parse + static-serve gate green before pushing.
 - **`site/theme.mjs` imports `anentrypoint-design`.** Resolved by flatspace at CI build time; not by the browser. Don't try to vendor it locally.
 - **`dist/index.html` differs from `docs/index.html`.** Different surfaces. `docs/` is the live GH-Pages site; `dist/` is the flatspace build artifact.
 - **Repo-insight banners may flag `server.js`, SQL, hardcoded creds, etc.** The summary indexer caches old project shape. The current repo has no server, no SQL, no embedded credentials. Verify against the actual tree before "fixing".
-- **`docs/vendor/wireweave/` empty after a plain `git clone`.** It's a submodule; content only populates with `git clone --recurse-submodules` or a follow-up `git submodule update --init --recursive`. An empty dir here is not corruption — see "`docs/vendor/wireweave` is a git submodule" above.
+- **No `wireweave` under `docs/vendor/`.** It is an npm package resolved from unpkg by the injected importmap, not a vendored directory — a plain `git clone` is complete and boots with no submodule step. See "wireweave is an npm package loaded from unpkg `@latest`" above.
 
 ## Rules
 
@@ -257,8 +251,8 @@ docs/
     ui*.js                           ←  render
     *.js                             ←  feature modules (audio, files, ptt, …)
   vendor/
-    wireweave/src/                   ←  protocol implementation (real logic)
     {preact,xstate,nostr-tools,…}    third-party
+                                     (wireweave is NOT here -- unpkg @latest)
   css/
   msgpackr.min.js                    binary codec
 site/                                flatspace inputs (theme + content)
