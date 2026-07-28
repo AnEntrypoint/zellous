@@ -100,6 +100,17 @@
         ],
       }],
       voiceSettingsOpen: v('voiceSettingsOpen', false),
+      voiceMode: v('vadEnabled', false) ? 'vad' : 'ptt',
+      inputDeviceId: v('inputDeviceId', null),
+      outputDeviceId: v('outputDeviceId', null),
+      inputDevices: v('inputDevices', []),
+      outputDevices: v('outputDevices', []),
+      vadThreshold: v('vadThreshold', 0.15),
+      rnnoiseEnabled: v('rnnoiseEnabled', true),
+      autoGainEnabled: v('autoGainEnabled', true),
+      forceTurnEnabled: v('forceTurnEnabled', false),
+      voiceBitrate: v('voiceBitrate', 64),
+      masterVolume: v('masterVolume', 0.7),
       replyTarget: v('replyTarget', null),
       threadPanelOpen: v('threadPanelOpen', false),
       activeThreadId: v('activeThreadId', null),
@@ -115,7 +126,10 @@
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
-      deleteMessage: (id) => call(() => window.chat.deleteMessage(id)?.catch?.((e) => window.ui && window.ui.showToast && window.ui.showToast('Delete failed: ' + (e && e.message || 'unknown'), 3000, 'error'))),
+      deleteMessage: (id) => call(() => {
+        if (S.replyTarget && S.replyTarget.value && S.replyTarget.value.id === id) S.replyTarget.value = null;
+        return window.chat.deleteMessage(id)?.catch?.((e) => window.ui && window.ui.showToast && window.ui.showToast('Delete failed: ' + (e && e.message || 'unknown'), 3000, 'error'));
+      }),
       resolveProfile: (id) => (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(id)) || null,
       toggleMic: () => call(() => (window.lk && window.lk.toggleMic) ? window.lk.toggleMic() : (window.state.micMuted = !window.state.micMuted)),
       toggleDeafen: () => call(() => (window.lk && window.lk.toggleDeafen) ? window.lk.toggleDeafen() : (window.state.voiceDeafened = !window.state.voiceDeafened)),
@@ -129,11 +143,33 @@
       openMobileMenu: () => call(() => window.ui.actions.openMobileMenu && window.ui.actions.openMobileMenu()),
       closeMobileMenu: () => call(() => window.ui.actions.closeMobileMenu && window.ui.actions.closeMobileMenu()),
       openSettings: () => call(() => window.ui.actions.toggleSettings && window.ui.actions.toggleSettings()),
-      openVoiceSettings: () => call(() => window.openVoiceSettings && window.openVoiceSettings()),
+      openVoiceSettings: () => call(() => {
+        if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = true;
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          navigator.mediaDevices.enumerateDevices().then((devices) => {
+            if (S.inputDevices) S.inputDevices.value = devices.filter(d => d.kind === 'audioinput').map(d => ({ value: d.deviceId, label: d.label || 'Microphone' }));
+            if (S.outputDevices) S.outputDevices.value = devices.filter(d => d.kind === 'audiooutput').map(d => ({ value: d.deviceId, label: d.label || 'Speaker' }));
+          }).catch(() => {});
+        }
+      }),
+      voiceSettingsChange: (patch) => call(() => {
+        if ('mode' in patch && S.vadEnabled) S.vadEnabled.value = patch.mode === 'vad';
+        if ('inputId' in patch && S.inputDeviceId) S.inputDeviceId.value = patch.inputId;
+        if ('outputId' in patch && S.outputDeviceId) S.outputDeviceId.value = patch.outputId;
+        if ('vadThreshold' in patch && S.vadThreshold) S.vadThreshold.value = patch.vadThreshold;
+        if ('rnnoise' in patch) { if (S.rnnoiseEnabled) S.rnnoiseEnabled.value = patch.rnnoise; try { localStorage.setItem('rnnoise', patch.rnnoise ? '1' : '0'); } catch (_) {} }
+        if ('autoGain' in patch) { if (S.autoGainEnabled) S.autoGainEnabled.value = patch.autoGain; try { localStorage.setItem('autoGain', patch.autoGain ? '1' : '0'); } catch (_) {} }
+        if ('forceTurn' in patch) { if (S.forceTurnEnabled) S.forceTurnEnabled.value = patch.forceTurn; try { localStorage.setItem('forceRelay', patch.forceTurn ? '1' : '0'); } catch (_) {} }
+        if ('bitrate' in patch && S.voiceBitrate) { S.voiceBitrate.value = patch.bitrate; try { localStorage.setItem('voiceBitrate', String(patch.bitrate)); } catch (_) {} }
+        if (window.lk && window.lk.setAudioConstraints) window.lk.setAudioConstraints({ deviceId: v('inputDeviceId', null), noiseSuppression: v('rnnoiseEnabled', true), autoGainControl: v('autoGainEnabled', true) });
+      }),
+      voiceSettingsSave: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
+      voiceSettingsClose: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
       goHome: () => call(() => { window.state.homeMode = true; window.state.currentServerId = null; }),
       openServers: () => call(() => document.getElementById('zServersBtn') && document.getElementById('zServersBtn').click()),
       switchServer: (id) => call(() => { window.state.homeMode = false; window.serverManager.switchTo(id); }),
       channelContext: (id, x, y) => call(() => window.channelManager.showContextMenu(id, x, y)),
+      createChannel: () => call(() => window.channelManager.showCreateModal(null, null)),
       serverContext: (id, x, y) => call(() => window.serverManager.showContextMenu(id, x, y)),
       memberMenu: (id, name, x, y) => call(() => window.moderation.showMemberMenu(id, name, x, y)),
       replaySegment: (id) => call(() => window.queue.replaySegment(id, true)),
@@ -204,7 +240,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });

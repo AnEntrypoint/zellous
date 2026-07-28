@@ -68,10 +68,6 @@ ui.actions = {
     } catch (e) { if (ui.authError) { ui.authError.textContent = e.message; ui.authError.style.display = 'block'; } }
   },
   async logout() { await auth.logout(); this.hideAuthModal(); ui.render.authStatus(); },
-  sendChat() { if (window.uiChat) uiChat.sendChat(); },
-  startReply(msgId) { if (window.uiChat) uiChat.startReply(msgId); },
-  startEdit(msgId) { if (window.uiChat) uiChat.startEdit(msgId); },
-  showEmojiPicker(msgId, btn) { if (window.uiChat) uiChat.showEmojiPicker(msgId, btn); },
   uploadFile() { ui.fileInput?.click(); },
   handleFileSelect(e) {
     const files = e.target.files;

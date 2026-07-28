@@ -1,7 +1,7 @@
 var _mkMenu = function(id, x, y, html, onAction) {
   document.getElementById(id)?.remove();
   var menu = document.createElement('div');
-  menu.id = id; menu.className = 'context-menu';
+  menu.id = id; menu.className = 'context-menu open';
   menu.style.cssText = 'position:fixed;top:' + y + 'px;left:' + x + 'px;z-index:2500';
   menu.innerHTML = html;
   document.body.appendChild(menu);
@@ -21,7 +21,7 @@ channelManager.showCreateModal = function(type, categoryId) {
   modal.id = 'channelCreateModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box" style="max-width:400px"><div class="modal-title">Create Channel</div>' +
     '<div class="modal-error" id="ccErr" style="display:none"></div><form id="ccForm" onsubmit="return false">' +
-    '<div class="modal-field"><label class="modal-label">Channel Type</label><select class="modal-input" id="ccType"><option value="text">Text</option><option value="voice">Voice</option><option value="threaded">Threaded</option></select></div>' +
+    '<div class="modal-field"><label class="modal-label">Channel Type</label><select class="modal-input" id="ccType"><option value="text">Text</option><option value="voice">Voice</option><option value="threaded">Threaded</option><option value="announcement">Announcement</option></select></div>' +
     '<div class="modal-field"><label class="modal-label">Channel Name</label><input type="text" class="modal-input" id="ccName" placeholder="new-channel" maxlength="40" autofocus></div>' +
     '<div class="modal-field"><label class="modal-label">Category</label><select class="modal-input" id="ccCat"><option value="">No Category</option>' + catOpts + '</select></div>' +
     '<button type="submit" class="modal-btn" id="ccSubmit">Create Channel</button><button type="button" class="modal-btn secondary" id="ccCancel">Cancel</button></form></div>';

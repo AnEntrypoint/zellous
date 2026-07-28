@@ -57,7 +57,14 @@ export class VoiceSession extends EventTarget {
     this.sfu = { mode: 'mesh', hub: null, hubLostAt: null, rttMatrix: new Map(), electionTimer: null, statsInterval: null, actor: null };
     this.retrySchedule = {};
     this._epoch = 0;
+    this.audioConstraints = {};
   }
+
+  // Device/processing choices apply on the *next* connect() — hot-swapping the
+  // active mic stream mid-call would need real renegotiation of every peer
+  // connection's audio sender, out of scope for a settings toggle. This
+  // matches the common pattern (Discord etc.) of "changes apply on rejoin".
+  setAudioConstraints(patch) { this.audioConstraints = { ...this.audioConstraints, ...patch }; }
 
   _initActor() {
     this.actor = this.xstate.createActor(this.fsm.voiceMachine);
@@ -92,7 +99,13 @@ export class VoiceSession extends EventTarget {
       // a supported listen-only mode, not a degraded error state.
       let stream = null;
       try {
-        stream = await this.md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+        const c = this.audioConstraints || {};
+        stream = await this.md.getUserMedia({ audio: {
+          echoCancellation: true,
+          noiseSuppression: c.noiseSuppression !== false,
+          autoGainControl: c.autoGainControl !== false,
+          ...(c.deviceId ? { deviceId: { exact: c.deviceId } } : {}),
+        } });
       } catch (mediaErr) {
         this._emit('media-warning', { message: 'joined listen-only: ' + mediaErr.message });
       }

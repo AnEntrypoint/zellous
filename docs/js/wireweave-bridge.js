@@ -433,7 +433,18 @@ window.__wireweaveReady = (async () => {
     get _peers() { return ensureVoice().peers; },
     get _roomId() { return ensureVoice().roomId; },
     get _channelName() { return ensureVoice().channelName; },
-    async connect(ch) { const v = ensureVoice(); v.serverId = state.currentServerId || ''; await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' }); state.micMuted = !!v.muted; },
+    async connect(ch) {
+      const v = ensureVoice();
+      v.serverId = state.currentServerId || '';
+      v.setAudioConstraints({
+        deviceId: state.inputDeviceId || null,
+        noiseSuppression: state.rnnoiseEnabled !== false,
+        autoGainControl: state.autoGainEnabled !== false,
+      });
+      await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' });
+      state.micMuted = !!v.muted;
+    },
+    setAudioConstraints(patch) { ensureVoice().setAudioConstraints(patch); },
     async disconnect() { if (voice) await voice.disconnect(); },
     toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); },
     setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); },
