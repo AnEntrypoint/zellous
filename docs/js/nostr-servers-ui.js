@@ -4,6 +4,7 @@ serverManager.showContextMenu = function(serverId, x, y) {
   var isOwner = srv.ownerId && state.nostrPubkey && srv.ownerId === state.nostrPubkey;
   var items = '<div class="context-menu-item" data-action="invite">Copy Invite Link</div>';
   if (isOwner) items += '<div class="context-menu-item" data-action="edit">Edit Server</div>';
+  if (isOwner) items += '<div class="context-menu-item" data-action="create-page">Create Page</div>';
   items += '<div class="context-menu-item danger" data-action="leave">Leave Server</div>';
   if (isOwner) items += '<div class="context-menu-item danger" data-action="delete">Delete Server</div>';
   _mkMenu('serverContextMenu', x, y, items, function(action) {
@@ -18,12 +19,60 @@ serverManager.showContextMenu = function(serverId, x, y) {
       });
     } else if (action === 'edit') {
       serverManager.showEditModal(serverId);
+    } else if (action === 'create-page') {
+      serverManager.showCreatePageModal(serverId);
     } else if (action === 'leave') {
       serverManager.leave(serverId);
     } else if (action === 'delete') {
       if (confirm('Delete this server? This cannot be undone.')) serverManager.delete(serverId);
     }
   });
+};
+
+serverManager.showCreatePageModal = function(serverId) {
+  document.getElementById('pageCreateModal')?.remove();
+  var modal = document.createElement('div');
+  modal.id = 'pageCreateModal'; modal.className = 'modal-overlay open';
+  modal.innerHTML = '<div class="modal-box" style="max-width:400px"><div class="modal-title">Create Page</div>' +
+    '<div class="modal-error" id="pcErr" style="display:none"></div><form id="pcForm" onsubmit="return false">' +
+    '<div class="modal-field"><label class="modal-label">Page Title</label><input type="text" class="modal-input" id="pcTitle" placeholder="About" maxlength="60" autofocus></div>' +
+    '<button type="submit" class="modal-btn" id="pcSubmit">Create Page</button><button type="button" class="modal-btn secondary" id="pcCancel">Cancel</button></form></div>';
+  document.body.appendChild(modal);
+  var errEl = modal.querySelector('#pcErr'), submitBtn = modal.querySelector('#pcSubmit');
+  modal.querySelector('#pcForm').addEventListener('submit', async function() {
+    var title = modal.querySelector('#pcTitle').value.trim();
+    errEl.style.display = 'none';
+    if (!title) { errEl.textContent = 'Page title is required'; errEl.style.display = 'block'; return; }
+    var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'page';
+    submitBtn.disabled = true; submitBtn.textContent = 'Creating...';
+    try { await window.serverPages.publish(serverId, slug, title, '<p>New page</p>'); modal.remove(); }
+    catch (e) { errEl.textContent = e.message || 'Failed'; errEl.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = 'Create Page'; }
+  });
+  modal.querySelector('#pcCancel').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+};
+
+serverManager.showEditPageModal = function(serverId, slug, title, html) {
+  document.getElementById('pageEditModal')?.remove();
+  var modal = document.createElement('div');
+  modal.id = 'pageEditModal'; modal.className = 'modal-overlay open';
+  modal.innerHTML = '<div class="modal-box" style="max-width:520px"><div class="modal-title">Edit Page</div>' +
+    '<div class="modal-error" id="peErr" style="display:none"></div><form id="peForm" onsubmit="return false">' +
+    '<div class="modal-field"><label class="modal-label">Page Title</label><input type="text" class="modal-input" id="peTitle" value="' + escHtml(title) + '" maxlength="60"></div>' +
+    '<div class="modal-field"><label class="modal-label">Content (HTML)</label><textarea class="modal-input" id="peHtml" rows="10" style="font-family:var(--ff-mono,monospace);resize:vertical" autofocus>' + escHtml(html) + '</textarea></div>' +
+    '<button type="submit" class="modal-btn" id="peSubmit">Save</button><button type="button" class="modal-btn secondary" id="peCancel">Cancel</button></form></div>';
+  document.body.appendChild(modal);
+  var errEl = modal.querySelector('#peErr'), submitBtn = modal.querySelector('#peSubmit');
+  modal.querySelector('#peForm').addEventListener('submit', async function() {
+    var newTitle = modal.querySelector('#peTitle').value.trim() || title;
+    var newHtml = modal.querySelector('#peHtml').value;
+    errEl.style.display = 'none';
+    submitBtn.disabled = true; submitBtn.textContent = 'Saving...';
+    try { await window.serverPages.publish(serverId, slug, newTitle, newHtml); modal.remove(); }
+    catch (e) { errEl.textContent = e.message || 'Failed'; errEl.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = 'Save'; }
+  });
+  modal.querySelector('#peCancel').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
 };
 
 serverManager.showEditModal = function(serverId) {

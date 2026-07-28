@@ -225,12 +225,9 @@
       }),
       editPage: () => call(() => {
         const ch = v('currentChannel', null);
-        if (!ch || ch.type !== 'page' || !window.serverPages) return;
+        if (!ch || ch.type !== 'page' || !window.serverPages || !window.serverManager) return;
         const existing = (window.serverPages.getPages(ch._serverId) || []).find(p => p.slug === ch._slug);
-        const html = window.prompt('Edit page HTML', existing ? existing.html : '');
-        if (html === null) return;
-        window.serverPages.publish(ch._serverId, ch._slug, ch.name, html)
-          .catch((e) => window.ui && window.ui.showToast && window.ui.showToast('Failed to save page: ' + (e && e.message || 'unknown'), 3000, 'error'));
+        window.serverManager.showEditPageModal(ch._serverId, ch._slug, existing ? existing.title : ch.name, existing ? existing.html : '');
       }),
     };
 
