@@ -32,7 +32,7 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       '@preact/signals-core': '../vendor/signals-core.mjs',
       'nostr-tools': '../vendor/nostr-tools.mjs',
       xstate: '../vendor/xstate.mjs',
-      'anentrypoint-design': 'https://anentrypoint.github.io/design/247420.js'
+      'anentrypoint-design': 'https://unpkg.com/anentrypoint-design@latest/dist/247420.js'
     }
   })
 }));
@@ -77,11 +77,11 @@ window.moderation = null;
 window.nostrFsm = null;
 </script>
   <!-- Canonical 247420 design system stylesheet — consumed LIVE from anentrypoint-design's
-       GitHub Pages so zellous always tracks the latest SDK build. The bundled 247420.css
+       unpkg @latest build so zellous always tracks the latest SDK build. The bundled 247420.css
        carries colors_and_type + app-shell + community + editor-primitives, all scoped under
        .ds-247420 (matched by <html class="ds-247420">). To change SDK styling, edit
-       C:/dev/anentrypoint-design and let its gh-pages deploy; no re-vendoring step in zellous. -->
-  <link rel="stylesheet" href="https://anentrypoint.github.io/design/247420.css">
+       C:/dev/anentrypoint-design and npm publish; no re-vendoring step in zellous. -->
+  <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
   <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
