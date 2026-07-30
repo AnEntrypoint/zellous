@@ -97,14 +97,20 @@ If `errors` is non-empty (after filtering external Google Fonts failures, which 
 
 ## CI workflow
 
-`.github/workflows/ci.yml` operationalizes the validation loop on every push/PR:
-(1) a `node --check` parse-gate over `docs/js` + `site` + `flatspace.config.mjs`
-(skips `vendor/`), and (2) a static-serve smoke that HTTP-witnesses
-`/nostr-chat/` returns 200 HTML with explicit MIME types (`.js`/`.mjs` ->
-`text/javascript`). The full Playwright browser-witness (validation loop step 3)
-is NOT in CI yet — it needs `anentrypoint.github.io` reachable at run time and a
-chromium install; add it as a follow-up job if flake is acceptable. Keep the
-parse + static-serve gate green before pushing.
+`.github/workflows/ci.yml` operationalizes the validation loop on every push/PR
+across two jobs. `validate`: (1) a `node --check` parse-gate over `docs/js` +
+`site` + `flatspace.config.mjs` (skips `vendor/`), and (2) a static-serve smoke
+that HTTP-witnesses `/nostr-chat/` returns 200 HTML with explicit MIME types
+(`.js`/`.mjs` -> `text/javascript`). `browser-witness`: boots the same static
+server and drives it with Playwright chromium (cached via `actions/cache` on
+`~/.cache/ms-playwright`, keyed on `package-lock.json`), navigating to
+`/nostr-chat/`, waiting for `window.appReady===true`, and failing on any
+console error other than the expected Google Fonts failure — the exact
+validation loop step 3 check. It runs with `continue-on-error: true` since it
+depends on `anentrypoint.github.io` being reachable at run time and flake risk
+is still unknown; its pass/fail still reports on the PR/commit, it just doesn't
+block merge. Keep the `validate` job green before pushing; `browser-witness`
+is advisory for now.
 
 ## Things that look broken but aren't
 
