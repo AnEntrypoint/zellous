@@ -5,7 +5,7 @@ const moderation = {
     if (window.nostrVoice?._peers?.get) {
       try { window.nostrVoice._peers.get(pubkey); } catch {}
     }
-    return window.nostrBans.kickFromVoice(pubkey);
+    return window.nostrBans.kickFromVoice(state.currentServerId, pubkey);
   },
 
   showMemberMenu(memberId, memberName, x, y) {

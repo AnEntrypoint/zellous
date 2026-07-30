@@ -64,7 +64,10 @@
       pageHtml: pageData ? pageData.html : '',
       canManage,
       homeMode: (window.state && window.state.homeMode) || false,
-      messages: (window.chat && window.chat.messages) || v('chatMessages', []),
+      messages: ((window.chat && window.chat.messages) || v('chatMessages', [])).map((m) => {
+        const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
+        return rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;
+      }),
       chatInputValue: v('chatInputValue', ''),
       currentUser: v('currentUser', null),
       userId: (window.state && (window.state.userId || window.state.nostrPubkey)) || null,
@@ -131,6 +134,12 @@
         return window.chat.deleteMessage(id)?.catch?.((e) => window.ui && window.ui.showToast && window.ui.showToast('Delete failed: ' + (e && e.message || 'unknown'), 3000, 'error'));
       }),
       resolveProfile: (id) => (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(id)) || null,
+      reactToMessage: (id, authorPubkey, emoji) => call(() => {
+        if (!window.nostrReactions) return;
+        const mine = window.nostrReactions.getFor(id).find((r) => r.mine);
+        if (mine && (!emoji || mine.content === emoji)) return window.nostrReactions.unreact(id);
+        return window.nostrReactions.react(id, authorPubkey, emoji || '+').catch((e) => window.ui && window.ui.showToast && window.ui.showToast('Reaction failed: ' + (e && e.message || 'unknown'), 3000, 'error'));
+      }),
       toggleMic: () => call(() => (window.lk && window.lk.toggleMic) ? window.lk.toggleMic() : (window.state.micMuted = !window.state.micMuted)),
       toggleDeafen: () => call(() => (window.lk && window.lk.toggleDeafen) ? window.lk.toggleDeafen() : (window.state.voiceDeafened = !window.state.voiceDeafened)),
       leaveVoice: () => call(() => (window.lk && window.lk.disconnect) ? window.lk.disconnect() : (window.voice && window.voice.leave && window.voice.leave())),

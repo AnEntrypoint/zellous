@@ -205,6 +205,22 @@ window.__wireweaveReady = (async () => {
     handleImageMessage() {}, handleFileShared() {}
   };
 
+  // Reactions bridge — NIP-25 kind:7 on native kind:42 chat messages. Auto-
+  // subscribes for every message currently in view (mirrors the profile
+  // auto-fetch pattern above) so reaction counts populate without an
+  // explicit per-message opt-in from the UI layer.
+  const reactions = ww.reactions;
+  reactions.addEventListener('updated', () => { if (window.ui) ui.render.all(); });
+  chat.addEventListener('messages', (e) => {
+    const ids = (e.detail.list || []).map((m) => m.id).filter(Boolean);
+    if (ids.length) reactions.subscribeMany(ids);
+  });
+  window.nostrReactions = {
+    getFor: (id) => reactions.getFor(id),
+    react: (id, authorPubkey, content) => reactions.react(id, authorPubkey, content),
+    unreact: (id) => reactions.unreact(id)
+  };
+
   // DM bridge — NIP-44 encrypted 1:1 (kind 14), structurally isolated from
   // the plaintext broadcast Chat (kind 42 filtered by channel-hash '#e' tag).
   // DM.subscribe filters by '#p'/authors on the user's own pubkey, so a DM
@@ -282,7 +298,7 @@ window.__wireweaveReady = (async () => {
     loadServers: () => srv.load(),
     create: (n, c) => srv.create(n, c),
     rename: (sid, n, c) => srv.rename(sid, n, c),
-    kickFromVoice: (pk) => bans.kickFromVoice(pk),
+    kickFromVoice: (pk) => bans.kickFromVoice(state.currentServerId, pk),
     banUserNostr: (sid, pk) => bans.ban(sid, pk),
     timeoutUserNostr: (sid, pk, min) => bans.timeout(sid, pk, min),
     join: (sid) => srv.join(sid),
@@ -342,7 +358,7 @@ window.__wireweaveReady = (async () => {
     subscribe: (sid) => bans.subscribe(sid),
     ban: (sid, pk) => bans.ban(sid, pk),
     timeout: (sid, pk, m) => bans.timeout(sid, pk, m),
-    kickFromVoice: (pk) => bans.kickFromVoice(pk)
+    kickFromVoice: (sid, pk) => bans.kickFromVoice(sid, pk)
   };
 
   const settings = ww.settings;
@@ -477,7 +493,7 @@ window.__wireweaveReady = (async () => {
 
   // Ready flag for legacy code
   window.__zellous = window.__zellous || {};
-  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, wireweave: ww });
+  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
 
   document.addEventListener('nostr:login', () => window.dm.subscribeAll());
   if (a.pubkey) window.dm.subscribeAll();

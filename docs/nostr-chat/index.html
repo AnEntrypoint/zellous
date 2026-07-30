@@ -432,6 +432,10 @@ window.nostrFsm = null;
       // NOTE: do NOT call sdk.installStyles() — it injects ~3.4MB of bundled CSS that fights
       // the canonical 30KB stylesheet pair (colors_and_type.css + app-shell.css) loaded in <head>.
       window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components };
+      try {
+        const resolved = import.meta.resolve ? import.meta.resolve('anentrypoint-design') : null;
+        console.info('[anentrypoint-design] resolved module URL:', resolved || '(import.meta.resolve unsupported in this browser)');
+      } catch (e) { console.info('[anentrypoint-design] could not resolve module URL:', e.message); }
     } catch (e) {
       console.error('SDK load failed', e);
       window.__sdk = null;
