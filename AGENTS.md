@@ -37,8 +37,9 @@ to the adapter contract `{get()->snapshot, subscribe(cb), actions, helpers}` and
 signals so any change re-renders. The imperative overlay globals (`__contextMenu`/`__emojiPicker`/
 `__commandPalette`) are re-exposed from the returned `app.api`. The legacy `.app` scaffold in
 `index.html` is retained `display:none` (feature modules still query its hosts for state plumbing;
-also a one-step revert). The 28 old `docs/js/sdk-*.js` mount IIFEs are removed from the index.html
-`scripts[]` (files remain on disk, unloaded — deletable later). To change the GUI, edit
+also a one-step revert). The 27 old `docs/js/sdk-*.js` mount IIFEs (all but
+`sdk-command-palette.js`) are deleted; only `sdk-command-palette.js` remains, still referenced in
+`index.html`'s `scripts[]`. To change the GUI, edit
 `anentrypoint-design` (additively) and let gh-pages redeploy.
 
 **Adapter contract** is documented at the top of `src/community-app.js`. To add a surface: compose it
