@@ -1,5 +1,5 @@
 window.__wireweaveReady = (async () => {
-  const mod = await import('../vendor/wireweave/src/index.js');
+  const mod = await import('wireweave');
   const NT = window.NostrTools;
   const XS = { createMachine: window.XState.createMachine, createActor: window.XState.createActor };
 

@@ -4,7 +4,7 @@ This file is for agents (Claude Code, etc.) working in this repo. For the archit
 
 ## Repo shape (one-liner)
 
-Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave/src/`. Window globals are wired in `docs/js/wireweave-bridge.js`. No backend, no build for the app itself; `flatspace.config.mjs` + `site/` only build the marketing landing into `dist/`.
+Static GH-Pages app under `docs/`. Real protocol logic lives in the `wireweave` sibling repo (`../wireweave`, published to npm), consumed live over `esm.sh` — no local vendor copy. Window globals are wired in `docs/js/wireweave-bridge.js`. No backend, no build for the app itself; `flatspace.config.mjs` + `site/` only build the marketing landing into `dist/`.
 
 ## What you almost certainly want to edit
 
@@ -12,7 +12,7 @@ Static GH-Pages app under `docs/`. Real protocol logic in `docs/vendor/wireweave
 |---|---|
 | Change UI render / layout for the whole app | edit `anentrypoint-design`'s `mountCommunityApp` (see GUI ownership section) — only `docs/js/sdk-command-palette.js` survives as a subtree mount |
 | Change zellous-side actions/state feeding the SDK | `docs/js/nostr-adapter.js` (adapter contract), `docs/js/ui-actions.js`, `docs/js/state.js`, `docs/css/zellous.css` |
-| Change protocol behavior (Nostr events, voice signaling, etc.) | `docs/vendor/wireweave/src/*.js` |
+| Change protocol behavior (Nostr events, voice signaling, etc.) | `../wireweave`'s `src/*.js` (sibling repo, `AnEntrypoint/wireweave` on GitHub) — commit + push, `publish.yml` auto-publishes to npm, zellous picks it up on next load via its unpinned `esm.sh/wireweave` importmap entry, no re-vendor step |
 | Expose / rename a window global | `docs/js/wireweave-bridge.js` (mirror under `window.__zellous`) |
 | Add a vendored dep | `scripts/fetch-vendor.js`, then add an importmap entry inside the inline injector script in `docs/nostr-chat/index.html` |
 | Touch state | `docs/js/state.js` (single source of truth for signals) |
@@ -135,7 +135,7 @@ parse + static-serve gate green before pushing.
 
 Any reactive voice-state signal derived from wireweave CustomEvents must be seeded on `'connected'`, not only on later change events (`'participants'`) — a self-only join is the one case where those change events never fire. `docs/js/wireweave-bridge.js` seeds `state.voiceParticipants` in its `'connected'` handler for this reason; `docs/js/nostr-adapter.js`'s `voiceParticipants` mapping derives the SDK's `speaking`/`color` fields from wireweave's raw `isSpeaking`/no-color shape.
 
-**Voice join required a working microphone; no mic meant no voice at all, not even to listen** — `docs/vendor/wireweave/src/voice.js`'s `connect()` awaited `getUserMedia()` unguarded and threw on any device/permission failure, even though every downstream use of `localStream` (mute toggle, recording, peer transceivers) already null-guards it and falls back to a `recvonly` transceiver. Fixed: `getUserMedia` failure is now caught, `localStream` stays `null`, and a `media-warning` event (wired to a toast in `wireweave-bridge.js`) tells the user they joined listen-only instead of the join silently failing. This was the real cause of "voice used to work, now it's broken" — not an SDK/adapter wiring gap, a hard media dependency with no fallback.
+**Voice join required a working microphone; no mic meant no voice at all, not even to listen** — `wireweave`'s `src/voice.js`'s `connect()` awaited `getUserMedia()` unguarded and threw on any device/permission failure, even though every downstream use of `localStream` (mute toggle, recording, peer transceivers) already null-guards it and falls back to a `recvonly` transceiver. Fixed: `getUserMedia` failure is now caught, `localStream` stays `null`, and a `media-warning` event (wired to a toast in `wireweave-bridge.js`) tells the user they joined listen-only instead of the join silently failing. This was the real cause of "voice used to work, now it's broken" — not an SDK/adapter wiring gap, a hard media dependency with no fallback.
 
 When wiring any adapter boolean the SDK's own render logic branches on (e.g. `mobileMenuOpen`, `memberListOpen`), verify the exact field name against the live `247420.js` bundle (`curl` + grep) rather than assuming a same-named zellous action drives the right signal — it's easy to have an action that only touches dead legacy DOM while the real signal stays unwired.
 
@@ -158,6 +158,8 @@ When wiring any adapter boolean the SDK's own render logic branches on (e.g. `mo
 **Flatspace build command and output** — Flatspace is invoked via `npx --yes flatspace@latest build` (see .github/workflows/gh-pages.yml). There is no local build script in package.json; the command must be run directly. Build output goes to ./dist.
 
 **docs/sdk/ vs docs/vendor/ gitignore split** — `docs/vendor/` is gitignored (third-party drops). `docs/sdk/` is NOT gitignored and is committed. SDK assets (e.g. `247420.js` copied from `node_modules/anentrypoint-design/dist/`) belong in `docs/sdk/`, not `docs/vendor/`.
+
+**wireweave consumed LIVE from npm via esm.sh (2026-07-30, supersedes the vendored approach)** — the inline importmap injector in `docs/nostr-chat/index.html` maps `wireweave` → `https://esm.sh/wireweave` (unpinned, always resolves the latest published version; `wireweave-bridge.js` does `await import('wireweave')` and uses `mod.createWireweave(...)`). The vendored `docs/vendor/wireweave/src/` copy was **deleted** — it had drifted several releases stale before this change and would drift again under the old copy-by-hand model. To propagate a wireweave change: commit + push `../wireweave` (sibling repo); its `publish.yml` auto-publishes to npm on every push to `main` (unless the commit message contains `[skip-publish]` or is itself a bot release-bump commit), and zellous picks up the new version on next load automatically — no re-vendor step, no version pin to bump. **Tradeoff:** zellous boot now depends on `esm.sh` being reachable, and the unpinned specifier means a wireweave regression ships to zellous immediately with no staging step; `wireweave-bridge.js` has no try/catch fallback for this import (unlike the SDK's `window.__sdk = null` graceful-degrade) since wireweave failing to load means the app has no protocol layer at all — there is no degraded mode to fall back to.
 
 **SDK JS+CSS consumed LIVE from anentrypoint-design's GitHub Pages (2026-05-27, supersedes the vendored approach)** — the inline importmap injector in `docs/nostr-chat/index.html` maps `anentrypoint-design` → `https://anentrypoint.github.io/design/247420.js`, and the single stylesheet `<link>` points at `https://anentrypoint.github.io/design/247420.css` (bundled: colors_and_type + app-shell + community + editor-primitives, all scoped under `.ds-247420`, matched by `<html class="ds-247420">`). The old vendored copies (`docs/sdk/247420.{js,css}` and `docs/css/vendor/*`) were **deleted** — zellous no longer carries an SDK copy and auto-tracks the SDK's gh-pages deploy. To propagate an SDK change: `node scripts/build.mjs` in `../design` (sibling repo, `AnEntrypoint/design` on GitHub), commit + push; gh-pages redeploys (~30–60s) and zellous picks it up on next load. **Tradeoff:** zellous boot now depends on `anentrypoint.github.io` being reachable; the SDK import is wrapped in try/catch and sets `window.__sdk = null` on failure (graceful-degrade, no hard crash). npm publish remains blocked (no auth). Note: `https://anentrypoint.github.io/design/community.css` and `editor-primitives.css` are **404** individually — only the bundled `247420.css` carries `.cm-*`/`.vx-*`/`.ov-*`; do not link the individual cssPart names from gh-pages.
 
@@ -185,8 +187,7 @@ docs/
     ui*.js                           ←  render
     *.js                             ←  feature modules (audio, files, ptt, …)
   vendor/
-    wireweave/src/                   ←  protocol implementation (real logic)
-    {preact,xstate,nostr-tools,…}    third-party
+    {preact,xstate,nostr-tools,…}    third-party (wireweave itself is CDN-consumed, not vendored)
   css/
   msgpackr.min.js                    binary codec
 site/                                flatspace inputs (theme + content)
