@@ -38,7 +38,7 @@ html, body {
 /* Surface tokens — extend canonical (which only defines --bg/--bg-2) with bg-3/bg-4 + panel aliases used by legacy zellous chrome.
    Canonical colors_and_type.css owns --bg/--fg/--accent/--ink/--paper toggling via [data-theme]. We do NOT redefine those. */
 html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
-  --bg-3: #34343C;
+  --bg-3: #2E2E35;
   --bg-4: #42444B;
   --green-fg:   var(--ink);
   --panel-0: var(--ink);
@@ -1280,6 +1280,13 @@ html.ds-247420 .hidden-input {
   clip: rect(0,0,0,0);
   border: 0;
 }
+html.ds-247420 .drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: none;
+}
+html.ds-247420 .drawer-overlay.open { display: block; }
 
 /* SDK ThreadPanel / ForumView own their chrome; hide the legacy duplicate
    header/list/search that threadManager used to render into, so the panels

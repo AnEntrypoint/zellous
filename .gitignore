@@ -51,3 +51,4 @@ rs-learn.db
 .gm/browser-profile-*/
 .gm/pw-sock-*/
 .agentplug/
+.agentplug-kv/

@@ -26,6 +26,10 @@ export class Roles extends EventTarget {
   async setRole(serverId, targetPubkey, role) {
     if (!this.isOwner(serverId) && role === 'admin') throw new Error('Only owner can assign admin');
     if (!this.isAdmin(serverId)) throw new Error('Insufficient permissions');
+    if (targetPubkey === this._creatorOf(serverId)) throw new Error('Cannot change the owner\'s role');
+    if (!this.isOwner(serverId) && this.getRole(serverId, targetPubkey) === 'admin') {
+      throw new Error('Only the owner can change another admin\'s role');
+    }
     const existing = this.store.get(serverId) || { admins: [], mods: [] };
     let admins = (existing.admins || []).filter(p => p !== targetPubkey);
     let mods = (existing.mods || []).filter(p => p !== targetPubkey);

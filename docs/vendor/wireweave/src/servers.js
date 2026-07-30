@@ -45,6 +45,8 @@ export class Servers extends EventTarget {
 
   async rename(serverId, name, iconColor = '#5865F2') {
     if (!serverId?.startsWith(this.auth.pubkey + ':')) throw new Error('Only owner can rename');
+    name = (name || '').trim();
+    if (!name) throw new Error('server name cannot be empty');
     const dTag = serverId.split(':')[1];
     const signed = await this.auth.sign({ kind: 34550, created_at: Math.floor(Date.now() / 1000), tags: [['d', dTag], ['name', name], ['color', iconColor]], content: '' });
     this.pool.publish(signed);
@@ -62,13 +64,13 @@ export class Servers extends EventTarget {
     await this.switchTo(serverId);
   }
 
-  async join(serverId) {
+  async join(serverId, { name = null, iconColor = '#5865F2', select = true } = {}) {
     try {
       const joined = JSON.parse(this.storage.getItem('zn_joined_servers') || '[]');
       if (!joined.includes(serverId)) { joined.push(serverId); safeSetItem(this.storage, this, 'zn_joined_servers', JSON.stringify(joined)); }
     } catch {}
-    if (!this.servers.find(s => s.id === serverId)) { this.servers = [...this.servers, { id: serverId, name: serverId.slice(0, 8), iconColor: '#5865F2' }]; this._persist(); }
-    await this.switchTo(serverId);
+    if (!this.servers.find(s => s.id === serverId)) { this.servers = [...this.servers, { id: serverId, name: name || serverId.slice(0, 8), iconColor }]; this._persist(); this._emit('updated', { servers: this.servers }); }
+    if (select) await this.switchTo(serverId);
   }
 
   async delete(serverId) {

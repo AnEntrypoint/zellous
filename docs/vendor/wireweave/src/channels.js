@@ -66,6 +66,9 @@ export class Channels extends EventTarget {
 
   async create(name, type = 'text', categoryId = 'general') {
     if (!this.isOwner()) throw new Error('owner only');
+    name = (name || '').trim();
+    if (!name) throw new Error('channel name cannot be empty');
+    if (this.channels.some(c => c.name === name)) throw new Error('a channel with that name already exists');
     this.channels = [...this.channels, { id: 'ch-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), name, type, categoryId, position: this.channels.length }];
     await this._publish();
     this._emit('updated', { channels: this.channels, categories: this.categories });
@@ -73,6 +76,9 @@ export class Channels extends EventTarget {
 
   async rename(id, name) {
     if (!this.isOwner()) throw new Error('owner only');
+    name = (name || '').trim();
+    if (!name) throw new Error('channel name cannot be empty');
+    if (this.channels.some(c => c.id !== id && c.name === name)) throw new Error('a channel with that name already exists');
     this.channels = this.channels.map(c => c.id === id ? { ...c, name } : c);
     await this._publish(); this._emit('updated', { channels: this.channels, categories: this.categories });
   }
@@ -88,6 +94,7 @@ export class Channels extends EventTarget {
 
   async remove(id) {
     if (!this.isOwner()) throw new Error('owner only');
+    if (this.channels.length <= 1) throw new Error('cannot remove the last channel');
     this.channels = this.channels.filter(c => c.id !== id);
     await this._publish(); this._emit('updated', { channels: this.channels, categories: this.categories });
   }

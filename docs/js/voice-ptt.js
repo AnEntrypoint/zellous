@@ -24,9 +24,13 @@
   // Channel mode is published with the channel metadata (owner-controlled),
   // so every participant sees the same mode. We read it off the live channel
   // object from state; localStorage is only consulted as a last-ditch fallback
-  // for older clients that wrote there before the migration.
+  // for older clients that wrote there before the migration. A personal
+  // vadEnabled setting (Voice Settings modal) overrides the channel default
+  // to 'vad' for that user only — it's a client-side preference, not
+  // server-published state.
   function modeKey(channelId) { return 'zn_voice_mode_' + (channelId || 'default'); }
   function getChannelMode(channelId) {
+    if (window.state?.vadEnabled) return 'vad';
     var chs = (window.state && window.state.channels) || [];
     for (var i = 0; i < chs.length; i++) {
       if (chs[i].id === channelId) {
@@ -182,9 +186,21 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden) holdEnd(); });
   }
 
-  // Switch the pill / mic between PTT and Realtime modes. In realtime mode
-  // we keep the mic open (lk.setMuted(false)) and replace the pill with a
-  // static "Live mic" badge so the user knows their voice is going through.
+  // ── VAD mode: auto request/release transmit off wireweave's own local
+  //    speaker-activity detector (real AnalyserNode RMS, not a stub), instead
+  //    of the PTT pill's manual hold/release.
+  let vadActive = false;
+  function onLocalSpeaker(e) {
+    if (currentChannelMode() !== 'vad') return;
+    const d = e.detail; if (!d || d.isLocal !== true) return;
+    if (d.speaking && !vadActive) { vadActive = true; holdStart(); }
+    else if (!d.speaking && vadActive) { vadActive = false; holdEnd(); }
+  }
+
+  // Switch the pill / mic between PTT, VAD, and Realtime modes. In realtime
+  // mode we keep the mic open (lk.setMuted(false)) and replace the pill with
+  // a static "Live mic" badge. In VAD mode the pill is decorative (shows
+  // live/idle from onLocalSpeaker) and hold/release is driven automatically.
   function applyMode(mode) {
     const pill = pillEl();
     if (mode === 'realtime') {
@@ -199,7 +215,16 @@
         // Disable hold semantics in realtime mode.
         pill.disabled = true;
       }
+    } else if (mode === 'vad') {
+      try { window.lk?.setMuted?.(true); } catch {}
+      if (pill) {
+        pill.setAttribute('data-state', 'idle');
+        pill.querySelector('.voice-ptt-label').textContent = 'Voice-activated';
+        pill.setAttribute('title', 'Transmitting automatically when you speak');
+        pill.disabled = true;
+      }
     } else {
+      if (vadActive) { vadActive = false; holdEnd(); }
       // PTT default — close mic on entry, restore pill behaviour.
       try { window.lk?.setMuted?.(true); } catch {}
       if (pill) {
@@ -221,12 +246,14 @@
     if (window.lk?.on) {
       unsubs.push(window.lk.on('transmit', onTransmit));
       unsubs.push(window.lk.on('segment-received', onSegment));
+      unsubs.push(window.lk.on('speaker', onLocalSpeaker));
       // segment-finalized just signals that the held buffer was packed up; transmit-mode
       // is the source of truth for the pill, so we don't override it from here.
     }
   }
   function onVoiceDisconnected() {
     connected = false;
+    vadActive = false;
     holdEnd();
     skipQueue();
     while (unsubs.length) { try { unsubs.pop()(); } catch {} }

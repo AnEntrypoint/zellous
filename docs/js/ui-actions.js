@@ -72,7 +72,11 @@ ui.actions = {
   handleFileSelect(e) {
     const files = e.target.files;
     if (!files?.length) return;
-    for (const file of files) { (file.type.startsWith('image/') || file.type.startsWith('video/')) ? chat.sendImage(file) : fileTransfer.upload(file); }
+    const onUploadFail = (e) => { if (window.ui?.showToast) ui.showToast('Upload failed: ' + (e?.message || 'unknown error'), 3000, 'error'); };
+    for (const file of files) {
+      const p = (file.type.startsWith('image/') || file.type.startsWith('video/')) ? chat.sendImage(file) : fileTransfer.upload(file);
+      p?.catch?.(onUploadFail);
+    }
     e.target.value = '';
   },
   toggleMembers() {

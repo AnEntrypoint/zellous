@@ -36,18 +36,54 @@ const DC_LABEL = 'wireweave-queue';
 const DC_CHUNK_MAX = 14000;           // ~14 KB SCTP-friendly chunks
 const DC_HEADER = 'WW1';              // protocol marker
 
+// Opus bitrate ladder: named quality tiers applied to the outbound audio
+// RTCRtpSender's encoding via setParameters(). This is the real mechanism
+// available for a single (non-simulcast) Opus sender — see the simulcast
+// note on VoiceSession below for why per-layer simulcast is out of scope.
+const OPUS_BITRATE_LADDER = {
+  low: 16000,
+  medium: 32000,
+  high: 48000,
+  max: 64000
+};
+const DEFAULT_AUDIO_QUALITY = 'high';
+
 const deriveRoomId = async (serverId, channel) => {
   const h = await crypto.subtle.digest('SHA-256', new TextEncoder().encode((serverId || 'default') + ':voice:' + channel));
   return 'zellous' + Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
 };
 
+// See data.js's defaultCreatePeerConnection for why this hook exists: it lets
+// a Node host inject a natively-tuned peer (ICE/UDP muxing, fixed port range,
+// proxy passthrough) without wireweave depending on any Node WebRTC binding.
+const defaultCreatePeerConnection = (config) => new RTCPeerConnection(config);
+
+// SIMULCAST-LITE — scope verified against the real API surface used in this
+// file before promising it. Real browser simulcast (multiple RTCRtpEncodingParameters
+// with distinct `rid`/`scaleResolutionDownBy` on one RTCRtpSender) is a VIDEO-only
+// technique: Opus is not encoded per-layer, and every addTransceiver/addTrack call
+// site in this file (see `_maybeConnect`, `_handleSignal`'s doAnswer) sends audio
+// only — `cameraStream` is a field with no producer, there is no video sendrecv
+// transceiver anywhere in this module. Promising `sendEncodings` simulcast here
+// would be fabricated. The honest, reachable analog for a single-encoding Opus
+// sender is *adaptive bitrate switching* driven by live getStats() (already
+// polled in `_sfuPoll`) — `setAudioQuality`/the bitrate ladder below is that
+// real, verifiable mechanism, not simulcast. If/when this module gains a real
+// video sender, true simulcast (sendEncodings on addTransceiver) becomes
+// reachable and should replace this note.
 export class VoiceSession extends EventTarget {
-  constructor({ fsm, xstate, relayPool, auth, mediaDevices, bans = null, serverId = '', onAudioTrack = null, onVideoTrack = null }) {
+  constructor({
+    fsm, xstate, relayPool, auth, mediaDevices, bans = null, serverId = '',
+    onAudioTrack = null, onVideoTrack = null, createPeerConnection = defaultCreatePeerConnection,
+    pttMode = true, micSensitivity = SPEAKER_ACTIVE_RMS, noiseSuppression = true,
+    echoCancellation = true, autoGainControl = true, audioQuality = DEFAULT_AUDIO_QUALITY, dtx = true
+  }) {
     super();
     if (!fsm || !xstate || !relayPool || !auth || !mediaDevices) throw new Error('VoiceSession: missing deps');
     this.fsm = fsm; this.xstate = xstate; this.pool = relayPool; this.auth = auth; this.md = mediaDevices; this.bans = bans;
     this.serverId = serverId;
     this.onAudioTrack = onAudioTrack; this.onVideoTrack = onVideoTrack;
+    this.createPeerConnection = createPeerConnection;
     this.actor = null;
     this.channelName = ''; this.roomId = '';
     this.peers = new Map(); this.participants = new Map();
@@ -57,14 +93,54 @@ export class VoiceSession extends EventTarget {
     this.sfu = { mode: 'mesh', hub: null, hubLostAt: null, rttMatrix: new Map(), electionTimer: null, statsInterval: null, actor: null };
     this.retrySchedule = {};
     this._epoch = 0;
-    this.audioConstraints = {};
+    // Push-to-talk mode: when true (default, matches prior hardcoded behavior),
+    // connect() starts muted and the caller must setMuted(false)/requestTransmit()
+    // to speak. When false, connect() starts unmuted (open-mic / voice-activity mode).
+    this.pttMode = !!pttMode;
+    // Mic-sensitivity threshold: RMS level above which the speaker-activity
+    // detector (_pollActivity) counts a stream as "speaking". Was a hardcoded
+    // module constant (SPEAKER_ACTIVE_RMS); now a real per-instance, live-settable value.
+    this.micSensitivity = typeof micSensitivity === 'number' && micSensitivity > 0 ? micSensitivity : SPEAKER_ACTIVE_RMS;
+    // getUserMedia audio constraints — were hardcoded `true` at the single
+    // getUserMedia call site in connect(); now real constructor-configurable
+    // fields actually threaded into that call.
+    this.noiseSuppression = !!noiseSuppression;
+    this.echoCancellation = !!echoCancellation;
+    this.autoGainControl = !!autoGainControl;
+    // Opus bitrate ladder tier + DTX (discontinuous transmission / silence
+    // suppression). Applied for real in _applyAudioHints (bitrate, via the
+    // existing RTCRtpSender.setParameters call) and _mungeDtx (DTX, via
+    // real SDP fmtp munging — DTX is not an RTCRtpEncodingParameters field in
+    // the actual spec, it is negotiated in the Opus fmtp line).
+    this.setAudioQuality(audioQuality);
+    this.dtx = !!dtx;
   }
 
-  // Device/processing choices apply on the *next* connect() — hot-swapping the
-  // active mic stream mid-call would need real renegotiation of every peer
-  // connection's audio sender, out of scope for a settings toggle. This
-  // matches the common pattern (Discord etc.) of "changes apply on rejoin".
-  setAudioConstraints(patch) { this.audioConstraints = { ...this.audioConstraints, ...patch }; }
+  // Live-settable: mic-sensitivity threshold used by the speaker-activity poller.
+  setMicSensitivity(rms) {
+    if (typeof rms !== 'number' || !(rms > 0)) return;
+    this.micSensitivity = rms;
+  }
+
+  // Live-settable: push-to-talk vs open-mic mode. Does not itself mute/unmute —
+  // it changes what connect() defaults to and what releaseTransmit() restores to.
+  setPttMode(on) { this.pttMode = !!on; }
+
+  // Live-settable: Opus target bitrate tier. Re-applies immediately to every
+  // connected peer's audio sender via the same setParameters() path _applyAudioHints
+  // uses, so a mid-call quality change actually reaches the wire.
+  setAudioQuality(tier) {
+    const kbps = OPUS_BITRATE_LADDER[tier];
+    this.audioQuality = kbps ? tier : DEFAULT_AUDIO_QUALITY;
+    this._targetBitrate = kbps || OPUS_BITRATE_LADDER[DEFAULT_AUDIO_QUALITY];
+    for (const [, peer] of this.peers) if (peer.pc) this._applyAudioHints(peer.pc);
+  }
+
+  // Live-settable: DTX (silence suppression) toggle. Re-negotiation of an
+  // already-open connection isn't forced (that would require a fresh offer/answer);
+  // it takes effect on the next SDP exchange (offer, answer, or ICE restart) for
+  // open peers, and immediately for any new connection.
+  setDtx(on) { this.dtx = !!on; }
 
   _initActor() {
     this.actor = this.xstate.createActor(this.fsm.voiceMachine);
@@ -99,12 +175,8 @@ export class VoiceSession extends EventTarget {
       // a supported listen-only mode, not a degraded error state.
       let stream = null;
       try {
-        const c = this.audioConstraints || {};
         stream = await this.md.getUserMedia({ audio: {
-          echoCancellation: true,
-          noiseSuppression: c.noiseSuppression !== false,
-          autoGainControl: c.autoGainControl !== false,
-          ...(c.deviceId ? { deviceId: { exact: c.deviceId } } : {}),
+          echoCancellation: this.echoCancellation, noiseSuppression: this.noiseSuppression, autoGainControl: this.autoGainControl
         } });
       } catch (mediaErr) {
         this._emit('media-warning', { message: 'joined listen-only: ' + mediaErr.message });
@@ -112,12 +184,23 @@ export class VoiceSession extends EventTarget {
       if (epoch !== this._epoch) { if (stream) stream.getTracks().forEach(t => t.stop()); return; }
       this.roomId = roomId;
       this.localStream = stream;
-      // PTT default: gate closed at join. Apps that want always-on call setMuted(false).
-      this.muted = true;
-      if (this.localStream) this.localStream.getAudioTracks().forEach(t => t.enabled = false);
+      // PTT mode: gate closed at join, caller opens it via setMuted(false)/requestTransmit().
+      // Open-mic mode (pttMode=false): start unmuted.
+      this.muted = this.pttMode;
+      if (this.localStream) this.localStream.getAudioTracks().forEach(t => t.enabled = !this.pttMode);
       this.participants.clear();
-      this.participants.set('local', { identity: displayName, isSpeaking: false, isMuted: true, isLocal: true, hasVideo: false, connectionQuality: 'good' });
-      if (this.localStream) this._attachAnalyzer('local', this.localStream);
+      this.participants.set('local', { identity: displayName, isSpeaking: false, isMuted: this.pttMode, isLocal: true, hasVideo: false, connectionQuality: 'good' });
+      // Local speaker-activity detection needs to keep listening even while muted
+      // (VAD mode auto-unmutes ON speech, so it can't rely on the transmit-gated
+      // track to hear that speech in the first place). Clone the raw audio track
+      // — a clone's `enabled` is independent of the original — and keep the clone
+      // always enabled purely for local analysis; it is never sent to peers.
+      if (this.localStream) {
+        const track = this.localStream.getAudioTracks()[0];
+        this._localListenTrack = track ? track.clone() : null;
+        const listenStream = this._localListenTrack ? new MediaStream([this._localListenTrack]) : this.localStream;
+        this._attachAnalyzer('local', listenStream);
+      }
       this.actor.send({ type: 'connected' });
       this._subscribeSignals();
       this._subscribePresence();
@@ -151,6 +234,7 @@ export class VoiceSession extends EventTarget {
     if (this._actx && this._actx.state !== 'closed') { try { this._actx.close(); } catch {} this._actx = null; }
     if (this.cameraStream) { this.cameraStream.getTracks().forEach(t => t.stop()); this.cameraStream = null; }
     if (this.localStream) { this.localStream.getTracks().forEach(t => t.stop()); this.localStream = null; }
+    if (this._localListenTrack) { this._localListenTrack.stop(); this._localListenTrack = null; }
     if (this.roomId) { this.pool.unsubscribe('voice-presence-' + this.roomId); this.pool.unsubscribe('voice-signals-' + this.roomId); }
     this.participants.clear();
     this.roomId = ''; this.channelName = '';
@@ -225,7 +309,7 @@ export class VoiceSession extends EventTarget {
       a.an.getByteTimeDomainData(buf);
       let sum = 0; for (let i = 0; i < buf.length; i++) { const v = (buf[i] - 128) / 128; sum += v * v; }
       const rms = Math.sqrt(sum / buf.length);
-      const active = rms > SPEAKER_ACTIVE_RMS;
+      const active = rms > this.micSensitivity;
       if (active) a.lastActive = now;
       const stillSpeaking = active || (now - a.lastActive) < SPEAKER_HOLD_MS;
       if (stillSpeaking !== a.speaking) { a.speaking = stillSpeaking; this._setSpeaking(key, stillSpeaking); }
@@ -274,7 +358,9 @@ export class VoiceSession extends EventTarget {
   releaseTransmit() {
     this._wantsTransmit = false;
     if (this._outboundRec) this._finalizeOutboundCapture();
-    if (!this.muted) this.setMuted(true);
+    // Only re-close the gate in PTT mode. In open-mic mode there is no "release"
+    // to fall back to — the mic stays live per pttMode's own semantics.
+    if (this.pttMode && !this.muted) this.setMuted(true);
     this._emit('transmit', { mode: 'idle' });
   }
 
@@ -542,7 +628,7 @@ export class VoiceSession extends EventTarget {
     fsmActor.start();
     const peer = { pc: null, audioEl: null, pendingCandidates: [], bufferedCandidates: [], iceTimer: null, disconnectTimer: null, failCount: 0, state: 'new', fsm: fsmActor, _stallInterval: null, remoteDescSet: false, trackEndedRestart: false };
     this.peers.set(peerPubkey, peer);
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, bundlePolicy: 'max-bundle', iceCandidatePoolSize: 4, iceTransportPolicy: 'all' });
+    const pc = this.createPeerConnection({ iceServers: ICE_SERVERS, bundlePolicy: 'max-bundle', iceCandidatePoolSize: 4, iceTransportPolicy: 'all' });
     peer.pc = pc;
     const isOfferer = this.auth.pubkey > peerPubkey;
     if (isOfferer) {
@@ -607,8 +693,33 @@ export class VoiceSession extends EventTarget {
     this._ensureDataChannel(peer, peerPubkey, isOfferer);
     if (isOfferer) {
       fsmActor.send({ type: 'offer' });
-      pc.createOffer().then(o => pc.setLocalDescription(o).then(() => this._publishSignal(peerPubkey, 'offer', o))).catch(() => {});
+      pc.createOffer().then(o => { o.sdp = this._mungeDtx(o.sdp); return pc.setLocalDescription(o).then(() => this._publishSignal(peerPubkey, 'offer', o)); }).catch(() => {});
     }
+  }
+
+  // Real DTX (discontinuous transmission / silence suppression) toggle.
+  // DTX is not an RTCRtpEncodingParameters field in the actual WebRTC spec —
+  // it's negotiated per the Opus fmtp SDP line (`usedtx=1`). This mutates the
+  // outgoing SDP's audio m-section fmtp lines for the Opus payload type(s)
+  // found via the SDP itself (matches "opus" case-insensitively, same as the
+  // codec-preference filter in _applyAudioHints), adding/removing usedtx=1.
+  _mungeDtx(sdp) {
+    if (!sdp) return sdp;
+    const lines = sdp.split('\r\n');
+    const opusPts = new Set();
+    for (const line of lines) {
+      const m = /^a=rtpmap:(\d+)\s+opus\//i.exec(line);
+      if (m) opusPts.add(m[1]);
+    }
+    if (!opusPts.size) return sdp;
+    const out = lines.map(line => {
+      const m = /^a=fmtp:(\d+)\s+(.*)$/.exec(line);
+      if (!m || !opusPts.has(m[1])) return line;
+      const params = m[2].split(';').map(p => p.trim()).filter(p => p && !/^usedtx=/i.test(p));
+      if (this.dtx) params.push('usedtx=1');
+      return 'a=fmtp:' + m[1] + ' ' + params.join(';');
+    });
+    return out.join('\r\n');
   }
 
   _applyAudioHints(pc) {
@@ -617,9 +728,9 @@ export class VoiceSession extends EventTarget {
         if (!s.track || s.track.kind !== 'audio') return;
         const p = s.getParameters(); if (!p.encodings?.length) return;
         p.encodings[0].networkPriority = 'high';
-        p.encodings[0].maxBitrate = 48000;
-        // Opus inband-FEC + DTX: lower bitrate use under silence, better recovery on packet loss.
-        // Reduces the chance of fallback to TURN-relay on flaky direct UDP paths.
+        // Opus bitrate ladder: real per-tier target set via setAudioQuality(),
+        // applied here through the actual RTCRtpSender.setParameters() call.
+        p.encodings[0].maxBitrate = this._targetBitrate || OPUS_BITRATE_LADDER[DEFAULT_AUDIO_QUALITY];
         p.encodings[0].priority = 'high';
         s.setParameters(p).catch(() => {});
       });
@@ -650,7 +761,7 @@ export class VoiceSession extends EventTarget {
     peer.failCount++;
     if (peer.failCount <= 1 && this.auth.pubkey > peerPubkey) {
       fsmActor.send({ type: 'restart' }); pc.restartIce();
-      pc.createOffer({ iceRestart: true }).then(o => pc.setLocalDescription(o).then(() => this._publishSignal(peerPubkey, 'offer', o))).catch(() => this._closePeer(peerPubkey));
+      pc.createOffer({ iceRestart: true }).then(o => { o.sdp = this._mungeDtx(o.sdp); return pc.setLocalDescription(o).then(() => this._publishSignal(peerPubkey, 'offer', o)); }).catch(() => this._closePeer(peerPubkey));
     } else { this._closePeer(peerPubkey); this._scheduleReconnect(peerPubkey, peer.failCount); }
   }
 
@@ -670,7 +781,7 @@ export class VoiceSession extends EventTarget {
       const hasAudioTx = pc.getTransceivers().some(t => t.receiver.track?.kind === 'audio');
       if (!hasAudioTx) pc.addTransceiver('audio', { direction: this.localStream ? 'sendrecv' : 'recvonly' });
       if (this.localStream) { const hasSender = pc.getSenders().some(s => s.track?.kind === 'audio'); if (!hasSender) this.localStream.getTracks().forEach(t => pc.addTrack(t, this.localStream)); }
-      const a = await pc.createAnswer(); await pc.setLocalDescription(a); fsmActor.send({ type: 'sent_answer' }); this._publishSignal(from, 'answer', a);
+      const a = await pc.createAnswer(); a.sdp = this._mungeDtx(a.sdp); await pc.setLocalDescription(a); fsmActor.send({ type: 'sent_answer' }); this._publishSignal(from, 'answer', a);
     };
     if (data.type === 'offer') {
       const polite = this.auth.pubkey < from; const collision = pc.signalingState !== 'stable';

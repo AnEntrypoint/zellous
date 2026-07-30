@@ -66,9 +66,6 @@ window.nostrMedia = null;
 window.audio = null;
 window.webcam = null;
 window.fileTransfer = null;
-window.ptt = null;
-window.deafen = null;
-window.vad = null;
 window.queue = null;
 window.icons = null;
 window.getIcon = null;
@@ -451,9 +448,7 @@ window.nostrFsm = null;
       'js/ui.js',
       'js/ui-actions.js',
       'js/ui-channels.js',      'js/ui-voice.js',      'js/audio.js',      'js/queue.js',      'js/files.js',
-      'js/nostr-channels-ui.js',      'js/threads.js',      'js/nostr-servers-ui.js',      'js/moderation.js',
-      'js/ptt.js',
-      'js/webcam.js',      'js/voice-ptt.js',
+      'js/nostr-channels-ui.js',      'js/threads.js',      'js/nostr-servers-ui.js',      'js/moderation.js',      'js/webcam.js',      'js/voice-ptt.js',
       'js/ui-shell.js',
       'js/nostr-adapter.js',      'js/sdk-command-palette.js'
     ];
@@ -571,7 +566,7 @@ async function initNostr() {
     serverManager.showJoinPreview(roomParam, () => serverManager.join(roomParam));
   }
 
-  window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, ptt, nostrVoice };
+  window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, nostrVoice };
 
 document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
     if (window.lk && lk.toggleCamera) lk.toggleCamera();

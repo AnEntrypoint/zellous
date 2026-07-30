@@ -60,7 +60,7 @@ channelManager.showRenameModal = function(channelId, currentName) {
 
 channelManager.showDeleteConfirm = function(channelId) {
   var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
-  if (ch && confirm('Delete #' + ch.name + '?')) channelManager.remove(channelId).catch(console.warn);
+  if (ch && confirm('Delete #' + ch.name + '?')) channelManager.remove(channelId).catch(function(e) { if (window.ui && ui.showToast) ui.showToast(e && e.message || 'Delete failed', 3000, 'error'); });
 };
 
 channelManager.showCreateCategoryModal = function() {
@@ -106,7 +106,7 @@ channelManager.showRenameCategoryModal = function(categoryId, currentName) {
 
 channelManager.showDeleteCategoryConfirm = function(categoryId) {
   var cat = (state.categories || []).find(function(c) { return c.id === categoryId; });
-  if (cat && confirm('Delete category "' + cat.name + '"? Channels will be moved to Uncategorized.')) channelManager.deleteCategory(categoryId).catch(console.warn);
+  if (cat && confirm('Delete category "' + cat.name + '"? Channels will be moved to Uncategorized.')) channelManager.deleteCategory(categoryId).catch(function(e) { if (window.ui && ui.showToast) ui.showToast(e && e.message || 'Delete failed', 3000, 'error'); });
 };
 
 channelManager.showCategoryContextMenu = function(categoryId, x, y) {

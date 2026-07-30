@@ -129,8 +129,8 @@ const uiVoice = {
           <div class="queue-meta">${s.timestamp.toLocaleTimeString()} · ${s.chunks.length} chunks</div>
         </div>
         ${clickable ? `<div class="queue-actions">
-          <button class="queue-btn" data-play="${s.id}"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-          <button class="queue-btn" data-dl="${s.id}"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg></button>
+          <button class="queue-btn" data-play="${s.id}" aria-label="Play recording"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+          <button class="queue-btn" data-dl="${s.id}" aria-label="Download recording"><svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/></svg></button>
         </div>` : ''}
       </div>`;
     });

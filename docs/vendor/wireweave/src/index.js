@@ -1,8 +1,10 @@
-export { RelayPool, createRelayPool } from './relay-pool.js';
+export { RelayPool, createRelayPool, RelayHealth } from './relay-pool.js';
 export { NostrAuth, createAuth } from './auth.js';
+export { Profile, createProfile } from './profile.js';
 export { createFSM } from './fsm.js';
 export { VoiceSession, createVoiceSession } from './voice.js';
 export { DataSession, createDataSession } from './data.js';
+export { fragment, encodeHeader, decodeHeader, Reassembler, createReassembler, MTU_DEFAULT, MAX_FRAGMENTS, maxPayloadBytes } from './frame.js';
 export { Chat, createChat } from './chat.js';
 export { Channels, createChannels } from './channels.js';
 export { Servers, createServers } from './servers.js';
