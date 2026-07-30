@@ -74,8 +74,7 @@ ui.actions = {
     if (!files?.length) return;
     const onUploadFail = (e) => { if (window.ui?.showToast) ui.showToast('Upload failed: ' + (e?.message || 'unknown error'), 3000, 'error'); };
     for (const file of files) {
-      const p = (file.type.startsWith('image/') || file.type.startsWith('video/')) ? chat.sendImage(file) : fileTransfer.upload(file);
-      p?.catch?.(onUploadFail);
+      chat.sendImage(file)?.catch?.(onUploadFail);
     }
     e.target.value = '';
   },
@@ -99,5 +98,20 @@ ui.actions = {
     ui.channelSidebar?.classList.remove('open'); ui.drawerOverlay?.classList.remove('open');
     document.getElementById('memberList')?.classList.remove('open');
     document.getElementById('queueSidebar')?.classList.remove('open');
+  },
+  closeVideoPlayback() {
+    if (!ui.videoPlayback) return;
+    ui.videoPlayback.style.display = 'none';
+    if (ui.videoPlaybackVideo) {
+      ui.videoPlaybackVideo.pause();
+      if (ui.videoPlaybackVideo.src) { URL.revokeObjectURL(ui.videoPlaybackVideo.src); ui.videoPlaybackVideo.src = ''; }
+    }
   }
 };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (ui.videoPlayback && ui.videoPlayback.style.display !== 'none') { ui.actions.closeVideoPlayback(); return; }
+  if (ui.settingsPopover?.classList.contains('open')) { ui.actions.toggleSettings(); return; }
+  if (ui.drawerOverlay?.classList.contains('open') || ui.channelSidebar?.classList.contains('open')) { ui.actions.closeMobileMenu(); return; }
+});

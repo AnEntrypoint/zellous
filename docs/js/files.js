@@ -1,129 +1,10 @@
-
 const fileTransfer = {
-  uploads: new Map(), // uploadId -> upload state
-  maxFileSize: 50 * 1024 * 1024, // 50MB max
-  chunkSize: 64 * 1024, // 64KB chunks for large files
-
-  async upload(file, customPath = '', description = '') {
-    if (!file) return null;
-    if (!state.ws) {
-      if (typeof ui !== 'undefined' && ui.showToast) ui.showToast('File upload is not supported in Nostr mode');
-      else console.warn('File upload is not supported in Nostr mode');
-      return null;
-    }
-
-    if (file.size > this.maxFileSize) {
-      throw new Error(`File too large. Maximum size is ${this.formatSize(this.maxFileSize)}`);
-    }
-
-    const uploadId = Date.now() + Math.random().toString(36).slice(2);
-
-    if (file.size < 1024 * 1024) {
-      return this.uploadSmall(file, customPath, description);
-    }
-
-    return this.uploadChunked(file, customPath, description, uploadId);
-  },
-
-  async uploadSmall(file, customPath, description) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64 = e.target.result.split(',')[1];
-        network.send({
-          type: 'file_upload_complete',
-          filename: file.name,
-          data: base64,
-          path: customPath,
-          description,
-          channelId: state.currentChannel?.id || 'general'
-        });
-        resolve({ filename: file.name, size: file.size });
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-  },
-
-  async uploadChunked(file, customPath, description, uploadId) {
-    const upload = {
-      id: uploadId,
-      file,
-      path: customPath,
-      description,
-      totalChunks: Math.ceil(file.size / this.chunkSize),
-      uploadedChunks: 0,
-      status: 'uploading',
-      progress: 0
-    };
-    this.uploads.set(uploadId, upload);
-
-    network.send({
-      type: 'file_upload_start',
-      uploadId,
-      filename: file.name,
-      size: file.size
-    });
-
-    const chunks = [];
-    for (let i = 0; i < upload.totalChunks; i++) {
-      const start = i * this.chunkSize;
-      const end = Math.min(start + this.chunkSize, file.size);
-      const chunk = file.slice(start, end);
-
-      try {
-        const base64 = await this.readChunk(chunk);
-        chunks.push(base64);
-        upload.uploadedChunks++;
-        upload.progress = Math.round((upload.uploadedChunks / upload.totalChunks) * 100);
-        ui.render.uploadProgress?.(upload);
-      } catch (e) {
-        upload.status = 'error';
-        throw e;
-      }
-    }
-
-    const fullBase64 = await this.readFile(file);
-    network.send({
-      type: 'file_upload_complete',
-      uploadId,
-      filename: file.name,
-      data: fullBase64,
-      path: customPath,
-      description,
-      channelId: state.currentChannel?.id || 'general'
-    });
-
-    upload.status = 'complete';
-    this.uploads.delete(uploadId);
-
-    return { filename: file.name, size: file.size };
-  },
-
-  readFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-    });
-  },
-
-  readChunk(blob) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-      reader.onerror = () => reject(new Error('Failed to read chunk'));
-      reader.readAsDataURL(blob);
-    });
-  },
-
   async uploadFromClipboard(e) {
     const items = e.clipboardData?.items;
     if (!items) return false;
 
     for (const item of items) {
-      if (item.type.startsWith('image/')) {
+      if (item.kind === 'file') {
         const file = item.getAsFile();
         if (file) {
           await chat.sendImage(file);
@@ -140,24 +21,8 @@ const fileTransfer = {
     if (!files?.length) return;
 
     for (const file of files) {
-      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
-        chat.sendImage(file);
-      } else {
-        this.upload(file);
-      }
+      chat.sendImage(file);
     }
-  },
-
-  async list() { return []; },
-
-  formatSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  },
-
-  getUploads() {
-    return Array.from(this.uploads.values());
   }
 };
 
