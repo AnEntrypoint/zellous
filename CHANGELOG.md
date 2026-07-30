@@ -1,3 +1,8 @@
+## [2026-07-30] wireweave now consumed live over CDN (esm.sh), matching the SDK's live-consumption pattern
+
+- `feat(wireweave): consume live from npm via esm.sh, remove vendored copy` (f8a0174 zellous) — the hand-copied `docs/vendor/wireweave/src/` directory had drifted several npm releases stale (this session's re-vendor found it missing 3 files entirely and a whole constructor-options architecture). Switched to the same live-CDN pattern already used for the `anentrypoint-design` SDK: `wireweave-bridge.js` now imports the bare specifier `wireweave`, mapped in the importmap to the unpinned `https://esm.sh/wireweave` (always resolves latest). Eliminates the vendor-drift class of bug at the root instead of re-vendoring by hand again next time it happens.
+- Also re-exercised a stale `blockedBy:external` mobile-viewport row from 2026-07-24 now that the original blocker (gm's own browser verb never spawning chromium) is confirmed fixed — zero regressions found at 375x667/667x375.
+
 ## [2026-07-30] 6-agent parallel audit + wireweave re-vendor: 9 defects fixed across zellous, wireweave, and the SDK
 
 - `fix(voice,a11y,channels): re-vendor wireweave, wire real VAD, fix audit findings` (2a04694 zellous) — silent file-upload failures now toast; `#drawerOverlay` had zero CSS rules (same silent `body.scrollHeight` inflation class as `.video-playback`/`.settings-popover`), now `position:fixed`/`display:none`; a dark-theme `--bg-3` override broke the SDK's own 4.5:1 contrast guarantee, restored; several icon-only buttons gained `aria-label`; deleted the fully-dead legacy `docs/js/ptt.js` and a stale bare `ptt` reference that would have thrown post-delete; wired a real `'vad'` mode into `voice-ptt.js`.
