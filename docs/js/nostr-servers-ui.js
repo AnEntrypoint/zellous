@@ -85,7 +85,7 @@ serverManager.showEditModal = function(serverId) {
     '<div class="modal-title">Edit Server</div>' +
     '<form id="editServerForm" onsubmit="return false">' +
       '<div class="modal-field"><label class="modal-label">Server Name</label>' +
-        '<input type="text" class="modal-input" id="editServerName" value="' + srv.name.replace(/"/g, '&quot;') + '" maxlength="40" autofocus></div>' +
+        '<input type="text" class="modal-input" id="editServerName" value="' + escHtml(srv.name) + '" maxlength="40" autofocus></div>' +
       '<div class="modal-field"><label class="modal-label">Icon Color</label>' +
         '<div id="editServerColorPicker" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>' +
       '<button type="submit" class="modal-btn">Save</button>' +
@@ -98,10 +98,19 @@ serverManager.showEditModal = function(serverId) {
   colors.forEach(function(c) {
     var dot = document.createElement('div');
     dot.style.cssText = 'width:28px;height:28px;border-radius:50%;background:' + c + ';cursor:pointer;border:3px solid ' + (c === selectedColor ? 'var(--fg)' : 'transparent') + ';transition:border 0.15s';
-    dot.addEventListener('click', function() {
+    dot.setAttribute('tabindex', '0');
+    dot.setAttribute('role', 'button');
+    dot.setAttribute('aria-label', 'Select color ' + c);
+    var pick = function() {
       selectedColor = c;
       picker.querySelectorAll('div').forEach(function(d) { d.style.borderColor = 'transparent'; });
       dot.style.borderColor = 'var(--fg)';
+    };
+    dot.addEventListener('click', pick);
+    dot.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      pick();
     });
     picker.appendChild(dot);
   });
@@ -153,7 +162,7 @@ serverManager.showJoinPreview = function(serverId, onConfirm) {
   modal.id = 'serverJoinPreviewModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box" style="max-width:380px;text-align:center">' +
     '<div class="modal-title">Join Server?</div>' +
-    '<div class="modal-subtitle" id="joinPreviewName">' + name + '</div>' +
+    '<div class="modal-subtitle" id="joinPreviewName">' + escHtml(name) + '</div>' +
     '<div style="font-size:11px;color:var(--text-faint);margin-bottom:16px;word-break:break-all">' + serverId + '</div>' +
     '<button class="modal-btn" id="joinPreviewConfirm">Join Server</button>' +
     '<button type="button" class="modal-btn secondary" id="joinPreviewCancel">Cancel</button>' +
@@ -193,10 +202,19 @@ serverManager.showCreateModal = function() {
   colors.forEach(function(c) {
     var dot = document.createElement('div');
     dot.style.cssText = 'width:28px;height:28px;border-radius:50%;background:' + c + ';cursor:pointer;border:3px solid ' + (c === selectedColor ? 'var(--fg)' : 'transparent') + ';transition:border 0.15s';
-    dot.addEventListener('click', function() {
+    dot.setAttribute('tabindex', '0');
+    dot.setAttribute('role', 'button');
+    dot.setAttribute('aria-label', 'Select color ' + c);
+    var pick = function() {
       selectedColor = c;
       picker.querySelectorAll('div').forEach(function(d) { d.style.borderColor = 'transparent'; });
       dot.style.borderColor = 'var(--fg)';
+    };
+    dot.addEventListener('click', pick);
+    dot.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      pick();
     });
     picker.appendChild(dot);
   });
@@ -221,17 +239,30 @@ serverManager.renderList = function() {
     var initial = (s.name || '?').trim().charAt(0).toUpperCase();
     var bg = s.iconColor || ((window.AVATAR_COLORS || ['#3F8A4A'])[0]);
     var active = current === s.id ? ' active' : '';
-    html += '<div class="server-icon' + active + '" data-server-id="' + s.id + '" style="background:' + bg + '" title="' + (s.name || '').replace(/"/g, '&quot;') + '">' +
-              '<div class="server-pill"></div>' + initial +
+    html += '<div class="server-icon' + active + '" data-server-id="' + s.id + '" style="background:' + escHtml(bg) + '" title="' + escHtml(s.name || '') + '" tabindex="0" role="button" aria-label="' + escHtml(s.name || 'Server') + '">' +
+              '<div class="server-pill"></div>' + escHtml(initial) +
             '</div>';
   });
-  html += '<div class="server-icon add-server" id="addServerBtn" title="Create server">+</div>';
+  html += '<div class="server-icon add-server" id="addServerBtn" title="Create server" tabindex="0" role="button" aria-label="Create server">+</div>';
   host.innerHTML = html;
+  var activateOnKey = function(el, fn) {
+    el.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      fn(e);
+    });
+  };
   host.querySelectorAll('.server-icon[data-server-id]').forEach(function(el) {
     var sid = el.dataset.serverId;
-    el.addEventListener('click', function() { serverManager.switchTo(sid); });
+    var go = function() { serverManager.switchTo(sid); };
+    el.addEventListener('click', go);
+    activateOnKey(el, go);
     el.addEventListener('contextmenu', function(e) { e.preventDefault(); serverManager.showContextMenu(sid, e.clientX, e.clientY); });
   });
   var addBtn = host.querySelector('#addServerBtn');
-  if (addBtn) addBtn.addEventListener('click', function() { serverManager.showCreateModal(); });
+  if (addBtn) {
+    var create = function() { serverManager.showCreateModal(); };
+    addBtn.addEventListener('click', create);
+    activateOnKey(addBtn, create);
+  }
 };

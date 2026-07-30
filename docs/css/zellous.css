@@ -433,6 +433,7 @@ html.ds-247420 .ds-pattern-notes p { margin: 0 0 8px; font-size: var(--fs-sm); c
   color: var(--fg); font-size: var(--fs-sm);
   font-family: var(--ff-ui); padding: 10px 0; line-height: 1.4;
 }
+.chat-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
 .chat-input::placeholder { color: var(--fg-3); }
 .input-buttons { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .input-icon-btn { background: none; border: none; cursor: pointer; color: var(--fg-3); padding: 6px; border-radius: 4px; display: flex; }
@@ -599,6 +600,7 @@ html.ds-247420 .ds-pattern-notes p { margin: 0 0 8px; font-size: var(--fs-sm); c
   border-radius: 4px; padding: 4px 6px; color: var(--fg); font-size: var(--fs-xs);
   font-family: var(--ff-ui); outline: none;
 }
+.ctrl-row select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .ctrl-value { font-size: var(--fs-xs); color: var(--fg-3); width: 36px; }
 .btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .ctrl-btn {
@@ -658,6 +660,7 @@ html.ds-247420 .ds-pattern-notes p { margin: 0 0 8px; font-size: var(--fs-sm); c
   padding: 16px 20px; outline: none;
   font-size: var(--fs-lg); color: var(--fg); font-family: var(--ff-ui);
 }
+.cmdk-input:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .cmdk-input::placeholder { color: var(--fg-3); }
 .cmdk-list { max-height: 320px; overflow-y: auto; padding: 6px; }
 .cmdk-item {
@@ -1256,6 +1259,23 @@ html.ds-247420 .video-playback .video-label {
   font-size: var(--fs-sm);
   color: var(--fg-2);
 }
+html.ds-247420 .video-playback-close {
+  position: absolute;
+  top: 4px; right: 4px;
+  z-index: 1;
+  width: 24px; height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+}
+html.ds-247420 .video-playback-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
 html.ds-247420 .settings-popover {
   position: fixed;
   right: 16px;
@@ -1303,4 +1323,20 @@ html.ds-247420 .rail-empty {
   color: var(--fg-3);
   opacity: 0.6;
   font-family: var(--ff-mono);
+}
+
+/* keyboard-focus visibility for zellous-owned custom interactive elements
+   (SDK's 247420.css does not style these classes; they are first-party markup) */
+.channel-item:focus-visible,
+.category-header:focus-visible,
+.server-icon:focus-visible,
+.context-menu-item:focus-visible,
+#drawerOverlay:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+#editServerColorPicker div:focus-visible,
+#serverColorPicker div:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
 }

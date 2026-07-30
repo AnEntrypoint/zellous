@@ -57,7 +57,7 @@ const uiChannels = {
       const icon = chIcon(c.type);
       const isVoiceConnected = c.type === 'voice' && state.voiceConnected && state.voiceChannelName === c.name;
       const isVoiceConnecting = c.type === 'voice' && state.voiceConnectionState === 'connecting' && state.voiceChannelName === c.name;
-      html += `<div class="channel-item${isActive ? ' active' : ''}${isVoiceConnected ? ' voice-active' : ''}${isVoiceConnecting ? ' voice-connecting' : ''}" data-channel="${c.id}" data-type="${c.type}" draggable="true">
+      html += `<div class="channel-item${isActive ? ' active' : ''}${isVoiceConnected ? ' voice-active' : ''}${isVoiceConnecting ? ' voice-connecting' : ''}" data-channel="${c.id}" data-type="${c.type}" draggable="true" tabindex="0" role="button" aria-label="${escHtml(c.name)}">
         ${icon}
         ${isVoiceConnecting ? '<span class="voice-spinner" title="Connecting…"></span>' : ''}
         <span class="channel-name">${escHtml(c.name)}</span>
@@ -72,7 +72,7 @@ const uiChannels = {
         (state.voiceParticipants || []).forEach(p => {
           const spk = (state.activeSpeakers || new Set()).has(p.identity) ? ' speaking' : '';
           html += `<div class="voice-user${spk}">
-            <div class="voice-user-avatar" style="background:${getAvatarColor(p.identity)}">${getInitial(p.identity)}</div>
+            <div class="voice-user-avatar" style="background:${getAvatarColor(p.identity)}">${escHtml(getInitial(p.identity))}</div>
             <span class="voice-user-name">${escHtml(p.identity)}</span>
           </div>`;
         });
@@ -85,7 +85,7 @@ const uiChannels = {
       const isCollapsed = collapsed.has(cat.id);
       const catCh = channels.filter(c => c.categoryId === cat.id).sort((a, b) => (a.position||0)-(b.position||0));
       const arrowCls = isCollapsed ? 'collapsed' : '';
-      html += `<div class="category-header${isCollapsed ? ' collapsed' : ''}" data-category="${cat.id}">
+      html += `<div class="category-header${isCollapsed ? ' collapsed' : ''}" data-category="${cat.id}" tabindex="0" role="button" aria-expanded="${!isCollapsed}" aria-label="${escHtml(cat.name)}">
         <svg class="category-arrow ${arrowCls}" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         <span class="category-name">${escHtml(cat.name)}</span>
         <button class="category-add-btn" data-category-id="${cat.id}" title="Create Channel" aria-label="Create Channel">${window.getIcon ? getIcon('add') : '+'}</button>
@@ -96,7 +96,7 @@ const uiChannels = {
     const uncat = channels.filter(c => !c.categoryId || !cats.find(cat => cat.id === c.categoryId))
       .sort((a, b) => (a.position||0)-(b.position||0));
     if (uncat.length > 0) {
-      html += `<div class="category-header" data-category="uncategorized">
+      html += `<div class="category-header" data-category="uncategorized" tabindex="0" role="button" aria-label="Channels">
         <svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
         <span class="category-name">CHANNELS</span>
         <button class="category-add-btn" data-category-id="uncategorized" title="Create Channel" aria-label="Create Channel">${window.getIcon ? getIcon('add') : '+'}</button>
@@ -108,14 +108,14 @@ const uiChannels = {
       var pages = serverPages.getPages(state.currentServerId);
       var isAdmin = window.serverRoles && serverRoles.isAdmin(state.currentServerId);
       if (pages.length > 0 || isAdmin) {
-        html += `<div class="category-header" data-category="pages-section">
+        html += `<div class="category-header" data-category="pages-section" tabindex="0" role="button" aria-label="Pages">
           <svg class="category-arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
           <span class="category-name">PAGES</span>
           ${isAdmin ? `<button class="category-add-btn" id="addPageBtn" title="New Page">+</button>` : ''}
         </div>`;
         pages.forEach(function(p) {
           var isCurPage = state.currentChannel && state.currentChannel.id === 'page:' + p.slug && state.currentChannel._serverId === state.currentServerId;
-          html += `<div class="channel-item${isCurPage ? ' active' : ''}" data-page-slug="${escHtml(p.slug)}">
+          html += `<div class="channel-item${isCurPage ? ' active' : ''}" data-page-slug="${escHtml(p.slug)}" tabindex="0" role="button" aria-label="${escHtml(p.title)}">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/></svg>
             <span class="channel-name">${escHtml(p.title)}</span>
           </div>`;
@@ -132,8 +132,14 @@ const uiChannels = {
   },
 
   _bind() {
+    const activateOnKey = (el, fn) => el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target !== el) return;
+      e.preventDefault();
+      fn(e);
+    });
     ui.channelList.querySelectorAll('.category-header').forEach(h => {
-      h.addEventListener('click', (e) => {
+      const toggle = (e) => {
         if (e.target.closest('.category-add-btn')) return;
         const catId = h.dataset.category;
         if (catId === 'uncategorized') return;
@@ -141,7 +147,9 @@ const uiChannels = {
         col.has(catId) ? col.delete(catId) : col.add(catId);
         state.collapsedCategories = col;
         this.render();
-      });
+      };
+      h.addEventListener('click', toggle);
+      activateOnKey(h, toggle);
       h.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         const catId = h.dataset.category;
@@ -150,11 +158,13 @@ const uiChannels = {
       });
     });
     ui.channelList.querySelectorAll('.channel-item').forEach(el => {
-      el.addEventListener('click', (e) => {
+      const activate = (e) => {
         if (e.target.closest('.channel-actions')) return;
         const ch = state.channels.find(c => c.id === el.dataset.channel);
         if (ch) ui.actions.switchChannel(ch);
-      });
+      };
+      el.addEventListener('click', activate);
+      activateOnKey(el, activate);
       el.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         channelManager?.showContextMenu(el.dataset.channel, e.clientX, e.clientY);
@@ -183,12 +193,14 @@ const uiChannels = {
       });
     });
     ui.channelList.querySelectorAll('[data-page-slug]').forEach(el => {
-      el.addEventListener('click', () => {
+      const openPage = () => {
         const slug = el.dataset.pageSlug;
         state.currentChannel = { id: 'page:' + slug, name: el.querySelector('.channel-name').textContent, type: 'page', _serverId: state.currentServerId, _slug: slug };
         this.render();
         this.renderView();
-      });
+      };
+      el.addEventListener('click', openPage);
+      activateOnKey(el, openPage);
     });
     document.getElementById('addPageBtn')?.addEventListener('click', (e) => {
       e.stopPropagation();

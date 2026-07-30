@@ -322,12 +322,13 @@ window.nostrFsm = null;
 
   <!-- VIDEO PLAYBACK OVERLAY -->
   <div class="video-playback" id="videoPlayback">
+    <button class="video-playback-close" id="videoPlaybackClose" aria-label="Close video playback" onclick="ui.actions.closeVideoPlayback()">&#10005;</button>
     <video id="videoPlaybackVideo" autoplay playsinline></video>
     <div class="video-label" id="videoPlaybackLabel"></div>
   </div>
 
   <!-- DRAWER OVERLAY (mobile) -->
-  <div class="drawer-overlay" id="drawerOverlay" onclick="ui.actions.closeMobileMenu()"></div>
+  <div class="drawer-overlay" id="drawerOverlay" role="button" tabindex="0" aria-label="Close menu" onclick="ui.actions.closeMobileMenu()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ui.actions.closeMobileMenu();}"></div>
 
   <!-- AUTH MODAL -->
   <div class="modal-overlay" id="authModal">

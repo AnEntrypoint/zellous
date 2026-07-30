@@ -8,9 +8,33 @@ var _mkMenu = function(id, x, y, html, onAction) {
   var r = menu.getBoundingClientRect();
   if (r.right > window.innerWidth) menu.style.left = (window.innerWidth - r.width - 8) + 'px';
   if (r.bottom > window.innerHeight) menu.style.top = (window.innerHeight - r.height - 8) + 'px';
+  var items = menu.querySelectorAll('.context-menu-item');
+  items.forEach(function(it) { it.setAttribute('tabindex', '0'); it.setAttribute('role', 'menuitem'); });
   menu.addEventListener('click', function(e) { onAction(e.target.dataset.action, menu); });
-  var close = function(e) { if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', close); } };
-  setTimeout(function() { document.addEventListener('click', close); }, 0);
+  menu.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      if (e.target.classList && e.target.classList.contains('context-menu-item')) {
+        e.preventDefault();
+        onAction(e.target.dataset.action, menu);
+      }
+      return;
+    }
+    if (e.key === 'Escape') { closeMenu(); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    var list = Array.prototype.slice.call(items);
+    var idx = list.indexOf(document.activeElement);
+    var next = e.key === 'ArrowDown' ? (idx + 1) % list.length : (idx - 1 + list.length) % list.length;
+    list[next]?.focus();
+  });
+  var closeMenu = function() { menu.remove(); document.removeEventListener('click', close); document.removeEventListener('keydown', onDocKeydown); };
+  var close = function(e) { if (!menu.contains(e.target)) closeMenu(); };
+  var onDocKeydown = function(e) { if (e.key === 'Escape' && !menu.contains(document.activeElement)) closeMenu(); };
+  setTimeout(function() {
+    document.addEventListener('click', close);
+    document.addEventListener('keydown', onDocKeydown);
+    items[0]?.focus();
+  }, 0);
 };
 
 channelManager.showCreateModal = function(type, categoryId) {
