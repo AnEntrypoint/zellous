@@ -1,5 +1,12 @@
 window.__wireweaveReady = (async () => {
-  const mod = await import('wireweave');
+  let mod;
+  try {
+    mod = await import('wireweave');
+  } catch (e) {
+    console.error('wireweave load failed', e);
+    window.__boot?.fail('Could not load the protocol layer (wireweave unreachable). Check your connection and reload.');
+    throw e;
+  }
   const NT = window.NostrTools;
   const XS = { createMachine: window.XState.createMachine, createActor: window.XState.createActor };
 
