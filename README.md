@@ -41,10 +41,10 @@ Static site — `docs/` directory served via GitHub Pages. Full details (includi
 - `docs/nostr-chat/index.html` — app entry point
 - `docs/js/` — first-party client modules: feature logic (chat, voice, auth, files, queue, ...) plus `wireweave-bridge.js`, which wires the protocol layer to `window.*` globals, and `nostr-adapter.js`, which adapts app state to the UI layer
 - `docs/js/state.js` — shared Preact-signals state module
-- `docs/vendor/wireweave/src/` — the real Nostr/voice protocol implementation (events, relay pool, auth, channels, roles, voice signaling)
+- The real Nostr/voice protocol implementation (events, relay pool, auth, channels, roles, voice signaling) lives in the `wireweave` package, consumed live over `https://esm.sh/wireweave` — no local vendored copy
 - The entire chat/community UI (`mountCommunityApp`) is owned by the `anentrypoint-design` SDK and consumed live from its GitHub Pages deploy (`https://anentrypoint.github.io/design/247420.js`/`.css`) — there is no local vendored copy or bespoke UI code in this repo
 
-Voice uses native WebRTC with Nostr kind 30078 events as the signaling channel. No server, no STUN/TURN required for LAN; uses default browser STUN for WAN. Hub election, RTT scoring, and SFU forwarding live in `docs/vendor/wireweave/src/voice.js`.
+Voice uses native WebRTC with Nostr kind 30078 events as the signaling channel. No server, no STUN/TURN required for LAN; uses default browser STUN for WAN. Hub election, RTT scoring, and SFU forwarding live in `wireweave`'s `voice.js`.
 
 ## Browser Support
 

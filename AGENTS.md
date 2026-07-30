@@ -57,7 +57,7 @@ other 27 legacy `docs/js/sdk-*.js` subtree-mount IIFE files no longer exist on d
 
 Until then, `zellous.css` co-exists with SDK's `community.css` (the SDK's `cm-*` classes don't collide with zellous's class names).
 
-If you find yourself editing `docs/vendor/<thirdparty>/` other than `wireweave/`, stop — that's a third-party drop, not first-party code.
+If you find yourself editing anything under `docs/vendor/`, stop — that's a third-party drop, not first-party code. Protocol behavior changes belong in the `wireweave` sibling repo (`../wireweave`), consumed live over CDN, not vendored.
 
 ## Validation loop (run before declaring done)
 
