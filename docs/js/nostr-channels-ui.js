@@ -87,6 +87,30 @@ channelManager.showDeleteConfirm = function(channelId) {
   if (ch && confirm('Delete #' + ch.name + '?')) channelManager.remove(channelId).catch(function(e) { if (window.ui && ui.showToast) ui.showToast(e && e.message || 'Delete failed', 3000, 'error'); });
 };
 
+channelManager.showNewForumPostModal = function() {
+  document.getElementById('forumPostModal')?.remove();
+  var modal = document.createElement('div');
+  modal.id = 'forumPostModal'; modal.className = 'modal-overlay open';
+  modal.innerHTML = '<div class="modal-box" style="max-width:480px"><div class="modal-title">New Forum Post</div>' +
+    '<div class="modal-error" id="fpErr" style="display:none"></div><form id="fpForm" onsubmit="return false">' +
+    '<div class="modal-field"><label class="modal-label">Title</label><input type="text" class="modal-input" id="fpTitle" placeholder="Post title" maxlength="120" autofocus></div>' +
+    '<div class="modal-field"><label class="modal-label">Body</label><textarea class="modal-input" id="fpBody" rows="8" style="resize:vertical" placeholder="Write your post..."></textarea></div>' +
+    '<button type="submit" class="modal-btn" id="fpSubmit">Post</button><button type="button" class="modal-btn secondary" id="fpCancel">Cancel</button></form></div>';
+  document.body.appendChild(modal);
+  var errEl = modal.querySelector('#fpErr'), submitBtn = modal.querySelector('#fpSubmit');
+  modal.querySelector('#fpForm').addEventListener('submit', async function() {
+    var title = modal.querySelector('#fpTitle').value.trim();
+    var body = modal.querySelector('#fpBody').value;
+    errEl.style.display = 'none';
+    if (!title) { errEl.textContent = 'Post title is required'; errEl.style.display = 'block'; return; }
+    submitBtn.disabled = true; submitBtn.textContent = 'Posting...';
+    try { await window.threadManager.newForumPost(title, body); modal.remove(); }
+    catch (e) { errEl.textContent = e.message || 'Failed'; errEl.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = 'Post'; }
+  });
+  modal.querySelector('#fpCancel').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+};
+
 channelManager.showCreateCategoryModal = function() {
   document.getElementById('categoryCreateModal')?.remove();
   var modal = document.createElement('div');

@@ -14,6 +14,9 @@ ui.actions = {
         network.send({ type: 'get_messages', limit: 50, channelId: channel.id });
       }
     }
+    if (channel.type === 'forum' && window.nostrForum) {
+      window.nostrForum.loadChannel(channel.id, state.currentServerId || '');
+    }
     if (channel.type === 'voice' && window.lk) {
       if (state.voiceConnected && state.voiceChannelName === channel.name) {
         lk.disconnect();

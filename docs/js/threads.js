@@ -74,6 +74,11 @@ const threadManager = {
   },
 
   select(threadId) {
+    // ForumView also calls adapter.actions.openThread(id) (same action name,
+    // reused by the SDK across both surfaces) -- when the current channel is
+    // a forum, threadId is a post id, not a threaded-channel id, so this
+    // branches to the forum-reply view instead of switchChannel.
+    if (state.currentChannel?.type === 'forum') return this.selectForumPost(threadId);
     const parentId = state.currentChannel?.id;
     const list = this.listFor(parentId);
     const thread = list.find(t => t.id === threadId);
@@ -83,7 +88,30 @@ const threadManager = {
     return thread;
   },
 
-  renderForumPosts() {}
+  selectForumPost(postId) {
+    if (!window.nostrForum) return null;
+    state.activeThreadId = postId;
+    window.nostrForum.loadReplies(postId);
+    const posts = window.nostrForum.listFor(state.currentChannel?.id);
+    const post = posts.find((p) => p.id === postId);
+    state.threads = window.nostrForum.repliesFor(postId).map((r) => ({
+      id: r.id, title: r.content, author: r.author, time: r.timestamp
+    }));
+    this.openPanel(state.currentChannel?.id);
+    return post;
+  },
+
+  async newForumPost(title, content) {
+    if (!window.nostrForum || state.currentChannel?.type !== 'forum') return null;
+    return window.nostrForum.createPost(state.currentChannel.id, state.currentServerId || '', title, content);
+  },
+
+  async replyToForumPost(content) {
+    if (!window.nostrForum || !state.activeThreadId) return null;
+    const posts = window.nostrForum.listFor(state.currentChannel?.id);
+    const post = posts.find((p) => p.id === state.activeThreadId);
+    return window.nostrForum.reply(state.activeThreadId, post?.author, content);
+  }
 };
 
 window.__zellous.threads = threadManager;

@@ -399,6 +399,21 @@ window.__wireweaveReady = (async () => {
     deletePage: (sid, slug) => pages.deletePage(sid, slug)
   };
 
+  // Forum bridge (kind:11 posts + NIP-22 kind:1111 replies, scoped per
+  // channel) -- re-renders on either the post list or a post's own reply
+  // thread changing, matching the reactive pattern every other manager here uses.
+  const forum = ww.forum;
+  forum.addEventListener('posts', () => { if (window.ui) ui.render.all(); });
+  forum.addEventListener('replies', () => { if (window.ui) ui.render.all(); });
+  window.nostrForum = {
+    listFor: (channelId) => forum.listFor(channelId),
+    repliesFor: (postId) => forum.repliesFor(postId),
+    loadChannel: (channelId, serverId) => forum.loadChannel(channelId, serverId),
+    loadReplies: (postId) => forum.loadReplies(postId),
+    createPost: (channelId, serverId, title, content) => forum.createPost(channelId, serverId, title, content),
+    reply: (postId, authorPubkey, content) => forum.reply(postId, authorPubkey, content)
+  };
+
   const media = ww.media;
   window.nostrMedia = {
     upload: (f) => media.upload(f),
@@ -505,7 +520,7 @@ window.__wireweaveReady = (async () => {
 
   // Ready flag for legacy code
   window.__zellous = window.__zellous || {};
-  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
+  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
 
   document.addEventListener('nostr:login', () => window.dm.subscribeAll());
   if (a.pubkey) window.dm.subscribeAll();

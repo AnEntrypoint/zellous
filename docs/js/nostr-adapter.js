@@ -118,7 +118,7 @@
       threadPanelOpen: v('threadPanelOpen', false),
       activeThreadId: v('activeThreadId', null),
       threads: v('threads', []),
-      forumPosts: [],
+      forumPosts: (curr && curr.type === 'forum' && window.nostrForum) ? window.nostrForum.listFor(curr.id) : [],
       };
     };
 
@@ -192,7 +192,7 @@
         return window.threadManager && window.threadManager.create(parentId);
       }),
       closeThreadPanel: () => call(() => window.threadManager && window.threadManager.closePanel()),
-      newForumPost: () => call(() => window.ui && window.ui.showToast && window.ui.showToast('Forum posts are not yet supported', 3000, 'error')),
+      newForumPost: () => call(() => window.channelManager && window.channelManager.showNewForumPostModal()),
       setAuthMode: (m) => call(() => { if (S.authMode) S.authMode.value = m; if (S.authError) S.authError.value = ''; }),
       closeAuth: () => call(() => { if (S.showAuthModal) S.showAuthModal.value = false; if (S.authError) S.authError.value = ''; if (S.authBusy) S.authBusy.value = false; }),
       authExtension: () => call(async () => {
