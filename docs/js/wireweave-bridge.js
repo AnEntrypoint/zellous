@@ -361,6 +361,18 @@ window.__wireweaveReady = (async () => {
     kickFromVoice: (sid, pk) => bans.kickFromVoice(sid, pk)
   };
 
+  // Personal mute list bridge (NIP-51 kind:10000) -- a per-viewer curation
+  // independent of server admin bans; re-renders the chat view when it
+  // changes since chat.js filters muted authors out of the local message list.
+  const mutes = ww.mutes;
+  mutes.addEventListener('updated', () => { if (window.ui) ui.render.all(); });
+  window.nostrMutes = {
+    isMuted: (pk) => mutes.isMuted(pk),
+    list: () => mutes.list(),
+    mute: (pk) => mutes.mute(pk),
+    unmute: (pk) => mutes.unmute(pk)
+  };
+
   const settings = ww.settings;
   window.serverSettings = {
     _store: settings.store,
@@ -493,7 +505,7 @@ window.__wireweaveReady = (async () => {
 
   // Ready flag for legacy code
   window.__zellous = window.__zellous || {};
-  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
+  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
 
   document.addEventListener('nostr:login', () => window.dm.subscribeAll());
   if (a.pubkey) window.dm.subscribeAll();
