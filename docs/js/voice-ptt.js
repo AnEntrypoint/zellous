@@ -124,6 +124,17 @@
     setPillState(m);
   }
 
+  // requestTransmit() returning false previously looked identical whether
+  // the remote channel was just busy (a normal "queued" state) or there was
+  // no microphone at all (joined listen-only, per the earlier connect()
+  // fallback) -- holding the pill silently did nothing in the latter case
+  // with zero user-facing signal. voice.js now emits this distinctly.
+  function onTransmitDenied(e) {
+    if (e.detail?.reason === 'no-microphone' && window.ui?.showToast) {
+      ui.showToast('No microphone available — you joined this voice channel listen-only', 3500, 'error');
+    }
+  }
+
   // ── Inbound queue: segments arrive via dc; we play them FIFO through an
   //    <audio> element. Realtime listening is unaffected (the analyzer + mix
   //    of remote tracks happens via wireweave's own audioEls created by the
@@ -245,6 +256,7 @@
     // bind voice events
     if (window.lk?.on) {
       unsubs.push(window.lk.on('transmit', onTransmit));
+      unsubs.push(window.lk.on('transmit-denied', onTransmitDenied));
       unsubs.push(window.lk.on('segment-received', onSegment));
       unsubs.push(window.lk.on('speaker', onLocalSpeaker));
       // segment-finalized just signals that the held buffer was packed up; transmit-mode

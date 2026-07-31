@@ -28,8 +28,11 @@
     const applyTheme = (next) => {
       const theme = next === 'light' ? 'light' : 'ink';
       if (S.themePref) S.themePref.value = theme;
+      // The SDK's own colors_and_type.css only defines [data-theme="paper"/"ink"/"auto"/"thebird"]
+      // blocks -- zellous's own 'light'/'ink' vocabulary matches no CSS rule at
+      // all if ever written directly, so even the fallback path must translate.
       if (sdk.applyTheme) sdk.applyTheme(theme === 'light' ? 'paper' : 'ink');
-      else document.documentElement.setAttribute('data-theme', theme);
+      else document.documentElement.setAttribute('data-theme', theme === 'light' ? 'paper' : 'ink');
       try { localStorage.setItem('zellous-theme', theme); } catch (_) {}
     };
     // Re-apply zellous's persisted preference now that the SDK's own boot-time
@@ -69,7 +72,18 @@
         return rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;
       }),
       chatInputValue: v('chatInputValue', ''),
-      currentUser: v('currentUser', null),
+      // UserPanel (header) previously fell back to a literal "You" whenever
+      // this was null -- while the message-row avatar for the SAME identity
+      // derives its initial from resolveProfile(userId), the real npub-based
+      // name. Two different fallbacks for one identity produced two
+      // different avatar initials ("Y" vs "n") for the same user. Resolving
+      // through the same helper keeps both surfaces showing one name.
+      currentUser: (() => {
+        const pk = window.state && (window.state.userId || window.state.nostrPubkey);
+        if (!pk) return v('currentUser', null);
+        const resolved = window.chat && window.chat.resolveProfile && window.chat.resolveProfile(pk);
+        return resolved ? { id: pk, username: resolved, displayName: resolved } : v('currentUser', null);
+      })(),
       userId: (window.state && (window.state.userId || window.state.nostrPubkey)) || null,
       isConnected: v('isConnected', true),
       voiceConnected: v('voiceConnected', false),
@@ -130,6 +144,7 @@
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
       deleteMessage: (id) => call(() => {
+        if (!confirm('Delete this message?')) return;
         if (S.replyTarget && S.replyTarget.value && S.replyTarget.value.id === id) S.replyTarget.value = null;
         return window.chat.deleteMessage(id)?.catch?.((e) => window.ui && window.ui.showToast && window.ui.showToast('Delete failed: ' + (e && e.message || 'unknown'), 3000, 'error'));
       }),
@@ -174,8 +189,40 @@
       }),
       voiceSettingsSave: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
       voiceSettingsClose: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
-      goHome: () => call(() => { window.state.homeMode = true; window.state.currentServerId = null; }),
-      openServers: () => call(() => document.getElementById('zServersBtn') && document.getElementById('zServersBtn').click()),
+      goHome: () => call(() => {
+        // homeMode only drives the sidebar's active-highlight in the SDK
+        // (community-app.js line ~121) -- it does NOT clear the rendered
+        // channel list or chat body on its own. Without also resetting these,
+        // switching to "home" left the PREVIOUS server's rooms/messages fully
+        // visible: only the highlighted rail item and status-bar label
+        // changed, matching the exact reported bug. serverManager.switchTo
+        // already resets this same state when switching to a real server;
+        // goHome needs the same reset since there is no dedicated "home"
+        // content surface to switch into.
+        window.state.homeMode = true;
+        window.state.currentServerId = null;
+        window.state.currentChannelId = null;
+        window.state.currentChannel = null;
+        window.state.channels = [];
+        window.state.categories = [];
+        window.state.chatMessages = [];
+        if (window.chat) window.chat.messages = [];
+      }),
+      // The SDK's real "servers" nav link (community-app.js) already calls
+      // this directly with e.preventDefault() -- there is no separate
+      // "servers browser" surface to open, so this toggles the same
+      // home/server view goHome()/switchServer() already drive. The legacy
+      // #zServersBtn anchor this used to click had no listener of its own
+      // (a real dead link, `href="#"` with zero JS behind it) -- removed
+      // rather than routed through, since there was nothing there to reach.
+      openServers: () => call(() => {
+        if (window.state.homeMode) {
+          const first = (window.state.servers || [])[0];
+          if (first) { window.state.homeMode = false; window.serverManager.switchTo(first.id); }
+        } else {
+          window.state.homeMode = true; window.state.currentServerId = null;
+        }
+      }),
       switchServer: (id) => call(() => { window.state.homeMode = false; window.serverManager.switchTo(id); }),
       channelContext: (id, x, y) => call(() => window.channelManager.showContextMenu(id, x, y)),
       createChannel: () => call(() => window.channelManager.showCreateModal(null, null)),

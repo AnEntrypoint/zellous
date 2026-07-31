@@ -98,6 +98,9 @@ window.nostrFsm = null;
     #zellousBoot .zb-phase{opacity:0.7;font-size:11px}
     #zellousBoot .zb-error{color:var(--zb-flame);font-size:11px;max-width:320px;text-align:center;line-height:1.5;display:none}
     #zellousBoot.errored .zb-error{display:block}
+    #zellousBoot .zb-retry{display:none;margin-top:4px;padding:8px 20px;border-radius:8px;border:1px solid var(--zb-flame);background:transparent;color:var(--zb-flame);font:inherit;font-weight:600;cursor:pointer}
+    #zellousBoot.errored .zb-retry{display:inline-block}
+    #zellousBoot .zb-retry:hover{background:var(--zb-flame);color:var(--zb-bg)}
     #zellousBoot.errored .zb-fill{background:var(--zb-flame)}
   </style>
 </head>
@@ -107,16 +110,18 @@ window.nostrFsm = null;
     <div class="zb-bar"><div class="zb-fill" id="zbFill"></div></div>
     <div class="zb-phase" id="zbPhase">starting</div>
     <div class="zb-error" id="zbError"></div>
+    <button type="button" class="zb-retry" id="zbRetry">Retry</button>
   </div>
   <script>
     // Boot reporter — exposed early so any code path can update progress / mark errors.
     // Phases: tokens → modules (each script counts) → ready. Observable via window.__boot.
     (function(){
-      var fill=document.getElementById('zbFill'),phase=document.getElementById('zbPhase'),err=document.getElementById('zbError'),box=document.getElementById('zellousBoot');
+      var fill=document.getElementById('zbFill'),phase=document.getElementById('zbPhase'),err=document.getElementById('zbError'),box=document.getElementById('zellousBoot'),retryBtn=document.getElementById('zbRetry');
+      retryBtn?.addEventListener('click',function(){location.reload();});
       var t0=performance.now(),events=[];
       function log(name,extra){events.push({t:+(performance.now()-t0).toFixed(1),name:name,extra:extra||null});}
       function setProgress(p,label){if(fill)fill.style.width=Math.max(0,Math.min(100,p))+'%';if(label&&phase)phase.textContent=label;log('progress',{p:p,label:label});}
-      function fail(msg){if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});}
+      function fail(msg){if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});console.error('[zellous boot]',msg,events);}
       function done(){if(!box)return;box.classList.add('gone');setTimeout(function(){box&&box.parentNode&&box.parentNode.removeChild(box);},250);log('done');}
       window.__boot={ progress:setProgress, fail:fail, done:done, events:events, t0:t0 };
       // Safety net — if nothing finalizes within 25s, surface the failure.
@@ -431,7 +436,7 @@ window.nostrFsm = null;
       const sdk = await import('anentrypoint-design');
       // NOTE: do NOT call sdk.installStyles() — it injects ~3.4MB of bundled CSS that fights
       // the canonical 30KB stylesheet pair (colors_and_type.css + app-shell.css) loaded in <head>.
-      window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components };
+      window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components, applyTheme: sdk.applyTheme };
       try {
         const resolved = import.meta.resolve ? import.meta.resolve('anentrypoint-design') : null;
         console.info('[anentrypoint-design] resolved module URL:', resolved || '(import.meta.resolve unsupported in this browser)');
@@ -469,8 +474,13 @@ window.nostrFsm = null;
         const s = document.createElement('script');
         s.src = base + src;
         s.async = false;
-        s.onload = () => { onDone && onDone(src); resolve(); };
-        s.onerror = () => reject(new Error('Failed to load ' + src));
+        // A slow/stalled fetch (as opposed to an outright error) never fires
+        // onload or onerror, so without this the generic 25s watchdog is the
+        // only signal -- and it can't name which file stalled. This surfaces
+        // the specific slow module well before that wall, in the console.
+        const stallTimer = setTimeout(() => console.warn('[zellous boot] still waiting on', src, '(>8s)'), 8000);
+        s.onload = () => { clearTimeout(stallTimer); onDone && onDone(src); resolve(); };
+        s.onerror = () => { clearTimeout(stallTimer); reject(new Error('Failed to load ' + src)); };
         document.head.appendChild(s);
       });
     }

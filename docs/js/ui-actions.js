@@ -115,6 +115,11 @@ ui.actions = {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (ui.videoPlayback && ui.videoPlayback.style.display !== 'none') { ui.actions.closeVideoPlayback(); return; }
-  if (ui.settingsPopover?.classList.contains('open')) { ui.actions.toggleSettings(); return; }
+  // The real settings popover is the SDK's own reactive SettingsPopover
+  // (driven by stateSignals.settingsOpen), not the legacy hidden
+  // #settingsPopover element -- that element's class never gets toggled
+  // through the live code path anymore, so checking it here always read
+  // false and Escape silently never closed the real popover.
+  if (window.stateSignals?.settingsOpen?.value) { ui.actions.toggleSettings(); return; }
   if (ui.drawerOverlay?.classList.contains('open') || ui.channelSidebar?.classList.contains('open')) { ui.actions.closeMobileMenu(); return; }
 });
