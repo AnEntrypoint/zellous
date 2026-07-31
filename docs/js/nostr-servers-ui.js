@@ -38,6 +38,7 @@ serverManager.showCreatePageModal = function(serverId) {
     '<div class="modal-field"><label class="modal-label">Page Title</label><input type="text" class="modal-input" id="pcTitle" placeholder="About" maxlength="60" autofocus></div>' +
     '<button type="submit" class="modal-btn" id="pcSubmit">Create Page</button><button type="button" class="modal-btn secondary" id="pcCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var errEl = modal.querySelector('#pcErr'), submitBtn = modal.querySelector('#pcSubmit');
   modal.querySelector('#pcForm').addEventListener('submit', async function() {
     var title = modal.querySelector('#pcTitle').value.trim();
@@ -62,6 +63,7 @@ serverManager.showEditPageModal = function(serverId, slug, title, html) {
     '<div class="modal-field"><label class="modal-label">Content (HTML)</label><textarea class="modal-input" id="peHtml" rows="10" style="font-family:var(--ff-mono,monospace);resize:vertical" autofocus>' + escHtml(html) + '</textarea></div>' +
     '<button type="submit" class="modal-btn" id="peSubmit">Save</button><button type="button" class="modal-btn secondary" id="peCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var errEl = modal.querySelector('#peErr'), submitBtn = modal.querySelector('#peSubmit');
   modal.querySelector('#peForm').addEventListener('submit', async function() {
     var newTitle = modal.querySelector('#peTitle').value.trim() || title;
@@ -92,6 +94,7 @@ serverManager.showEditModal = function(serverId) {
       '<button type="button" class="modal-btn secondary" id="cancelEditServer">Cancel</button>' +
     '</form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var colors = (window.AVATAR_COLORS || ['#3F8A4A']).slice();
   var selectedColor = srv.iconColor || colors[0];
   var picker = modal.querySelector('#editServerColorPicker');
@@ -168,6 +171,7 @@ serverManager.showJoinPreview = function(serverId, onConfirm) {
     '<button type="button" class="modal-btn secondary" id="joinPreviewCancel">Cancel</button>' +
     '</div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var parts = serverId.split(':');
   if (parts.length >= 2) {
     nostrNet.subscribe('preview-' + serverId, [{ kinds: [34550], '#d': [parts[1]], authors: [parts[0]] }], function(event) {
@@ -196,6 +200,7 @@ serverManager.showCreateModal = function() {
       '<button type="button" class="modal-btn secondary" id="cancelCreateServer">Cancel</button>' +
     '</form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var colors = (window.AVATAR_COLORS || ['#3F8A4A']).slice();
   var selectedColor = colors[0];
   var picker = modal.querySelector('#serverColorPicker');

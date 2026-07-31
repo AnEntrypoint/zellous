@@ -1,3 +1,31 @@
+// Shared accessibility wiring for zellous's own hand-rolled `.modal-overlay`
+// dialogs (Create Channel, Rename, Create Page, etc.) -- none of them had a
+// focus trap, an Escape-to-close, or dialog semantics, unlike every SDK-owned
+// overlay (SettingsPopover/EmojiPicker/etc, see anentrypoint-design's
+// _anchoredOverlayLifecycle). Attach once, right after the modal is appended
+// to the DOM: traps Tab/Shift+Tab inside the modal box, closes on Escape,
+// and focuses the first focusable field so keyboard users land inside it
+// immediately instead of needing to Tab in from wherever focus was before.
+function _a11yModal(modal) {
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  var FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  var onKeydown = function(e) {
+    if (e.key === 'Escape') { e.preventDefault(); modal.remove(); return; }
+    if (e.key !== 'Tab') return;
+    var focusable = Array.prototype.slice.call(modal.querySelectorAll(FOCUSABLE));
+    if (!focusable.length) return;
+    var first = focusable[0], last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  };
+  modal.addEventListener('keydown', onKeydown);
+  setTimeout(function() {
+    var first = modal.querySelector(FOCUSABLE);
+    if (first) first.focus();
+  }, 0);
+}
+
 var _mkMenu = function(id, x, y, html, onAction) {
   document.getElementById(id)?.remove();
   var menu = document.createElement('div');
@@ -50,6 +78,7 @@ channelManager.showCreateModal = function(type, categoryId) {
     '<div class="modal-field"><label class="modal-label">Category</label><select class="modal-input" id="ccCat"><option value="">No Category</option>' + catOpts + '</select></div>' +
     '<button type="submit" class="modal-btn" id="ccSubmit">Create Channel</button><button type="button" class="modal-btn secondary" id="ccCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var errEl = modal.querySelector('#ccErr'), submitBtn = modal.querySelector('#ccSubmit');
   modal.querySelector('#ccForm').addEventListener('submit', async function() {
     var name = modal.querySelector('#ccName').value.trim();
@@ -72,6 +101,7 @@ channelManager.showRenameModal = function(channelId, currentName) {
     '<input type="text" class="modal-input" id="crName" value="' + escHtml(currentName) + '" maxlength="40" autofocus></div>' +
     '<button type="submit" class="modal-btn">Save</button><button type="button" class="modal-btn secondary" id="crCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var input = modal.querySelector('#crName'); input.focus(); input.select();
   modal.querySelector('#crForm').addEventListener('submit', async function() {
     var name = input.value.trim();
@@ -97,6 +127,7 @@ channelManager.showNewForumPostModal = function() {
     '<div class="modal-field"><label class="modal-label">Body</label><textarea class="modal-input" id="fpBody" rows="8" style="resize:vertical" placeholder="Write your post..."></textarea></div>' +
     '<button type="submit" class="modal-btn" id="fpSubmit">Post</button><button type="button" class="modal-btn secondary" id="fpCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var errEl = modal.querySelector('#fpErr'), submitBtn = modal.querySelector('#fpSubmit');
   modal.querySelector('#fpForm').addEventListener('submit', async function() {
     var title = modal.querySelector('#fpTitle').value.trim();
@@ -120,6 +151,7 @@ channelManager.showCreateCategoryModal = function() {
     '<div class="modal-field"><label class="modal-label">Category Name</label><input type="text" class="modal-input" id="catName" placeholder="Category Name" maxlength="50" autofocus></div>' +
     '<button type="submit" class="modal-btn" id="catSubmit">Create Category</button><button type="button" class="modal-btn secondary" id="catCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var errEl = modal.querySelector('#catErr'), submitBtn = modal.querySelector('#catSubmit');
   modal.querySelector('#catForm').addEventListener('submit', async function() {
     var name = modal.querySelector('#catName').value.trim();
@@ -142,6 +174,7 @@ channelManager.showRenameCategoryModal = function(categoryId, currentName) {
     '<input type="text" class="modal-input" id="carName" value="' + escHtml(currentName) + '" maxlength="50" autofocus></div>' +
     '<button type="submit" class="modal-btn">Save</button><button type="button" class="modal-btn secondary" id="carCancel">Cancel</button></form></div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
   var input = modal.querySelector('#carName'); input.focus(); input.select();
   modal.querySelector('#carForm').addEventListener('submit', async function() {
     var name = input.value.trim();
@@ -238,6 +271,7 @@ channelManager.showSettingsModal = function(channelId) {
         : '<button type="button" class="modal-btn secondary" id="csCancel">Close</button>') +
     '</div>';
   document.body.appendChild(modal);
+  _a11yModal(modal);
 
   if (isOwner) {
     modal.querySelector('#csSave').addEventListener('click', async function() {
