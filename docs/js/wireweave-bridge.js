@@ -157,7 +157,7 @@ window.__wireweaveReady = (async () => {
     _lastChatMsgCount = list.length;
     state.chatMessages = list; _updateChatMembers(list); if (window.ui) ui.render.all();
   });
-  setInterval(() => { if ((state.chatMessages||[]).length) { _updateChatMembers(state.chatMessages); if (window.ui) ui.render.all(); } }, 60000);
+  setInterval(() => { _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all(); }, 60000);
   chat.addEventListener('profile', () => { if (window.ui) ui.render.all(); });
   chat.addEventListener('rate-limited', (e) => {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
@@ -178,6 +178,7 @@ window.__wireweaveReady = (async () => {
       if (!lastSeen.has(m.userId) || ts > lastSeen.get(m.userId)) lastSeen.set(m.userId, ts);
     });
     const now = Date.now();
+    if (a.pubkey) lastSeen.set(a.pubkey, now);
     state.roomMembers = Array.from(lastSeen.entries()).map(([id, ts]) => ({
       id, username: chat.resolveProfile(id), online: (now - ts) <= ONLINE_WINDOW_MS
     }));
@@ -343,7 +344,7 @@ window.__wireweaveReady = (async () => {
 
   // Roles / Bans / Settings / Pages / Media bridges
   const roles = ww.roles;
-  roles.addEventListener('updated', () => { if (window.uiMembers?.render) uiMembers.render(); });
+  roles.addEventListener('updated', () => {});
   window.serverRoles = {
     _store: roles.store,
     isOwner: (sid) => roles.isOwner(sid),
@@ -393,7 +394,7 @@ window.__wireweaveReady = (async () => {
   };
 
   const pages = ww.pages;
-  pages.addEventListener('updated', () => { state.pagesVersion = (state.pagesVersion || 0) + 1; if (window.uiChannels?.render) uiChannels.render(); });
+  pages.addEventListener('updated', () => { state.pagesVersion = (state.pagesVersion || 0) + 1; });
   window.serverPages = {
     _store: pages.store,
     getPages: (sid) => pages.getPages(sid),
@@ -473,11 +474,11 @@ window.__wireweaveReady = (async () => {
       }
     });
     voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });
-    voice.addEventListener('participants', (e) => { state.voiceParticipants = e.detail.list; if (window.uiVoice) { uiVoice.renderGrid(); uiVoice.renderPanel(); } if (window.uiChannels) uiChannels.render(); });
-    voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); if (window.ui?.voicePanel) ui.voicePanel.classList.add('visible'); if (window.ui?.voicePanelChannel) ui.voicePanelChannel.textContent = e.detail.channelName; window.message.add('Voice connected'); });
+    voice.addEventListener('participants', (e) => { state.voiceParticipants = e.detail.list; });
+    voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.message.add('Voice connected'); });
     voice.addEventListener('media-warning', (e) => { window.message.add(e.detail.message); });
-    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); if (window.ui?.voicePanel) ui.voicePanel.classList.remove('visible'); if (window.uiVoice) { uiVoice.renderGrid(); uiVoice.renderPanel(); } });
-    voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; document.getElementById('voiceMicBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); });
+    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); });
+    voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
     voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
     return voice;
   };
@@ -500,14 +501,14 @@ window.__wireweaveReady = (async () => {
     },
     setAudioConstraints(patch) { ensureVoice().setAudioConstraints(patch); },
     async disconnect() { if (voice) await voice.disconnect(); },
-    toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); },
-    setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; document.getElementById('micToggleBtn')?.classList.toggle('muted', state.micMuted); document.getElementById('voiceMicBtn')?.classList.toggle('active', !state.micMuted); },
+    toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; },
+    setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; },
     requestTransmit() { const v = ensureVoice(); const live = v.requestTransmit(); state.micMuted = !!v.muted; return live; },
     releaseTransmit() { const v = ensureVoice(); v.releaseTransmit(); state.micMuted = !!v.muted; },
     anyRemoteSpeaking() { return voice ? voice.anyRemoteSpeaking() : false; },
-    toggleDeafen() { ensureVoice().toggleDeafen(); state.voiceDeafened = voice.deafened; document.getElementById('deafenToggleBtn')?.classList.toggle('muted', state.voiceDeafened); document.getElementById('voiceDeafenBtn')?.classList.toggle('active', state.voiceDeafened); },
+    toggleDeafen() { ensureVoice().toggleDeafen(); state.voiceDeafened = voice.deafened; },
     async toggleCamera() { /* camera handled via onVideoTrack above; full port deferred */ },
-    updateParticipants() { if (voice) { state.voiceParticipants = voice.getParticipants(); if (window.uiVoice) { uiVoice.renderGrid(); uiVoice.renderPanel(); } if (window.uiChannels) uiChannels.render(); } },
+    updateParticipants() { if (voice) { state.voiceParticipants = voice.getParticipants(); } },
     isDataChannelReady: () => { if (!voice) return false; for (const [, p] of voice.peers) if (p.dc?.readyState === 'open') return true; return false; },
     updateVoiceGrid() { voiceAPI.updateParticipants(); },
     on(evt, fn) { ensureVoice().addEventListener(evt, fn); return () => voice?.removeEventListener(evt, fn); },

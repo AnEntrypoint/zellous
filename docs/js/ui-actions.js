@@ -3,16 +3,9 @@ ui.actions = {
     state.currentChannel = channel;
     state.currentChannelId = channel.id;
     state.messages = [];
-    ui.render.channels();
-    ui.render.channelView();
     if (channel.type === 'text' || channel.type === 'announcement') {
       state.chatMessages = [];
-      ui.render.chat();
-      if (window.chat?.loadHistory) {
-        chat.loadHistory(channel.id);
-      } else {
-        network.send({ type: 'get_messages', limit: 50, channelId: channel.id });
-      }
+      if (window.chat?.loadHistory) chat.loadHistory(channel.id);
     }
     if (channel.type === 'forum' && window.nostrForum) {
       window.nostrForum.loadChannel(channel.id, state.currentServerId || '');
@@ -26,7 +19,6 @@ ui.actions = {
       }
     }
     if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
-    ui.channelSidebar?.classList.remove('open');
     ui.drawerOverlay?.classList.remove('open');
     ui._replyTarget = null;
     document.getElementById('replyComposeBar')?.remove();
@@ -84,9 +76,8 @@ ui.actions = {
   toggleMembers() {
     const sig = window.stateSignals && window.stateSignals.memberListOpen;
     if (sig) sig.value = !sig.value;
-    document.getElementById('memberList')?.classList.toggle('open');
   },
-  toggleQueue() { document.getElementById('queueSidebar')?.classList.toggle('open'); },
+  toggleQueue() {},
   toggleSettings() {
     const sig = window.stateSignals && window.stateSignals.settingsOpen;
     if (sig) { sig.value = !sig.value; return; }
@@ -94,13 +85,11 @@ ui.actions = {
   },
   openMobileMenu() {
     if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = true;
-    ui.channelSidebar?.classList.add('open'); ui.drawerOverlay?.classList.add('open');
+    ui.drawerOverlay?.classList.add('open');
   },
   closeMobileMenu() {
     if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
-    ui.channelSidebar?.classList.remove('open'); ui.drawerOverlay?.classList.remove('open');
-    document.getElementById('memberList')?.classList.remove('open');
-    document.getElementById('queueSidebar')?.classList.remove('open');
+    ui.drawerOverlay?.classList.remove('open');
   },
   closeVideoPlayback() {
     if (!ui.videoPlayback) return;
@@ -121,5 +110,5 @@ document.addEventListener('keydown', (e) => {
   // through the live code path anymore, so checking it here always read
   // false and Escape silently never closed the real popover.
   if (window.stateSignals?.settingsOpen?.value) { ui.actions.toggleSettings(); return; }
-  if (ui.drawerOverlay?.classList.contains('open') || ui.channelSidebar?.classList.contains('open')) { ui.actions.closeMobileMenu(); return; }
+  if (ui.drawerOverlay?.classList.contains('open')) { ui.actions.closeMobileMenu(); return; }
 });

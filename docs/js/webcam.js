@@ -1,35 +1,4 @@
 const webcam = {
-  toggle: async () => { state.webcamEnabled ? webcam.disable() : await webcam.enable(); },
-  enable: async () => {
-    try {
-      const [w, h] = state.webcamResolution.split('x').map(Number);
-      state.webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: w, height: h, frameRate: state.webcamFps, facingMode: 'user' } });
-      ui.webcamVideo.srcObject = state.webcamStream;
-      ui.webcamPreview.style.display = 'block';
-      ui.webcamBtn.classList.add('active');
-      ui.webcamBtn.textContent = 'Webcam On';
-      state.webcamEnabled = true;
-    } catch (e) { ui.webcamBtn.textContent = 'Webcam Denied'; }
-  },
-  disable: () => {
-    if (state.webcamStream) { state.webcamStream.getTracks().forEach(t => t.stop()); state.webcamStream = null; }
-    ui.webcamVideo.srcObject = null;
-    ui.webcamPreview.style.display = 'none';
-    ui.webcamBtn.classList.remove('active');
-    ui.webcamBtn.textContent = 'Webcam Off';
-    state.webcamEnabled = false;
-    webcam.stopCapture();
-  },
-  startCapture: () => {
-    if (!state.webcamEnabled || !state.webcamStream) return;
-    state.ownVideoChunks = [];
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : MediaRecorder.isTypeSupported('video/webm;codecs=vp8') ? 'video/webm;codecs=vp8' : MediaRecorder.isTypeSupported('video/webm') ? 'video/webm' : 'video/mp4';
-    const [w, h] = state.webcamResolution.split('x').map(Number);
-    state.webcamRecorder = new MediaRecorder(state.webcamStream, { mimeType: mime, videoBitsPerSecond: Math.round(w * h * state.webcamFps * 0.1) });
-    state.webcamRecorder.ondataavailable = (e) => { if (e.data.size > 0) e.data.arrayBuffer().then(b => { const d = new Uint8Array(b); state.ownVideoChunks.push(d); network.send({ type: 'video_chunk', data: d }); }); };
-    state.webcamRecorder.start(500);
-  },
-  stopCapture: () => { if (state.webcamRecorder?.state !== 'inactive') { state.webcamRecorder?.stop(); state.webcamRecorder = null; } },
   showVideo: (chunks, username) => {
     if (!chunks?.length) { ui.videoPlayback.style.display = 'none'; return; }
     if (ui.videoPlaybackVideo.src) URL.revokeObjectURL(ui.videoPlaybackVideo.src);

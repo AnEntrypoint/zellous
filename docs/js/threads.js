@@ -13,16 +13,14 @@ const threadManager = {
     state.threads = this.listFor(parentId);
   },
 
+  // The SDK's own ThreadPanel overlay (mountCommunityApp) renders off
+  // state.threadPanelOpen -- there is no DOM host of ours to toggle.
   openPanel(channelId) {
-    const panel = document.getElementById('threadPanel');
-    if (panel) panel.classList.add('open');
     state.threadPanelOpen = true;
     this._syncOpenPanel();
   },
 
   closePanel() {
-    const panel = document.getElementById('threadPanel');
-    if (panel) panel.classList.remove('open');
     state.threadPanelOpen = false;
   },
 
@@ -51,9 +49,7 @@ const threadManager = {
       }
     });
     this._syncOpenPanel();
-    if (document.getElementById('threadPanel')?.classList.contains('open')) {
-      this.renderPanel(state.currentChannel?.id);
-    }
+    if (state.threadPanelOpen) this.renderPanel(state.currentChannel?.id);
   },
 
   async create(parentChannelId, title) {

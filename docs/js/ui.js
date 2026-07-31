@@ -1,55 +1,10 @@
 const ui = {
-  ptt: document.getElementById('pttBtn'),
-  pttStatus: document.getElementById('pttStatus'),
-  pttStatusText: document.getElementById('pttStatusText'),
-  volumeSlider: document.getElementById('volume'),
-  volumeValue: document.getElementById('volValue'),
-  deafenBtn: document.getElementById('deafenBtn'),
-  vadBtn: document.getElementById('vadBtn'),
-  vadControls: document.getElementById('vadControls'),
-  vadThreshold: document.getElementById('vadThreshold'),
-  vadValue: document.getElementById('vadValue'),
-  vadMeterContainer: document.getElementById('vadMeterContainer'),
-  vadMeter: document.getElementById('vadMeter'),
-  vadThresholdMarker: document.getElementById('vadThresholdMarker'),
-  webcamBtn: document.getElementById('webcamBtn'),
-  webcamPreview: document.getElementById('webcamPreview'),
-  webcamVideo: document.getElementById('webcamVideo'),
-  webcamResolution: document.getElementById('webcamResolution'),
-  webcamFps: document.getElementById('webcamFps'),
-  webcamControls: document.getElementById('webcamControls'),
-  inputDevice: document.getElementById('inputDevice'),
-  outputDevice: document.getElementById('outputDevice'),
   videoPlayback: document.getElementById('videoPlayback'),
   videoPlaybackVideo: document.getElementById('videoPlaybackVideo'),
   videoPlaybackLabel: document.getElementById('videoPlaybackLabel'),
-  chatInput: document.getElementById('chatInput'),
-  chatMessages: document.getElementById('chatMessages'),
-  chatMessagesInner: document.getElementById('chatMessagesInner'),
   fileInput: document.getElementById('fileInput'),
-  audioQueueView: document.getElementById('audioQueueView'),
-  channelList: document.getElementById('channelList'),
-  memberList: document.getElementById('memberList'),
-  onlineMembers: document.getElementById('onlineMembers'),
-  onlineHeader: document.getElementById('onlineHeader'),
-  chatHeaderName: document.getElementById('chatHeaderName'),
-  chatHeaderIcon: document.getElementById('chatHeaderIcon'),
-  chatHeaderTopic: document.getElementById('chatHeaderTopic'),
-  chatArea: document.getElementById('chatArea'),
-  voiceView: document.getElementById('voiceView'),
-  voiceGrid: document.getElementById('voiceGrid'),
-  threadedView: document.getElementById('threadedView'),
-  voicePanel: document.getElementById('voicePanel'),
-  voicePanelChannel: document.getElementById('voicePanelChannel'),
-  serverHeader: document.getElementById('serverHeader'),
   authModal: document.getElementById('authModal'),
   authError: document.getElementById('authError'),
-  userPanelName: document.getElementById('userPanelName'),
-  userPanelTag: document.getElementById('userPanelTag'),
-  userPanelAvatar: document.getElementById('userPanelAvatar'),
-  userStatusDot: document.getElementById('userStatusDot'),
-  mobileTitle: document.getElementById('mobileTitle'),
-  channelSidebar: document.getElementById('channelSidebar'),
   drawerOverlay: document.getElementById('drawerOverlay'),
   settingsPopover: document.getElementById('settingsPopover'),
   _replyTarget: null,
@@ -76,38 +31,24 @@ const chIcon = (type) => {
   return getIcon(map[type] || 'text');
 };
 
+// Real UI rendering is owned by the SDK's mountCommunityApp (see AGENTS.md
+// GUI ownership) -- it re-renders reactively off nostr-adapter.js's tracked
+// signals. These entry points exist only so call sites elsewhere (event
+// bridges, feature modules) that used to trigger the old hand-rolled DOM
+// render still have something to call; they are intentional no-ops.
 ui.render = {
-  all() { this.channels(); this.members(); this.chat(); this.queue(); this.authStatus(); this.channelView(); this.voicePanel(); if (window.serverManager) serverManager.renderList(); },
-  messages() { if (window.uiChat) uiChat.messages(); },
-  speakers() { this.voiceGrid?.(); this.channels?.(); this.voiceTurnOrder?.(); },
-  channels() { if (window.uiChannels) uiChannels.render(); },
-  channelView() { if (window.uiChannels) uiChannels.renderView(); },
-  voiceGrid() { if (window.uiVoice) uiVoice.renderGrid(); },
-  voiceTurnOrder() { if (window.uiVoice) uiVoice.renderTurnOrder(); },
-  members() { if (window.uiMembers) uiMembers.render(); },
-  chat() { if (window.uiChat) uiChat.render(); },
-  queue() { if (window.uiVoice) uiVoice.renderQueue(); },
-  voicePanel() { if (window.uiVoice) uiVoice.renderPanel(); },
-  authStatus() {
-    if (!ui.userPanelName) return;
-    const nostrUser = window.auth?.user;
-    const isLoggedIn = (state.isAuthenticated && state.currentUser) || (nostrUser && state.nostrPubkey);
-    if (isLoggedIn) {
-      const user = state.currentUser || nostrUser;
-      const name = user.displayName || user.username;
-      ui.userPanelName.textContent = name;
-      ui.userPanelTag.textContent = state.nostrPubkey ? window.auth.npubShort(state.nostrPubkey) : '@' + user.username;
-      const node = ui.userPanelAvatar?.childNodes[0];
-      if (node?.nodeType === 3) node.textContent = getInitial(name);
-      ui.userStatusDot?.classList.add('online');
-    } else {
-      ui.userPanelName.textContent = 'Not logged in';
-      ui.userPanelTag.textContent = 'Click to login';
-      const node = ui.userPanelAvatar?.childNodes[0];
-      if (node?.nodeType === 3) node.textContent = '?';
-      ui.userStatusDot?.classList.remove('online');
-    }
-  }
+  all() { if (window.serverManager) serverManager.renderList(); },
+  messages() {},
+  speakers() {},
+  channels() {},
+  channelView() {},
+  voiceGrid() {},
+  voiceTurnOrder() {},
+  members() {},
+  chat() {},
+  queue() {},
+  voicePanel() {},
+  authStatus() {}
 };
 
 ui.showToast = function(msg, duration, tone) {

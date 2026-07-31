@@ -111,39 +111,7 @@ html.ds-247420 .chip.sky    { background: color-mix(in oklab, var(--cat-sky) 22%
 }
 .reconnect-banner.visible { display: block; }
 /* When banner is visible, shift the app down so it isn't covered */
-body:has(.reconnect-banner.visible) .app { padding-top: 32px; }
-
-/* ── Server list rail ── */
-.server-list {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 72px;
-  min-width: 72px;
-  background: var(--bg);
-  padding: 8px 0;
-  gap: 4px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  transition: width 0.2s, min-width 0.2s, opacity 0.2s;
-  flex-shrink: 0;
-  scrollbar-width: none;
-}
-.server-list::-webkit-scrollbar { display: none; }
-.server-list.collapsed { width: 0; min-width: 0; opacity: 0; pointer-events: none; }
-
-/* ── Channel sidebar ── */
-.channel-sidebar {
-  display: flex;
-  flex-direction: column;
-  width: 240px;
-  min-width: 240px;
-  background: var(--bg-2);
-  flex-shrink: 0;
-  overflow: hidden;
-  transition: width 0.2s, min-width 0.2s, opacity 0.2s;
-}
-.channel-sidebar.collapsed { width: 0; min-width: 0; opacity: 0; pointer-events: none; }
+body:has(.reconnect-banner.visible) .ca-app { padding-top: 32px; }
 
 /* ── App-defined modal vocabulary (modal-box / modal-field / modal-input / modal-btn) ── */
 .modal-box {
@@ -217,26 +185,8 @@ html.ds-247420 button.modal-btn.secondary:hover,
   overflow: hidden;
 }
 
-/* Mobile header */
-.mobile-header {
-  display: none;
-  align-items: center;
-  height: 48px;
-  padding: 0 12px;
-  background: var(--bg-2);
-  flex-shrink: 0;
-  gap: 12px;
-}
-.mobile-hamburger {
-  background: none; border: none; cursor: pointer;
-  color: var(--fg-2); font-size: 20px; padding: 4px;
-}
-.mobile-title { flex: 1; font-weight: 600; color: var(--fg); font-size: var(--fs-sm); }
-.mobile-members-btn { background: none; border: none; cursor: pointer; color: var(--fg-2); display: flex; padding: 4px; border-radius: 4px; }
-
 /* Chat area host — transparent; canonical .chat / .chat-head / .chat-thread / .chat-composer come from 247420.css */
 .chat-area { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: transparent; }
-.chat-header-bar { display: none; } /* legacy zellous header — replaced by C.Chat's inline chat-head */
 
 /* Chat surface — fill the canonical app-main flex column */
 html.ds-247420 .chat-head {
@@ -445,202 +395,6 @@ html.ds-247420 .ds-pattern-notes p { margin: 0 0 8px; font-size: var(--fs-sm); c
 }
 .input-btn:hover { background: var(--green-2); }
 
-/* ── Voice view ── */
-.voice-view {
-  display: none; flex-direction: column;
-  flex: 1; min-height: 0; background: var(--bg-3);
-}
-.voice-view.active { display: flex; }
-.voice-grid {
-  flex: 1; overflow: auto;
-  display: flex; flex-wrap: wrap;
-  align-content: flex-start; gap: 8px; padding: 16px;
-}
-.voice-tile {
-  width: 220px; height: 160px;
-  background: var(--bg-2); border-radius: 8px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 8px; position: relative; overflow: hidden;
-  border: 2px solid transparent; transition: border-color 0.1s;
-}
-.voice-tile.speaking { border-color: var(--live); }
-.voice-tile video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
-.voice-tile-name {
-  position: absolute; bottom: 4px; left: 8px;
-  font-size: var(--fs-xs); font-weight: 600; color: var(--fg);
-  background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 3px;
-}
-.voice-tile-avatar {
-  width: 64px; height: 64px; border-radius: 50%;
-  background: var(--accent); color: var(--green-fg);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: 24px;
-}
-.voice-controls {
-  display: flex; align-items: center; justify-content: center;
-  gap: 12px; padding: 16px;
-  background: var(--bg-2); flex-shrink: 0;
-}
-.voice-ctrl-btn {
-  background: var(--bg-4); border: none; cursor: pointer;
-  color: var(--fg-2); border-radius: 50%;
-  width: 48px; height: 48px;
-  display: flex; align-items: center; justify-content: center;
-  transition: background 0.1s, color 0.1s;
-}
-.voice-ctrl-btn:hover { background: var(--bg-3); color: var(--fg); }
-.voice-ctrl-btn.active { background: var(--accent); color: var(--green-fg); }
-.voice-ctrl-btn.muted { background: var(--warn); color: var(--green-fg); }
-.voice-ctrl-btn.danger { background: var(--warn); color: var(--green-fg); }
-.voice-ctrl-btn.danger:hover { background: var(--warn); filter: brightness(0.85); }
-
-/* ── Member list ── */
-.member-list {
-  width: 240px; min-width: 240px;
-  background: var(--bg-2);
-  overflow-y: auto; overflow-x: hidden;
-  flex-shrink: 0; padding: 8px 0;
-  scrollbar-width: thin;
-  scrollbar-color: var(--bg-4) transparent;
-  display: none;
-}
-.member-list.open { display: block; }
-.member-category {
-  padding: 12px 8px 4px 16px;
-  font-size: var(--fs-xs); font-weight: 600;
-  color: var(--fg-3);
-}
-.member-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 5px 12px; border-radius: 4px; margin: 1px 8px;
-  cursor: pointer; transition: background 0.1s;
-}
-.member-item:hover { background: var(--bg-3); }
-.member-avatar {
-  width: 32px; height: 32px; border-radius: 50%;
-  background: var(--accent); color: var(--green-fg);
-  display: flex; align-items: center; justify-content: center;
-  font-weight: 600; font-size: 12px; flex-shrink: 0; position: relative;
-}
-.member-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-.member-status {
-  position: absolute; bottom: -1px; right: -1px;
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--live); border: 2px solid var(--bg-2);
-}
-.member-name { font-size: var(--fs-xs); font-weight: 500; color: var(--fg-2); }
-
-/* ── Forum view ── */
-.forum-view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
-.forum-view.active { display: flex; }
-.forum-header-bar {
-  display: flex; align-items: center; gap: 12px;
-  padding: 12px 16px; flex-shrink: 0;
-}
-.forum-search {
-  flex: 1; background: var(--bg-4);
-  border: 1px solid var(--border-color); border-radius: 6px;
-  padding: 6px 10px; color: var(--fg); font-size: var(--fs-sm);
-  font-family: var(--ff-ui); outline: none;
-}
-.forum-search:focus { border-color: var(--accent); }
-.forum-new-post-btn {
-  background: var(--accent); border: none; cursor: pointer;
-  color: var(--green-fg); border-radius: 6px;
-  padding: 6px 14px; font-size: var(--fs-sm); font-weight: 600; white-space: nowrap;
-}
-.forum-new-post-btn:hover { background: var(--green-2); }
-.forum-posts { flex: 1; overflow-y: auto; padding: 12px 16px; }
-.forum-post {
-  background: var(--bg-2); border-radius: 8px;
-  padding: 14px 16px; margin-bottom: 8px;
-  cursor: pointer; transition: background 0.1s;
-}
-.forum-post:hover { background: var(--bg-4); }
-.forum-post-title { font-weight: 600; color: var(--fg); margin-bottom: 4px; }
-.forum-post-meta { font-size: var(--fs-xs); color: var(--fg-3); }
-
-/* ── Page view ── */
-.page-view { display: none; flex-direction: column; flex: 1; overflow-y: auto; padding: 32px; line-height: 1.6; color: var(--fg); }
-.page-view.active { display: flex; }
-.page-view h1 { font-family: var(--ff-display); font-size: var(--fs-h3); margin-bottom: 16px; }
-.page-view h2 { font-family: var(--ff-display); font-size: var(--fs-h4); margin: 20px 0 10px; }
-.page-view p { margin-bottom: 12px; }
-
-/* ── Threaded view ── */
-.threaded-view { display: none; flex-direction: column; flex: 1; overflow: hidden; }
-.threaded-view.active { display: flex; }
-.threaded-content { display: flex; flex: 1; overflow: hidden; }
-.threaded-main {
-  flex: 1; overflow-y: auto; padding: 24px;
-  display: flex; flex-direction: column; gap: 12px;
-  align-items: center; justify-content: center;
-}
-
-.ptt-status { display: flex; align-items: center; gap: 8px; font-size: var(--fs-xs); color: var(--fg-3); }
-.rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--fg-3); }
-.ptt-status.active .rec-dot { background: var(--warn); animation: pulse 1s infinite; }
-.ptt-btn {
-  background: var(--accent); border: none; cursor: pointer;
-  color: var(--green-fg); border-radius: 8px;
-  padding: 14px 32px; font-size: var(--fs-lg); font-weight: 600;
-  transition: background 0.1s, transform 0.05s;
-  font-family: var(--ff-display);
-}
-.ptt-btn:active { background: var(--green-2); transform: scale(0.97); }
-
-.threaded-controls { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 8px; }
-.threaded-controls.hidden { display: none; }
-.ctrl-row { display: flex; align-items: center; gap: 8px; }
-.ctrl-label { font-size: var(--fs-xs); color: var(--fg-3); width: 28px; flex-shrink: 0; }
-.ctrl-row input[type=range] { flex: 1; accent-color: var(--accent); }
-.ctrl-row select {
-  flex: 1; background: var(--bg-4); border: 1px solid var(--border-color);
-  border-radius: 4px; padding: 4px 6px; color: var(--fg); font-size: var(--fs-xs);
-  font-family: var(--ff-ui); outline: none;
-}
-.ctrl-row select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.ctrl-value { font-size: var(--fs-xs); color: var(--fg-3); width: 36px; }
-.btn-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.ctrl-btn {
-  background: var(--bg-4);
-  cursor: pointer; color: var(--fg-2); border-radius: 6px;
-  padding: 6px 14px; font-size: var(--fs-xs); font-weight: 600;
-  transition: background 0.1s, color 0.1s;
-}
-.ctrl-btn:hover { background: var(--bg-3); color: var(--fg); }
-.ctrl-btn.active { background: var(--accent); color: var(--green-fg); }
-
-.vad-container { width: 100%; max-width: 340px; }
-.vad-container.hidden { display: none; }
-.vad-bar { position: relative; height: 8px; background: var(--bg-4); border-radius: 4px; overflow: visible; }
-.vad-fill { height: 100%; background: var(--live); border-radius: 4px; transition: width 0.05s; }
-.vad-threshold-marker { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--accent); border-radius: 1px; }
-
-.webcam-preview { display: none; border-radius: 8px; overflow: hidden; }
-.webcam-preview.active { display: block; }
-.webcam-preview video { display: block; width: 100%; }
-
-/* ── Rail toggle buttons ── */
-.rail-toggle {
-  position: fixed; z-index: 100;
-  width: 20px; height: 40px;
-  background: var(--bg-2);
-  border-radius: 0 4px 4px 0;
-  color: var(--fg-2);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
-  transition: background 0.1s, color 0.1s;
-  padding: 0;
-}
-.rail-toggle:hover { background: var(--bg-3); color: var(--fg); }
-.rail-toggle.servers { top: 50%; transform: translateY(-50%); left: 72px; }
-.rail-toggle.servers.collapsed { left: 0; }
-.rail-toggle.channels { top: 50%; transform: translateY(-50%); left: calc(72px + 240px); }
-.rail-toggle.channels.collapsed { left: 72px; }
-
 /* ── Command palette ── */
 .cmdk-overlay {
   display: none; position: fixed; inset: 0;
@@ -676,108 +430,6 @@ html.ds-247420 .ds-pattern-notes p { margin: 0 0 8px; font-size: var(--fs-sm); c
 }
 .cmdk-empty { padding: 20px; text-align: center; color: var(--fg-3); font-size: var(--fs-sm); }
 
-/* ── Voice strip ── inline above the user-panel inside the channel-sidebar.
-   Matches the user-panel's height/surface vocabulary; only the inset rail
-   and pulsing dot distinguish it as the live-voice indicator. */
-.voice-strip {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  height: 52px;
-  background: var(--bg-2);
-  box-shadow: inset 3px 0 0 var(--live), inset 0 1px 0 var(--bg-3);
-  flex-shrink: 0;
-}
-.voice-strip.open { display: flex; }
-.voice-strip::before {
-  content: '';
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--live);
-  flex-shrink: 0;
-  animation: pulse 1.4s infinite;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 30%, transparent);
-}
-.vs-label { flex: 1; overflow: hidden; min-width: 0; }
-.vs-channel {
-  display: block;
-  font-size: var(--fs-xs); font-weight: 600;
-  color: var(--fg);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.vs-status {
-  display: block;
-  font-size: 10px;
-  color: var(--live);
-  text-transform: uppercase; letter-spacing: 0.04em;
-}
-.voice-strip button {
-  background: none; border: none; cursor: pointer;
-  color: var(--fg-3); padding: 6px; border-radius: 4px;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-.voice-strip button:hover { background: var(--bg-3); color: var(--fg); }
-.voice-strip button.danger { color: var(--warn); }
-.voice-strip button.danger:hover { background: var(--warn); color: var(--green-fg); }
-.voice-strip button svg { display: block; }
-
-/* Top connected banner — shown while in voice but viewing a different channel
-   (text/page). Persistent, screen-wide, hard to miss. */
-.voice-connected-banner {
-  display: none;
-  align-items: center; gap: 12px;
-  padding: 8px 16px;
-  background: linear-gradient(90deg, color-mix(in oklab, var(--live) 24%, var(--bg-2)) 0%, var(--bg-2) 100%);
-  color: var(--fg);
-  font-size: var(--fs-xs); font-weight: 600;
-  box-shadow: inset 0 -2px 0 var(--live);
-  flex-shrink: 0;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.voice-connected-banner.visible { display: flex; }
-.voice-connected-banner:hover { background: linear-gradient(90deg, color-mix(in oklab, var(--live) 34%, var(--bg-2)) 0%, var(--bg-3) 100%); }
-.voice-connected-banner .vcb-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--live);
-  animation: pulse 1.4s infinite;
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--live) 35%, transparent);
-  flex-shrink: 0;
-}
-.voice-connected-banner .vcb-channel { color: var(--live); font-weight: 700; }
-.voice-connected-banner .vcb-spacer { flex: 1; }
-.voice-connected-banner .vcb-jump {
-  font-size: 10px; color: var(--fg-3);
-  text-transform: uppercase; letter-spacing: 0.04em;
-}
-.voice-connected-banner button {
-  background: var(--warn); color: var(--green-fg);
-  border: none; cursor: pointer;
-  padding: 4px 10px; border-radius: 4px;
-  font-size: 11px; font-weight: 600;
-  font-family: var(--ff-ui);
-}
-.voice-connected-banner button:hover { filter: brightness(0.92); }
-html.ds-247420 .voice-connected-banner button { background: var(--warn); color: var(--green-fg); padding: 4px 10px; border-radius: 4px; }
-
-/* PTT pill in realtime mode — looks like a static "live" badge, not a button */
-html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
-.voice-ptt-pill[data-state="realtime"] {
-  background: var(--live);
-  color: var(--green-fg);
-  cursor: default;
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--live) 30%, transparent);
-  pointer-events: none;
-}
-.voice-ptt-pill[data-state="realtime"]::before {
-  content: '';
-  display: inline-block;
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--green-fg);
-  margin-right: 2px;
-  animation: pulse 1.2s infinite;
-}
-
 /* ── Modals ── */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
@@ -805,14 +457,6 @@ html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
 .ctx-item.danger:hover { background: var(--warn); color: var(--green-fg); }
 .ctx-separator { height: 0; margin: 6px 0; }
 
-/* Thread panel */
-.thread-panel {
-  width: 360px; flex-shrink: 0;
-  background: var(--bg-2);
-  display: none; flex-direction: column; overflow: hidden;
-}
-.thread-panel.open { display: flex; }
-
 /* Scrollbars */
 * { scrollbar-width: thin; scrollbar-color: var(--bg-4) transparent; }
 *::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -822,25 +466,6 @@ html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 @keyframes spin { to{transform:rotate(360deg)} }
 .spin { animation: spin 1s linear infinite; }
-
-/* Mobile */
-@media (max-width: 768px) {
-  .server-list { width: 60px; min-width: 60px; }
-  .channel-sidebar {
-    position: fixed; left: 0; top: 0; bottom: 0; z-index: 500;
-    transform: translateX(-100%); transition: transform 0.2s;
-    width: 260px; min-width: 260px;
-  }
-  .channel-sidebar.mobile-open { transform: translateX(60px); }
-  .member-list {
-    position: fixed; right: 0; top: 0; bottom: 0; z-index: 500;
-    transform: translateX(100%); transition: transform 0.2s;
-  }
-  .member-list.open { transform: translateX(0); }
-  .mobile-header { display: flex; }
-  .chat-header-bar { display: none; }
-  .rail-toggle { display: none; }
-}
 
 .server-back-link {
   display: flex;
@@ -877,174 +502,6 @@ html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
   margin-left: 8px;
 }
 
-/* Voice tiles: centred grid with comfortable size; speaking ring uses live token */
-.voice-grid {
-  align-content: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px;
-}
-.voice-tile {
-  width: 240px; height: 180px;
-  background: var(--bg-3);
-  border-radius: 12px;
-  border: 2px solid transparent;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
-  position: relative;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 10px;
-  transition: border-color 0.15s, transform 0.15s;
-}
-.voice-tile.speaking { border-color: var(--live); transform: translateY(-1px); }
-.voice-tile-avatar {
-  width: 64px; height: 64px;
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--green-fg);
-  font-weight: 600; font-size: 24px;
-  transition: box-shadow 0.15s;
-}
-.voice-tile-avatar.speaking { box-shadow: 0 0 0 3px var(--live); }
-.voice-tile-name {
-  position: absolute; bottom: 8px; left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex; align-items: center; gap: 6px;
-  background: rgba(0,0,0,0.55);
-  color: var(--fg);
-  font-size: var(--fs-xs); font-weight: 600;
-  padding: 3px 10px; border-radius: 999px;
-  max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-}
-.voice-tile-muted {
-  position: absolute; top: 8px; right: 8px;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--warn);
-  color: var(--green-fg);
-  display: flex; align-items: center; justify-content: center;
-}
-.voice-tile-muted svg { display: block; }
-.voice-tile-role-badge {
-  font-size: 9px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.04em;
-  color: var(--green-fg);
-  padding: 1px 5px; border-radius: 4px;
-}
-.quality-dot {
-  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--fg-3); flex-shrink: 0;
-}
-.quality-dot.good { background: var(--live); }
-.quality-dot.fair { background: var(--cat-sun); }
-.quality-dot.poor { background: var(--warn); }
-.quality-dot.connecting { background: var(--fg-3); animation: pulse 1.2s infinite; }
-
-/* Voice control bar PTT pill + queue badge */
-.voice-controls {
-  justify-content: center;
-  gap: 10px;
-  border-radius: 12px 12px 0 0;
-}
-.voice-ptt-pill {
-  background: var(--accent);
-  color: var(--green-fg);
-  border: none; cursor: pointer;
-  border-radius: 999px;
-  padding: 10px 18px;
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: var(--fs-sm); font-weight: 600;
-  transition: background 0.1s, transform 0.05s, box-shadow 0.1s;
-  user-select: none;
-}
-.voice-ptt-pill:hover { background: var(--green-2); }
-.voice-ptt-pill.active,
-.voice-ptt-pill[data-state="live"] {
-  background: var(--live); color: var(--green-fg);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--live) 30%, transparent);
-}
-.voice-ptt-pill[data-state="queued"] {
-  background: var(--cat-sun); color: var(--cat-sun-fg);
-}
-.voice-ptt-pill svg { fill: currentColor; }
-
-.voice-ptt-queue {
-  display: inline-flex; align-items: center; gap: 6px;
-  background: var(--bg-3); color: var(--fg-2);
-  border-radius: 999px;
-  padding: 4px 10px;
-  font-size: var(--fs-xs); font-weight: 600;
-}
-.voice-ptt-queue[data-empty="true"] { opacity: 0.55; }
-.voice-ptt-queue.playing { background: color-mix(in oklab, var(--live) 25%, var(--bg-3)); color: var(--live); }
-.vptq-label { text-transform: uppercase; letter-spacing: 0.04em; font-size: 10px; }
-.vptq-count {
-  min-width: 18px; text-align: center;
-  background: var(--bg); color: var(--fg);
-  border-radius: 999px;
-  padding: 0 6px;
-}
-.vptq-skip {
-  background: none; border: none; cursor: pointer;
-  color: var(--fg-3); font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.04em;
-  padding: 2px 6px; border-radius: 4px;
-}
-.vptq-skip:hover { color: var(--fg); background: var(--bg-4); }
-
-/* Voice users (under voice channel in sidebar) */
-.voice-user-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-/* Audio queue panel inside voice view */
-.skip-btn {
-  background: var(--bg-4); border: none; cursor: pointer;
-  color: var(--fg); border-radius: 999px;
-  padding: 4px 12px; font-size: var(--fs-xs); font-weight: 600;
-  margin: 0 16px 8px; align-self: flex-start;
-}
-.skip-btn:hover { background: var(--bg-3); }
-.skip-btn.resume { background: var(--accent); color: var(--green-fg); }
-
-.queue-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 6px 16px;
-  font-size: var(--fs-xs); color: var(--fg-2);
-}
-.queue-item.replaying { color: var(--live); }
-.queue-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.queue-info { flex: 1; min-width: 0; }
-.queue-name { font-weight: 600; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.queue-meta { font-size: 10px; color: var(--fg-3); }
-.queue-actions { display: flex; gap: 4px; flex-shrink: 0; }
-.queue-btn {
-  background: none; border: none; cursor: pointer;
-  color: var(--fg-3); padding: 4px; border-radius: 4px;
-  display: inline-flex; align-items: center;
-}
-.queue-btn:hover { color: var(--fg); background: var(--bg-3); }
-
-/* Member-list role headers + badges */
-.member-role-header {
-  padding: 16px 16px 4px;
-  font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.02em;
-  color: var(--fg-3);
-}
-.member-role-badge {
-  font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.04em;
-  margin-left: 6px;
-}
-.member-section-separator { height: 1px; background: var(--bg-3); margin: 8px 16px; opacity: 0.5; }
-.member-status.online { background: var(--live); }
-.member-status.offline { background: var(--fg-3); }
-.member-item.speaking { color: var(--live); }
-.member-item.speaking .member-name { color: var(--live); }
-
-/* Voice strip (the always-on connected indicator at bottom-left) */
-.voice-strip { border-radius: 0 12px 0 0; }
-.voice-strip .vs-channel { display: inline-flex; align-items: center; gap: 4px; }
-
 /* SDK button reset inside our chat input bar (cosmetic safety) */
 .chat-input-bar button { font-family: inherit; }
 
@@ -1055,13 +512,6 @@ html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
 /* Reconnect banner uses warn token; readable on light theme too */
 .reconnect-banner { color: var(--green-fg); }
 
-/* ── Mobile polish for voice ── */
-@media (max-width: 768px) {
-  .voice-tile { width: calc(50% - 12px); height: 160px; }
-  .voice-controls { padding: 12px 8px; gap: 6px; flex-wrap: wrap; }
-  .voice-ptt-pill { padding: 10px 14px; }
-}
-
 /* ──────────────────────────────────────────────────────────────────────────
    SDK-reset override: SDK 247420.css ships `.ds-247420 button { padding:0;
    background:none; }` at specificity (0,1,1), which beats every plain
@@ -1071,38 +521,13 @@ html.ds-247420 button.voice-ptt-pill[data-state="realtime"],
 html.ds-247420 button.modal-btn { background: var(--accent); color: var(--green-fg); padding: 8px 16px; border-radius: 4px; }
 html.ds-247420 button.modal-btn.secondary { background: var(--bg-4); color: var(--fg); }
 
-html.ds-247420 button.voice-ctrl-btn { background: var(--bg-4); color: var(--fg-2); width: 48px; height: 48px; border-radius: 50%; padding: 0; }
-html.ds-247420 button.voice-ctrl-btn.active { background: var(--accent); color: var(--green-fg); }
-html.ds-247420 button.voice-ctrl-btn.muted { background: var(--warn); color: var(--green-fg); }
-html.ds-247420 button.voice-ctrl-btn.danger { background: var(--warn); color: var(--green-fg); }
-
-html.ds-247420 button.voice-ptt-pill { background: var(--accent); color: var(--green-fg); padding: 10px 18px; border-radius: 999px; }
-html.ds-247420 button.voice-ptt-pill[data-state="live"], html.ds-247420 button.voice-ptt-pill.active { background: var(--live); }
-html.ds-247420 button.voice-ptt-pill[data-state="queued"] { background: var(--cat-sun); color: var(--cat-sun-fg); }
-
 html.ds-247420 button.input-btn { background: var(--accent); color: var(--green-fg); padding: 6px 10px; border-radius: 4px; }
 html.ds-247420 button.input-icon-btn { color: var(--fg-3); padding: 6px; border-radius: 4px; background: transparent; }
 html.ds-247420 button.attach-btn { color: var(--fg-3); padding: 6px; background: transparent; }
-html.ds-247420 button.mobile-hamburger { color: var(--fg-2); padding: 4px; background: transparent; }
-html.ds-247420 button.mobile-members-btn { color: var(--fg-2); padding: 4px; border-radius: 4px; background: transparent; }
-
-html.ds-247420 button.forum-new-post-btn { background: var(--accent); color: var(--green-fg); padding: 6px 14px; border-radius: 6px; }
-html.ds-247420 button.ptt-btn { background: var(--accent); color: var(--green-fg); padding: 14px 32px; border-radius: 8px; font-size: var(--fs-lg); font-weight: 600; }
-html.ds-247420 button.ctrl-btn { background: var(--bg-4); color: var(--fg-2); padding: 6px 14px; border-radius: 6px; font-size: var(--fs-xs); font-weight: 600; }
-html.ds-247420 button.ctrl-btn.active { background: var(--accent); color: var(--green-fg); }
-html.ds-247420 button.skip-btn { background: var(--bg-4); color: var(--fg); padding: 4px 12px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; }
-html.ds-247420 button.skip-btn.resume { background: var(--accent); color: var(--green-fg); }
-html.ds-247420 button.queue-btn { color: var(--fg-3); padding: 4px; border-radius: 4px; background: transparent; }
-html.ds-247420 button.vptq-skip { color: var(--fg-3); padding: 2px 6px; border-radius: 4px; background: transparent; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
 
 html.ds-247420 button.msg-action-btn { color: var(--fg-3); padding: 4px 6px; border-radius: 4px; background: transparent; }
 
-html.ds-247420 .voice-strip button { color: var(--fg-3); padding: 6px; border-radius: 4px; background: transparent; }
-html.ds-247420 .voice-strip button.danger { color: var(--warn); }
-html.ds-247420 .voice-strip button:hover { background: var(--bg-3); color: var(--fg); }
-
-/* SDK chat-kit surface — keep area transparent, kill legacy duplicate header strips */
-html.ds-247420 .chat-header-bar { display: none !important; }
+/* SDK chat-kit surface — keep area transparent */
 html.ds-247420 .chat-area { padding: 0; border: 0; background: transparent; box-shadow: none; }
 html.ds-247420 .chat { padding: 0 0 calc(var(--app-status-h, 42px) + var(--space-4)) 0 !important; background: transparent; }
 html.ds-247420 .chat .chat-composer { padding: var(--space-3) var(--space-5); background: transparent; }
@@ -1183,12 +608,14 @@ html.ds-247420 .app-status {
    above (2E9E2A on ink ~5.5:1, 247420 on light/paper ~5.2:1). */
 html.ds-247420 .app-status .item:first-of-type { color: var(--status-accent); }
 html.ds-247420 .app-status .spread { flex: 1; }
+html.ds-247420 .app-status a.item { text-decoration: none; }
+html.ds-247420 .app-status a.item:hover { text-decoration: underline; }
 html.ds-247420 .app-body {
   height: auto !important;
   flex: 1 1 0 !important;
   min-height: 0 !important;
 }
-html.ds-247420 .app { height: calc(100vh - 42px) !important; overflow: hidden; }
+html.ds-247420 .ca-app { height: calc(100vh - 42px) !important; overflow: hidden; }
 html.ds-247420 .app-status {
   position: fixed; left: 0; right: 0; bottom: 0;
   height: 42px; z-index: 100;
@@ -1220,21 +647,6 @@ html.ds-247420 .app-status {
 @media (max-width: 480px) {
   html.ds-247420 .app-topbar nav,
   html.ds-247420 .app-topbar > :last-child { display: none !important; }
-}
-
-/* Empty chat-thread placeholder — sentinel child blocks :empty, so target sentinel-only */
-html.ds-247420 .chat-thread:has(> [data-scroll-sentinel]:only-child)::before,
-html.ds-247420 .chat-thread[data-msg-count="0"]::before {
-  content: 'no messages yet\Astart the conversation';
-  white-space: pre;
-  color: var(--fg-3);
-  font-family: var(--ff-mono);
-  font-size: var(--fs-sm);
-  text-align: center;
-  margin: auto;
-  opacity: 0.6;
-  pointer-events: none;
-  line-height: 1.6;
 }
 
 /* Legacy overlays (#videoPlayback, #settingsPopover) carried no position rule,
@@ -1307,15 +719,6 @@ html.ds-247420 .drawer-overlay {
   display: none;
 }
 html.ds-247420 .drawer-overlay.open { display: block; }
-
-/* SDK ThreadPanel / ForumView own their chrome; hide the legacy duplicate
-   header/list/search that threadManager used to render into, so the panels
-   don't show two close buttons / two post lists. */
-html.ds-247420 #threadPanel > .thread-panel-header,
-html.ds-247420 #threadPanel > #threadList,
-html.ds-247420 #threadPanel > div:has(> #createThreadBtn),
-html.ds-247420 #forumView > .forum-header-bar,
-html.ds-247420 #forumView > #forumPosts { display: none !important; }
 
 html.ds-247420 .rail-empty {
   padding: 8px 12px;

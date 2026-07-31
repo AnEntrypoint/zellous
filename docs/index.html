@@ -99,13 +99,13 @@ a.card,
   display: flex; flex-direction: column; gap: 8px;
   padding: 18px 20px;
   background: var(--panel-1);
+  border: 1px solid var(--panel-text-3);
   color: var(--panel-text) !important;
   font-family: var(--ff-mono);
   text-decoration: none;
   transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
 }
 .app-main a.card:hover, a.card:hover { color: var(--panel-0) !important; }
-.card:nth-child(even) { background: var(--panel-2); }
 .card:hover { background: var(--panel-text); color: var(--panel-0); }
 .card:hover .card-meta { color: var(--panel-0); opacity: 0.75; }
 .card-code { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--panel-accent); font-weight: 600; }
@@ -124,6 +124,23 @@ h3.section-head {
   color: var(--panel-accent);
   margin: 32px 0 12px 0;
 }
+.section-lead {
+  font-family: var(--ff-prose);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 62ch;
+  color: var(--panel-text);
+  margin: 0 0 16px 0;
+}
+.tech-details summary {
+  cursor: pointer;
+  font-family: var(--ff-ui);
+  font-size: 13px;
+  color: var(--panel-text-3);
+  margin-bottom: 8px;
+}
+.tech-details summary:hover { color: var(--panel-text); }
+.tech-details[open] summary { margin-bottom: 12px; }
 
 /* Manifesto block — serif italic */
 .manifesto {
@@ -305,7 +322,7 @@ h3.section-head {
         <span class="card-title"># random</span>
         <span class="card-meta">public · nip-28 · open relay</span>
       </a>
-      <a class="card" href="nostr-chat/">
+      <a class="card" href="nostr-chat/?create=server">
         <span class="card-code">004</span>
         <span class="card-title">+ new server</span>
         <span class="card-meta">spin up a private community</span>
@@ -340,26 +357,29 @@ h3.section-head {
   </section>
 
   <section class="section" id="tech">
-    <h3 class="section-head">// stack</h3>
-    <div class="tech">
-      <div class="k">runtime</div>           <div class="v">browser · static html</div>
-      <div class="k">protocol</div>          <div class="v"><code>nostr</code> · nip-07, nip-28, nip-19</div>
-      <div class="k">voice transport</div>  <div class="v"><code>webrtc</code> · <code>RTCPeerConnection</code> + <code>getUserMedia</code></div>
-      <div class="k">codec</div>             <div class="v"><code>opus</code> via WebCodecs · 24kbps · 48khz mono</div>
-      <div class="k">signaling</div>         <div class="v">nostr <code>kind:30078</code> · perfect-negotiation · iceRestart on stall</div>
-      <div class="k">topology</div>          <div class="v">mesh ≤ 2 · star/sfu hub-elected ≥ 3 (lowest avg RTT wins)</div>
-      <div class="k">networking</div>        <div class="v"><a href="https://www.npmjs.com/package/wireweave">wireweave</a> · vendored</div>
-      <div class="k">deploy</div>            <div class="v">github pages · github actions · zero servers</div>
-    </div>
+    <h3 class="section-head">// how it works</h3>
+    <p class="section-lead">No account, no server, no database. Your browser talks directly to public Nostr relays; anyone with the link can read the same room. Voice calls connect peer-to-peer over WebRTC — relays only carry the handshake, never your audio.</p>
+    <details class="tech-details">
+      <summary>technical details</summary>
+      <div class="tech">
+        <div class="k">runtime</div>           <div class="v">browser · static html</div>
+        <div class="k">protocol</div>          <div class="v"><code>nostr</code> · nip-07, nip-28, nip-19</div>
+        <div class="k">voice transport</div>  <div class="v"><code>webrtc</code> · <code>RTCPeerConnection</code> + <code>getUserMedia</code></div>
+        <div class="k">codec</div>             <div class="v"><code>opus</code> · 24kbps · 48khz mono</div>
+        <div class="k">signaling</div>         <div class="v">nostr <code>kind:30078</code> events, auto-recovers if a connection stalls</div>
+        <div class="k">topology</div>          <div class="v">direct connections for small calls, an elected relay hub once a room gets bigger</div>
+        <div class="k">networking</div>        <div class="v"><a href="https://www.npmjs.com/package/wireweave">wireweave</a> · loaded live, not bundled</div>
+        <div class="k">deploy</div>            <div class="v">github pages · github actions · zero servers</div>
+      </div>
+    </details>
   </section>
 
   <section class="section" id="manifesto">
-    <h3 class="section-head">// manifesto</h3>
+    <h3 class="section-head">// why it's built this way</h3>
     <div class="manifesto">
-      <p><strong>code is communication.</strong> talk is cheap. PRs are truth.</p>
-      <p><strong>community &gt; capital.</strong> we optimize for the people who show up.</p>
-      <p><strong>learn in public.</strong> ship broken code. iterate fast. improve in the open.</p>
-      <p><strong>fun is a feature.</strong> if it isn't at least a little fun to use, we failed.</p>
+      <p><strong>no account to lose.</strong> your identity is a keypair you hold, not a password we store.</p>
+      <p><strong>nothing to shut down.</strong> there's no server for us to take offline — the relays and your browser keep this running.</p>
+      <p><strong>rough edges, on purpose.</strong> this ships fast and changes often; expect some sharp corners while it settles.</p>
     </div>
   </section>
 

@@ -101,6 +101,14 @@ const state = {
 
   voiceDeafened: signal(false),
 
+  // PTT gate state (voice-ptt.js) -- feeds the SDK's own .vx-ptt button via
+  // nostr-adapter.js's isSpeaking/pttUiMode; voice-ptt.js never touches DOM.
+  pttState: signal('idle'),
+  pttLabel: signal('Hold to talk'),
+  pttDisabled: signal(false),
+  pttQueueCount: signal(0),
+  pttQueuePlaying: signal(false),
+
   roomMembers: signal([]),
 
   membersVisible: signal(true),
