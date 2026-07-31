@@ -11,7 +11,7 @@ hero:
     - { label: "serverless" }
   ctas:
     - { label: "open chat ↗", href: "nostr-chat/", primary: true }
-    - { label: "source", href: "https://github.com/AnEntrypoint/zellous" }
+    - { label: "source ↗", href: "https://github.com/AnEntrypoint/zellous", ghost: true }
 rooms:
   heading: "drop-in rooms"
   items:
