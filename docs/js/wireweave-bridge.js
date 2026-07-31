@@ -85,6 +85,7 @@ window.__wireweaveReady = (async () => {
     getToken: () => a.pubkey || null,
     isLoggedIn: () => a.isLoggedIn(),
     npubShort: (pk) => a.npubShort(pk),
+    nsecEncode: () => a.nsecEncode(),
     showModal() {
       const modal = document.getElementById('authModal'); if (!modal) return;
       modal.style.display = 'flex';

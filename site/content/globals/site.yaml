@@ -1,6 +1,6 @@
 title: "zellous"
-tagline: "production push-to-talk"
-description: "hold the button. talk. someone on the other side hears you. Opus codec, dynamic rooms, 50-message replay. ships production-ready, not prototype-ready."
+tagline: "serverless push-to-talk"
+description: "hold the button. talk. someone on the other side hears you. Opus codec, dynamic rooms, 50-message replay. built in the open, iterated fast."
 repo: "https://github.com/AnEntrypoint/zellous"
 url: "https://anentrypoint.github.io/zellous"
 year: 2026

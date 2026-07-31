@@ -114,7 +114,17 @@
         rows: [
           { label: (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn()) ? ('Signed in as ' + (window.auth.npubShort ? window.auth.npubShort() : '')) : 'Not signed in', kind: 'value', value: '' },
           { label: 'Switch or import identity', kind: 'button', onClick: () => { if (S.authMode) S.authMode.value = 'import'; if (S.authError) S.authError.value = ''; if (S.settingsOpen) S.settingsOpen.value = false; if (S.showAuthModal) S.showAuthModal.value = true; } },
-        ],
+          // There is no account/password-reset path here by design (the
+          // private key IS the identity) -- clearing site data or losing the
+          // device is otherwise permanent, unrecoverable identity loss with
+          // no conceptual recovery. This is the one mitigation a static
+          // client can offer: let the user copy their own key out. Absent
+          // entirely (returns null) under NIP-07 extension auth, where the
+          // extension -- not this app -- holds key custody.
+          (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn() && window.auth.nsecEncode && window.auth.nsecEncode())
+            ? { label: 'Back up key (nsec)', kind: 'button', onClick: () => window.channelManager && window.channelManager.showKeyBackupModal && window.channelManager.showKeyBackupModal() }
+            : null,
+        ].filter(Boolean),
       }],
       voiceSettingsOpen: v('voiceSettingsOpen', false),
       voiceMode: v('vadEnabled', false) ? 'vad' : 'ptt',
@@ -144,7 +154,7 @@
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
       deleteMessage: (id) => call(() => {
-        if (!confirm('Delete this message?')) return;
+        if (!confirm('Request deletion of this message? Relays are not required to honor this, and other clients may have already cached it — this is not a guarantee the content is gone.')) return;
         if (S.replyTarget && S.replyTarget.value && S.replyTarget.value.id === id) S.replyTarget.value = null;
         return window.chat.deleteMessage(id)?.catch?.((e) => window.ui && window.ui.showToast && window.ui.showToast('Delete failed: ' + (e && e.message || 'unknown'), 3000, 'error'));
       }),

@@ -34,9 +34,20 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       'preact/hooks': '../vendor/preact-hooks.mjs',
       '@preact/signals': '../vendor/preact-signals.mjs',
       '@preact/signals-core': '../vendor/signals-core.mjs',
-      'nostr-tools': 'https://esm.sh/nostr-tools@^2.23.9',
+      // Exact-pinned, not a caret range, for the same reason as the
+      // wireweave pin below: this is a security-critical dependency
+      // (signature/key handling), so an unreviewed silent version bump
+      // resolving here is a strictly worse tradeoff than losing automatic
+      // patch updates.
+      'nostr-tools': 'https://esm.sh/nostr-tools@2.23.9',
       xstate: '../vendor/xstate.mjs',
-      wireweave: 'https://esm.sh/wireweave@^0.3.51',
+      // Pinned to an exact version, not a caret range: a loose range meant
+      // the exact code executing here could change (as it did -- ^0.3.51
+      // silently resolved to 0.3.59) with zero commit, review, or release
+      // from this repo. Bumping this pin is now the explicit, auditable
+      // action that ships a new wireweave version to every zellous user;
+      // see AGENTS.md's wireweave-consumption section for the update flow.
+      wireweave: 'https://esm.sh/wireweave@0.3.60',
       'anentrypoint-design': 'https://anentrypoint.github.io/design/247420.js'
     }
   })

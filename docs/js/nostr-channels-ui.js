@@ -344,3 +344,38 @@ channelManager.initDragAndDrop = function() {
     }
   });
 };
+
+// The private key IS the identity here (no backend, no account, no
+// password reset) -- this is the one recovery path a static client can
+// offer: show the real nsec so the user can copy it somewhere safe BEFORE
+// clearing site data or switching devices makes the identity permanently
+// unrecoverable. Deliberately requires an explicit "reveal" click rather
+// than rendering the secret key directly in the DOM on modal open, so a
+// screen-recording or shoulder-surf doesn't capture it by just opening
+// Settings.
+channelManager.showKeyBackupModal = function() {
+  document.getElementById('keyBackupModal')?.remove();
+  var nsec = window.auth && window.auth.nsecEncode && window.auth.nsecEncode();
+  if (!nsec) return;
+  var modal = document.createElement('div');
+  modal.id = 'keyBackupModal'; modal.className = 'modal-overlay open';
+  modal.innerHTML = '<div class="modal-box" style="max-width:440px"><div class="modal-title">Back Up Your Key</div>' +
+    '<p style="font-size:13px;color:var(--text-faint);margin:0 0 12px 0">This is your private key. Anyone with it can post as you, forever. Store it somewhere safe (a password manager) and never share it.</p>' +
+    '<div class="modal-field"><button type="button" class="modal-btn" id="kbReveal">Click to reveal</button>' +
+    '<textarea class="modal-input" id="kbNsec" readonly rows="3" style="display:none;font-family:var(--ff-mono,monospace);font-size:12px;word-break:break-all;margin-top:8px"></textarea></div>' +
+    '<button type="button" class="modal-btn" id="kbCopy" style="display:none">Copy to clipboard</button>' +
+    '<button type="button" class="modal-btn secondary" id="kbClose">Done</button></div>';
+  document.body.appendChild(modal);
+  _a11yModal(modal);
+  var revealBtn = modal.querySelector('#kbReveal'), ta = modal.querySelector('#kbNsec'), copyBtn = modal.querySelector('#kbCopy');
+  revealBtn.addEventListener('click', function() {
+    ta.value = nsec; ta.style.display = 'block'; copyBtn.style.display = 'inline-block'; revealBtn.style.display = 'none';
+  });
+  copyBtn.addEventListener('click', function() {
+    navigator.clipboard?.writeText(nsec).then(function() {
+      copyBtn.textContent = 'Copied!'; setTimeout(function() { copyBtn.textContent = 'Copy to clipboard'; }, 1600);
+    }).catch(function() {});
+  });
+  modal.querySelector('#kbClose').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+};
