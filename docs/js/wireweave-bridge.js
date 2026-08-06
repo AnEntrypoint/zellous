@@ -512,10 +512,16 @@ window.__wireweaveReady = (async () => {
         noiseSuppression: state.rnnoiseEnabled !== false,
         autoGainControl: state.autoGainEnabled !== false,
       });
+      v.setForceRelay(!!state.forceTurnEnabled);
       await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' });
       state.micMuted = !!v.muted;
     },
     setAudioConstraints(patch) { ensureVoice().setAudioConstraints(patch); },
+    setForceRelay(on) { ensureVoice().setForceRelay(on); },
+    setAudioBitrate(kbps) {
+      const tier = kbps <= 16 ? 'low' : kbps <= 32 ? 'medium' : kbps <= 48 ? 'high' : 'max';
+      ensureVoice().setAudioQuality(tier);
+    },
     async disconnect() { if (voice) await voice.disconnect(); },
     toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; },
     setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; },

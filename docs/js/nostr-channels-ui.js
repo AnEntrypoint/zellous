@@ -232,7 +232,7 @@ channelManager.showSettingsModal = function(channelId) {
 
   var isOwner = window.serverRoles && state.currentServerId &&
     (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
-  var typeLabel = { text: 'Text', voice: 'Voice', announcement: 'Announcement', threaded: 'Threaded', forum: 'Forum' }[ch.type] || ch.type;
+  var typeLabel = { text: 'Text', voice: 'Voice', announcement: 'Announcement', threaded: 'Threaded', forum: 'Forum' }[ch.type] || escHtml(ch.type);
   var modeNow = ch.voiceMode || 'ptt';
   var topicNow = ch.topic || '';
 

@@ -200,8 +200,16 @@
         if ('vadThreshold' in patch && S.vadThreshold) S.vadThreshold.value = patch.vadThreshold;
         if ('rnnoise' in patch) { if (S.rnnoiseEnabled) S.rnnoiseEnabled.value = patch.rnnoise; try { localStorage.setItem('rnnoise', patch.rnnoise ? '1' : '0'); } catch (_) {} }
         if ('autoGain' in patch) { if (S.autoGainEnabled) S.autoGainEnabled.value = patch.autoGain; try { localStorage.setItem('autoGain', patch.autoGain ? '1' : '0'); } catch (_) {} }
-        if ('forceTurn' in patch) { if (S.forceTurnEnabled) S.forceTurnEnabled.value = patch.forceTurn; try { localStorage.setItem('forceRelay', patch.forceTurn ? '1' : '0'); } catch (_) {} }
-        if ('bitrate' in patch && S.voiceBitrate) { S.voiceBitrate.value = patch.bitrate; try { localStorage.setItem('voiceBitrate', String(patch.bitrate)); } catch (_) {} }
+        if ('forceTurn' in patch) {
+          if (S.forceTurnEnabled) S.forceTurnEnabled.value = patch.forceTurn;
+          try { localStorage.setItem('forceRelay', patch.forceTurn ? '1' : '0'); } catch (_) {}
+          if (window.lk && window.lk.setForceRelay) window.lk.setForceRelay(!!patch.forceTurn);
+        }
+        if ('bitrate' in patch && S.voiceBitrate) {
+          S.voiceBitrate.value = patch.bitrate;
+          try { localStorage.setItem('voiceBitrate', String(patch.bitrate)); } catch (_) {}
+          if (window.lk && window.lk.setAudioBitrate) window.lk.setAudioBitrate(patch.bitrate);
+        }
         if (window.lk && window.lk.setAudioConstraints) window.lk.setAudioConstraints({ deviceId: v('inputDeviceId', null), noiseSuppression: v('rnnoiseEnabled', true), autoGainControl: v('autoGainEnabled', true) });
       }),
       voiceSettingsSave: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
