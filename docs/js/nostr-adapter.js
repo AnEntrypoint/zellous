@@ -335,7 +335,7 @@
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });
     };
 
-    const adapter = { get, subscribe, actions, helpers };
+    const adapter = { get, subscribe, actions, helpers, brandName: 'zellous' };
     const app = mount(root, adapter);
 
     // Preserve the imperative overlay globals other zellous modules call.

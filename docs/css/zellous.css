@@ -16,6 +16,20 @@ html, body {
   --bg-4:       #C8C0A8;
   --accent-alt: #420247;
   --green-fg:   var(--paper, #F6F5F1);
+  /* zellous is a Nostr-native app branded around green (the Z-avatar, the
+     mic/speaker icons, "Zellous Public"); the SDK's own --accent default is
+     a dark neutral (--acid), shared across every consumer app. Without this
+     override, every element styled via --accent (buttons, active states,
+     focus rings) renders neutral while the few zellous-hardcoded --green
+     spots stay green — two different "accent" colors on screen at once,
+     reading as an inconsistent placeholder rather than one designed brand
+     color. This is the one deliberate per-consumer override of a canonical
+     token — every other --accent-* alias (--accent-fg/-ink/-bright/-tint)
+     derives from --accent automatically via colors_and_type.css, so this
+     single line re-threads the whole accent system to green. */
+  --accent:      var(--green);
+  --accent-ink:  var(--green-deep);
+  --accent-bright: var(--green-2);
   /* Category / avatar palette — zellous brand color-coding tokens (mirror of AVATAR_COLORS) */
   --cat-green:  #3F8A4A;
   --cat-purple: #6B3A78;

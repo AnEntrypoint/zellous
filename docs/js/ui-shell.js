@@ -16,7 +16,7 @@
         const srv = home ? 'home' : (servers.find(s => s.id === sid)?.name || 'home');
         const msgCount = (window.stateSignals?.chatMessages?.value || []).length;
         if (statServer) statServer.textContent = srv;
-        if (statMsgs) statMsgs.textContent = msgCount === 0 ? 'no messages' : (msgCount + (msgCount === 1 ? ' message' : ' messages'));
+        if (statMsgs) statMsgs.textContent = msgCount === 0 ? 'nothing here yet' : (msgCount + (msgCount === 1 ? ' message' : ' messages'));
         if (statRooms) {
           const rooms = (window.stateSignals?.channels?.value || []).filter(c => c.type !== 'voice' && c.type !== 'threaded');
           const n = rooms.length;
