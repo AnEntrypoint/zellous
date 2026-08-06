@@ -155,7 +155,14 @@
       };
     };
 
-    const call = (fn) => { try { return fn && fn(); } catch (_) {} };
+    const toastErr = (label, e) => window.ui && window.ui.showToast && window.ui.showToast(label + ' failed: ' + ((e && e.message) || 'unknown'), 3000, 'error');
+    const call = (fn, label) => {
+      try {
+        const r = fn && fn();
+        if (r && typeof r.catch === 'function') return r.catch((e) => { if (label) toastErr(label, e); });
+        return r;
+      } catch (e) { if (label) toastErr(label, e); }
+    };
     const actions = {
       switchChannel: (ch) => call(() => window.ui.actions.switchChannel(ch)),
       send: (text, opts) => call(() => { window.chat.send(text, opts); if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }),

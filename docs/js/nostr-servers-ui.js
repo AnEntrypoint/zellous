@@ -137,19 +137,35 @@ serverManager.showEditModal = function(serverId) {
     modal.querySelector('#editServerForm').insertBefore(allowlistField, modal.querySelector('[type="submit"]'));
   }
   modal.querySelector('#editServerForm').addEventListener('submit', async function() {
-    var name = document.getElementById('editServerName').value.trim();
-    if (!name) return;
-    srv.name = name; srv.iconColor = selectedColor;
-    state.servers = state.servers.slice();
-    serverManager._persistServers();
+    var nameEl = document.getElementById('editServerName');
+    var name = nameEl.value.trim();
+    if (!name) { _invalidInput(nameEl); return; }
+    var prevName = srv.name, prevColor = srv.iconColor;
     if (srv.ownerId === state.nostrPubkey) {
-      try { await serverManager.rename(serverId, name, selectedColor); } catch (e) {}
+      try {
+        await serverManager.rename(serverId, name, selectedColor);
+        srv.name = name; srv.iconColor = selectedColor;
+        state.servers = state.servers.slice();
+        serverManager._persistServers();
+      } catch (e) {
+        srv.name = prevName; srv.iconColor = prevColor;
+        window.ui && window.ui.showToast && window.ui.showToast('Rename failed: ' + (e && e.message || 'unknown'), 3000, 'error');
+        return;
+      }
+    } else {
+      srv.iconColor = selectedColor;
+      state.servers = state.servers.slice();
+      serverManager._persistServers();
     }
     if (isAdmin && window.serverSettings) {
       var bitrateEl = document.getElementById('editServerBitrate');
-      if (bitrateEl) await serverSettings.setBitrate(serverId, parseInt(bitrateEl.value)).catch(function(){});
+      if (bitrateEl) await serverSettings.setBitrate(serverId, parseInt(bitrateEl.value)).catch(function(e) {
+        window.ui && window.ui.showToast && window.ui.showToast('Bitrate save failed: ' + (e && e.message || 'unknown'), 3000, 'error');
+      });
       var allowlistEl = document.getElementById('editServerAllowlist');
-      if (allowlistEl) await serverSettings.setEmbedAllowlist(serverId, allowlistEl.value).catch(function(){});
+      if (allowlistEl) await serverSettings.setEmbedAllowlist(serverId, allowlistEl.value).catch(function(e) {
+        window.ui && window.ui.showToast && window.ui.showToast('Embed allowlist save failed: ' + (e && e.message || 'unknown'), 3000, 'error');
+      });
     }
     modal.remove(); ui.render.all();
   });
@@ -225,10 +241,11 @@ serverManager.showCreateModal = function() {
   });
   modal.querySelector('#newServerName').focus();
   modal.querySelector('#createServerForm').addEventListener('submit', async function() {
-    var name = document.getElementById('newServerName').value.trim();
-    if (!name) return;
+    var nameEl = document.getElementById('newServerName');
+    var name = nameEl.value.trim();
+    if (!name) { _invalidInput(nameEl); return; }
     try { await serverManager.create(name, selectedColor); modal.remove(); }
-    catch (e) { console.warn('[Server] Create failed:', e.message); }
+    catch (e) { window.ui && window.ui.showToast && window.ui.showToast('Create server failed: ' + (e && e.message || 'unknown'), 3000, 'error'); }
   });
   modal.querySelector('#cancelCreateServer').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });

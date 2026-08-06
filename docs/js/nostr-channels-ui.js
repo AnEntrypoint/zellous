@@ -26,6 +26,18 @@ function _a11yModal(modal) {
   }, 0);
 }
 
+// Shared empty/invalid-field feedback for creation/rename forms: a brief
+// shake + red border so a blocked submit (e.g. empty name) is visible
+// instead of the button silently doing nothing.
+function _invalidInput(el) {
+  if (!el) return;
+  el.classList.remove('input-invalid');
+  void el.offsetWidth;
+  el.classList.add('input-invalid');
+  el.focus();
+  setTimeout(function() { el.classList.remove('input-invalid'); }, 500);
+}
+
 var _mkMenu = function(id, x, y, html, onAction) {
   document.getElementById(id)?.remove();
   var menu = document.createElement('div');
@@ -106,7 +118,7 @@ channelManager.showRenameModal = function(channelId, currentName) {
   modal.querySelector('#crForm').addEventListener('submit', async function() {
     var name = input.value.trim();
     if (!name || name === currentName) { modal.remove(); return; }
-    try { await channelManager.rename(channelId, name); modal.remove(); } catch (e) { console.warn('[Channel] Rename failed:', e.message); }
+    try { await channelManager.rename(channelId, name); modal.remove(); } catch (e) { window.ui && window.ui.showToast && window.ui.showToast('Rename failed: ' + (e && e.message || 'unknown'), 3000, 'error'); }
   });
   modal.querySelector('#crCancel').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
@@ -179,7 +191,7 @@ channelManager.showRenameCategoryModal = function(categoryId, currentName) {
   modal.querySelector('#carForm').addEventListener('submit', async function() {
     var name = input.value.trim();
     if (!name || name === currentName) { modal.remove(); return; }
-    try { await channelManager.renameCategory(categoryId, name); modal.remove(); } catch (e) { console.warn('[Category] Rename failed:', e.message); }
+    try { await channelManager.renameCategory(categoryId, name); modal.remove(); } catch (e) { window.ui && window.ui.showToast && window.ui.showToast('Rename failed: ' + (e && e.message || 'unknown'), 3000, 'error'); }
   });
   modal.querySelector('#carCancel').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
@@ -335,12 +347,12 @@ channelManager.initDragAndDrop = function() {
       if (draggedCh) {
         if (dropT.type === 'channel') {
           var tch = channels.find(function(c) { return c.id === dropT.id; });
-          if (tch) { var nc = tch.categoryId, chs2 = channels.filter(function(c) { return c.categoryId === nc; }).sort(function(a, b) { return (a.position||0)-(b.position||0); }); var ti = chs2.findIndex(function(c) { return c.id === dropT.id; }), np = dropT.position === 'before' ? ti : ti+1, ids = chs2.map(function(c) { return c.id; }), fi = ids.indexOf(dCh); if (fi !== -1) ids.splice(fi, 1); ids.splice(np > fi ? np-1 : np, 0, dCh); try { await channelManager.reorderChannels(nc, ids); } catch(err) { console.warn(err.message); } }
-        } else if (dropT.type === 'category') { var nc2 = dropT.id === 'uncategorized' ? null : dropT.id, chs3 = channels.filter(function(c) { return c.categoryId === nc2; }).sort(function(a,b){return(a.position||0)-(b.position||0);}), ids2 = chs3.map(function(c){return c.id;}); if (dropT.position === 'first') ids2.unshift(dCh); else ids2.push(dCh); try { await channelManager.reorderChannels(nc2, ids2); } catch(err) { console.warn(err.message); } }
+          if (tch) { var nc = tch.categoryId, chs2 = channels.filter(function(c) { return c.categoryId === nc; }).sort(function(a, b) { return (a.position||0)-(b.position||0); }); var ti = chs2.findIndex(function(c) { return c.id === dropT.id; }), np = dropT.position === 'before' ? ti : ti+1, ids = chs2.map(function(c) { return c.id; }), fi = ids.indexOf(dCh); if (fi !== -1) ids.splice(fi, 1); ids.splice(np > fi ? np-1 : np, 0, dCh); try { await channelManager.reorderChannels(nc, ids); } catch(err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); } }
+        } else if (dropT.type === 'category') { var nc2 = dropT.id === 'uncategorized' ? null : dropT.id, chs3 = channels.filter(function(c) { return c.categoryId === nc2; }).sort(function(a,b){return(a.position||0)-(b.position||0);}), ids2 = chs3.map(function(c){return c.id;}); if (dropT.position === 'first') ids2.unshift(dCh); else ids2.push(dCh); try { await channelManager.reorderChannels(nc2, ids2); } catch(err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); } }
       }
     } else if (dCat && dropT) {
       var cats = state.categories || [], sorted = cats.slice().sort(function(a,b){return(a.position||0)-(b.position||0);}); var di = sorted.findIndex(function(c){return c.id===dCat;}), ti2 = sorted.findIndex(function(c){return c.id===dropT.id;});
-      if (di !== -1 && ti2 !== -1) { var rem = sorted.splice(di,1)[0]; sorted.splice(dropT.position==='before'?ti2:ti2+1, 0, rem); try { await channelManager.reorderCategories(sorted.map(function(c){return c.id;})); } catch(err) { console.warn(err.message); } }
+      if (di !== -1 && ti2 !== -1) { var rem = sorted.splice(di,1)[0]; sorted.splice(dropT.position==='before'?ti2:ti2+1, 0, rem); try { await channelManager.reorderCategories(sorted.map(function(c){return c.id;})); } catch(err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); } }
     }
   });
 };
@@ -374,7 +386,9 @@ channelManager.showKeyBackupModal = function() {
   copyBtn.addEventListener('click', function() {
     navigator.clipboard?.writeText(nsec).then(function() {
       copyBtn.textContent = 'Copied!'; setTimeout(function() { copyBtn.textContent = 'Copy to clipboard'; }, 1600);
-    }).catch(function() {});
+    }).catch(function(e) {
+      window.ui && window.ui.showToast && window.ui.showToast('Clipboard copy failed: ' + (e && e.message || 'select the text and copy manually'), 4000, 'error');
+    });
   });
   modal.querySelector('#kbClose').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });

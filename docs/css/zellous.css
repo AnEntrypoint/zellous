@@ -467,6 +467,8 @@ html.ds-247420 .ds-pattern-notes p { margin: 0 0 8px; font-size: var(--fs-sm); c
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 @keyframes spin { to{transform:rotate(360deg)} }
 .spin { animation: spin 1s linear infinite; }
+@keyframes shake { 10%,90%{transform:translateX(-1px)} 20%,80%{transform:translateX(2px)} 30%,50%,70%{transform:translateX(-4px)} 40%,60%{transform:translateX(4px)} }
+.input-invalid { animation: shake 0.4s; border-color: var(--red, #e5484d) !important; }
 
 .server-back-link {
   display: flex;
