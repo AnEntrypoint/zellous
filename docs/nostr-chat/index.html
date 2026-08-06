@@ -34,11 +34,10 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       'preact/hooks': '../vendor/preact-hooks.mjs',
       '@preact/signals': '../vendor/preact-signals.mjs',
       '@preact/signals-core': '../vendor/signals-core.mjs',
-      // Exact-pinned, not a caret range, for the same reason as the
-      // wireweave pin below: this is a security-critical dependency
-      // (signature/key handling), so an unreviewed silent version bump
-      // resolving here is a strictly worse tradeoff than losing automatic
-      // patch updates.
+      // Exact-pinned, not a caret range: this is a security-critical
+      // dependency (signature/key handling), so an unreviewed silent
+      // version bump resolving here is a strictly worse tradeoff than
+      // losing automatic patch updates.
       'nostr-tools': 'https://esm.sh/nostr-tools@2.23.9?bundle',
       xstate: '../vendor/xstate.mjs',
       wireweave: 'https://unpkg.com/wireweave@latest/src/index.js',
