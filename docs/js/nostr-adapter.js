@@ -65,6 +65,10 @@
       currentChannel: curr,
       currentServerId: sid,
       pageHtml: pageData ? pageData.html : '',
+      pageAuthor: pageData && pageData.author
+        ? ((window.chat && window.chat.resolveProfile(pageData.author)) || (window.auth && window.auth.npubShort(pageData.author)) || '')
+        : '',
+      pageUpdatedAt: pageData ? pageData.updatedAt : 0,
       canManage,
       homeMode: (window.state && window.state.homeMode) || false,
       messages: ((window.chat && window.chat.messages) || v('chatMessages', [])).map((m) => {
