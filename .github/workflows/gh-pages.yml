@@ -37,3 +37,12 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          # Default 10min timeout is right at the edge of this repo's observed
+          # normal deploy latency (up to ~11.5min for legitimate successes,
+          # per AGENTS.md); repeated false-timeout failures this session were
+          # actions/deploy-pages@v5's own polling loop giving up on a
+          # deployment_in_progress/deployment_queued status that was still
+          # genuinely converging, not stuck. Widened, not removed — a truly
+          # stuck deployment still gets cancelled eventually.
+          timeout: 900000
