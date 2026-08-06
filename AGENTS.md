@@ -241,6 +241,16 @@ dist/                                CI build artifact
 scripts/fetch-vendor.js              vendored-dep fetcher
 ```
 
+**How `docs/` reaches production (`dist/` is not just the marketing landing).** `.github/workflows/gh-pages.yml`
+runs `npx --yes flatspace@latest build` and uploads `./dist` as the Pages artifact (`build_type=workflow`,
+`actions/deploy-pages@v4`) — Pages serves `dist/` directly, not `docs/`. `site/theme.mjs`'s `assets` map
+(`'../docs/nostr-chat': 'nostr-chat'`, plus `docs/vendor`, `docs/css`, `docs/js`, `docs/msgpackr.min.js`)
+copies those paths from `docs/` into `dist/` verbatim at build time — flatspace only *renders* `dist/index.html`
+(the landing) from `site/content/`; everything else it copies as-is. So `docs/` remains the source of truth you
+edit, and `dist/nostr-chat/` at the live URL is a straight, unmodified copy of `docs/nostr-chat/` produced fresh
+on every push — there is no separate "docs is live" vs "dist is live" split to worry about, just an extra copy
+step between the two.
+
 **Legacy overlays/inputs with no `position` rule inflate `document.body.scrollHeight`** — post-SDK-migration, several legacy DOM elements survive in `nostr-chat/index.html` still wired to legacy controllers (`#videoPlayback` toggled by webcam.js, `#settingsPopover` toggled by ui-actions.toggleSettings, `#fileInput.hidden-input`). They carried NO CSS `position`/`display` rule, so they defaulted to `position:static; display:block` and sat in normal flow *below* the SDK AppShell, inflating `document.body.scrollHeight` (witnessed 1358 vs 900 viewport). Because `html,body { overflow:hidden }` is set, this produced no visible scrollbar — a silent latent bug. Fix (commit fdd4d28): `zellous.css` now positions `.video-playback` + `.settings-popover` as `position:fixed; display:none` overlays (z-index 2600) and `.hidden-input` as the canonical visually-hidden 1px clip. When you add any always-present overlay/trigger element to index.html, give it a `position:fixed`/`absolute` + hidden-by-default rule or it will inflate body height. Verify with `document.body.scrollHeight <= window.innerHeight` in a browser witness.
 
 **GUI surface validation, SDK icon set, context-menu contract, chat chrome layout, and no-mock-data enforcement** — all historical details (pre-`mountCommunityApp`-migration mount names like `sdk-rooms.js`/`sdk-context-menu.js`/`sdk-channel-sidebar.js`/`sdk-user-panel.js` no longer exist on disk) compressed; recall "zellous GUI surface validation and icon/context-menu/chrome history" for detail if needed.

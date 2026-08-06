@@ -1,5 +1,6 @@
 node_modules/
 tmp/
+.agentplug-kv/
 .vexify.db
 .claude/
 .playwright-mcp/
@@ -68,6 +69,11 @@ rs-learn.db
 .gm/browser-state/
 .gm/config-source-cache-*/
 .gm/config-source-cache-*.json
+.gm/config-source-cache-default
+.gm/gm.db
+.gm/gm.db-*
+.gm/.embed-generation.*
+.gm/prd.yml
 .gm/memories/
 .gm/claim-audit-fired
 .gm/pw-sock-*

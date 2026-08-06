@@ -1,6 +1,7 @@
 // AnEntrypoint design-system theme for flatspace.
-// Renders SDK chrome around home (landing) AND legacy docs/* pages
-// (each rendered as an iframe of the original, preserving scripts/styles).
+// Renders SDK chrome around the home (landing) page; docs/nostr-chat, docs/vendor,
+// docs/css, docs/js, and docs/msgpackr.min.js are copied into dist/ verbatim as
+// build-time assets (see `assets` below), not rendered or iframed by this theme.
 
 import { readFileSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
