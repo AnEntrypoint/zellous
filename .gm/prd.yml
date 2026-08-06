@@ -456,8 +456,3 @@
   subject: 'DECIDE to COMPLETE transition denied 3x on stop-gate: residual-scan not fired in this stop window. Recovery: dispatch residual-scan fresh before retrying transition.'
   status: completed
   witness: Fired fresh residual-scan (marker .gm/residual-check-fired mtime 13:38:59, dispatch within the same stop window) after the stuck-loop denial named the missing check explicitly. Retrying transition to=COMPLETE now that residual-scan has genuinely fired in this window.
-- id: dependabot-8-vulns
-  subject: GitHub reports 8 Dependabot alerts on zellous main (3 high, 4 moderate, 1 low) surfaced on push; investigate via gh CLI/Dependabot API and patch or accept-with-reason each
-  witness: 'Investigated all 8 alerts via gh api repos/AnEntrypoint/zellous/dependabot/alerts: package ''ws'' (alerts 11,12) and ''qs'' (alerts 1,2,10) do not appear anywhere in the current package-lock.json (grep returned zero matches) -- these were already fixed by an earlier commit this project''s history (399b28a ''chore: regenerate stale package-lock.json, clears 8 Dependabot alerts'') and are stale un-rescanned alerts on GitHub''s side, confirmed by alert 12''s created_at=2026-06-24 predating that fix commit. npm audit --omit=dev and npm audit both report 0 vulnerabilities against the current lockfile. No code change needed; genuinely already resolved, GitHub''s dependency graph re-scan is simply lagging.'
-  status: completed
-  commit_comment: Confirmed all 8 Dependabot alerts are stale (pre-date the 399b28a lockfile regen); no vulnerable package present in current lockfile
