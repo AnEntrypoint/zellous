@@ -35,7 +35,7 @@ stack:
     - { k: "codec", v: "opus via WebCodecs · 24kbps · 48khz mono" }
     - { k: "signaling", v: "nostr kind:30078 · perfect-negotiation · iceRestart on stall" }
     - { k: "topology", v: "mesh ≤ 2 · star/sfu hub-elected ≥ 3 (lowest avg RTT wins)" }
-    - { k: "networking", v: "wireweave · vendored" }
+    - { k: "networking", v: "wireweave · npm package" }
     - { k: "deploy", v: "github pages · github actions · zero servers" }
 manifesto:
   heading: "manifesto"

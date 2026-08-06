@@ -16,8 +16,7 @@
 <link rel="stylesheet" media="print" onload="this.media='all'"
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
 
-<link rel="stylesheet" href="vendor/design/colors_and_type.css">
-<link rel="stylesheet" href="vendor/design/app-shell.css">
+<link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
 
 <style>
 /* Page-local tokens — accessibility-tuned hover hues for inverted card surfaces */
@@ -365,9 +364,9 @@ h3.section-head {
         <div class="k">runtime</div>           <div class="v">browser · static html</div>
         <div class="k">protocol</div>          <div class="v"><code>nostr</code> · nip-07, nip-28, nip-19</div>
         <div class="k">voice transport</div>  <div class="v"><code>webrtc</code> · <code>RTCPeerConnection</code> + <code>getUserMedia</code></div>
-        <div class="k">codec</div>             <div class="v"><code>opus</code> · 24kbps · 48khz mono</div>
-        <div class="k">signaling</div>         <div class="v">nostr <code>kind:30078</code> events, auto-recovers if a connection stalls</div>
-        <div class="k">topology</div>          <div class="v">direct connections for small calls, an elected relay hub once a room gets bigger</div>
+        <div class="k">codec</div>             <div class="v"><code>opus</code> via WebCodecs · 24kbps · 48khz mono</div>
+        <div class="k">signaling</div>         <div class="v">nostr <code>kind:30078</code> · perfect-negotiation · iceRestart on stall</div>
+        <div class="k">topology</div>          <div class="v">mesh ≤ 2 · star/sfu hub-elected ≥ 3 (lowest avg RTT wins)</div>
         <div class="k">networking</div>        <div class="v"><a href="https://www.npmjs.com/package/wireweave">wireweave</a> · loaded live, not bundled</div>
         <div class="k">deploy</div>            <div class="v">github pages · github actions · zero servers</div>
       </div>

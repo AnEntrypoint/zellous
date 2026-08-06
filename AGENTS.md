@@ -4,7 +4,7 @@ This file is for agents (Claude Code, etc.) working in this repo. For the archit
 
 ## Repo shape (one-liner)
 
-Static GH-Pages app under `docs/`. Real protocol logic lives in the `wireweave` sibling repo (`../wireweave`, published to npm), consumed live over `esm.sh` — no local vendor copy. Window globals are wired in `docs/js/wireweave-bridge.js`. No backend, no build for the app itself; `flatspace.config.mjs` + `site/` only build the marketing landing into `dist/`.
+Static GH-Pages app under `docs/`. Real protocol logic is the **`wireweave` npm package**, loaded straight from unpkg `@latest` via the injected importmap — there is no vendored copy and no submodule. Window globals are wired in `docs/js/wireweave-bridge.js`. No backend, no build for the app itself; `flatspace.config.mjs` + `site/` only build the marketing landing into `dist/`.
 
 ## What you almost certainly want to edit
 
@@ -12,12 +12,35 @@ Static GH-Pages app under `docs/`. Real protocol logic lives in the `wireweave` 
 |---|---|
 | Change UI render / layout for the whole app | edit `anentrypoint-design`'s `mountCommunityApp` (see GUI ownership section) — only `docs/js/sdk-command-palette.js` survives as a subtree mount |
 | Change zellous-side actions/state feeding the SDK | `docs/js/nostr-adapter.js` (adapter contract), `docs/js/ui-actions.js`, `docs/js/state.js`, `docs/css/zellous.css` |
-| Change protocol behavior (Nostr events, voice signaling, etc.) | `../wireweave`'s `src/*.js` (sibling repo, `AnEntrypoint/wireweave` on GitHub) — commit + push, `publish.yml` auto-publishes to npm, zellous picks it up on next load via its unpinned `esm.sh/wireweave` importmap entry, no re-vendor step |
+| Change protocol behavior (Nostr events, voice signaling, etc.) | the `AnEntrypoint/wireweave` repo, then publish it to npm. zellous picks the new build up from unpkg `@latest` on the next page load, with no commit in zellous. See "wireweave is an npm package" below. |
 | Expose / rename a window global | `docs/js/wireweave-bridge.js` (mirror under `window.__zellous`) |
-| Add a vendored dep | `scripts/fetch-vendor.js`, then add an importmap entry inside the inline injector script in `docs/nostr-chat/index.html` |
+| Add a vendored dep (not wireweave) | `scripts/fetch-vendor.js`, then add an importmap entry inside the inline injector script in `docs/nostr-chat/index.html` |
 | Touch state | `docs/js/state.js` (single source of truth for signals) |
-| Improve an SDK component (or add a missing one) | edit `../design`'s (sibling repo, `https://github.com/AnEntrypoint/design`) `src/components/*.js` + the relevant cssPart (`community.css`/`editor-primitives.css`/`app-shell.css`), re-export from `src/components.js` (barrel re-export is what makes it `C.X`), run `node scripts/build.mjs`, then **commit + push the SDK repo**. Its GitHub Pages deploy (`https://anentrypoint.github.io/design/247420.js` + `247420.css`) is what zellous consumes live — there is **no re-vendor step in zellous anymore** (see SDK-load note below). npm publish is still blocked (no auth); gh-pages is the propagation path. |
+| Improve an SDK component (or add a missing one) | edit the `anentrypoint-design` repo's `src/components/*.js` + the relevant cssPart (`community.css`/`editor-primitives.css`/`app-shell.css`), re-export from `src/components.js` (barrel re-export is what makes it `C.X`), run `node scripts/build.mjs`, then **commit + push the SDK repo** (npm publish). unpkg's `@latest` CDN build (`https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}`) is what zellous consumes live — there is **no re-vendor step in zellous anymore** (see SDK-load note below). |
 | Marketing landing | `docs/index.html` (live) and/or `site/` + `flatspace.config.mjs` (CI-built `dist/`) |
+
+## wireweave is an npm package loaded from unpkg `@latest`
+
+zellous has **no wireweave submodule and no vendored wireweave copy**. The injected importmap in
+`docs/nostr-chat/index.html` maps the bare specifier to
+`https://unpkg.com/wireweave@latest/src/index.js`, exactly the way it already maps
+`anentrypoint-design`, and `docs/js/wireweave-bridge.js` does a plain `await import('wireweave')`.
+`package.json` declares `"wireweave": "latest"` for the same reason it declares the kit at `latest`
+— a declaration of record, never a caret range that would freeze on the `0.3.x` line.
+
+This works because **wireweave takes its dependencies by injection rather than importing them**:
+`createWireweave({ nostrTools, xstate, storage, ... })`, and `NostrAuth` throws `nostrTools required`
+rather than resolving it itself. Every module under its `src/` imports only relative siblings, so a
+CDN-served entry emits no bare specifier the importmap would have to satisfy — `nostr-tools` and
+`xstate` stay on their existing local `../vendor/` entries, independent of how wireweave is
+delivered. Only `src/`, `README.md` and `LICENSE` are published, so never expect the repo's
+`test.js`, `AGENTS.md` or `site/` from the package.
+
+To change wireweave, work in the `AnEntrypoint/wireweave` repo and publish it; zellous picks the new
+build up on the next page load. **Accepted tradeoff, identical to the kit's:** a wireweave publish
+can change zellous's behavior with no commit in zellous, and boot depends on `unpkg.com` being
+reachable. If that ever needs to stop floating, pin the importmap entry to an exact version — the
+`@latest` choice is deliberate and matches every other browser-delivered consumer.
 
 ## GUI ownership: the SDK owns the whole app (`mountCommunityApp`)
 
@@ -36,10 +59,9 @@ to the adapter contract `{get()->snapshot, subscribe(cb), actions, helpers}` and
 `mountCommunityApp(#app, adapter)`. `subscribe` registers a `window.__effect` over the ~20 reactive
 signals so any change re-renders. The imperative overlay globals (`__contextMenu`/`__emojiPicker`/
 `__commandPalette`) are re-exposed from the returned `app.api`. The legacy `.app` scaffold in
-`index.html` is retained `display:none` (feature modules still query its hosts for state plumbing;
-also a one-step revert). The 27 old `docs/js/sdk-*.js` mount IIFEs (all but
-`sdk-command-palette.js`) are deleted; only `sdk-command-palette.js` remains, still referenced in
-`index.html`'s `scripts[]`. To change the GUI, edit
+`index.html` was deleted (commit `b6038a6`) — no dead `display:none` markup remains. The 27 old
+`docs/js/sdk-*.js` mount IIFEs (all but `sdk-command-palette.js`) are deleted; only
+`sdk-command-palette.js` remains, still referenced in `index.html`'s `scripts[]`. To change the GUI, edit
 `anentrypoint-design` (additively) and let gh-pages redeploy.
 
 **Adapter contract** is documented at the top of `src/community-app.js`. To add a surface: compose it
@@ -120,6 +142,7 @@ is advisory for now.
 - **`site/theme.mjs` imports `anentrypoint-design`.** Resolved by flatspace at CI build time; not by the browser. Don't try to vendor it locally.
 - **`dist/index.html` differs from `docs/index.html`.** Different surfaces. `docs/` is the live GH-Pages site; `dist/` is the flatspace build artifact.
 - **Repo-insight banners may flag `server.js`, SQL, hardcoded creds, etc.** The summary indexer caches old project shape. The current repo has no server, no SQL, no embedded credentials. Verify against the actual tree before "fixing".
+- **No `wireweave` under `docs/vendor/`.** It is an npm package resolved from unpkg by the injected importmap, not a vendored directory — a plain `git clone` is complete and boots with no submodule step. See "wireweave is an npm package loaded from unpkg `@latest`" above.
 
 ## Rules
 
@@ -168,11 +191,21 @@ When wiring any adapter boolean the SDK's own render logic branches on (e.g. `mo
 
 **Flatspace build command and output** — Flatspace is invoked via `npx --yes flatspace@latest build` (see .github/workflows/gh-pages.yml). There is no local build script in package.json; the command must be run directly. Build output goes to ./dist.
 
-**docs/sdk/ vs docs/vendor/ gitignore split** — `docs/vendor/` is gitignored (third-party drops). `docs/sdk/` is NOT gitignored and is committed. SDK assets (e.g. `247420.js` copied from `node_modules/anentrypoint-design/dist/`) belong in `docs/sdk/`, not `docs/vendor/`.
+**There is no local SDK copy anywhere in zellous — both surfaces load unpkg `@latest`** — `docs/sdk/` does not exist, and the last stale vendored kit CSS (`docs/vendor/design/{colors_and_type,app-shell}.css`) has been removed. It was tracked in git and linked ONLY by the marketing landing (`docs/index.html`), so the landing rendered a frozen old kit while `docs/nostr-chat/` rendered live `@latest` — two different kit versions in one repo, with the doc claiming no local copy existed. Both surfaces now link the single bundled `https://unpkg.com/anentrypoint-design@latest/dist/247420.css`. Do not reintroduce a vendored kit copy: if a surface needs kit CSS, link that same bundled `@latest` URL.
 
-**wireweave consumed LIVE from npm via esm.sh, pinned to a caret range (2026-07-30, supersedes both the vendored approach and the original fully-unpinned CDN specifier)** — the inline importmap injector in `docs/nostr-chat/index.html` maps `wireweave` → `https://esm.sh/wireweave@^0.3.51` (esm.sh resolves the caret range server-side to the latest matching published version — confirmed live-resolving to a newer patch at pin time — so patch/minor releases still auto-track with zero staging, but an accidental breaking major bump no longer ships to every zellous user instantly; `wireweave-bridge.js` does `await import('wireweave')` and uses `mod.createWireweave(...)`). The vendored `docs/vendor/wireweave/src/` copy remains **deleted** — re-vendoring is still rejected (it drifted stale under the old copy-by-hand model and would drift again). To propagate a wireweave change: commit + push `../wireweave` (sibling repo); its `publish.yml` auto-publishes to npm on every push to `main`, and zellous picks up any new version matching the pinned range automatically — no re-vendor step. Bumping the floor (e.g. after an intentional `../wireweave` minor/major release) is a one-line edit to the importmap's caret string, not a re-vendor. **Tradeoff:** zellous boot still depends on `esm.sh` being reachable, and a regression published within the pinned range still ships immediately with no staging step; `wireweave-bridge.js` still has no try/catch fallback for this import (unlike the SDK's `window.__sdk = null` graceful-degrade) since wireweave failing to load means the app has no protocol layer at all — there is no degraded mode to fall back to. The caret pin narrows blast radius to same-major regressions only; it does not add a staging step within that range.
+**wireweave consumed LIVE from npm via unpkg `@latest` (supersedes both the vendored approach and any pinned CDN specifier)** — the inline importmap injector in `docs/nostr-chat/index.html` maps `wireweave` → `https://unpkg.com/wireweave@latest/src/index.js`; `wireweave-bridge.js` does `await import('wireweave')` and uses `mod.createWireweave(...)`. The vendored `docs/vendor/wireweave/src/` copy remains **deleted** — re-vendoring is rejected (it drifted stale under the old copy-by-hand model and would drift again). Deliberately unpinned, not a caret or exact-version pin: to propagate a wireweave change, commit + push `AnEntrypoint/wireweave` (sibling repo), which publishes to npm; unpkg's `@latest` resolves the new version immediately and zellous picks it up on next load — no importmap edit, no re-vendor step. **Tradeoff:** zellous boot depends on `unpkg.com` being reachable, and any published regression ships immediately with no staging step; `wireweave-bridge.js` has a clear boot-error message on import failure (no try/catch fallback — wireweave failing to load means the app has no protocol layer at all, so there is no degraded mode to fall back to).
 
-**SDK JS+CSS consumed LIVE from anentrypoint-design's GitHub Pages (2026-05-27, supersedes the vendored approach)** — the inline importmap injector in `docs/nostr-chat/index.html` maps `anentrypoint-design` → `https://anentrypoint.github.io/design/247420.js`, and the single stylesheet `<link>` points at `https://anentrypoint.github.io/design/247420.css` (bundled: colors_and_type + app-shell + community + editor-primitives, all scoped under `.ds-247420`, matched by `<html class="ds-247420">`). The old vendored copies (`docs/sdk/247420.{js,css}` and `docs/css/vendor/*`) were **deleted** — zellous no longer carries an SDK copy and auto-tracks the SDK's gh-pages deploy. To propagate an SDK change: `node scripts/build.mjs` in `../design` (sibling repo, `AnEntrypoint/design` on GitHub), commit + push; gh-pages redeploys (~30–60s) and zellous picks it up on next load. **Tradeoff:** zellous boot now depends on `anentrypoint.github.io` being reachable; the SDK import is wrapped in try/catch and sets `window.__sdk = null` on failure (graceful-degrade, no hard crash). npm publish remains blocked (no auth). Note: `https://anentrypoint.github.io/design/community.css` and `editor-primitives.css` are **404** individually — only the bundled `247420.css` carries `.cm-*`/`.vx-*`/`.ov-*`; do not link the individual cssPart names from gh-pages.
+**SDK JS+CSS consumed LIVE from unpkg @latest (supersedes the gh-pages approach)** — the inline importmap injector in `docs/nostr-chat/index.html` maps `anentrypoint-design` → `https://unpkg.com/anentrypoint-design@latest/dist/247420.js`, and the single stylesheet `<link>` points at `https://unpkg.com/anentrypoint-design@latest/dist/247420.css` (bundled: colors_and_type + app-shell + community + editor-primitives, all scoped under `.ds-247420`, matched by `<html class="ds-247420">`). zellous carries no local SDK copy and auto-tracks the SDK's npm-published `@latest` build via unpkg. To propagate an SDK change: `node scripts/build.mjs` in the `anentrypoint-design` repo, commit + push (triggers `npm publish`); unpkg picks up the new version on next resolve and zellous picks it up on next load. **Tradeoff:** zellous boot now depends on `unpkg.com` being reachable; the SDK import is wrapped in try/catch and sets `window.__sdk = null` on failure (graceful-degrade, no hard crash). Note: only the bundled `247420.css` is linked — do not link individual cssPart names (`community.css`/`editor-primitives.css`) from unpkg, they are not published as separate top-level dist files.
+
+**The `anentrypoint-design` entry in `package.json` is `latest`, and is NOT what the browser loads** — zellous has no build step for `docs/`, so the npm dependency exists only for `site/theme.mjs`, which flatspace resolves at CI build time for the marketing build. The browser always resolves the kit through the unpkg `@latest` importmap entry. Keep the dep at `latest` (never a caret range: on the kit's `0.0.x` line `^0.0.391` is a hard pin that floats nothing) so the two paths cannot drift apart. `package-lock.json` is a stale artifact of this repo's no-build shape and does not gate what renders.
+
+### Kit consumption strategy (fleet-wide)
+
+One strategy across every consumer of `anentrypoint-design`: **Node-resolved consumers** (freddie, casey) declare the npm dependency as `latest`, never a caret/tilde range; **browser-delivered consumers** (zellous, spoint, thebird) load `https://unpkg.com/anentrypoint-design@latest/dist/247420.{js,css}` pinned at `@latest` everywhere, with no stale vendored copy served alongside.
+
+Two consumers are deliberately excluded and must stay excluded: **gmsniff** (vendors a kit subset, makes zero external-origin runtime fetches, because it must run air-gapped and must never become a supply-chain surface for the agent host it observes) and **agentgui** (vendors the built kit locally for offline operation and a UI that does not shift when upstream publishes). Neither is drift; do not convert either to a CDN load or a runtime dependency.
+
+Accepted tradeoff of `@latest`: a kit publish can change zellous's UI with no commit in zellous. That is the intended behavior here — the two repos for which it is unacceptable are the two exclusions above.
 
 **SDK CSS cssParts must be `<link>`ed in index.html or component styles silently don't apply** — the SDK splits styling across `colors_and_type.css`, `app-shell.css`, `community.css` (community surface `.cm-*` + voice `.vx-*`), and `editor-primitives.css` (overlay `.ov-*`). zellous originally linked only colors + app-shell, so `.cm-*`/`.vx-*`/`.ov-*` component classes rendered unstyled. All four vendored cssParts are now linked. When adding a component whose CSS lives in a not-yet-linked cssPart, add the `<link>`.
 
@@ -198,7 +231,8 @@ docs/
     ui*.js                           ←  render
     *.js                             ←  feature modules (audio, files, ptt, …)
   vendor/
-    {preact,xstate,nostr-tools,…}    third-party (wireweave itself is CDN-consumed, not vendored)
+    {preact,xstate,nostr-tools,…}    third-party
+                                     (wireweave is NOT here -- unpkg @latest)
   css/
   msgpackr.min.js                    binary codec
 site/                                flatspace inputs (theme + content)

@@ -41,14 +41,8 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       // patch updates.
       'nostr-tools': 'https://esm.sh/nostr-tools@2.23.9?bundle',
       xstate: '../vendor/xstate.mjs',
-      // Pinned to an exact version, not a caret range: a loose range meant
-      // the exact code executing here could change (as it did -- ^0.3.51
-      // silently resolved to 0.3.59) with zero commit, review, or release
-      // from this repo. Bumping this pin is now the explicit, auditable
-      // action that ships a new wireweave version to every zellous user;
-      // see AGENTS.md's wireweave-consumption section for the update flow.
-      wireweave: 'https://esm.sh/wireweave@0.3.60?bundle',
-      'anentrypoint-design': 'https://anentrypoint.github.io/design/247420.js'
+      wireweave: 'https://unpkg.com/wireweave@latest/src/index.js',
+      'anentrypoint-design': 'https://unpkg.com/anentrypoint-design@latest/dist/247420.js'
     }
   })
 }));
@@ -89,11 +83,11 @@ window.moderation = null;
 window.nostrFsm = null;
 </script>
   <!-- Canonical 247420 design system stylesheet — consumed LIVE from anentrypoint-design's
-       GitHub Pages so zellous always tracks the latest SDK build. The bundled 247420.css
+       unpkg @latest build so zellous always tracks the latest SDK build. The bundled 247420.css
        carries colors_and_type + app-shell + community + editor-primitives, all scoped under
        .ds-247420 (matched by <html class="ds-247420">). To change SDK styling, edit
-       ../design (sibling repo, AnEntrypoint/design) and let its gh-pages deploy; no re-vendoring step in zellous. -->
-  <link rel="stylesheet" href="https://anentrypoint.github.io/design/247420.css">
+       the anentrypoint-design repo and npm publish; no re-vendoring step in zellous. -->
+  <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
   <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
