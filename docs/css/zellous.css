@@ -30,6 +30,7 @@ html, body {
   --accent:      var(--green);
   --accent-ink:  var(--green-deep);
   --accent-bright: var(--green-2);
+  --accent-fg:   var(--green-fg);
   /* Category / avatar palette — zellous brand color-coding tokens (mirror of AVATAR_COLORS) */
   --cat-green:  #3F8A4A;
   --cat-purple: #6B3A78;
@@ -39,6 +40,21 @@ html, body {
   --cat-sky:    #6FA9FF;
   --cat-sun-fg: #2A2820;
   --warn:       #ff4d4f;
+}
+/* The SDK's own colors_and_type.css re-asserts --accent inside a
+   .ds-247420[data-theme="ink"] / [data-theme="dark"] block for its
+   dark-theme contrast retune (a real, load-bearing a11y fix — not a bug).
+   That selector's specificity (0,2,0) beats the plain :root rule above
+   (0,1,0), so on the ink/dark theme this app defaults to, the accent
+   silently reverted to the SDK's own neutral even with the override present
+   above. Match the same selector shape here so this override wins in every
+   theme regardless of source order. */
+html.ds-247420[data-theme="ink"],
+html.ds-247420[data-theme="dark"] {
+  --accent:      var(--green);
+  --accent-ink:  var(--green-deep);
+  --accent-bright: var(--green-2);
+  --accent-fg:   var(--green-fg);
 }
 [data-theme="ink"], .theme-ink {
   --bg-3: #36383E;
