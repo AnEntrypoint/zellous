@@ -301,7 +301,10 @@ channelManager.showSettingsModal = function(channelId) {
         await channelManager.update(channelId, patch);
         if (window.ui?.showToast) ui.showToast('Channel settings saved');
         modal.remove();
-      } catch (e) { console.warn('[Channel] update failed:', e.message); }
+      } catch (e) {
+        if (window.ui?.showToast) ui.showToast('Failed to save channel settings: ' + (e && e.message || 'unknown error'), 'error');
+        console.warn('[Channel] update failed:', e && e.message);
+      }
     });
   }
   modal.querySelector('#csCancel').addEventListener('click', function() { modal.remove(); });
