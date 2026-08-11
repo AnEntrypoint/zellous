@@ -249,7 +249,8 @@ window.__wireweaveReady = (async () => {
   // DM.subscribe filters by '#p'/authors on the user's own pubkey, so a DM
   // event can never satisfy a channel chat subscription's kind/tag filter,
   // and vice versa — no shared array, no shared subscription id.
-  const dmMessages = [];
+  const DM_MESSAGES_CAP = 500;
+  let dmMessages = [];
   let dmSubId = null;
   window.dm = {
     get messages() { return dmMessages.slice(); },
@@ -257,6 +258,7 @@ window.__wireweaveReady = (async () => {
       if (!peerPubkey || !text?.trim()) return null;
       const ev = await ww.ensureDM().send(peerPubkey, text.trim());
       dmMessages.push({ id: ev.id, peer: peerPubkey, from: a.pubkey, text: text.trim(), timestamp: ev.created_at * 1000, mine: true });
+      if (dmMessages.length > DM_MESSAGES_CAP) dmMessages = dmMessages.slice(dmMessages.length - DM_MESSAGES_CAP);
       state.dmMessages = dmMessages.slice();
       if (window.ui) ui.render.all();
       return ev;
@@ -266,6 +268,7 @@ window.__wireweaveReady = (async () => {
       dmSubId = ww.ensureDM().subscribe(({ event, plaintext, peer }) => {
         if (dmMessages.find(m => m.id === event.id)) return;
         dmMessages.push({ id: event.id, peer, from: event.pubkey, text: plaintext, timestamp: event.created_at * 1000, mine: event.pubkey === a.pubkey });
+        if (dmMessages.length > DM_MESSAGES_CAP) dmMessages = dmMessages.slice(dmMessages.length - DM_MESSAGES_CAP);
         state.dmMessages = dmMessages.slice();
         if (window.ui) ui.render.all();
       });
@@ -470,6 +473,7 @@ window.__wireweaveReady = (async () => {
           el.muted = !!state.voiceDeafened;
           el.volume = 1.0;
           el.style.display = 'none';
+          el.dataset.voicePeer = peerPubkey;
           document.body.appendChild(el);
           peer.audioEl = el;
         }
@@ -490,6 +494,7 @@ window.__wireweaveReady = (async () => {
         let el = document.getElementById(elId);
         if (!el) {
           el = document.createElement('video'); el.id = elId; el.autoplay = true; el.playsinline = true;
+          el.dataset.voicePeer = peerPubkey;
           el.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
           const wrap = document.getElementById('vtile-wrap-' + peerPubkey.slice(0, 8));
           if (wrap) wrap.appendChild(el);
@@ -497,11 +502,29 @@ window.__wireweaveReady = (async () => {
         el.srcObject = stream;
       }
     });
+    // onAudioTrack/onVideoTrack append per-peer <audio>/<video> elements tagged with
+    // data-voice-peer, but wireweave exposes no dedicated per-peer-left event at this
+    // bridge layer -- only the aggregate 'participants' list and full 'disconnected'.
+    // Diffing the DOM-tagged elements against the live participant set on every
+    // 'participants' event is the only reliable per-peer cleanup point available here;
+    // 'disconnected' unconditionally sweeps everything as a backstop.
+    const pruneVoiceMedia = (liveIds) => {
+      document.querySelectorAll('[data-voice-peer]').forEach((el) => {
+        if (!liveIds || !liveIds.has(el.dataset.voicePeer)) {
+          try { el.srcObject = null; } catch {}
+          if (el.tagName === 'AUDIO') { try { el.pause(); } catch {} }
+          el.remove();
+        }
+      });
+    };
     voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });
-    voice.addEventListener('participants', (e) => { state.voiceParticipants = e.detail.list; });
+    voice.addEventListener('participants', (e) => {
+      state.voiceParticipants = e.detail.list;
+      pruneVoiceMedia(new Set((e.detail.list || []).map((p) => p.identity)));
+    });
     voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.message.add('Voice connected'); });
     voice.addEventListener('media-warning', (e) => { window.message.add(e.detail.message); });
-    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); });
+    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); pruneVoiceMedia(null); });
     voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
     voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
     return voice;

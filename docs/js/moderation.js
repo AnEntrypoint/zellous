@@ -2,9 +2,6 @@ const moderation = {
   async banUserNostr(serverId, pubkey) { return window.nostrBans.ban(serverId, pubkey); },
   async timeoutUserNostr(serverId, pubkey, minutes) { return window.nostrBans.timeout(serverId, pubkey, minutes); },
   async kickFromVoice(pubkey) {
-    if (window.nostrVoice?._peers?.get) {
-      try { window.nostrVoice._peers.get(pubkey); } catch {}
-    }
     return window.nostrBans.kickFromVoice(state.currentServerId, pubkey);
   },
 
@@ -28,7 +25,12 @@ const moderation = {
       items.push({ label: isMuted ? 'Unmute' : 'Mute', onSelect: guard(() => moderation.toggleMute(memberId)) });
     }
 
-    if (canManage) {
+    // Self-targeting admin actions (ban/timeout/kick/role-change) have no
+    // undo path in this client -- a sole owner who bans or demotes themself
+    // would lock themself out of their own server with no recovery UI. Every
+    // admin-only action below is therefore hidden when memberId is the
+    // acting user's own pubkey, mirroring the personal-mute self-exclusion.
+    if (canManage && memberId !== state.nostrPubkey) {
       if (isOwner) items.push({ label: 'Set Admin', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'admin')) });
       items.push({ label: 'Set Moderator', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'moderator')) });
       items.push({ label: 'Set Member', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'member')) });

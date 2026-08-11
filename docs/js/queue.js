@@ -1,4 +1,16 @@
+const AUDIO_QUEUE_CAP = 200;
+
 const queue = {
+  _trim: () => {
+    if (state.audioQueue.length <= AUDIO_QUEUE_CAP) return;
+    const excess = state.audioQueue.length - AUDIO_QUEUE_CAP;
+    let removed = 0;
+    for (let i = 0; i < state.audioQueue.length && removed < excess; ) {
+      const s = state.audioQueue[i];
+      if (s.status === 'played' && s.id !== state.replayingSegmentId) { state.audioQueue.splice(i, 1); removed++; }
+      else i++;
+    }
+  },
   addSegment: (userId, username, isOwnAudio = false) => {
     const segment = { id: state.nextSegmentId++, userId, username, timestamp: new Date(), status: 'recording', chunks: [], decodedSamples: [], isOwnAudio, playedRealtime: false, videoChunks: [] };
     state.activeSegments.set(userId, segment);
@@ -11,12 +23,12 @@ const queue = {
   },
   completeSegment: (userId) => {
     const s = state.activeSegments.get(userId);
-    if (s?.chunks.length) { s.status = (s.isOwnAudio || s.playedRealtime) ? 'played' : 'queued'; state.audioQueue.push(s); state.activeSegments.delete(userId); ui.render.queue(); }
+    if (s?.chunks.length) { s.status = (s.isOwnAudio || s.playedRealtime) ? 'played' : 'queued'; state.audioQueue.push(s); state.activeSegments.delete(userId); queue._trim(); ui.render.queue(); }
     else state.activeSegments.delete(userId);
   },
   getNextQueuedSegment: () => state.audioQueue.find(s => s.status === 'queued'),
   markAsPlaying: (id) => { const s = state.audioQueue.find(x => x.id === id); if (s) { s.status = 'playing'; state.currentSegmentId = id; ui.render.queue(); } },
-  markAsPlayed: (id) => { const s = state.audioQueue.find(x => x.id === id); if (s) { s.status = 'played'; state.currentSegmentId = null; ui.render.queue(); queue.playNext(); } },
+  markAsPlayed: (id) => { const s = state.audioQueue.find(x => x.id === id); if (s) { s.status = 'played'; state.currentSegmentId = null; queue._trim(); ui.render.queue(); queue.playNext(); } },
   playNext: () => {
     if (state.isSpeaking || state.isDeafened || state.currentSegmentId || state.replayingSegmentId) return;
     const next = queue.getNextQueuedSegment();
