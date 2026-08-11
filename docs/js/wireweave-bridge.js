@@ -216,14 +216,6 @@ window.__wireweaveReady = (async () => {
     editMessage() { if (window.ui?.showToast) ui.showToast('Nostr messages cannot be edited'); },
     resolveProfile: (pk) => chat.resolveProfile(pk),
     updateProfile: (pk, p) => chat.updateProfile(pk, p),
-    linkify(html) {
-      return html.replace(/https?:\/\/[^\s<>"]+/g, (url) => {
-        const kind = window.nostrMedia?.isMedia(url);
-        if (kind === 'image') return `<a href="${url}" target="_blank" rel="noopener"><img src="${url}" style="max-width:100%;max-height:300px;margin-top:4px;display:block" loading="lazy"></a>`;
-        if (kind === 'video') return `<video src="${url}" controls style="max-width:100%;max-height:300px;margin-top:4px;display:block"></video>`;
-        return `<a href="${url}" target="_blank" rel="noopener">${url}</a>`;
-      });
-    },
     handleTextMessage(m) { chat._addMessage(m); },
     handleImageMessage() {}, handleFileShared() {}
   };
