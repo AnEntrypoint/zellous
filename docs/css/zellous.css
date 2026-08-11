@@ -144,6 +144,18 @@ html.ds-247420 .chip.sky    { background: color-mix(in oklab, var(--cat-sky) 22%
 .reconnect-banner.visible { display: block; }
 /* When banner is visible, shift the app down so it isn't covered */
 body:has(.reconnect-banner.visible) .ca-app { padding-top: 32px; }
+.reconnect-banner-btn {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 4px;
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.reconnect-banner-btn:hover { background: color-mix(in oklab, currentColor 15%, transparent); }
 
 /* ── App-defined modal vocabulary (modal-box / modal-field / modal-input / modal-btn) ── */
 .modal-box {

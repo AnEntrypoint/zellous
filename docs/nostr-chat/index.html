@@ -68,7 +68,6 @@ window.chat = null;
 window.message = null;
 window.threadManager = null;
 window.nostrMedia = null;
-window.audio = null;
 window.webcam = null;
 window.fileTransfer = null;
 window.queue = null;
@@ -151,7 +150,7 @@ window.nostrFsm = null;
       setProgress(2,'starting');
     })();
   </script>
-  <div class="reconnect-banner" id="reconnectBanner">No relay connected. Reconnecting...</div>
+  <div class="reconnect-banner" id="reconnectBanner">No relay connected. <button type="button" id="reconnectBannerBtn" class="reconnect-banner-btn">Retry now</button></div>
   <!-- SDK community-app render target. mountCommunityApp (anentrypoint-design)
        renders the full GUI here, driven by the Nostr adapter
        (js/nostr-adapter.js). The legacy hidden .app scaffold that used to sit
@@ -301,7 +300,7 @@ window.nostrFsm = null;
       'js/icons.js',
       'js/ui.js',
       'js/ui-actions.js',
-      'js/ui-voice.js',      'js/audio.js',      'js/queue.js',      'js/files.js',
+      'js/ui-voice.js',      'js/queue.js',      'js/files.js',
       'js/nostr-channels-ui.js',      'js/threads.js',      'js/nostr-servers-ui.js',      'js/moderation.js',      'js/webcam.js',      'js/voice-ptt.js',
       'js/ui-shell.js',
       'js/nostr-adapter.js',      'js/sdk-command-palette.js'
@@ -395,6 +394,12 @@ window.nostrFsm = null;
     });
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) window.stateSignals.unreadCount.value = 0;
+      if (!document.hidden && !window.stateSignals.isConnected.value) window.nostrNet?.reconnectAll?.();
+    });
+    window.addEventListener('online', () => { window.nostrNet?.reconnectAll?.(); });
+    document.getElementById('reconnectBannerBtn')?.addEventListener('click', () => {
+      window.nostrNet?.reconnectAll?.();
+      if (window.ui?.showToast) window.ui.showToast('Reconnecting...');
     });
     window.appReady = true;
     window.__boot?.progress(100, 'ready');
@@ -428,7 +433,7 @@ async function initNostr() {
     serverManager.showCreateModal();
   }
 
-  window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, audio, queue, nostrVoice };
+  window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, queue, nostrVoice };
 
 document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
     if (window.lk && lk.toggleCamera) lk.toggleCamera();
@@ -549,6 +554,24 @@ document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
       '</div>';
     document.body.appendChild(modal);
 
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    const vsTrigger = document.activeElement;
+    const vsFocusable = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const vsRestoreFocus = () => { if (vsTrigger && document.body.contains(vsTrigger) && typeof vsTrigger.focus === 'function') vsTrigger.focus(); };
+    const vsOrigRemove = modal.remove.bind(modal);
+    modal.remove = () => { vsOrigRemove(); vsRestoreFocus(); };
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); modal.remove(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = Array.prototype.slice.call(modal.querySelectorAll(vsFocusable));
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    setTimeout(() => { const first = modal.querySelector(vsFocusable); if (first) first.focus(); }, 0);
+
     const fillDevices = async () => {
       try {
         await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
@@ -559,7 +582,9 @@ document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
         outSel.innerHTML = devs.filter(d => d.kind === 'audiooutput').map(d => '<option value="' + d.deviceId + '">' + (d.label || 'Speakers') + '</option>').join('') || '<option>(default)</option>';
         if (state.preferredInputDevice) inSel.value = state.preferredInputDevice;
         if (state.preferredOutputDevice) outSel.value = state.preferredOutputDevice;
-      } catch (e) { /* permission denied — leave selects empty */ }
+      } catch (e) {
+        if (window.ui?.showToast) ui.showToast('Could not list audio devices — check microphone permission', 'error');
+      }
     };
     fillDevices();
 
@@ -585,7 +610,7 @@ document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
       if (modeEl && canEditMode && window.channelManager?.update) {
         const newMode = modeEl.value;
         if (newMode !== curMode) {
-          try { await channelManager.update(curChannelId, { voiceMode: newMode }); } catch (e) { console.warn('voiceMode update failed', e?.message); }
+          try { await channelManager.update(curChannelId, { voiceMode: newMode }); } catch (e) { if (window.ui?.showToast) ui.showToast('Could not change voice mode: ' + (e?.message || 'unknown error'), 'error'); }
         }
       }
       if (window.ui?.showToast) ui.showToast('Voice settings saved');

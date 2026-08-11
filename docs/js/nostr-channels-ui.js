@@ -9,6 +9,12 @@
 function _a11yModal(modal) {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
+  var trigger = document.activeElement;
+  var restoreFocus = function() {
+    if (trigger && document.body.contains(trigger) && typeof trigger.focus === 'function') trigger.focus();
+  };
+  var origRemove = modal.remove.bind(modal);
+  modal.remove = function() { origRemove(); restoreFocus(); };
   var FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
   var onKeydown = function(e) {
     if (e.key === 'Escape') { e.preventDefault(); modal.remove(); return; }
@@ -40,6 +46,7 @@ function _invalidInput(el) {
 
 var _mkMenu = function(id, x, y, html, onAction) {
   document.getElementById(id)?.remove();
+  var trigger = document.activeElement;
   var menu = document.createElement('div');
   menu.id = id; menu.className = 'context-menu open';
   menu.style.cssText = 'position:fixed;top:' + y + 'px;left:' + x + 'px;z-index:2500';
@@ -67,7 +74,12 @@ var _mkMenu = function(id, x, y, html, onAction) {
     var next = e.key === 'ArrowDown' ? (idx + 1) % list.length : (idx - 1 + list.length) % list.length;
     list[next]?.focus();
   });
-  var closeMenu = function() { menu.remove(); document.removeEventListener('click', close); document.removeEventListener('keydown', onDocKeydown); };
+  var closeMenu = function() {
+    menu.remove();
+    document.removeEventListener('click', close);
+    document.removeEventListener('keydown', onDocKeydown);
+    if (trigger && document.body.contains(trigger) && typeof trigger.focus === 'function') trigger.focus();
+  };
   var close = function(e) { if (!menu.contains(e.target)) closeMenu(); };
   var onDocKeydown = function(e) { if (e.key === 'Escape' && !menu.contains(document.activeElement)) closeMenu(); };
   setTimeout(function() {

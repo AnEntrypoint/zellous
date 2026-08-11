@@ -3,7 +3,7 @@ const webcam = {
     if (!chunks?.length) { ui.videoPlayback.style.display = 'none'; return; }
     if (ui.videoPlaybackVideo.src) URL.revokeObjectURL(ui.videoPlaybackVideo.src);
     ui.videoPlaybackVideo.src = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
-    ui.videoPlaybackVideo.play();
+    ui.videoPlaybackVideo.play().catch((e) => { if (window.ui?.showToast) ui.showToast('Playback blocked: ' + e.message, 'error'); });
     ui.videoPlaybackLabel.textContent = username || 'Unknown';
     ui.videoPlayback.style.display = 'block';
   },

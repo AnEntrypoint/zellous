@@ -201,7 +201,7 @@
           navigator.mediaDevices.enumerateDevices().then((devices) => {
             if (S.inputDevices) S.inputDevices.value = devices.filter(d => d.kind === 'audioinput').map(d => ({ value: d.deviceId, label: d.label || 'Microphone' }));
             if (S.outputDevices) S.outputDevices.value = devices.filter(d => d.kind === 'audiooutput').map(d => ({ value: d.deviceId, label: d.label || 'Speaker' }));
-          }).catch(() => {});
+          }).catch((e) => { if (window.ui?.showToast) window.ui.showToast('Could not list audio devices: ' + (e?.message || 'unknown error'), 'error'); });
         }
       }),
       voiceSettingsChange: (patch) => call(() => {
