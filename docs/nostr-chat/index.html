@@ -40,8 +40,8 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       // losing automatic patch updates.
       'nostr-tools': 'https://esm.sh/nostr-tools@2.23.9?bundle',
       xstate: '../vendor/xstate.mjs',
-      wireweave: 'https://unpkg.com/wireweave@latest/src/index.js',
-      'anentrypoint-design': 'https://unpkg.com/anentrypoint-design@latest/dist/247420.js'
+      wireweave: 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@main/src/index.js',
+      'anentrypoint-design': 'https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.js'
     }
   })
 }));
@@ -81,12 +81,15 @@ window.uiChannels = null;
 window.moderation = null;
 window.nostrFsm = null;
 </script>
-  <!-- Canonical 247420 design system stylesheet — consumed LIVE from anentrypoint-design's
-       unpkg @latest build so zellous always tracks the latest SDK build. The bundled 247420.css
-       carries colors_and_type + app-shell + community + editor-primitives, all scoped under
+  <!-- Canonical 247420 design system stylesheet — consumed LIVE from the AnEntrypoint/design
+       GitHub repo's main branch via jsdelivr's /gh/ CDN, so zellous always tracks the latest
+       committed SDK build with no npm/unpkg dependency. The bundled 247420.css carries
+       colors_and_type + app-shell + community + editor-primitives, all scoped under
        .ds-247420 (matched by <html class="ds-247420">). To change SDK styling, edit
-       the anentrypoint-design repo and npm publish; no re-vendoring step in zellous. -->
-  <link rel="stylesheet" href="https://unpkg.com/anentrypoint-design@latest/dist/247420.css">
+       the anentrypoint-design (AnEntrypoint/design) repo and push to main; no re-vendoring
+       step in zellous. jsdelivr's /gh/ mode caches ~12-24h behind a push (vs npm publish's
+       near-instant unpkg resolution) — a deliberate tradeoff for dropping the npm dependency. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.css">
   <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
