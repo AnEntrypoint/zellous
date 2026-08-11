@@ -126,3 +126,4 @@ rs-learn.db
 .gm/git-push-bypass-*
 .gm/imported-claude-md-*.md
 .gm/sdk-migration-plan.md
+config.bat
