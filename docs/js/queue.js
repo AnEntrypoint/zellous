@@ -71,7 +71,7 @@ const queue = {
       if (s.videoChunks?.length) webcam.showVideo(s.videoChunks, s.username);
       decoder.close();
       state.replayTimeout = setTimeout(() => { state.replayGainNode = null; state.replayTimeout = null; state.replayingSegmentId = null; webcam.hidePlayback(); ui.render.queue(); if (cont && idx + 1 < state.audioQueue.length) queue.replaySegment(state.audioQueue[idx + 1].id, true); }, dur * 1000 + 50);
-    }).catch((e) => { console.warn('[Queue] replay decode failed:', e.message); decoder.close(); state.replayingSegmentId = null; ui.render.queue(); });
+    }).catch((e) => { console.warn('[Queue] replay decode failed:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 'error'); decoder.close(); state.replayingSegmentId = null; ui.render.queue(); });
   },
   downloadSegment: (id) => {
     const s = state.audioQueue.find(x => x.id === id);
