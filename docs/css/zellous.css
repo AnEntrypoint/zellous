@@ -765,6 +765,17 @@ html.ds-247420 .drawer-overlay {
   display: none;
 }
 html.ds-247420 .drawer-overlay.open { display: block; }
+/* The overlay is full-viewport (inset:0) so a naive stacking order buries
+   the topbar's own hamburger/member-list toggle buttons under it while the
+   drawer is open -- a second tap on the icon that opened the drawer landed
+   on the overlay instead, with no way to close it except tapping empty
+   backdrop. Lifting the topbar above the overlay keeps its buttons clickable
+   for the whole time the drawer is open. */
+html.ds-247420 body:has(.drawer-overlay.open) .cm-mobile-header,
+html.ds-247420 body:has(.drawer-overlay.open) .app-topbar {
+  position: relative;
+  z-index: 2501;
+}
 
 html.ds-247420 .rail-empty {
   padding: 8px 12px;
