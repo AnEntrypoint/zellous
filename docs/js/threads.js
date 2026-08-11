@@ -56,9 +56,7 @@ const threadManager = {
     if (!window.channelManager || !parentChannelId) return null;
     const parent = (state.channels || []).find(c => c.id === parentChannelId);
     const name = title || `thread-${Date.now().toString(36)}`;
-    const before = new Set((state.channels || []).map(c => c.id));
-    await window.channelManager.create(name, 'threaded', parent?.categoryId ?? null);
-    const created = (state.channels || []).find(c => c.type === 'threaded' && c.name === name && !before.has(c.id));
+    const created = await window.channelManager.create(name, 'threaded', parent?.categoryId ?? null);
     if (!created) return null;
     await window.channelManager.update(created.id, { parentChannelId });
     created.parentChannelId = parentChannelId;

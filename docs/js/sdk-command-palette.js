@@ -42,16 +42,19 @@
           if (!serverId) { if (window.ui && window.ui.showToast) window.ui.showToast('No server selected to invite to', 3000, 'error'); return; }
           const url = location.origin + location.pathname + '?room=' + encodeURIComponent(serverId);
           const done = () => { if (window.ui && window.ui.showToast) window.ui.showToast('Invite link copied!'); };
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(url).then(done).catch(() => {
+          const fallbackCopy = () => {
+            try {
               const el = document.createElement('textarea');
               el.value = url; document.body.appendChild(el); el.select();
               document.execCommand('copy'); el.remove(); done();
-            });
+            } catch (err) {
+              if (window.ui && window.ui.showToast) window.ui.showToast('Copy failed: ' + (err && err.message || 'unknown'), 'error');
+            }
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(done).catch(fallbackCopy);
           } else {
-            const el = document.createElement('textarea');
-            el.value = url; document.body.appendChild(el); el.select();
-            document.execCommand('copy'); el.remove(); done();
+            fallbackCopy();
           }
         },
       });

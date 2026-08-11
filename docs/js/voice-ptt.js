@@ -221,13 +221,19 @@
     while (unsubs.length) { try { unsubs.pop()(); } catch {} }
   }
 
+  let pollHandle = null;
   function poll() {
-    setInterval(() => {
+    if (pollHandle) return;
+    pollHandle = setInterval(() => {
       const cur = !!window.state?.voiceConnected;
       if (cur === lastConnected) return;
       lastConnected = cur;
       cur ? onVoiceConnected() : onVoiceDisconnected();
     }, 250);
+  }
+  function stop() {
+    if (pollHandle) { clearInterval(pollHandle); pollHandle = null; }
+    onVoiceDisconnected();
   }
 
   function init() {
@@ -242,8 +248,10 @@
       get state() { return pttState; },
       get label() { return pttLabel; },
       get disabled() { return pttDisabled; },
-      skipQueue
+      skipQueue,
+      stop
     };
+    window.addEventListener('beforeunload', stop);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

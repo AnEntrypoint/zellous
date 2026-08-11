@@ -40,6 +40,7 @@ html, body {
   --cat-sky:    #6FA9FF;
   --cat-sun-fg: #2A2820;
   --warn:       #ff4d4f;
+  --warn-fg:    #fff;
 }
 /* The SDK's own colors_and_type.css re-asserts --accent inside a
    .ds-247420[data-theme="ink"] / [data-theme="dark"] block for its
@@ -134,7 +135,7 @@ html.ds-247420 .chip.sky    { background: color-mix(in oklab, var(--cat-sky) 22%
   top: 0; left: 0; right: 0;
   z-index: 9999;
   background: var(--warn);
-  color: #fff;
+  color: var(--warn-fg);
   text-align: center;
   padding: 6px 12px;
   font-size: var(--fs-xs);
@@ -573,9 +574,9 @@ html.ds-247420 .chat .chat-composer { padding: var(--space-3) var(--space-5); ba
    in both themes) nor --accent (the raw neon accent, illegible on the
    light theme's cream panel). */
 html.ds-247420 .app-side a.active .glyph { color: var(--fg) !important; }
-html.ds-247420 .app-side a.active .count { background: var(--warn); color: #fff; }
+html.ds-247420 .app-side a.active .count { background: var(--warn); color: var(--warn-fg); }
 html.ds-247420 .app-side .count {
-  background: var(--warn); color: #fff;
+  background: var(--warn); color: var(--warn-fg);
   font-family: var(--ff-mono); font-size: 10px; font-weight: 700;
   min-width: 20px; height: 18px; padding: 0 6px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -711,8 +712,8 @@ html.ds-247420 .video-playback-close {
   width: 24px; height: 24px;
   border: none;
   border-radius: 50%;
-  background: rgba(0,0,0,0.5);
-  color: #fff;
+  background: var(--overlay-bg, rgba(0,0,0,0.5));
+  color: var(--warn-fg);
   font-size: 13px;
   line-height: 1;
   cursor: pointer;

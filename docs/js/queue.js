@@ -26,11 +26,11 @@ const queue = {
   decodeAndPlay: (segment) => {
     const decoder = new AudioDecoder({
       output: (d) => { const b = new ArrayBuffer(d.allocationSize({ planeIndex: 0 })); d.copyTo(b, { planeIndex: 0 }); segment.decodedSamples.push(new Float32Array(b)); d.close(); },
-      error: () => {}
+      error: (e) => { console.warn('[Queue] decoder error:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 'error'); }
     });
     decoder.configure({ codec: 'opus', sampleRate: config.sampleRate, numberOfChannels: 1 });
     segment.chunks.forEach((c, i) => { try { decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: i * 20000, data: c })); } catch (e) {} });
-    decoder.flush().then(() => { queue.playSamples(segment); try { decoder.close(); } catch(e) {} }).catch(() => { try { decoder.close(); } catch(e) {} queue.markAsPlayed(segment.id); });
+    decoder.flush().then(() => { queue.playSamples(segment); try { decoder.close(); } catch(e) {} }).catch((e) => { console.warn('[Queue] decode failed:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 'error'); try { decoder.close(); } catch(e2) {} queue.markAsPlayed(segment.id); });
   },
   playSamples: (s) => {
     if (!s.decodedSamples.length) { queue.markAsPlayed(s.id); return; }

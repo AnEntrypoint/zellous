@@ -13,9 +13,13 @@ serverManager.showContextMenu = function(serverId, x, y) {
       navigator.clipboard.writeText(url).then(function() {
         if (window.ui && ui.showToast) ui.showToast('Invite link copied!');
       }).catch(function() {
-        var el = document.createElement('textarea');
-        el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
-        if (window.ui && ui.showToast) ui.showToast('Invite link copied!');
+        try {
+          var el = document.createElement('textarea');
+          el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
+          if (window.ui && ui.showToast) ui.showToast('Invite link copied!');
+        } catch (err) {
+          if (window.ui && ui.showToast) ui.showToast('Copy failed: ' + err.message, 'error');
+        }
       });
     } else if (action === 'edit') {
       serverManager.showEditModal(serverId);
@@ -41,6 +45,7 @@ serverManager.showCreatePageModal = function(serverId) {
   _a11yModal(modal);
   var errEl = modal.querySelector('#pcErr'), submitBtn = modal.querySelector('#pcSubmit');
   modal.querySelector('#pcForm').addEventListener('submit', async function() {
+    if (submitBtn.disabled) return;
     var title = modal.querySelector('#pcTitle').value.trim();
     errEl.style.display = 'none';
     if (!title) { errEl.textContent = 'Page title is required'; errEl.style.display = 'block'; return; }
@@ -66,6 +71,7 @@ serverManager.showEditPageModal = function(serverId, slug, title, html) {
   _a11yModal(modal);
   var errEl = modal.querySelector('#peErr'), submitBtn = modal.querySelector('#peSubmit');
   modal.querySelector('#peForm').addEventListener('submit', async function() {
+    if (submitBtn.disabled) return;
     var newTitle = modal.querySelector('#peTitle').value.trim() || title;
     var newHtml = modal.querySelector('#peHtml').value;
     errEl.style.display = 'none';
@@ -158,14 +164,21 @@ serverManager.showEditModal = function(serverId) {
       serverManager._persistServers();
     }
     if (isAdmin && window.serverSettings) {
-      var bitrateEl = document.getElementById('editServerBitrate');
-      if (bitrateEl) await serverSettings.setBitrate(serverId, parseInt(bitrateEl.value)).catch(function(e) {
-        window.ui && window.ui.showToast && window.ui.showToast('Bitrate save failed: ' + (e && e.message || 'unknown'), 3000, 'error');
-      });
-      var allowlistEl = document.getElementById('editServerAllowlist');
-      if (allowlistEl) await serverSettings.setEmbedAllowlist(serverId, allowlistEl.value).catch(function(e) {
-        window.ui && window.ui.showToast && window.ui.showToast('Embed allowlist save failed: ' + (e && e.message || 'unknown'), 3000, 'error');
-      });
+      var saveBtn = modal.querySelector('[type="submit"]');
+      var prevLabel = saveBtn ? saveBtn.textContent : null;
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+      try {
+        var bitrateEl = document.getElementById('editServerBitrate');
+        if (bitrateEl) await serverSettings.setBitrate(serverId, parseInt(bitrateEl.value)).catch(function(e) {
+          window.ui && window.ui.showToast && window.ui.showToast('Bitrate save failed: ' + (e && e.message || 'unknown'), 3000, 'error');
+        });
+        var allowlistEl = document.getElementById('editServerAllowlist');
+        if (allowlistEl) await serverSettings.setEmbedAllowlist(serverId, allowlistEl.value).catch(function(e) {
+          window.ui && window.ui.showToast && window.ui.showToast('Embed allowlist save failed: ' + (e && e.message || 'unknown'), 3000, 'error');
+        });
+      } finally {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = prevLabel; }
+      }
     }
     modal.remove(); ui.render.all();
   });

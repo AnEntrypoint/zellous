@@ -158,15 +158,20 @@ window.__wireweaveReady = (async () => {
   // Chat bridge
   const chat = ww.chat;
   let _lastChatMsgCount = 0;
+  const CHAT_MESSAGES_CAP = 500;
   chat.addEventListener('messages', (e) => {
     const list = e.detail.list || [];
     if (typeof document !== 'undefined' && document.hidden && list.length > _lastChatMsgCount) {
       state.unreadCount = (state.unreadCount || 0) + (list.length - _lastChatMsgCount);
     }
     _lastChatMsgCount = list.length;
-    state.chatMessages = list; _updateChatMembers(list); if (window.ui) ui.render.all();
+    state.chatMessages = list.length > CHAT_MESSAGES_CAP ? list.slice(list.length - CHAT_MESSAGES_CAP) : list;
+    _updateChatMembers(list); if (window.ui) ui.render.all();
   });
-  setInterval(() => { _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all(); }, 60000);
+  const chatMembersIntervalId = setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all();
+  }, 60000);
   chat.addEventListener('profile', () => { if (window.ui) ui.render.all(); });
   chat.addEventListener('rate-limited', (e) => {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
@@ -352,7 +357,10 @@ window.__wireweaveReady = (async () => {
           // sync state explicitly so the new server pill shows on the first load.
           state.servers = srv.servers;
           if (window.ui) ui.render.all();
-        } catch (e) { console.warn('[zellous] public server join failed', e?.message); }
+        } catch (e) {
+          console.warn('[zellous] public server join failed', e?.message);
+          if (window.ui?.showToast) ui.showToast('Could not join the public server: ' + e?.message, 'error');
+        }
       }
     },
     renderList: () => { /* handled by nostr-servers-ui.js which remains */ }

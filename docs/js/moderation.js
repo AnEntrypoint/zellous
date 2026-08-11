@@ -17,7 +17,7 @@ const moderation = {
     const serverId = state.currentServerId;
     const canManage = serverId && window.serverRoles && serverRoles.isAdmin(serverId);
     const isOwner = canManage && window.serverRoles && serverRoles.isOwner(serverId);
-    const guard = (fn) => async () => { try { await fn(); } catch (err) { console.warn('[Mod]', err.message); } };
+    const guard = (fn) => async () => { try { await fn(); } catch (err) { console.warn('[Mod]', err.message); if (window.ui?.showToast) ui.showToast('Action failed: ' + err.message, 'error'); } };
     const items = [];
 
     // Personal mute is available to every user against every other user —
