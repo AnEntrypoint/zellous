@@ -355,6 +355,34 @@ channelManager.initDragAndDrop = function() {
       }
     }
   });
+  // Keyboard equivalent for drag-reorder (WCAG 2.1.1): Alt+ArrowUp/ArrowDown on a
+  // focused channel item moves it within its category; on a focused category header,
+  // moves the category. Reuses the same reorderChannels/reorderCategories calls the
+  // drop handler already uses -- delegated on #channelList since the SDK rail (not
+  // zellous) renders the individual .channel-item/.category-header nodes.
+  cl.addEventListener('keydown', async function(e) {
+    if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+    var dir = e.key === 'ArrowUp' ? -1 : 1;
+    var ci = document.activeElement && document.activeElement.closest && document.activeElement.closest('.channel-item');
+    var ch = document.activeElement && document.activeElement.closest && document.activeElement.closest('.category-header');
+    if (ci) {
+      e.preventDefault();
+      var id = ci.dataset.channel, channels = state.channels || [], me = channels.find(function(c) { return c.id === id; });
+      if (!me) return;
+      var siblings = channels.filter(function(c) { return c.categoryId === me.categoryId; }).sort(function(a, b) { return (a.position||0)-(b.position||0); });
+      var ids = siblings.map(function(c) { return c.id; }), idx = ids.indexOf(id), next = idx + dir;
+      if (next < 0 || next >= ids.length) return;
+      ids.splice(idx, 1); ids.splice(next, 0, id);
+      try { await channelManager.reorderChannels(me.categoryId, ids); } catch (err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); }
+    } else if (ch && ch.dataset.category !== 'uncategorized') {
+      e.preventDefault();
+      var cid = ch.dataset.category, cats = state.categories || [], sorted = cats.slice().sort(function(a, b) { return (a.position||0)-(b.position||0); });
+      var cids = sorted.map(function(c) { return c.id; }), cidx = cids.indexOf(cid), cnext = cidx + dir;
+      if (cidx === -1 || cnext < 0 || cnext >= cids.length) return;
+      cids.splice(cidx, 1); cids.splice(cnext, 0, cid);
+      try { await channelManager.reorderCategories(cids); } catch (err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); }
+    }
+  });
   cl.addEventListener('drop', async function(e) {
     e.preventDefault(); if (ind) { ind.remove(); ind = null; }
     if (dCh && dropT) {
