@@ -10,57 +10,37 @@ html, body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-/* Extension tokens — surface hierarchy beyond --bg/--bg-2
-   stoat-for-web palette: bg #ffdcd7, surface #d2a8ff, text #191919/#8b949e,
-   accent #a5d6ff, success #7ee787, warning #f2cc60, danger #ff7b72. */
+/* Extension tokens — surface hierarchy beyond --bg/--bg-2 */
 :root {
-  --sfw-bg:          #ffdcd7;
-  --sfw-surface:     #d2a8ff;
-  --sfw-text:        #191919;
-  --sfw-text-muted:  #8b949e;
-  --sfw-accent:      #a5d6ff;
-  --sfw-accent-fg:   #191919;
-  --sfw-success:     #7ee787;
-  --sfw-warning:     #f2cc60;
-  --sfw-danger:      #ff7b72;
-
-  --bg:          var(--sfw-bg);
-  --bg-2:        var(--sfw-surface);
-  --bg-3:        var(--sfw-surface);
-  --bg-4:        var(--sfw-surface);
-  --fg:          var(--sfw-text);
-  --fg-2:        var(--sfw-text);
-  --fg-3:        var(--sfw-text-muted);
-  --accent-alt:  var(--sfw-accent);
-  --green-fg:    var(--sfw-accent-fg);
-  /* zellous's own accent brand token, re-pointed from the prior green brand
-     to the stoat-for-web accent. The SDK's own --accent default is a dark
-     neutral (--acid), shared across every consumer app — without this
-     override every element styled via --accent renders neutral instead of
-     the app's own brand color. Every other --accent-* alias
-     (--accent-fg/-ink/-bright/-tint) derives from --accent automatically
-     via colors_and_type.css, so this single set re-threads the whole
-     accent system to the stoat-for-web accent. */
-  --accent:        var(--sfw-accent);
-  --accent-ink:    var(--sfw-accent);
-  --accent-bright: var(--sfw-accent);
-  --accent-fg:     var(--sfw-accent-fg);
-  --green:         var(--sfw-accent);
-  --green-2:       var(--sfw-accent);
-  --green-deep:    var(--sfw-accent);
+  --bg-3:       var(--paper-3, #DFDED9);
+  --bg-4:       #C8C0A8;
+  --accent-alt: #420247;
+  --green-fg:   var(--paper, #F6F5F1);
+  /* zellous is a Nostr-native app branded around green (the Z-avatar, the
+     mic/speaker icons, "Zellous Public"); the SDK's own --accent default is
+     a dark neutral (--acid), shared across every consumer app. Without this
+     override, every element styled via --accent (buttons, active states,
+     focus rings) renders neutral while the few zellous-hardcoded --green
+     spots stay green — two different "accent" colors on screen at once,
+     reading as an inconsistent placeholder rather than one designed brand
+     color. This is the one deliberate per-consumer override of a canonical
+     token — every other --accent-* alias (--accent-fg/-ink/-bright/-tint)
+     derives from --accent automatically via colors_and_type.css, so this
+     single line re-threads the whole accent system to green. */
+  --accent:      var(--green);
+  --accent-ink:  var(--green-deep);
+  --accent-bright: var(--green-2);
+  --accent-fg:   var(--green-fg);
   /* Category / avatar palette — zellous brand color-coding tokens (mirror of AVATAR_COLORS) */
-  --cat-green:  var(--sfw-success);
-  --cat-purple: var(--sfw-surface);
-  --cat-mascot: var(--sfw-danger);
-  --cat-sun:    var(--sfw-warning);
-  --cat-flame:  var(--sfw-danger);
-  --cat-sky:    var(--sfw-accent);
-  --cat-sun-fg: var(--sfw-text);
-  --warn:       var(--sfw-danger);
-  --warn-fg:    var(--sfw-text);
-  --red:        var(--sfw-danger);
-  --live:       var(--sfw-success);
-  --link:       var(--sfw-accent);
+  --cat-green:  #3F8A4A;
+  --cat-purple: #6B3A78;
+  --cat-mascot: #F07AA8;
+  --cat-sun:    #FFD86B;
+  --cat-flame:  #FF8454;
+  --cat-sky:    #6FA9FF;
+  --cat-sun-fg: #2A2820;
+  --warn:       #ff4d4f;
+  --warn-fg:    #fff;
 }
 /* The SDK's own colors_and_type.css re-asserts --accent inside a
    .ds-247420[data-theme="ink"] / [data-theme="dark"] block for its
@@ -71,55 +51,50 @@ html, body {
    above. Match the same selector shape here so this override wins in every
    theme regardless of source order. */
 html.ds-247420[data-theme="ink"],
-html.ds-247420[data-theme="dark"],
-html.ds-247420[data-theme="light"],
-html.ds-247420[data-theme="paper"] {
-  --bg:            var(--sfw-bg);
-  --bg-2:          var(--sfw-surface);
-  --fg:            var(--sfw-text);
-  --fg-2:          var(--sfw-text);
-  --fg-3:          var(--sfw-text-muted);
-  --accent:        var(--sfw-accent);
-  --accent-ink:    var(--sfw-accent);
-  --accent-bright: var(--sfw-accent);
-  --accent-fg:     var(--sfw-accent-fg);
+html.ds-247420[data-theme="dark"] {
+  --accent:      var(--green);
+  --accent-ink:  var(--green-deep);
+  --accent-bright: var(--green-2);
+  --accent-fg:   var(--green-fg);
 }
 [data-theme="ink"], .theme-ink {
-  --bg-3: var(--sfw-surface);
-  --bg-4: var(--sfw-surface);
+  --bg-3: #36383E;
+  --bg-4: #42444B;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="paper"]):not([data-theme="light"]) {
-    --bg-3: var(--sfw-surface);
-    --bg-4: var(--sfw-surface);
+    --bg-3: #36383E;
+    --bg-4: #42444B;
   }
 }
 /* Surface tokens — extend canonical (which only defines --bg/--bg-2) with bg-3/bg-4 + panel aliases used by legacy zellous chrome.
    Canonical colors_and_type.css owns --bg/--fg/--accent/--ink/--paper toggling via [data-theme]. We do NOT redefine those. */
 html.ds-247420[data-theme="ink"], html.ds-247420[data-theme="dark"] {
-  --bg-3: var(--sfw-surface);
-  --bg-4: var(--sfw-surface);
-  --green-fg:   var(--sfw-accent-fg);
-  --panel-0: var(--sfw-bg);
-  --panel-1: var(--sfw-surface);
-  --panel-2: var(--sfw-surface);
-  --panel-text: var(--sfw-text);
-  --panel-text-2: var(--sfw-text);
-  --panel-text-3: var(--sfw-text-muted);
-  --border-color: color-mix(in oklab, var(--sfw-text) 12%, transparent);
-  --status-accent: var(--sfw-accent);
+  --bg-3: #2E2E35;
+  --bg-4: #42444B;
+  --green-fg:   var(--ink);
+  --panel-0: var(--ink);
+  --panel-1: var(--ink-2);
+  --panel-2: #34343C;
+  --panel-text: var(--paper);
+  --panel-text-2: var(--paper-2);
+  --panel-text-3: var(--ink-3);
+  --border-color: color-mix(in oklab, var(--paper) 12%, transparent);
+  /* Brand-green accent tuned per theme: a single fixed green cannot clear
+     4.5:1 against both the near-black ink bg and the cream paper bg. */
+  --status-accent: #2E9E2A;
 }
 html.ds-247420[data-theme="light"], html.ds-247420[data-theme="paper"] {
-  --bg-3: var(--sfw-surface);
-  --bg-4: var(--sfw-surface);
-  --panel-0: var(--sfw-bg);
-  --panel-1: var(--sfw-surface);
-  --panel-2: var(--sfw-surface);
-  --panel-text: var(--sfw-text);
-  --panel-text-2: var(--sfw-text);
-  --panel-text-3: var(--sfw-text-muted);
-  --border-color: color-mix(in oklab, var(--sfw-text) 12%, transparent);
-  --status-accent: var(--sfw-accent);
+  --bg-3: var(--paper-3);
+  --bg-4: #C8C0A8;
+  --panel-0: var(--paper);
+  --panel-1: var(--paper-2);
+  --panel-2: var(--paper-3);
+  --panel-text: var(--ink);
+  --panel-text-2: var(--ink-2);
+  --panel-text-3: var(--ink-3);
+  --border-color: color-mix(in oklab, var(--ink) 12%, transparent);
+  --status-accent: #247420;
 }
 
 /* ── 247420 design primitives — rail / dot / chip ── */
