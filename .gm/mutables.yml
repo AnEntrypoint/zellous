@@ -86,3 +86,9 @@
   SESSION_ID: zellous-update-1787223090
   status: witnessed
   witness_evidence: Two live git_push dispatches this session (1787223590219 and 1787223908397) both hit gate_denied/deviation.push-dirty when .gm state files were mid-mutation from concurrent-in-time mutable/prd resolves -- proves the push surface enforces single-writer ordering rather than racing a partial write to origin. No two writes landed on the same surface without an intervening commit boundary.
+- id: dependabot-alerts-stale-not-real
+  obligation_kind: secrets
+  subject: GitHub reports 8 Dependabot vulnerabilities (ws/qs/picomatch/path-to-regexp/minimatch) on push, but must confirm these packages don't actually exist in the current, freshly-regenerated package-lock.json tree before treating the repo as insecure
+  SESSION_ID: zellous-update-1787223090
+  status: witnessed
+  witness_evidence: 'gh api dependabot/alerts?state=open lists 8 open alerts against ws/qs/picomatch/path-to-regexp/minimatch, all manifest_path=package-lock.json. exec_js dispatch 1787224159606 read the CURRENT package-lock.json (freshly regenerated this session, pushed as cd87c80) and enumerated all 10 package keys: only @preact/signals, @preact/signals-core, anentrypoint-design, fsevents, htm, playwright, playwright-core, preact, xstate -- none of the 5 flagged package names appear anywhere in the tree (flaggedPresent:[]). Confirms these are stale GitHub-side alerts from before this session''s lockfile regen (or from a still-propagating re-scan), not real current vulnerabilities -- matches AGENTS.md''s documented session-B/C precedent of the same phantom-alert pattern resolving after lockfile regen.'
