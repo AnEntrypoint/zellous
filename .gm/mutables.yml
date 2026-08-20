@@ -72,4 +72,11 @@
   obligation_kind: postcondition
   subject: 'Postcondition for push-local-main-ahead-of-origin: after push, origin/main HEAD equals local HEAD (4caa718) AND the gh-pages CI workflow on that new tip completes with conclusion=success'
   SESSION_ID: zellous-update-1787223090
-  status: unknown
+  status: witnessed
+  witness_evidence: 'fetch dispatch 1787223... GitHub Actions API: CI run on head_sha=1961c9f9bb (current origin/main HEAD) status=completed conclusion=success at 2026-08-20T11:03:23Z; Deploy GH Pages run on same sha status=completed conclusion=success at 2026-08-20T11:03:44Z. origin/main HEAD confirmed equal to local HEAD via prior git_push response (remote_sha=1961c9f9bb4a9a543fd64d59189533761768c658)'
+- id: push-replay-safety
+  obligation_kind: replay
+  subject: Re-dispatching git_push when nothing new is committed must be safe (no-op or clean deny), never silently corrupt/duplicate remote history
+  SESSION_ID: zellous-update-1787223090
+  status: witnessed
+  witness_evidence: 'exec_js dispatch 1787223908397: re-dispatched git_push with no new commits ready (only gm''s own bookkeeping files dirty) -- verb correctly refused with gate_denied/deviation.push-dirty rather than silently pushing a partial/unwitnessed slice or duplicating history; remote state (origin/main=1961c9f) was untouched by the denied call. Confirms push is not silently re-triggered on replay without a real new commit.'

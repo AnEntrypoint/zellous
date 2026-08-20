@@ -1,8 +1,12 @@
 - id: push-local-main-ahead-of-origin
   subject: Local main is 4 commits ahead of origin/main (unpushed), including a merge commit 4caa718 -- push to sync origin, verify no conflict/force needed since it's a pure fast-forward (ahead 4, behind 0)
   SESSION_ID: zellous-update-1787223090
-  status: pending
+  status: completed
+  witness: 'git_push dispatches: 638eee0..1961c9f pushed to origin/main across two commits (gm state files, then lockfile fix); origin/main now equals local HEAD 1961c9f9bb, CI+Deploy GH Pages both green on that sha'
+  commit_comment: Sync local main to origin (was 4 commits ahead, unpushed)
 - id: regenerate-stale-package-lock
   subject: package-lock.json pins anentrypoint-design at 0.0.484 but npm registry latest is 1.0.34 -- lockfile is stale relative to the floating 'latest' range in package.json; regenerate via npm install --package-lock-only (matches session-B 2026-08-06 precedent) and verify no other deps drifted
   SESSION_ID: zellous-update-1787223090
-  status: pending
+  status: completed
+  witness: Deleted stale package-lock.json, ran npm install --package-lock-only fresh; anentrypoint-design resolved version moved 0.0.484 -> 1.0.34 matching npm registry latest dist-tag; 0 npm vulnerabilities reported; committed 1961c9f and pushed, CI green
+  commit_comment: Regenerate stale package-lock.json (anentrypoint-design pinned to a 6-months-stale resolved version)
