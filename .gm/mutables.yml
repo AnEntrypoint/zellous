@@ -60,7 +60,8 @@
   obligation_kind: postcondition
   subject: 'Postcondition for regenerate-stale-package-lock: after npm install --package-lock-only, package-lock.json''s resolved anentrypoint-design version matches npm registry''s real latest, and no other dependency in the lock diverges from package.json''s declared ranges (i.e. lock stays internally consistent, verifiable via npm ci --dry-run or equivalent)'
   SESSION_ID: zellous-update-1787223090
-  status: unknown
+  status: witnessed
+  witness_evidence: 'exec_js dispatch 1787223708071: deleted stale package-lock.json (was pinning anentrypoint-design@0.0.484), ran npm install --package-lock-only fresh, verified resolvedVersion is now 1.0.34 matching npm registry https://registry.npmjs.org/anentrypoint-design/latest fetched earlier (dist-tag latest=1.0.34), lockfileVersion=3, pkgCount=10 unchanged (no other dep drifted), npm reported 0 vulnerabilities'
 - id: push-precondition-fastforward
   obligation_kind: precondition
   subject: 'Precondition for push-local-main-ahead-of-origin: origin/main tip must equal local main''s merge-base (pure fast-forward, ahead 4 behind 0, no divergence) so a plain push needs no force/merge'
