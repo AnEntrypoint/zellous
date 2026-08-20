@@ -56,3 +56,19 @@
   witness: curl of https://anentrypoint.github.io/design/247420.js shows jsdelivr.net/npm/dompurify, marked, mermaid, katex, prismjs references baked into the SDK bundle itself. zellous's own docs/nostr-chat/index.html importmap only lists nostr-tools/xstate(vendored)/wireweave/anentrypoint-design -- no Prism/marked/DOMPurify entries anywhere in zellous first-party code. This means audit-unbundled-cdn-dependency-count and remove-dead-markdown-highlighting-deps are largely blockedBy:external (require editing the anentrypoint-design sibling repo, not zellous) except for verifying the ~25 wireweave submodule esm.sh request count, which IS zellous-controlled via the wireweave import.
   id: mut-1785508190443
   witness_evidence: 'Confirmed via curl of https://anentrypoint.github.io/design/247420.js: Prism/marked/DOMPurify/mermaid/KaTeX are baked into the anentrypoint-design SDK bundle, not zellous first-party code. The wireweave/nostr-tools half was zellous-fixable and fixed (?bundle param). The Prism/marked/DOMPurify half is correctly out of zellous scope.'
+- id: lockfile-postcondition-consistent
+  obligation_kind: postcondition
+  subject: 'Postcondition for regenerate-stale-package-lock: after npm install --package-lock-only, package-lock.json''s resolved anentrypoint-design version matches npm registry''s real latest, and no other dependency in the lock diverges from package.json''s declared ranges (i.e. lock stays internally consistent, verifiable via npm ci --dry-run or equivalent)'
+  SESSION_ID: zellous-update-1787223090
+  status: unknown
+- id: push-precondition-fastforward
+  obligation_kind: precondition
+  subject: 'Precondition for push-local-main-ahead-of-origin: origin/main tip must equal local main''s merge-base (pure fast-forward, ahead 4 behind 0, no divergence) so a plain push needs no force/merge'
+  SESSION_ID: zellous-update-1787223090
+  status: witnessed
+  witness_evidence: "exec_js dispatch 1787223433054-195: git rev-list --left-right --count HEAD...origin/main returned '4\t0' (4 ahead, 0 behind) and git status -sb returned '## main...origin/main [ahead 4]' with no divergence marker -- confirms pure fast-forward, no merge/force needed"
+- id: push-postcondition-ci-green
+  obligation_kind: postcondition
+  subject: 'Postcondition for push-local-main-ahead-of-origin: after push, origin/main HEAD equals local HEAD (4caa718) AND the gh-pages CI workflow on that new tip completes with conclusion=success'
+  SESSION_ID: zellous-update-1787223090
+  status: unknown
