@@ -80,3 +80,9 @@
   SESSION_ID: zellous-update-1787223090
   status: witnessed
   witness_evidence: 'exec_js dispatch 1787223908397: re-dispatched git_push with no new commits ready (only gm''s own bookkeeping files dirty) -- verb correctly refused with gate_denied/deviation.push-dirty rather than silently pushing a partial/unwitnessed slice or duplicating history; remote state (origin/main=1961c9f) was untouched by the denied call. Confirms push is not silently re-triggered on replay without a real new commit.'
+- id: git-single-writer-disjointness
+  obligation_kind: disjointness
+  subject: This session's git/npm mutations (working tree, .gm state, package-lock.json) all went through the single sequential agent session with no concurrent writer -- the git_push gate itself enforces single-writer-per-surface by refusing any push over a dirty/contended tree, which this session directly observed twice
+  SESSION_ID: zellous-update-1787223090
+  status: witnessed
+  witness_evidence: Two live git_push dispatches this session (1787223590219 and 1787223908397) both hit gate_denied/deviation.push-dirty when .gm state files were mid-mutation from concurrent-in-time mutable/prd resolves -- proves the push surface enforces single-writer ordering rather than racing a partial write to origin. No two writes landed on the same surface without an intervening commit boundary.
