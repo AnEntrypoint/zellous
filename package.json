@@ -1,0 +1,32 @@
+{
+  "name": "@sequentialos/zellous",
+  "version": "2.0.0",
+  "description": "Serverless voice and chat over public Nostr relays",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "npx serve docs"
+  },
+  "keywords": [
+    "nostr",
+    "voice",
+    "chat",
+    "p2p",
+    "webrtc",
+    "decentralized"
+  ],
+  "dependencies": {
+    "@preact/signals": "2.8.1",
+    "@preact/signals-core": "1.13.0",
+    "htm": "3.1.1",
+    "preact": "10.28.4",
+    "xstate": "^5.18.2"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AnEntrypoint/zellous"
+  }
+}

@@ -1,0 +1,54 @@
+const moderation = {
+  async banUserNostr(serverId, pubkey) { return window.nostrBans.ban(serverId, pubkey); },
+  async timeoutUserNostr(serverId, pubkey, minutes) { return window.nostrBans.timeout(serverId, pubkey, minutes); },
+  async kickFromVoice(pubkey) {
+    return window.nostrBans.kickFromVoice(state.currentServerId, pubkey);
+  },
+
+  async toggleMute(pubkey) {
+    if (!window.nostrMutes) return;
+    return window.nostrMutes.isMuted(pubkey) ? window.nostrMutes.unmute(pubkey) : window.nostrMutes.mute(pubkey);
+  },
+
+  showMemberMenu(memberId, memberName, x, y) {
+    const serverId = state.currentServerId;
+    const canManage = serverId && window.serverRoles && serverRoles.isAdmin(serverId);
+    const isOwner = canManage && window.serverRoles && serverRoles.isOwner(serverId);
+    const guard = (fn) => async () => { try { await fn(); } catch (err) { console.warn('[Mod]', err.message); if (window.ui?.showToast) ui.showToast('Action failed: ' + err.message, 'error'); } };
+    const items = [];
+
+    // Personal mute is available to every user against every other user —
+    // not an admin-only moderation action, so it renders even when canManage
+    // is false (the early-return below only gated admin actions before).
+    if (window.nostrMutes && memberId !== state.nostrPubkey) {
+      const isMuted = window.nostrMutes.isMuted(memberId);
+      items.push({ label: isMuted ? 'Unmute' : 'Mute', onSelect: guard(() => moderation.toggleMute(memberId)) });
+    }
+
+    // Self-targeting admin actions (ban/timeout/kick/role-change) have no
+    // undo path in this client -- a sole owner who bans or demotes themself
+    // would lock themself out of their own server with no recovery UI. Every
+    // admin-only action below is therefore hidden when memberId is the
+    // acting user's own pubkey, mirroring the personal-mute self-exclusion.
+    if (canManage && memberId !== state.nostrPubkey) {
+      if (isOwner) items.push({ label: 'Set Admin', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'admin')) });
+      items.push({ label: 'Set Moderator', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'moderator')) });
+      items.push({ label: 'Set Member', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'member')) });
+      if (window.nostrVoice?._peers?.has(memberId)) {
+        items.push({ label: 'Kick from Voice', danger: true, onSelect: guard(() => confirm(`Kick ${memberName} from voice?`) && moderation.kickFromVoice(memberId)) });
+      }
+      items.push({ label: 'Ban User', danger: true, onSelect: guard(() => confirm(`Ban ${memberName}?`) && moderation.banUserNostr(serverId, memberId)) });
+      items.push({ label: 'Timeout 10m', danger: true, onSelect: guard(() => confirm(`Timeout ${memberName} for 10 minutes?`) && moderation.timeoutUserNostr(serverId, memberId, 10)) });
+      items.push({ label: 'Timeout 1h', danger: true, onSelect: guard(() => confirm(`Timeout ${memberName} for 1 hour?`) && moderation.timeoutUserNostr(serverId, memberId, 60)) });
+    }
+
+    if (!items.length) return;
+    if (window.__contextMenu) window.__contextMenu.show(items, x, y);
+  },
+
+  roleLabel(role) { return { owner: 'Owner', admin: 'Admin', moderator: 'Mod', member: '' }[role] || ''; },
+  roleBadgeColor(role) { return (window.ROLE_COLOR || {})[role] || null; }
+};
+
+window.__zellous.moderation = moderation;
+window.moderation = moderation;

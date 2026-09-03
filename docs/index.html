@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en" data-theme="ink" class="ds-247420">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#3F8A4A" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#3F8A4A" media="(prefers-color-scheme: dark)">
+<title>zellous · serverless voice + chat</title>
+<meta name="description" content="push-to-talk over public nostr relays. no backend. no account. your keys are your identity.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%233F8A4A'/><text x='50' y='72' font-size='60' font-weight='800' font-family='monospace' fill='%23F5F0E4' text-anchor='middle'>Z</text></svg>">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Non-blocking webfonts: print stylesheet swaps to all on load. Falls back to system stack instantly. -->
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap">
+
+<link rel="stylesheet" href="vendor/design/247420.css">
+
+<style>
+/* Page-local tokens — accessibility-tuned hover hues for inverted card surfaces */
+:root {
+  --mint-on-ink: #92CEAC;     /* 9.18:1 on ink */
+  --green-on-paper: #247420;  /* 4.83:1 on paper */
+}
+/* Page-local — landing uses no sidebar */
+body {
+  background: var(--panel-0);
+  color: var(--panel-text);
+}
+.app-main { padding: 0; }
+.section { padding: 24px 32px; }
+.section + .section { padding-top: 0; }
+
+.hero { padding: 48px 32px 24px 32px; max-width: 980px; }
+.hero .tag { color: var(--panel-accent); font-family: var(--ff-ui); font-size: 13px; font-weight: 600; }
+.hero h1 {
+  font-family: var(--ff-display);
+  font-size: clamp(40px, 7vw, 88px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 8px 0 16px 0;
+  color: var(--panel-text);
+}
+.hero p.lede {
+  font-family: var(--ff-prose);
+  font-style: italic;
+  font-size: clamp(18px, 2.2vw, 22px);
+  line-height: 1.5;
+  max-width: 56ch;
+  color: var(--panel-text-2);
+  margin: 0 0 24px 0;
+}
+.hero p.lede em { color: var(--panel-accent); font-style: normal; font-weight: 600; font-family: var(--ff-mono); }
+
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 8px 0 0 0; }
+
+/* Stamp button — design system primitive */
+.app-main a.btn-stamp,
+a.btn-stamp,
+.btn-stamp {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px;
+  background: var(--panel-accent);
+  color: var(--panel-accent-fg) !important;
+  font-family: var(--ff-ui);
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: none !important;
+  transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
+}
+.btn-stamp:hover  { background: var(--panel-text); color: var(--panel-0) !important; box-shadow: none !important; }
+.btn-stamp:active { box-shadow: none !important; }
+
+.app-main a.btn-ghost,
+a.btn-ghost,
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--panel-text) !important;
+  font-family: var(--ff-ui);
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+  border-radius: 0;
+  transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
+}
+.btn-ghost:hover { background: var(--panel-text); color: var(--panel-0); }
+
+/* Index-card row pattern — used for rooms + features */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0; margin: 0; }
+.app-main a.card,
+a.card,
+.card {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 18px 20px;
+  background: var(--panel-1);
+  border: 1px solid var(--panel-text-3);
+  color: var(--panel-text) !important;
+  font-family: var(--ff-mono);
+  text-decoration: none;
+  transition: background 80ms cubic-bezier(.2,0,0,1), color 80ms cubic-bezier(.2,0,0,1);
+}
+.app-main a.card:hover, a.card:hover { color: var(--panel-0) !important; }
+.card:hover { background: var(--panel-text); color: var(--panel-0); }
+.card:hover .card-meta { color: var(--panel-0); opacity: 0.75; }
+.card-code { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--panel-accent); font-weight: 600; }
+/* On hover the card flips to inverted ink/paper. card-code must read on the
+   inverted bg, NOT on the original surface — tint to the contrast-safe accent. */
+[data-theme="light"] .card:hover .card-code { color: var(--mint-on-ink); }
+[data-theme="ink"]   .card:hover .card-code { color: var(--green-on-paper); }
+.card-title { font-family: var(--ff-display); font-size: 22px; letter-spacing: -0.01em; line-height: 1.1; }
+.card-meta { font-size: 11px; color: var(--panel-text-3); line-height: 1.5; }
+
+/* Section header — h3 mono caps with leading slashes */
+h3.section-head {
+  font-family: var(--ff-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--panel-accent);
+  margin: 32px 0 12px 0;
+}
+.section-lead {
+  font-family: var(--ff-prose);
+  font-size: 16px;
+  line-height: 1.6;
+  max-width: 62ch;
+  color: var(--panel-text);
+  margin: 0 0 16px 0;
+}
+.tech-details summary {
+  cursor: pointer;
+  font-family: var(--ff-ui);
+  font-size: 13px;
+  color: var(--panel-text-3);
+  margin-bottom: 8px;
+}
+.tech-details summary:hover { color: var(--panel-text); }
+.tech-details[open] summary { margin-bottom: 12px; }
+
+/* Manifesto block — serif italic */
+.manifesto {
+  background: var(--panel-1);
+  padding: 32px;
+  display: grid;
+  gap: 16px;
+}
+.manifesto p {
+  font-family: var(--ff-prose);
+  font-size: 18px;
+  font-style: italic;
+  line-height: 1.5;
+  max-width: 60ch;
+  margin: 0;
+  color: var(--panel-text);
+}
+.manifesto p strong {
+  font-style: normal;
+  font-family: var(--ff-display);
+  font-weight: 700;
+  color: var(--panel-text);
+  text-transform: lowercase;
+  letter-spacing: -0.01em;
+}
+
+/* Tech list — mono rows with token highlights */
+.tech {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 0;
+  font-family: var(--ff-mono);
+  font-size: 13px;
+  background: var(--panel-1);
+}
+.tech > div {
+  padding: 10px 16px;
+  background: var(--panel-1);
+}
+.tech > div:nth-child(4n+3),
+.tech > div:nth-child(4n+4) {
+  background: var(--panel-2);
+}
+.tech .k { color: var(--panel-text-3); font-size: 13px; font-weight: 500; }
+.tech .v { color: var(--panel-text); }
+.tech .v code { background: transparent; padding: 0; color: var(--panel-accent); font-weight: 500; }
+
+/* Footer status bar */
+.app-status {
+  position: sticky; bottom: 0;
+  background: var(--panel-2);
+  color: var(--panel-text-2);
+  font-family: var(--ff-mono);
+  font-size: 11px;
+  padding: 8px 16px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  text-transform: lowercase;
+  letter-spacing: 0.04em;
+}
+.app-status a { color: var(--panel-accent); text-decoration: none; }
+.app-status a:hover { text-decoration: underline; text-underline-offset: 3px; }
+.app-status .spread { flex: 1; }
+
+/* Theme toggle pill */
+.theme-toggle {
+  margin-left: auto;
+  background: transparent;
+  color: var(--panel-text-2);
+  font-family: var(--ff-ui);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+.theme-toggle:hover { background: var(--panel-hover); color: var(--panel-text); }
+
+/* Topbar layout */
+.app-topbar { background: var(--panel-1); }
+.app-topbar .brand { font-family: var(--ff-ui); font-weight: 600; }
+.app-topbar nav { display: flex; gap: 4px; margin-left: auto; align-items: center; }
+.app-topbar nav a {
+  font-family: var(--ff-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--panel-text-2);
+  text-decoration: none;
+  padding: 6px 12px;
+}
+.app-topbar nav a:hover { background: var(--panel-hover); color: var(--panel-text); }
+
+/* Dateline (above hero) */
+.dateline {
+  font-family: var(--ff-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--panel-text-3);
+  padding: 0 32px;
+  margin: 16px 0 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+.dateline .lhs, .dateline .rhs { display: inline-flex; gap: 6px; align-items: baseline; }
+.dateline .live::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: var(--live);
+  border-radius: 9999px;
+  margin-right: 6px;
+  vertical-align: middle;
+  animation: live-pulse 1.6s cubic-bezier(.2,0,0,1) infinite;
+}
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+@media (max-width: 640px) {
+  .hero { padding: 32px 20px 16px 20px; }
+  .section { padding: 16px 20px; }
+  .dateline { padding: 0 20px; }
+  .hero-actions { flex-direction: column; align-items: stretch; }
+  .btn-stamp, .btn-ghost { justify-content: center; }
+  .tech { grid-template-columns: 1fr; }
+  .tech > div:nth-child(4n+3), .tech > div:nth-child(4n+4) { background: var(--panel-1); }
+  .tech > div:nth-child(2n) { background: var(--panel-2); }
+}
+</style>
+<!-- cache-bust: 2026-05-02T00:30Z -->
+</head>
+<body>
+
+<header class="app-topbar">
+  <span class="brand">247420<span class="slash"> / </span>zellous</span>
+  <nav>
+    <a href="#features">features</a>
+    <a href="#tech">tech</a>
+    <a href="#manifesto">manifesto</a>
+    <a href="https://github.com/AnEntrypoint/zellous" target="_blank" rel="noopener">source ↗</a>
+    <button class="theme-toggle" id="themeToggle" type="button" title="toggle theme">light</button>
+  </nav>
+</header>
+
+<div class="dateline">
+  <span class="lhs"><span>247420 // an entrypoint // zellous</span></span>
+  <span class="rhs"><span class="live">live on nostr</span></span>
+</div>
+
+<main class="app-main">
+
+  <section class="hero">
+    <span class="tag">// zellous v2</span>
+    <h1>hold the button. talk. someone hears you.</h1>
+    <p class="lede">push-to-talk over public nostr relays. no backend. no account. your keys are your identity. <em>broken on purpose</em>. read the source.</p>
+    <div class="hero-actions">
+      <a class="btn-stamp" href="nostr-chat/">open chat ↗</a>
+      <a class="btn-ghost" href="https://github.com/AnEntrypoint/zellous" target="_blank" rel="noopener">source</a>
+    </div>
+  </section>
+
+  <section class="section" id="rooms">
+    <h3 class="section-head">// drop-in rooms</h3>
+    <div class="cards">
+      <a class="card" href="nostr-chat/?room=general">
+        <span class="card-code">001</span>
+        <span class="card-title"># general</span>
+        <span class="card-meta">public · nip-28 · open relay</span>
+      </a>
+      <a class="card" href="nostr-chat/?room=dev">
+        <span class="card-code">002</span>
+        <span class="card-title"># dev</span>
+        <span class="card-meta">public · nip-28 · open relay</span>
+      </a>
+      <a class="card" href="nostr-chat/?room=random">
+        <span class="card-code">003</span>
+        <span class="card-title"># random</span>
+        <span class="card-meta">public · nip-28 · open relay</span>
+      </a>
+      <a class="card" href="nostr-chat/?create=server">
+        <span class="card-code">004</span>
+        <span class="card-title">+ new server</span>
+        <span class="card-meta">spin up a private community</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="section" id="features">
+    <h3 class="section-head">// what it is</h3>
+    <div class="cards">
+      <div class="card">
+        <span class="card-code">push to talk</span>
+        <span class="card-title">opus voice</span>
+        <span class="card-meta">webrtc mesh, sfu hub election once you hit 3 peers, ~85ms chunks</span>
+      </div>
+      <div class="card">
+        <span class="card-code">protocol</span>
+        <span class="card-title">nostr</span>
+        <span class="card-meta">nip-28 channels, nip-07 extension auth, kind-30078 voice signaling</span>
+      </div>
+      <div class="card">
+        <span class="card-code">surface</span>
+        <span class="card-title">browser</span>
+        <span class="card-meta">no install, no app store, no native. pages that render and run.</span>
+      </div>
+      <div class="card">
+        <span class="card-code">backend</span>
+        <span class="card-title">— none —</span>
+        <span class="card-meta">static html, vendored js, public relays. nothing to host.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tech">
+    <h3 class="section-head">// how it works</h3>
+    <p class="section-lead">No account, no server, no database. Your browser talks directly to public Nostr relays; anyone with the link can read the same room. Voice calls connect peer-to-peer over WebRTC — relays only carry the handshake, never your audio.</p>
+    <details class="tech-details">
+      <summary>technical details</summary>
+      <div class="tech">
+        <div class="k">runtime</div>           <div class="v">browser · static html</div>
+        <div class="k">protocol</div>          <div class="v"><code>nostr</code> · nip-07, nip-28, nip-19</div>
+        <div class="k">voice transport</div>  <div class="v"><code>webrtc</code> · <code>RTCPeerConnection</code> + <code>getUserMedia</code></div>
+        <div class="k">codec</div>             <div class="v"><code>opus</code> via WebCodecs · 24kbps · 48khz mono</div>
+        <div class="k">signaling</div>         <div class="v">nostr <code>kind:30078</code> · perfect-negotiation · iceRestart on stall</div>
+        <div class="k">topology</div>          <div class="v">mesh ≤ 2 · star/sfu hub-elected ≥ 3 (lowest avg RTT wins)</div>
+        <div class="k">networking</div>        <div class="v"><a href="https://www.npmjs.com/package/wireweave">wireweave</a> · loaded live, not bundled</div>
+        <div class="k">deploy</div>            <div class="v">github pages · github actions · zero servers</div>
+      </div>
+    </details>
+  </section>
+
+  <section class="section" id="manifesto">
+    <h3 class="section-head">// why it's built this way</h3>
+    <div class="manifesto">
+      <p><strong>no account to lose.</strong> your identity is a keypair you hold, not a password we store.</p>
+      <p><strong>nothing to shut down.</strong> there's no server for us to take offline — the relays and your browser keep this running.</p>
+      <p><strong>rough edges, on purpose.</strong> this ships fast and changes often; expect some sharp corners while it settles.</p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-status">
+  <span>247420 / mmxxvi / probably emerging</span>
+  <span class="spread"></span>
+  <span>built in public</span>
+  <a href="https://github.com/AnEntrypoint/zellous" target="_blank" rel="noopener">source ↗</a>
+</footer>
+
+<script>
+(function(){
+  var KEY = 'zellous-theme';
+  var btn = document.getElementById('themeToggle');
+  function apply(t){
+    // Normalize legacy "dark" → "ink"
+    if(t === 'dark') t = 'ink';
+    document.documentElement.setAttribute('data-theme', t);
+    if(btn) btn.textContent = t === 'ink' ? 'ink' : 'light';
+    try { localStorage.setItem(KEY, t); } catch(e) {}
+  }
+  var stored = null;
+  try { stored = localStorage.getItem(KEY); } catch(e) {}
+  apply(stored || 'ink');
+  if(btn) btn.addEventListener('click', function(){
+    var cur = document.documentElement.getAttribute('data-theme');
+    apply(cur === 'ink' ? 'light' : 'ink');
+  });
+})();
+</script>
+
+</body>
+</html>

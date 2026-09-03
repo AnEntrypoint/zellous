@@ -1,0 +1,183 @@
+import { signal } from '@preact/signals';
+
+const getRoomFromURL = () => new URLSearchParams(window.location.search).get('room') || 'lobby';
+const config = { chunkSize: 4096, sampleRate: 48000 };
+
+const state = {
+  isSpeaking: signal(false),
+  audioContext: signal(null),
+  mediaStream: signal(null),
+  scriptProcessor: signal(null),
+  audioBuffers: signal(new Map()),
+  audioSources: signal(new Map()),
+  playbackState: signal(new Map()),
+  pausedAudioBuffer: signal(null),
+  pausedBuffers: signal(null),
+  masterVolume: signal(0.7),
+  activeSpeakers: signal(new Set()),
+  messages: signal([]),
+  audioHistory: signal(new Map()),
+  recordingAudio: signal(new Map()),
+  audioEncoder: signal(null),
+  audioDecoders: signal(new Map()),
+  scheduledPlaybackTime: signal(new Map()),
+  ws: signal(null),
+  userId: signal(null),
+  roomId: signal(getRoomFromURL()),
+  audioQueue: signal([]),
+  activeSegments: signal(new Map()),
+  currentSegmentId: signal(null),
+  replayingSegmentId: signal(null),
+  replayGainNode: signal(null),
+  replayTimeout: signal(null),
+  skipLiveAudio: signal(false),
+  currentLiveSpeaker: signal(null),
+  isDeafened: signal(false),
+  nextSegmentId: signal(1),
+  ownAudioChunks: signal([]),
+  recentlyEndedSpeakers: signal(new Set()),
+
+  vadEnabled: signal(false),
+  vadThreshold: signal(typeof localStorage !== 'undefined' ? Number(localStorage.getItem('vadThreshold') || 0.15) : 0.15),
+  vadSilenceDelay: signal(1500),
+  vadSilenceTimer: signal(null),
+  vadAnalyser: signal(null),
+
+  webcamEnabled: signal(false),
+  webcamStream: signal(null),
+  webcamRecorder: signal(null),
+  webcamResolution: signal('320x240'),
+  webcamFps: signal(15),
+  ownVideoChunks: signal([]),
+  incomingVideoChunks: signal(null),
+  liveVideoChunks: signal(null),
+  liveVideoInterval: signal(null),
+
+  inputDeviceId: signal(null),
+  outputDeviceId: signal(null),
+  inputDevices: signal([]),
+  outputDevices: signal([]),
+
+  chatMessages: signal([]),
+  chatInputValue: signal(''),
+  dmMessages: signal([]),
+  dmPeer: signal(''),
+
+  isAuthenticated: signal(false),
+  currentUser: signal(null),
+
+  currentFilePath: signal(''),
+  fileList: signal([]),
+
+  activePanel: signal('main'),
+  showAuthModal: signal(false),
+  authMode: signal('extension'),
+  authError: signal(''),
+  authBusy: signal(false),
+  showSettingsModal: signal(false),
+
+  isConnected: signal(false),
+  connectionStatus: signal('Connecting...'),
+
+  users: signal(new Map()),
+
+  currentChannel: signal({ id: 'general', type: 'text', name: 'general' }),
+  channels: signal([]),
+  categories: signal([]),
+  collapsedCategories: signal(new Set()),
+
+  voiceConnected: signal(false),
+  voiceChannelName: signal(''),
+  voiceParticipants: signal([]),
+  livekitRoom: signal(null),
+  micMuted: signal(false),
+
+  voiceConnectionQuality: signal('unknown'),
+  voiceConnectionState: signal('disconnected'),
+  voiceReconnectAttempts: signal(0),
+
+  dataChannelAvailable: signal(false),
+  useDataChannel: signal(false),
+
+  voiceDeafened: signal(false),
+
+  // PTT gate state (voice-ptt.js) -- feeds the SDK's own .vx-ptt button via
+  // nostr-adapter.js's isSpeaking/pttUiMode; voice-ptt.js never touches DOM.
+  pttState: signal('idle'),
+  pttLabel: signal('Hold to talk'),
+  pttDisabled: signal(false),
+  pttQueueCount: signal(0),
+  pttQueuePlaying: signal(false),
+
+  roomMembers: signal([]),
+
+  membersVisible: signal(true),
+  queueVisible: signal(true),
+  mobileMenuOpen: signal(false),
+  memberListOpen: signal(false),
+  settingsOpen: signal(false),
+  settingsAnchor: signal({ x: 0, y: 0 }),
+
+  themePref: signal(typeof localStorage !== 'undefined' && localStorage.getItem('zellous-theme') === 'light' ? 'light' : 'ink'),
+  notificationsEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-notifications') !== '0' : true),
+  messagePreviewEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-message-preview') !== '0' : true),
+  soundEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-sound') !== '0' : true),
+
+  rnnoiseEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('rnnoise') !== '0' : true),
+  autoGainEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('autoGain') !== '0' : true),
+  forceTurnEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('forceRelay') === '1' : false),
+  dataChannelEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('dataChannel') === '1' : false),
+  micRawLevel: signal(0),
+  micProcessedLevel: signal(0),
+  pttHeld: signal(false),
+  pttUiMode: signal('idle'),
+
+  servers: signal([]),
+  currentServerId: signal(null),
+  cameraEnabled: signal(false),
+
+  toastQueue: signal([]),
+
+  audioQueueItems: signal([]),
+  audioQueueCurrentId: signal(null),
+  audioQueuePaused: signal(false),
+
+  voiceSettingsOpen: signal(false),
+  voiceBitrate: signal(typeof localStorage !== 'undefined' ? Number(localStorage.getItem('voiceBitrate') || 64) : 64),
+
+  replyTarget: signal(null),
+
+  threadPanelOpen: signal(false),
+  activeThreadId: signal(null),
+  threads: signal([]),
+  pagesVersion: signal(0),
+  unreadCount: signal(0),
+};
+
+const _isSignal = (v) => v !== null && typeof v === 'object' && 'value' in v && typeof v.subscribe === 'function';
+
+const stateProxy = new Proxy(state, {
+  get: (target, prop) => {
+    const entry = target[prop];
+    if (_isSignal(entry)) return entry.value;
+    return entry;
+  },
+  set: (target, prop, val) => {
+    const entry = target[prop];
+    if (_isSignal(entry)) {
+      entry.value = val;
+    } else {
+      target[prop] = val;
+    }
+    return true;
+  }
+});
+
+window.__zellous.state = stateProxy;
+window.__zellous.stateSignals = state;
+window.__zellous.config = config;
+
+window.state = window.__zellous.state;
+window.stateSignals = window.__zellous.stateSignals;
+
+export { state, config };

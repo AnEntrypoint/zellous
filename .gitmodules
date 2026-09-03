@@ -1,0 +1,6 @@
+[submodule "design"]
+	path = design
+	url = https://github.com/AnEntrypoint/design.git
+[submodule "wireweave"]
+	path = wireweave
+	url = https://github.com/AnEntrypoint/wireweave.git

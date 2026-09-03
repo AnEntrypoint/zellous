@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ink" class="ds-247420">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#3F8A4A" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#3F8A4A" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Serverless voice and text chat over public Nostr relays. No backend, no account — your keys are your identity.">
+  <title>Zellous - Nostr</title>
+  <script>
+    // Theme init — runs before any paint. Shares 'zellous-theme' localStorage with landing.
+    (function(){try{var t=localStorage.getItem('zellous-theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');else document.documentElement.setAttribute('data-theme','ink');}catch(e){}})();
+    // Toggle wiring — bound on DOMContentLoaded since #themeToggleBtn is later in document.
+    document.addEventListener('DOMContentLoaded',function(){
+      var b=document.getElementById('themeToggleBtn');if(!b)return;
+      b.addEventListener('click',function(){
+        var cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'ink';
+        var next=cur==='light'?'ink':'light';
+        document.documentElement.setAttribute('data-theme',next);
+        try{localStorage.setItem('zellous-theme',next);}catch(e){}
+      });
+    });
+  </script>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%233F8A4A'/><text x='50' y='72' font-size='60' font-weight='800' font-family='monospace' fill='%23F5F0E4' text-anchor='middle'>Z</text></svg>">
+  <script>
+// Use relative URLs to vendor directory (sibling of nostr-chat/)
+document.currentScript.before(Object.assign(document.createElement('script'), {
+  type: 'importmap',
+  textContent: JSON.stringify({
+    imports: {
+      htm: '../vendor/htm.js',
+      preact: '../vendor/preact.mjs',
+      'preact/hooks': '../vendor/preact-hooks.mjs',
+      '@preact/signals': '../vendor/preact-signals.mjs',
+      '@preact/signals-core': '../vendor/signals-core.mjs',
+      // Exact-pinned, not a caret range: this is a security-critical
+      // dependency (signature/key handling), so an unreviewed silent
+      // version bump resolving here is a strictly worse tradeoff than
+      // losing automatic patch updates.
+      'nostr-tools': 'https://esm.sh/nostr-tools@2.23.9?bundle',
+      xstate: '../vendor/xstate.mjs',
+      wireweave: '../vendor/wireweave/src/index.js',
+      'anentrypoint-design': '../vendor/design/247420.js'
+    }
+  })
+}));
+</script>
+  <script>
+// Initialize window.__zellous namespace before any modules load
+window.__zellous = {};
+// Backward compat placeholders — will be populated by modules
+window.lk = null;
+window.nostrVoice = null;
+window.nostrVoiceRtc = null;
+window.nostrVoiceSfu = null;
+window.nostrVoiceCamera = null;
+window.nostrNet = null;
+window.network = null;
+window.nostrBans = null;
+window.auth = null;
+window.serverManager = null;
+window.serverRoles = null;
+window.serverSettings = null;
+window.serverPages = null;
+window.channelManager = null;
+window.chat = null;
+window.message = null;
+window.threadManager = null;
+window.nostrMedia = null;
+window.webcam = null;
+window.fileTransfer = null;
+window.queue = null;
+window.icons = null;
+window.getIcon = null;
+window.ui = null;
+window.uiVoice = null;
+window.uiMembers = null;
+window.uiChannels = null;
+window.moderation = null;
+window.nostrFsm = null;
+</script>
+  <!-- Canonical 247420 design system stylesheet — built from the design/ submodule
+       (AnEntrypoint/design) by CI on every push, so zellous always ships the SDK build
+       matching the submodule's pinned commit. The bundled 247420.css carries
+       colors_and_type + app-shell + community + editor-primitives, all scoped under
+       .ds-247420 (matched by <html class="ds-247420">). To change SDK styling, edit the
+       design/ submodule directly, push it to its own main, then run
+       `git submodule update --remote --merge` here (or let CI's auto-update step do it)
+       to advance the pin -- CI rebuilds docs/vendor/design/247420.{js,css} from source
+       on every push. -->
+  <link rel="stylesheet" href="../vendor/design/247420.css">
+  <link rel="stylesheet" href="../css/zellous.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <style>
+    /* Boot overlay — visible before any module CSS resolves. Inline so it never blocks on a fetch. */
+    /* Boot tokens — must paint before zellous.css; mirror its ink/paper palette. */
+    #zellousBoot{--zb-bg:#0B0B09;--zb-fg:#EFE9DD;--zb-accent:#92CEAC;--zb-rail:rgba(146,206,172,0.18);--zb-flame:#FF8454;position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--zb-bg);color:var(--zb-fg);font-family:'Nunito','JetBrains Mono',sans-serif;font-size:13px;font-weight:500;transition:opacity 200ms ease}
+    [data-theme="light"] #zellousBoot{--zb-bg:#EFE9DD;--zb-fg:#0B0B09;--zb-accent:#3F8A4A;--zb-rail:rgba(36,116,32,0.15)}
+    #zellousBoot.gone{opacity:0;pointer-events:none}
+    #zellousBoot .zb-mark{font-family:'Archivo Black','Archivo',sans-serif;font-size:48px;font-weight:900;letter-spacing:-0.03em;text-transform:none;color:var(--zb-accent)}
+    #zellousBoot .zb-bar{width:240px;height:3px;background:var(--zb-rail);overflow:hidden;border-radius:2px}
+    #zellousBoot .zb-fill{height:100%;width:0%;background:var(--zb-accent);transition:width 160ms cubic-bezier(.2,0,0,1)}
+    #zellousBoot .zb-phase{opacity:0.7;font-size:11px}
+    #zellousBoot .zb-error{color:var(--zb-flame);font-size:11px;max-width:320px;text-align:center;line-height:1.5;display:none}
+    #zellousBoot.errored .zb-error{display:block}
+    #zellousBoot .zb-retry{display:none;margin-top:4px;padding:8px 20px;border-radius:8px;border:1px solid var(--zb-flame);background:transparent;color:var(--zb-flame);font:inherit;font-weight:600;cursor:pointer}
+    #zellousBoot.errored .zb-retry{display:inline-block}
+    #zellousBoot .zb-retry:hover{background:var(--zb-flame);color:var(--zb-bg)}
+    #zellousBoot.errored .zb-fill{background:var(--zb-flame)}
+  </style>
+</head>
+<body>
+  <div id="zellousBoot" role="status" aria-live="polite" aria-label="Loading Zellous">
+    <div class="zb-mark">zellous</div>
+    <div class="zb-bar"><div class="zb-fill" id="zbFill"></div></div>
+    <div class="zb-phase" id="zbPhase">starting</div>
+    <div class="zb-error" id="zbError"></div>
+    <button type="button" class="zb-retry" id="zbRetry">Retry</button>
+  </div>
+  <script>
+    // Boot reporter — exposed early so any code path can update progress / mark errors.
+    // Phases: tokens → modules (each script counts) → ready. Observable via window.__boot.
+    (function(){
+      var fill=document.getElementById('zbFill'),phase=document.getElementById('zbPhase'),err=document.getElementById('zbError'),box=document.getElementById('zellousBoot'),retryBtn=document.getElementById('zbRetry');
+      retryBtn?.addEventListener('click',function(){location.reload();});
+      var t0=performance.now(),events=[];
+      function log(name,extra){events.push({t:+(performance.now()-t0).toFixed(1),name:name,extra:extra||null});}
+      function setProgress(p,label){if(fill)fill.style.width=Math.max(0,Math.min(100,p))+'%';if(label&&phase)phase.textContent=label;log('progress',{p:p,label:label});}
+      function fail(msg){if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});console.error('[zellous boot]',msg,events);}
+      function done(){if(!box)return;box.classList.add('gone');setTimeout(function(){box&&box.parentNode&&box.parentNode.removeChild(box);},250);log('done');}
+      window.__boot={ progress:setProgress, fail:fail, done:done, events:events, t0:t0 };
+      // Safety net — if nothing finalizes within 25s, surface the failure.
+      window.__boot._watchdog=setTimeout(function(){if(!window.appReady)fail('Took longer than 25s — check console for module load failures.');},25000);
+      // Catch unhandled module errors so the user sees them instead of a frozen splash.
+      window.addEventListener('error',function(e){if(window.appReady)return;if(e&&e.message)fail(e.message);});
+      window.addEventListener('unhandledrejection',function(e){if(window.appReady)return;var m=e&&e.reason&&(e.reason.message||String(e.reason));if(m)fail(m);});
+      // Post-boot safety net — an uncaught error/rejection after the splash is gone would
+      // otherwise be console-only and invisible to the user. Rate-limited to one toast per 5s
+      // so a repeating error doesn't spam the UI.
+      var lastRuntimeErrorToast=0;
+      function reportRuntimeError(msg){
+        if(!window.appReady||!window.ui||typeof window.ui.showToast!=='function')return;
+        var now=Date.now();if(now-lastRuntimeErrorToast<5000)return;lastRuntimeErrorToast=now;
+        window.ui.showToast('Something went wrong: '+(msg||'unknown error'),4000,'error');
+      }
+      window.addEventListener('error',function(e){if(!window.appReady)return;if(e&&e.message)reportRuntimeError(e.message);});
+      window.addEventListener('unhandledrejection',function(e){if(!window.appReady)return;var m=e&&e.reason&&(e.reason.message||String(e.reason));if(m)reportRuntimeError(m);});
+      log('boot-html');
+      setProgress(2,'starting');
+    })();
+  </script>
+  <div class="reconnect-banner" id="reconnectBanner">No relay connected. <button type="button" id="reconnectBannerBtn" class="reconnect-banner-btn">Retry now</button></div>
+  <!-- SDK community-app render target. mountCommunityApp (anentrypoint-design)
+       renders the full GUI here, driven by the Nostr adapter
+       (js/nostr-adapter.js). The legacy hidden .app scaffold that used to sit
+       below this mount point (dead duplicate chrome, still visible to
+       screen readers / text extraction despite display:none) was deleted
+       2026-07-31 after auditing every feature module that read its DOM ids;
+       see AGENTS.md's app-scaffold-cleanup history. -->
+  <div id="app"></div>
+
+  <!-- VIDEO PLAYBACK OVERLAY -->
+  <div class="video-playback" id="videoPlayback">
+    <button class="video-playback-close" id="videoPlaybackClose" aria-label="Close video playback" onclick="ui.actions.closeVideoPlayback()">&#10005;</button>
+    <video id="videoPlaybackVideo" autoplay playsinline></video>
+    <div class="video-label" id="videoPlaybackLabel"></div>
+  </div>
+
+  <!-- DRAWER OVERLAY (mobile) -->
+  <div class="drawer-overlay" id="drawerOverlay" role="button" tabindex="0" aria-label="Close menu" onclick="ui.actions.closeMobileMenu()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ui.actions.closeMobileMenu();}"></div>
+
+  <!-- AUTH MODAL -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <div class="modal-title">Connect to Nostr</div>
+      <div id="nostrConnectView">
+        <button class="modal-btn" id="connectExtensionBtn">Use Extension (NIP-07)</button>
+        <div class="modal-divider"></div>
+        <button class="modal-btn secondary" id="generateKeyBtn">Generate New Key</button>
+        <div class="modal-divider"></div>
+        <div class="modal-field">
+          <label class="modal-label">Import Key</label>
+          <textarea class="modal-input" id="importKeyInput" rows="2" placeholder="nsec1... or hex privkey"></textarea>
+        </div>
+        <button class="modal-btn secondary" id="importKeyBtn">Import Key</button>
+      </div>
+      <div id="nostrLoggedInView" style="display:none">
+        <div class="modal-subtitle">Connected as:</div>
+        <div class="modal-field">
+          <span id="nostrNpubDisplay" style="font-family:monospace;word-break:break-all;font-size:12px"></span>
+        </div>
+        <button class="modal-btn secondary" id="copyNpubBtn">Copy npub</button>
+        <div class="modal-field" style="margin-top:16px">
+          <label class="modal-label">Display Name</label>
+          <input type="text" class="modal-input" id="displayNameInput" placeholder="Your display name" maxlength="50" autocomplete="off">
+        </div>
+        <button class="modal-btn" id="saveDisplayNameBtn">Save Display Name</button>
+        <button class="modal-btn danger" id="nostrLogoutBtn">Logout</button>
+      </div>
+      <div class="modal-error" id="nostrAuthError"></div>
+    </div>
+  </div>
+
+  <!-- SETTINGS POPOVER -->
+  <div class="settings-popover" id="settingsPopover">
+    <div class="settings-title">Audio Settings</div>
+    <div class="ctrl-row" style="margin-bottom:12px">
+      <span class="ctrl-label">Vol</span>
+      <input type="range" id="settingsVolume" min="0" max="100" value="70" autocomplete="off">
+      <span class="ctrl-value" id="settingsVolValue">70%</span>
+    </div>
+    <div class="ctrl-row" style="margin-bottom:12px">
+      <span class="ctrl-label">Mic</span>
+      <select id="settingsInputDevice"></select>
+    </div>
+    <div class="ctrl-row" style="margin-bottom:12px">
+      <span class="ctrl-label">Out</span>
+      <select id="settingsOutputDevice"></select>
+    </div>
+    <div class="settings-title" style="margin-top:16px">Voice</div>
+    <div class="ctrl-row" style="margin-bottom:12px">
+      <span class="ctrl-label" style="flex:1;min-width:auto">Noise Suppression</span>
+      <label class="toggle-switch"><input type="checkbox" id="rnnoiseToggle" autocomplete="off" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div id="micMonitor" style="margin-bottom:12px;display:none">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px;color:var(--fg-3);font-weight:500">raw</span>
+        <span style="font-size:12px;color:var(--fg-3);font-weight:500">processed</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="flex:1;height:6px;background:var(--bg-surface);border-radius:3px;overflow:hidden">
+          <div id="micRawBar" style="height:100%;width:0%;background:var(--text-muted);border-radius:3px;transition:width 0.05s"></div>
+        </div>
+        <div style="flex:1;height:6px;background:var(--bg-surface);border-radius:3px;overflow:hidden">
+          <div id="micProcessedBar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.05s"></div>
+        </div>
+      </div>
+    </div>
+    <div class="ctrl-row" style="margin-bottom:12px">
+      <span class="ctrl-label" style="flex:1;min-width:auto">Data Channel</span>
+      <label class="toggle-switch"><input type="checkbox" id="dataChannelToggle" autocomplete="off"><span class="toggle-slider"></span></label>
+    </div>
+    <div class="ctrl-row" style="margin-bottom:12px">
+      <span class="ctrl-label" style="flex:1;min-width:auto">Force TURN</span>
+      <label class="toggle-switch"><input type="checkbox" id="forceRelayToggle" autocomplete="off"><span class="toggle-slider"></span></label>
+    </div>
+  </div>
+
+  <input type="file" class="hidden-input" id="fileInput" accept="image/*,video/*" multiple autocomplete="off" tabindex="-1" aria-hidden="true">
+
+  <script src="../msgpackr.min.js"></script>
+  <script type="module">
+    window.__boot?.progress(4, 'loading core libs');
+    import { signal, computed, effect } from '@preact/signals';
+
+    window.__signal = signal;
+    window.__computed = computed;
+    window.__effect = effect;
+
+    const { state, config } = await import('../js/state.js');
+    window.config = config;  // Ensure config is accessible to classic scripts
+
+    import * as NostrTools from 'nostr-tools';
+    window.NostrTools = NostrTools;
+
+    import { createMachine, createActor } from 'xstate';
+    window.XState = { createMachine, createActor };
+
+    try {
+      const sdk = await import('anentrypoint-design');
+      // NOTE: do NOT call sdk.installStyles() — it injects ~3.4MB of bundled CSS that fights
+      // the canonical 30KB stylesheet pair (colors_and_type.css + app-shell.css) loaded in <head>.
+      window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components, applyTheme: sdk.applyTheme };
+      try {
+        const resolved = import.meta.resolve ? import.meta.resolve('anentrypoint-design') : null;
+        console.info('[anentrypoint-design] resolved module URL:', resolved || '(import.meta.resolve unsupported in this browser)');
+      } catch (e) { console.info('[anentrypoint-design] could not resolve module URL:', e.message); }
+    } catch (e) {
+      console.error('SDK load failed', e);
+      window.__sdk = null;
+      window.__boot?.fail('Could not load the app UI (design SDK unreachable). Check your connection and reload.');
+      throw e;
+    }
+    window.__boot?.progress(7, 'core libs ready');
+
+    const base = new URL('../', import.meta.url).href;
+    window.__appBase = base;
+    window.__nostrMode = true;
+
+    const scripts = [
+      'js/wireweave-bridge.js',      'js/palette.js',
+      'js/icons.js',
+      'js/ui.js',
+      'js/ui-actions.js',
+      'js/ui-voice.js',      'js/queue.js',      'js/files.js',
+      'js/nostr-channels-ui.js',      'js/threads.js',      'js/nostr-servers-ui.js',      'js/moderation.js',      'js/webcam.js',      'js/voice-ptt.js',
+      'js/ui-shell.js',
+      'js/nostr-adapter.js',      'js/sdk-command-palette.js'
+    ];
+
+    // Two-phase parallel loader: wireweave-bridge runs first (creates managers
+    // asynchronously); we await __wireweaveReady before parallel-loading the rest,
+    // because several UI modules monkey-patch those managers at evaluation time.
+    // Within each phase, async=false preserves execution order while the browser
+    // fetches the URLs concurrently.
+    function loadOne(src, onDone) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = base + src;
+        s.async = false;
+        // A slow/stalled fetch (as opposed to an outright error) never fires
+        // onload or onerror, so without this the generic 25s watchdog is the
+        // only signal -- and it can't name which file stalled. This surfaces
+        // the specific slow module well before that wall, in the console.
+        const stallTimer = setTimeout(() => console.warn('[zellous boot] still waiting on', src, '(>8s)'), 8000);
+        s.onload = () => { clearTimeout(stallTimer); onDone && onDone(src); resolve(); };
+        s.onerror = () => { clearTimeout(stallTimer); reject(new Error('Failed to load ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+
+    const [bridgeSrc, ...rest] = scripts;
+    window.__boot?.progress(8, 'loading bridge');
+    await loadOne(bridgeSrc);
+    if (window.__wireweaveReady) await window.__wireweaveReady;
+    window.__boot?.progress(14, 'fetching modules');
+
+    const total = rest.length;
+    let done = 0;
+    await Promise.all(rest.map((src) => loadOne(src, () => {
+      done += 1;
+      const pct = 14 + Math.round((done / total) * 76);
+      window.__boot?.progress(pct, `loaded ${done}/${total}`);
+    })));
+    window.__boot?.progress(92, 'wiring signals');
+
+    Object.defineProperty(window, '__debug', {get: function(){ return {
+      get voice(){return window.nostrVoice&&window.nostrVoice.__debug;},
+      get net(){return window.__debugNet;},
+      get roles(){return window.serverRoles&&{store:Object.fromEntries(serverRoles._store),sub:serverRoles._sub};},
+      get settings(){return window.serverSettings&&{store:Object.fromEntries(serverSettings._store)};},
+      get media(){return window.nostrMedia&&{servers:nostrMedia._NIP96_SERVERS};},
+      get pages(){if(!window.serverPages)return null;var o={};serverPages._store.forEach(function(pages,srv){o[srv]=Array.from(pages.keys());});return o;}
+    };}, configurable: true});
+
+    effect(() => {
+      window.stateSignals.isSpeaking.value;
+      window.stateSignals.activeSpeakers.value;
+      window.stateSignals.messages.value;
+      window.stateSignals.audioQueue.value;
+      window.stateSignals.chatMessages.value;
+      window.stateSignals.fileList.value;
+      window.stateSignals.isAuthenticated.value;
+      window.stateSignals.currentUser.value;
+      window.stateSignals.isConnected.value;
+      window.stateSignals.isDeafened.value;
+      window.stateSignals.vadEnabled.value;
+      window.stateSignals.webcamEnabled.value;
+      window.stateSignals.masterVolume.value;
+      window.stateSignals.currentChannel.value;
+      window.stateSignals.voiceConnected.value;
+      window.stateSignals.voiceParticipants.value;
+      window.stateSignals.voiceConnectionState.value;
+      window.stateSignals.voiceConnectionQuality.value;
+      window.stateSignals.dataChannelAvailable.value;
+      window.stateSignals.channels.value;
+      window.stateSignals.categories.value;
+      window.stateSignals.collapsedCategories.value;
+      window.stateSignals.servers.value;
+      window.stateSignals.currentServerId.value;
+      window.stateSignals.roomMembers.value;
+      window.stateSignals.micMuted.value;
+      window.stateSignals.voiceDeafened.value;
+
+      const banner = document.getElementById('reconnectBanner');
+      if (banner) banner.classList.toggle('visible', !window.stateSignals.isConnected.value);
+
+      if (window.ui?.render) {
+        try { window.ui.render.all?.(); } catch (e) {}
+      }
+    });
+    const BASE_TITLE = document.title;
+    effect(() => {
+      const n = window.stateSignals.unreadCount.value;
+      document.title = n > 0 ? '(' + (n > 99 ? '99+' : n) + ') ' + BASE_TITLE : BASE_TITLE;
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) window.stateSignals.unreadCount.value = 0;
+      if (!document.hidden && !window.stateSignals.isConnected.value) window.nostrNet?.reconnectAll?.();
+    });
+    window.addEventListener('online', () => { window.nostrNet?.reconnectAll?.(); });
+    document.getElementById('reconnectBannerBtn')?.addEventListener('click', () => {
+      window.nostrNet?.reconnectAll?.();
+      if (window.ui?.showToast) window.ui.showToast('Reconnecting...');
+    });
+    window.appReady = true;
+    window.__boot?.progress(100, 'ready');
+    // One frame so the user sees the bar fill before fade.
+    requestAnimationFrame(() => window.__boot?.done());
+    if (window.__boot?._watchdog) clearTimeout(window.__boot._watchdog);
+  </script>
+<script>
+async function initNostr() {
+  const roomParam = new URLSearchParams(location.search).get('room');
+
+  // wait for wireweave bridge
+  if (!window.__wireweaveReady) {
+    await new Promise(r => { const iv = setInterval(() => { if (window.__wireweaveReady) { clearInterval(iv); r(); } }, 50); });
+  }
+
+  nostrNet.connect();
+
+  if (!auth.init()) {
+    auth.generateKey();
+    auth._afterLogin();
+  }
+
+  auth.bindUI();
+
+  serverManager.init();
+  if (roomParam) {
+    serverManager.showJoinPreview(roomParam, () => serverManager.join(roomParam));
+  }
+  if (new URLSearchParams(location.search).get('create') === 'server' && window.serverManager?.showCreateModal) {
+    serverManager.showCreateModal();
+  }
+
+  window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, queue, nostrVoice };
+
+document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
+    if (window.lk && lk.toggleCamera) lk.toggleCamera();
+  });
+  document.getElementById('voiceVideoBtn')?.addEventListener('click', function() {
+    if (window.lk && lk.toggleCamera) lk.toggleCamera();
+  });
+
+  // Voice control bar: mic, deafen, leave wire-up. The icons render with the
+  // correct state from voice events, but the click bindings live here.
+  document.getElementById('voiceMicBtn')?.addEventListener('click', function() {
+    if (window.lk?.toggleMic) lk.toggleMic();
+  });
+  document.getElementById('voiceDeafenBtn')?.addEventListener('click', function() {
+    if (window.lk?.toggleDeafen) lk.toggleDeafen();
+  });
+  document.getElementById('voiceLeaveBtn')?.addEventListener('click', function() {
+    if (window.lk?.disconnect) lk.disconnect();
+  });
+
+  // Chat-header settings cog opens the unified channel-settings modal so it
+  // works for both text and voice channels regardless of how you got here.
+  document.getElementById('channelHeaderSettingsBtn')?.addEventListener('click', function() {
+    const id = state.currentChannel?.id;
+    if (id && window.channelManager?.showSettingsModal) channelManager.showSettingsModal(id);
+  });
+
+  // Connected banner — drives visibility from voice state. Hidden while
+  // viewing the same channel we're in; visible everywhere else.
+  (function() {
+    const banner = document.getElementById('voiceConnectedBanner');
+    const nameEl = document.getElementById('vcbChannelName');
+    const leaveBtn = document.getElementById('vcbLeaveBtn');
+    if (!banner) return;
+    const update = () => {
+      const connected = !!state.voiceConnected;
+      const voiceCh = state.voiceChannelName || '';
+      const curCh = state.currentChannel?.name || '';
+      const curType = state.currentChannel?.type;
+      const sameChannelView = connected && voiceCh && voiceCh === curCh && curType === 'voice';
+      const show = connected && !sameChannelView;
+      banner.classList.toggle('visible', show);
+      if (nameEl) nameEl.textContent = voiceCh || '—';
+    };
+    banner.addEventListener('click', (e) => {
+      if (e.target === leaveBtn || leaveBtn?.contains(e.target)) return;
+      const voiceCh = state.voiceChannelName;
+      if (!voiceCh) return;
+      const ch = (state.channels || []).find(c => c.type === 'voice' && c.name === voiceCh);
+      if (ch && window.ui?.actions?.switchChannel) ui.actions.switchChannel(ch);
+    });
+    leaveBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window.lk?.disconnect) lk.disconnect();
+    });
+    if (typeof window.__effect === 'function') {
+      window.__effect(() => {
+        window.stateSignals?.voiceConnected?.value;
+        window.stateSignals?.voiceChannelName?.value;
+        window.stateSignals?.currentChannel?.value;
+        update();
+      });
+    } else {
+      setInterval(update, 500);
+    }
+    update();
+  })();
+
+  // Voice settings modal: device pickers, master volume, server-side bitrate
+  // when admin. Built on the existing modal-box vocabulary so it inherits
+  // every fix from the recent CSS sweep.
+  document.getElementById('voiceSettingsBtn')?.addEventListener('click', async function() {
+    document.getElementById('voiceSettingsModal')?.remove();
+    const modal = document.createElement('div');
+    modal.id = 'voiceSettingsModal';
+    modal.className = 'modal-overlay open';
+    const isAdmin = window.serverRoles && state.currentServerId &&
+      (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
+    const curBitrate = (window.serverSettings && state.currentServerId) ? serverSettings.getBitrate(state.currentServerId) : 48000;
+    const vol = Math.round(((state.masterVolume ?? 1) * 100));
+    const curChannelId = state.currentChannel?.id || '';
+    const curMode = (window.__zellous?.voiceMode?.get?.(curChannelId)) || 'ptt';
+    const canEditMode = isAdmin; // owner/admin controls the channel-wide mode
+    modal.innerHTML =
+      '<div class="modal-box" style="max-width:420px">' +
+        '<div class="modal-title">Voice Settings</div>' +
+        '<div class="modal-subtitle">Devices and volume. Channel mode is server-side; only the owner can change it.</div>' +
+        '<div class="modal-field"><label class="modal-label">Channel mode</label>' +
+          '<div style="display:flex;gap:8px">' +
+            '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:' + (canEditMode ? 'pointer' : 'not-allowed') + ';background:' + (curMode === 'ptt' ? 'var(--bg-4)' : 'var(--bg-3)') + ';opacity:' + (canEditMode ? '1' : '0.8') + '">' +
+              '<input type="radio" name="vsMode" value="ptt"' + (curMode === 'ptt' ? ' checked' : '') + (canEditMode ? '' : ' disabled') + ' style="accent-color:var(--accent)">' +
+              '<span><strong style="color:var(--fg)">Push-to-talk</strong><br><span style="font-size:11px;color:var(--fg-3)">Hold to speak. Anti-overtalk queues you if someone else is talking.</span></span>' +
+            '</label>' +
+            '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:' + (canEditMode ? 'pointer' : 'not-allowed') + ';background:' + (curMode === 'realtime' ? 'var(--bg-4)' : 'var(--bg-3)') + ';opacity:' + (canEditMode ? '1' : '0.8') + '">' +
+              '<input type="radio" name="vsMode" value="realtime"' + (curMode === 'realtime' ? ' checked' : '') + (canEditMode ? '' : ' disabled') + ' style="accent-color:var(--accent)">' +
+              '<span><strong style="color:var(--fg)">Realtime</strong><br><span style="font-size:11px;color:var(--fg-3)">Mic always open. Toggle with the mic button.</span></span>' +
+            '</label>' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--fg-3);margin-top:6px">' + (canEditMode ? 'Applies to every participant in this channel.' : 'Only the server owner can change this.') + '</div>' +
+        '</div>' +
+        '<div class="modal-field"><label class="modal-label">Input device</label>' +
+          '<select class="modal-input" id="vsInputDevice"></select></div>' +
+        '<div class="modal-field"><label class="modal-label">Output device</label>' +
+          '<select class="modal-input" id="vsOutputDevice"></select></div>' +
+        '<div class="modal-field"><label class="modal-label">Master volume <span id="vsVolValue" style="float:right;color:var(--fg-3)">' + vol + '%</span></label>' +
+          '<input type="range" id="vsVolume" min="0" max="100" value="' + vol + '" style="width:100%;accent-color:var(--accent)"></div>' +
+        (isAdmin ?
+          '<div class="modal-field"><label class="modal-label">Voice quality (Opus bitrate)</label>' +
+            '<select class="modal-input" id="vsBitrate">' +
+            [8000,16000,24000,48000,96000].map(function(b){
+              return '<option value="' + b + '"' + (b === curBitrate ? ' selected' : '') + '>' + (b/1000) + ' kbps</option>';
+            }).join('') +
+            '</select>' +
+            '<div style="font-size:11px;color:var(--fg-3);margin-top:4px">Server-wide setting (admin only).</div></div>'
+          : '') +
+        '<button type="button" class="modal-btn" id="vsSave">Save</button>' +
+        '<button type="button" class="modal-btn secondary" id="vsClose">Close</button>' +
+      '</div>';
+    document.body.appendChild(modal);
+
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    const vsTrigger = document.activeElement;
+    const vsFocusable = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+    const vsRestoreFocus = () => { if (vsTrigger && document.body.contains(vsTrigger) && typeof vsTrigger.focus === 'function') vsTrigger.focus(); };
+    const vsOrigRemove = modal.remove.bind(modal);
+    modal.remove = () => { vsOrigRemove(); vsRestoreFocus(); };
+    modal.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); modal.remove(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = Array.prototype.slice.call(modal.querySelectorAll(vsFocusable));
+      if (!focusable.length) return;
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+    setTimeout(() => { const first = modal.querySelector(vsFocusable); if (first) first.focus(); }, 0);
+
+    const fillDevices = async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
+        const devs = await navigator.mediaDevices.enumerateDevices();
+        const inSel = modal.querySelector('#vsInputDevice');
+        const outSel = modal.querySelector('#vsOutputDevice');
+        inSel.innerHTML = devs.filter(d => d.kind === 'audioinput').map(d => '<option value="' + d.deviceId + '">' + (d.label || 'Microphone') + '</option>').join('') || '<option>(no devices)</option>';
+        outSel.innerHTML = devs.filter(d => d.kind === 'audiooutput').map(d => '<option value="' + d.deviceId + '">' + (d.label || 'Speakers') + '</option>').join('') || '<option>(default)</option>';
+        if (state.preferredInputDevice) inSel.value = state.preferredInputDevice;
+        if (state.preferredOutputDevice) outSel.value = state.preferredOutputDevice;
+      } catch (e) {
+        if (window.ui?.showToast) ui.showToast('Could not list audio devices — check microphone permission', 'error');
+      }
+    };
+    fillDevices();
+
+    const volEl = modal.querySelector('#vsVolume');
+    const volLabel = modal.querySelector('#vsVolValue');
+    volEl.addEventListener('input', () => {
+      volLabel.textContent = volEl.value + '%';
+      const v = parseInt(volEl.value, 10) / 100;
+      state.masterVolume = v;
+      document.querySelectorAll('audio').forEach(a => { try { a.volume = v; } catch {} });
+    });
+
+    modal.querySelector('#vsSave').addEventListener('click', async () => {
+      const inSel = modal.querySelector('#vsInputDevice');
+      const outSel = modal.querySelector('#vsOutputDevice');
+      if (inSel?.value) state.preferredInputDevice = inSel.value;
+      if (outSel?.value) state.preferredOutputDevice = outSel.value;
+      const bitrateEl = modal.querySelector('#vsBitrate');
+      if (bitrateEl && isAdmin && window.serverSettings) {
+        try { await serverSettings.setBitrate(state.currentServerId, parseInt(bitrateEl.value, 10)); } catch {}
+      }
+      const modeEl = modal.querySelector('input[name="vsMode"]:checked');
+      if (modeEl && canEditMode && window.channelManager?.update) {
+        const newMode = modeEl.value;
+        if (newMode !== curMode) {
+          try { await channelManager.update(curChannelId, { voiceMode: newMode }); } catch (e) { if (window.ui?.showToast) ui.showToast('Could not change voice mode: ' + (e?.message || 'unknown error'), 'error'); }
+        }
+      }
+      if (window.ui?.showToast) ui.showToast('Voice settings saved');
+      modal.remove();
+    });
+    modal.querySelector('#vsClose').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+  });
+
+  document.addEventListener('paste', function(e) {
+    if (!state.nostrPubkey || !state.currentChannelId) return;
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file' && items[i].type.startsWith('image/')) {
+        e.preventDefault();
+        var file = items[i].getAsFile();
+        if (file && window.nostrMedia) nostrMedia.sendMedia(file).catch(function(err) { message.add('Upload failed: ' + err.message); });
+        break;
+      }
+    }
+  });
+}
+
+function _runWhenReady(fn) {
+  if (window.appReady) { fn(); return; }
+  const t = setInterval(() => { if (window.appReady) { clearInterval(t); fn(); } }, 50);
+}
+_runWhenReady(() => initNostr().catch(console.error));
+
+window.__zellous.embed = {
+  _listeners: new Map(),
+  isReady: false,
+  on(eventType, callback) {
+    if (!this._listeners.has(eventType)) this._listeners.set(eventType, []);
+    this._listeners.get(eventType).push(callback);
+  },
+  send(eventType, data = {}) {
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: eventType, version: 1, data: data }, '*');
+    }
+  },
+  _emit(eventType, data) {
+    const callbacks = this._listeners.get(eventType) || [];
+    callbacks.forEach(cb => { try { cb(data); } catch(e) { console.error('Listener error:', e); } });
+  },
+  methods: {
+    joinRoom(roomId) { if (!window.__zellous.channels) return { error: 'Not ready' }; return { ok: true }; },
+    leaveRoom() { if (!window.__zellous.channels) return { error: 'Not ready' }; return { ok: true }; },
+    sendMessage(text, channelId) { if (!window.__zellous.chat) return { error: 'Not ready' }; return { ok: true }; },
+    getState() { return { isReady: window.appReady, user: window.__zellous.state?.currentUser, channel: window.__zellous.state?.currentChannel, voiceConnected: window.__zellous.state?.voiceConnected }; }
+  }
+};
+
+window.addEventListener('message', (e) => {
+  if (window.parent === window) return;
+  const { type, data, id } = e.data || {};
+  if (!type) return;
+  const srvId = state?.currentServerId;
+  const originAllowed = !srvId || !window.serverSettings || window.serverSettings.isOriginAllowed(srvId, e.origin);
+  if (!originAllowed) {
+    if (id) window.parent.postMessage({ type: 'error', id: id, error: 'Origin not allowed to embed this server' }, '*');
+    return;
+  }
+  if (window.__zellous.embed.methods[type]) {
+    try {
+      const result = window.__zellous.embed.methods[type](data);
+      if (id) window.parent.postMessage({ type: 'response', id: id, result: result }, '*');
+    } catch (err) {
+      if (id) window.parent.postMessage({ type: 'error', id: id, error: err.message }, '*');
+    }
+  }
+});
+
+_runWhenReady(() => {
+  if (window.__zellous.embed) {
+    window.__zellous.embed.isReady = true;
+    window.__zellous.embed.send('ready', { version: 1 });
+  }
+});
+</script>
+</body>
+</html>

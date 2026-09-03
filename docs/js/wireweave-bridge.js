@@ -1,0 +1,586 @@
+// Fixed serverId every visitor's init() converges on, so independent
+// visitors land in the same chat.js hexChannelId tag scope instead of
+// each getting an unreachable private pubkey:random server.
+// The leading zero-pubkey is not a real generated key (no one holds its
+// private key), so channels.js/roles.js/bans.js/settings.js isOwner()/
+// isAdmin() correctly resolve false for every real visitor -- the room is
+// ownerless/adminless by construction, never a spoofable elevated identity.
+const ZELLOUS_PUBLIC_SERVER_ID = '0000000000000000000000000000000000000000000000000000000000000000:public';
+
+window.__wireweaveReady = (async () => {
+  let mod;
+  try {
+    mod = await import('wireweave');
+  } catch (e) {
+    console.error('wireweave load failed', e);
+    window.__boot?.fail('Could not load the protocol layer (wireweave unreachable). Check your connection and reload.');
+    throw e;
+  }
+  const NT = window.NostrTools;
+  const XS = { createMachine: window.XState.createMachine, createActor: window.XState.createActor };
+
+  const ww = mod.createWireweave({
+    nostrTools: NT,
+    xstate: XS,
+    storage: localStorage,
+    extension: window.nostr,
+    relays: state.nostrRelays || ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nos.lol', 'wss://relay.snort.social']
+  });
+
+  // FSM bridge
+  window.nostrFsm = { voiceMachine: ww.fsm.voiceMachine, peerMachine: ww.fsm.peerMachine, cameraMachine: ww.fsm.cameraMachine };
+
+  // Relay pool bridge
+  const net = ww.pool;
+  window.nostrNet = window.network = {
+    connect: () => net.connect(),
+    disconnect: () => net.disconnect(),
+    subscribe: (id, filters, onEvent, onEose) => net.subscribe(id, filters, onEvent, onEose),
+    unsubscribe: (id) => net.unsubscribe(id),
+    publish: (event) => net.publish(event),
+    isConnected: () => net.isConnected(),
+    reconnectAll: () => net.heal(),
+    get relays() { return new Map(net.relays); }
+  };
+  net.addEventListener('relay-status', (e) => {
+    const { url, status } = e.detail;
+    const m = new Map(state.nostrRelayStatus || []);
+    m.set(url, status);
+    state.nostrRelayStatus = m;
+    const anyOpen = net.isConnected();
+    if (state.isConnected !== anyOpen) state.isConnected = anyOpen;
+    if (window.ui) ui.render.all();
+  });
+  window.__debugNet = { get relays() { return net.status(); } };
+
+  // Auth bridge
+  const a = ww.auth;
+  a.loadFromStorage();
+  a.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage error', 4000, 'error'); });
+  a.addEventListener('persist-failed', () => { if (window.ui) ui.showToast('Could not save your login key — storage is full. Free up space or your session won\'t persist after reload.', 6000, 'error'); });
+  window.auth = {
+    get user() {
+      const pk = a.pubkey; if (!pk) return null;
+      const short = a.npubShort(pk);
+      return { id: pk, username: short, displayName: state.nostrProfile?.name || short };
+    },
+    init() {
+      if (!a.pubkey) return false;
+      state.nostrPrivkey = a.privkey; state.nostrPubkey = a.pubkey;
+      const short = a.npubShort(a.pubkey);
+      const nameEl = document.getElementById('userPanelName'); if (nameEl) nameEl.textContent = short;
+      const tagEl = document.getElementById('userPanelTag'); if (tagEl) tagEl.textContent = short;
+      const avatarEl = document.getElementById('userPanelAvatar');
+      if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = short[0].toUpperCase(); }
+      document.getElementById('userStatusDot')?.classList.add('online');
+      return true;
+    },
+    generateKey() { const r = a.generateKey(); state.nostrPrivkey = r.privkey; state.nostrPubkey = r.pubkey; return r; },
+    importKey(input) { try { const r = a.importKey(input); state.nostrPrivkey = r.privkey; state.nostrPubkey = r.pubkey; return true; } catch { return false; } },
+    async loginWithExtension() { const pk = await a.loginWithExtension(); state.nostrPubkey = pk; state.nostrPrivkey = null; return pk; },
+    sign: (t) => a.sign(t),
+    async setDisplayName(name) {
+      if (!a.pubkey) throw new Error('Not logged in');
+      if (!name?.trim()) throw new Error('Invalid display name');
+      const signed = await a.sign({ kind: 0, created_at: Math.floor(Date.now() / 1000), tags: [], content: JSON.stringify({ name: name.trim(), ...(state.nostrProfile || {}) }) });
+      net.publish(signed);
+      state.nostrProfile = { ...(state.nostrProfile || {}), name: name.trim() };
+      const nameEl = document.getElementById('userPanelName'); if (nameEl) nameEl.textContent = state.nostrProfile.name;
+      const avatarEl = document.getElementById('userPanelAvatar');
+      if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = state.nostrProfile.name[0].toUpperCase(); }
+      if (window.chat) chat.updateProfile(a.pubkey, state.nostrProfile);
+    },
+    logout() { a.logout(); state.nostrPubkey = ''; state.nostrPrivkey = null; state.nostrProfile = null; net.disconnect(); },
+    getToken: () => a.pubkey || null,
+    isLoggedIn: () => a.isLoggedIn(),
+    npubShort: (pk) => a.npubShort(pk),
+    nsecEncode: () => a.nsecEncode(),
+    showModal() {
+      const modal = document.getElementById('authModal'); if (!modal) return;
+      modal.style.display = 'flex';
+      const cv = document.getElementById('nostrConnectView'); const lv = document.getElementById('nostrLoggedInView');
+      const loggedIn = a.isLoggedIn();
+      if (cv) cv.style.display = loggedIn ? 'none' : 'flex';
+      if (lv) lv.style.display = loggedIn ? 'flex' : 'none';
+      if (loggedIn) {
+        const d = document.getElementById('nostrNpubDisplay'); if (d) d.textContent = a.npubShort();
+        const inp = document.getElementById('displayNameInput'); if (inp) inp.value = state.nostrProfile?.name || '';
+      }
+    },
+    hideModal() { const modal = document.getElementById('authModal'); if (modal) modal.style.display = 'none'; },
+    _afterLogin() {
+      const d = document.getElementById('nostrNpubDisplay'); if (d) d.textContent = a.npubShort();
+      const cv = document.getElementById('nostrConnectView'); const lv = document.getElementById('nostrLoggedInView');
+      if (cv) cv.style.display = 'none'; if (lv) lv.style.display = 'flex';
+      const err = document.getElementById('nostrAuthError'); if (err) err.textContent = '';
+      const short = a.npubShort();
+      const nameEl = document.getElementById('userPanelName');
+      const tagEl = document.getElementById('userPanelTag');
+      const avatarEl = document.getElementById('userPanelAvatar');
+      if (nameEl) nameEl.textContent = state.nostrProfile?.name || short;
+      if (tagEl) tagEl.textContent = short;
+      if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = (state.nostrProfile?.name || short)[0].toUpperCase(); }
+      document.getElementById('userStatusDot')?.classList.add('online');
+      document.dispatchEvent(new CustomEvent('nostr:login'));
+      setTimeout(() => window.auth.hideModal(), 1000);
+    },
+    _err(msg) { const el = document.getElementById('nostrAuthError'); if (el) el.textContent = msg; },
+    bindUI() {
+      const $ = id => document.getElementById(id);
+      const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+      on('connectExtensionBtn', async () => { try { if (!window.nostr) throw new Error('No Nostr extension found'); await window.auth.loginWithExtension(); window.auth._afterLogin(); } catch (e) { window.auth._err(e.message); } });
+      on('generateKeyBtn', () => { try { window.auth.generateKey(); window.auth._afterLogin(); } catch (e) { window.auth._err(e.message); } });
+      on('importKeyBtn', () => { const inp = $('importKeyInput'); const val = inp ? inp.value.trim() : ''; if (!val) { window.auth._err('Enter a key'); return; } window.auth.importKey(val) ? window.auth._afterLogin() : window.auth._err('Invalid key'); });
+      on('copyNpubBtn', () => { const pk = a.pubkey; if (pk) navigator.clipboard.writeText(a.npubEncode(pk)).catch(() => {}); });
+      on('saveDisplayNameBtn', async () => { const inp = $('displayNameInput'); const val = inp ? inp.value.trim() : ''; if (!val) { window.auth._err('Enter a display name'); return; } try { await window.auth.setDisplayName(val); } catch (e) { window.auth._err(e.message); } });
+      on('nostrLogoutBtn', () => { window.auth.logout(); window.auth.showModal(); });
+      const modal = document.getElementById('authModal');
+      if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) window.auth.hideModal(); });
+      const av = document.querySelector('.user-avatar, .username-area, [data-action="show-auth"]');
+      if (av) av.addEventListener('click', () => window.auth.showModal());
+    }
+  };
+
+  // Message bus bridge
+  const msg = ww.message;
+  window.message = {
+    handlers: msg.handlers,
+    handle: (m) => msg.handle(m),
+    add: (text, audioData, userId, username) => {
+      const r = msg.add(text, { audioData, userId, username });
+      state.messages = msg.messages;
+      if (window.ui) ui.render.messages?.();
+      return r;
+    }
+  };
+  msg.addEventListener('messages', (e) => { state.messages = e.detail.list; if (window.ui) ui.render.messages?.(); });
+
+  // Chat bridge
+  const chat = ww.chat;
+  let _lastChatMsgCount = 0;
+  const CHAT_MESSAGES_CAP = 500;
+  chat.addEventListener('messages', (e) => {
+    const list = e.detail.list || [];
+    if (typeof document !== 'undefined' && document.hidden && list.length > _lastChatMsgCount) {
+      state.unreadCount = (state.unreadCount || 0) + (list.length - _lastChatMsgCount);
+    }
+    _lastChatMsgCount = list.length;
+    state.chatMessages = list.length > CHAT_MESSAGES_CAP ? list.slice(list.length - CHAT_MESSAGES_CAP) : list;
+    _updateChatMembers(list); if (window.ui) ui.render.all();
+  });
+  const chatMembersIntervalId = setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+    _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all();
+  }, 60000);
+  chat.addEventListener('profile', () => { if (window.ui) ui.render.all(); });
+  chat.addEventListener('rate-limited', (e) => {
+    const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
+    if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
+  });
+  chat.addEventListener('send-blocked', (e) => {
+    const msg = e.detail?.reason === 'announcement-admin-only'
+      ? 'Only admins can post in announcement channels'
+      : 'You cannot send messages in this server';
+    if (window.ui?.showToast) ui.showToast(msg, 3000, 'error');
+  });
+  const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+  function _updateChatMembers(msgs) {
+    const lastSeen = new Map();
+    (msgs || []).forEach(m => {
+      if (!m.userId) return;
+      const ts = m.timestamp || 0;
+      if (!lastSeen.has(m.userId) || ts > lastSeen.get(m.userId)) lastSeen.set(m.userId, ts);
+    });
+    const now = Date.now();
+    if (a.pubkey) lastSeen.set(a.pubkey, now);
+    state.roomMembers = Array.from(lastSeen.entries()).map(([id, ts]) => ({
+      id, username: chat.resolveProfile(id), online: (now - ts) <= ONLINE_WINDOW_MS
+    }));
+  }
+  window.chat = {
+    // Delegates to the library Chat instance's own field rather than tracking
+    // a separate copy -- loadHistory() can be triggered either through this
+    // bridge's wrapper below or directly by wireweave.js's onSwitch callback
+    // (e.g. the first-run auto-join path), and both must be reflected here.
+    get activeChannelId() { return chat.activeChannelId; },
+    get messages() { return state.chatMessages || []; },
+    set messages(v) { state.chatMessages = v; },
+    send: (c, opts) => chat.send(c, opts),
+    sendAnnouncement: (t) => chat.send(t, { announcement: true }),
+    sendImage(file) {
+      if (!file) { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,video/*'; i.onchange = () => { if (i.files[0]) window.nostrMedia.sendMedia(i.files[0]).catch(e => window.message.add('Upload failed: ' + e.message)); }; i.click(); return; }
+      window.nostrMedia.sendMedia(file).catch(e => window.message.add('Upload failed: ' + e.message));
+    },
+    async loadHistory(channelId) { ww.setCurrentChannel(channelId); await chat.loadHistory(channelId); },
+    deleteMessage: (id) => chat.deleteMessage(id),
+    editMessage() { if (window.ui?.showToast) ui.showToast('Nostr messages cannot be edited'); },
+    resolveProfile: (pk) => chat.resolveProfile(pk),
+    updateProfile: (pk, p) => chat.updateProfile(pk, p),
+    handleTextMessage(m) { chat._addMessage(m); },
+    handleImageMessage() {}, handleFileShared() {}
+  };
+
+  // Reactions bridge — NIP-25 kind:7 on native kind:42 chat messages. Auto-
+  // subscribes for every message currently in view (mirrors the profile
+  // auto-fetch pattern above) so reaction counts populate without an
+  // explicit per-message opt-in from the UI layer.
+  const reactions = ww.reactions;
+  reactions.addEventListener('updated', () => { if (window.ui) ui.render.all(); });
+  chat.addEventListener('messages', (e) => {
+    const ids = (e.detail.list || []).map((m) => m.id).filter(Boolean);
+    if (ids.length) reactions.subscribeMany(ids);
+  });
+  window.nostrReactions = {
+    getFor: (id) => reactions.getFor(id),
+    react: (id, authorPubkey, content) => reactions.react(id, authorPubkey, content),
+    unreact: (id) => reactions.unreact(id)
+  };
+
+  // DM bridge — NIP-44 encrypted 1:1 (kind 14), structurally isolated from
+  // the plaintext broadcast Chat (kind 42 filtered by channel-hash '#e' tag).
+  // DM.subscribe filters by '#p'/authors on the user's own pubkey, so a DM
+  // event can never satisfy a channel chat subscription's kind/tag filter,
+  // and vice versa — no shared array, no shared subscription id.
+  const DM_MESSAGES_CAP = 500;
+  let dmMessages = [];
+  let dmSubId = null;
+  window.dm = {
+    get messages() { return dmMessages.slice(); },
+    async send(peerPubkey, text) {
+      if (!peerPubkey || !text?.trim()) return null;
+      const ev = await ww.ensureDM().send(peerPubkey, text.trim());
+      dmMessages.push({ id: ev.id, peer: peerPubkey, from: a.pubkey, text: text.trim(), timestamp: ev.created_at * 1000, mine: true });
+      if (dmMessages.length > DM_MESSAGES_CAP) dmMessages = dmMessages.slice(dmMessages.length - DM_MESSAGES_CAP);
+      state.dmMessages = dmMessages.slice();
+      if (window.ui) ui.render.all();
+      return ev;
+    },
+    subscribeAll() {
+      if (dmSubId || !a.pubkey) return dmSubId;
+      dmSubId = ww.ensureDM().subscribe(({ event, plaintext, peer }) => {
+        if (dmMessages.find(m => m.id === event.id)) return;
+        dmMessages.push({ id: event.id, peer, from: event.pubkey, text: plaintext, timestamp: event.created_at * 1000, mine: event.pubkey === a.pubkey });
+        if (dmMessages.length > DM_MESSAGES_CAP) dmMessages = dmMessages.slice(dmMessages.length - DM_MESSAGES_CAP);
+        state.dmMessages = dmMessages.slice();
+        if (window.ui) ui.render.all();
+      });
+      return dmSubId;
+    }
+  };
+
+  // Channels bridge
+  const ch = ww.channels;
+  ch.addEventListener('updated', (e) => {
+    state.channels = e.detail.channels; state.categories = e.detail.categories;
+    if (window.ui) ui.render.all();
+    // If the channel we're currently in voice on had its voiceMode change, re-apply.
+    if (state.voiceConnected && state.currentChannel && window.__zellous?.voiceMode) {
+      const cur = (e.detail.channels || []).find(c => c.id === state.currentChannel.id);
+      if (cur) {
+        state.currentChannel = cur;
+        window.__zellous.voiceMode.apply();
+      }
+    }
+    // Update the chat-header topic if the current channel's topic was changed.
+    if (state.currentChannel) {
+      const cur = (e.detail.channels || []).find(c => c.id === state.currentChannel.id);
+      if (cur) state.currentChannel = cur;
+    }
+  });
+  window.channelManager = {
+    isOwner: () => a.pubkey && state.currentServerId && a.pubkey === state.currentServerId.split(':')[0],
+    loadChannels: (sid, onReady) => ch.load(sid, onReady),
+    _setDefaults: () => ch._setDefaults(),
+    _publishChannelList: () => ch._publish(),
+    create: (n, t, c) => ch.create(n, t, c),
+    rename: (id, n) => ch.rename(id, n),
+    update: (id, patch) => ch.update(id, patch),
+    remove: (id) => ch.remove(id),
+    createCategory: (n) => ch.createCategory(n),
+    renameCategory: (id, n) => ch.renameCategory(id, n),
+    deleteCategory: (id) => ch.deleteCategory(id),
+    reorderChannels: (cat, ids) => ch.reorder(cat, ids),
+    reorderCategories: (ids) => ch.reorderCategories(ids),
+    hideContextMenu() {
+      document.getElementById('channelContextMenu')?.remove();
+      document.getElementById('categoryContextMenu')?.remove();
+    }
+  };
+
+  // Servers bridge
+  const srv = ww.servers;
+  srv.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage full — some data may not be saved', 4000, 'error'); });
+  srv.addEventListener('updated', (e) => { state.servers = e.detail.servers; if (window.ui) ui.render.all(); });
+  srv.addEventListener('switched', (e) => { state.currentServerId = e.detail.serverId; state.chatMessages = []; state.channels = []; state.categories = []; if (window.ui) ui.render.all(); });
+  window.serverManager = {
+    loadServers: () => srv.load(),
+    create: (n, c) => srv.create(n, c),
+    rename: (sid, n, c) => srv.rename(sid, n, c),
+    kickFromVoice: (pk) => bans.kickFromVoice(state.currentServerId, pk),
+    banUserNostr: (sid, pk) => bans.ban(sid, pk),
+    timeoutUserNostr: (sid, pk, min) => bans.timeout(sid, pk, min),
+    join: (sid) => srv.join(sid),
+    delete: (sid) => srv.delete(sid),
+    leave: (sid) => srv.leave(sid),
+    switchTo: async (sid) => {
+      state.homeMode = false;
+      document.getElementById('homeServer')?.classList.remove('active');
+      await srv.switchTo(sid);
+      const firstText = state.channels?.find(c => c.type === 'text');
+      if (firstText && state.currentChannelId !== firstText.id) {
+        state.currentChannelId = firstText.id; state.currentChannel = firstText;
+        window.chat.loadHistory(firstText.id);
+      }
+      if (window.ui) ui.render.all();
+    },
+    init: async () => {
+      srv.init();
+      // Every identity converges on the shared public room (fixed, well-known
+      // serverId) whenever it is missing from the rail -- not only on a
+      // zero-server first run. Pre-fix visitors carry a private per-user
+      // serverId in localStorage; since chat.js and voice.js scope everything
+      // by SHA-256(serverId+channel), two such visitors sit in disjoint rooms
+      // and never see each other (the reported voice-room bug). Membership
+      // check makes the join idempotent across reloads. select is true only
+      // for zero-server fresh visitors: they get landed in the public room,
+      // while a legacy visitor keeps their current selection and merely
+      // gains the public server on the rail as the shared rendezvous.
+      if (srv.auth?.pubkey && !srv.servers.find(s => s.id === ZELLOUS_PUBLIC_SERVER_ID)) {
+        try {
+          await srv.join(ZELLOUS_PUBLIC_SERVER_ID, { name: 'Zellous Public', select: !srv.servers.length });
+          // join() emits 'updated' but the first-paint signal read can race it;
+          // sync state explicitly so the new server pill shows on the first load.
+          state.servers = srv.servers;
+          if (window.ui) ui.render.all();
+        } catch (e) {
+          console.warn('[zellous] public server join failed', e?.message);
+          if (window.ui?.showToast) ui.showToast('Could not join the public server: ' + e?.message, 'error');
+        }
+      }
+    },
+    renderList: () => { /* handled by nostr-servers-ui.js which remains */ }
+  };
+
+  // Roles / Bans / Settings / Pages / Media bridges
+  const roles = ww.roles;
+  roles.addEventListener('updated', () => {});
+  window.serverRoles = {
+    _store: roles.store,
+    isOwner: (sid) => roles.isOwner(sid),
+    isAdmin: (sid) => roles.isAdmin(sid),
+    isMod: (sid) => roles.isMod(sid),
+    getRole: (sid, pk) => roles.getRole(sid, pk),
+    setRole: (sid, pk, r) => roles.setRole(sid, pk, r),
+    subscribe: (sid) => roles.subscribe(sid)
+  };
+
+  const bans = ww.bans;
+  window.nostrBans = {
+    _store: bans.store,
+    isBanned: (sid, pk) => bans.isBanned(sid, pk),
+    isTimedOut: (sid, pk) => bans.isTimedOut(sid, pk),
+    subscribe: (sid) => bans.subscribe(sid),
+    ban: (sid, pk) => bans.ban(sid, pk),
+    timeout: (sid, pk, m) => bans.timeout(sid, pk, m),
+    kickFromVoice: (sid, pk) => bans.kickFromVoice(sid, pk)
+  };
+
+  // Personal mute list bridge (NIP-51 kind:10000) -- a per-viewer curation
+  // independent of server admin bans; re-renders the chat view when it
+  // changes since chat.js filters muted authors out of the local message list.
+  const mutes = ww.mutes;
+  mutes.addEventListener('updated', () => { if (window.ui) ui.render.all(); });
+  window.nostrMutes = {
+    isMuted: (pk) => mutes.isMuted(pk),
+    list: () => mutes.list(),
+    mute: (pk) => mutes.mute(pk),
+    unmute: (pk) => mutes.unmute(pk)
+  };
+
+  const settings = ww.settings;
+  window.serverSettings = {
+    _store: settings.store,
+    getBitrate: (sid) => settings.getBitrate(sid),
+    setBitrate: (sid, b) => settings.setBitrate(sid, b),
+    getEmbedAllowlist: (sid) => settings.getEmbedAllowlist(sid),
+    setEmbedAllowlist: (sid, d) => settings.setEmbedAllowlist(sid, d),
+    isOriginAllowed: (sid, o) => settings.isOriginAllowed(sid, o),
+    subscribe: (sid) => settings.subscribe(sid),
+    applyToEncoder() {
+      const bitrate = settings.getBitrate(state.currentServerId);
+      if (state.audioEncoder) { try { state.audioEncoder.configure({ codec: 'opus', sampleRate: config.sampleRate, numberOfChannels: 1, bitrate }); } catch {} }
+    }
+  };
+
+  const pages = ww.pages;
+  pages.addEventListener('updated', () => { state.pagesVersion = (state.pagesVersion || 0) + 1; });
+  window.serverPages = {
+    _store: pages.store,
+    getPages: (sid) => pages.getPages(sid),
+    subscribe: (sid) => pages.subscribe(sid),
+    unsubscribe: (sid) => pages.unsubscribe(sid),
+    publish: (sid, slug, t, h) => pages.publish(sid, slug, t, h),
+    deletePage: (sid, slug) => pages.deletePage(sid, slug)
+  };
+
+  // Forum bridge (kind:11 posts + NIP-22 kind:1111 replies, scoped per
+  // channel) -- re-renders on either the post list or a post's own reply
+  // thread changing, matching the reactive pattern every other manager here uses.
+  const forum = ww.forum;
+  forum.addEventListener('posts', () => { if (window.ui) ui.render.all(); });
+  forum.addEventListener('replies', () => { if (window.ui) ui.render.all(); });
+  window.nostrForum = {
+    listFor: (channelId) => forum.listFor(channelId),
+    repliesFor: (postId) => forum.repliesFor(postId),
+    loadChannel: (channelId, serverId) => forum.loadChannel(channelId, serverId),
+    loadReplies: (postId) => forum.loadReplies(postId),
+    createPost: (channelId, serverId, title, content) => forum.createPost(channelId, serverId, title, content),
+    reply: (postId, authorPubkey, content) => forum.reply(postId, authorPubkey, content)
+  };
+
+  const media = ww.media;
+  window.nostrMedia = {
+    upload: (f) => media.upload(f),
+    isMedia: (u) => media.isMedia(u),
+    extractUrls: (t) => media.extractUrls(t),
+    async sendMedia(file) {
+      const r = await media.sendMedia(file, { channelId: state.currentChannelId, serverId: state.currentServerId || '' });
+      window.chat && window.chat.handleTextMessage && chat.handleTextMessage({ id: r.signed.id, type: 'text', userId: r.signed.pubkey, content: r.signed.content, timestamp: r.signed.created_at * 1000, tags: [] });
+      return r;
+    }
+  };
+
+  // Voice bridge — the main one
+  let voice = null;
+  const ensureVoice = () => {
+    if (voice) { voice.serverId = state.currentServerId || ''; return voice; }
+    voice = ww.ensureVoice({
+      serverId: state.currentServerId || '',
+      displayName: state.nostrProfile?.name || (a.pubkey ? a.npubShort() : 'Guest'),
+      onAudioTrack: ({ peer, stream, peerPubkey }) => {
+        if (!peer.audioEl) {
+          const el = new Audio();
+          el.autoplay = true;
+          el.playsInline = true;
+          el.muted = !!state.voiceDeafened;
+          el.volume = 1.0;
+          el.style.display = 'none';
+          el.dataset.voicePeer = peerPubkey;
+          document.body.appendChild(el);
+          peer.audioEl = el;
+        }
+        peer.audioEl.srcObject = stream;
+        const tryPlay = () => peer.audioEl.play().catch(() => {
+          const resume = () => { peer.audioEl?.play().catch(() => {}); document.removeEventListener('click', resume); document.removeEventListener('keydown', resume); document.removeEventListener('touchstart', resume); };
+          document.addEventListener('click', resume, { once: true });
+          document.addEventListener('keydown', resume, { once: true });
+          document.addEventListener('touchstart', resume, { once: true });
+        });
+        tryPlay();
+      },
+      onVideoTrack: ({ peerPubkey, stream }) => {
+        const key = 'nostr-' + peerPubkey.slice(0, 12);
+        const p = voice.participants.get(key);
+        if (p) { p.hasVideo = true; p._videoStream = stream; }
+        const elId = 'vtile-video-' + peerPubkey.slice(0, 8);
+        let el = document.getElementById(elId);
+        if (!el) {
+          el = document.createElement('video'); el.id = elId; el.autoplay = true; el.playsinline = true;
+          el.dataset.voicePeer = peerPubkey;
+          el.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
+          const wrap = document.getElementById('vtile-wrap-' + peerPubkey.slice(0, 8));
+          if (wrap) wrap.appendChild(el);
+        }
+        el.srcObject = stream;
+      }
+    });
+    // onAudioTrack/onVideoTrack append per-peer <audio>/<video> elements tagged with
+    // data-voice-peer, but wireweave exposes no dedicated per-peer-left event at this
+    // bridge layer -- only the aggregate 'participants' list and full 'disconnected'.
+    // Diffing the DOM-tagged elements against the live participant set on every
+    // 'participants' event is the only reliable per-peer cleanup point available here;
+    // 'disconnected' unconditionally sweeps everything as a backstop.
+    const pruneVoiceMedia = (liveIds) => {
+      document.querySelectorAll('[data-voice-peer]').forEach((el) => {
+        if (!liveIds || !liveIds.has(el.dataset.voicePeer)) {
+          try { el.srcObject = null; } catch {}
+          if (el.tagName === 'AUDIO') { try { el.pause(); } catch {} }
+          el.remove();
+        }
+      });
+    };
+    voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });
+    voice.addEventListener('participants', (e) => {
+      state.voiceParticipants = e.detail.list;
+      pruneVoiceMedia(new Set((e.detail.list || []).map((p) => p.identity)));
+    });
+    voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.message.add('Voice connected'); });
+    voice.addEventListener('media-warning', (e) => { window.message.add(e.detail.message); });
+    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
+    voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
+    voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
+    voice.addEventListener('local-level', (e) => {
+      const q = Math.round(e.detail.level * 100) / 100;
+      if (state.micRawLevel !== q) state.micRawLevel = q;
+    });
+    return voice;
+  };
+
+  const voiceAPI = {
+    get _participants() { return ensureVoice().participants; },
+    get _peers() { return ensureVoice().peers; },
+    get _roomId() { return ensureVoice().roomId; },
+    get _channelName() { return ensureVoice().channelName; },
+    async connect(ch) {
+      const v = ensureVoice();
+      v.serverId = state.currentServerId || '';
+      v.setAudioConstraints({
+        deviceId: state.inputDeviceId || null,
+        noiseSuppression: state.rnnoiseEnabled !== false,
+        autoGainControl: state.autoGainEnabled !== false,
+      });
+      v.setForceRelay(!!state.forceTurnEnabled);
+      if (typeof state.vadThreshold === 'number' && state.vadThreshold > 0) v.setMicSensitivity(state.vadThreshold);
+      await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' });
+      state.micMuted = !!v.muted;
+    },
+    setAudioConstraints(patch) { ensureVoice().setAudioConstraints(patch); },
+    setForceRelay(on) { ensureVoice().setForceRelay(on); },
+    setMicSensitivity(rms) { ensureVoice().setMicSensitivity(rms); },
+    setAudioBitrate(kbps) {
+      const tier = kbps <= 16 ? 'low' : kbps <= 32 ? 'medium' : kbps <= 48 ? 'high' : 'max';
+      ensureVoice().setAudioQuality(tier);
+    },
+    async disconnect() { if (voice) await voice.disconnect(); },
+    toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; },
+    setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; },
+    requestTransmit() { const v = ensureVoice(); const live = v.requestTransmit(); state.micMuted = !!v.muted; return live; },
+    releaseTransmit() { const v = ensureVoice(); v.releaseTransmit(); state.micMuted = !!v.muted; },
+    anyRemoteSpeaking() { return voice ? voice.anyRemoteSpeaking() : false; },
+    toggleDeafen() { ensureVoice().toggleDeafen(); state.voiceDeafened = voice.deafened; },
+    async toggleCamera() { /* camera handled via onVideoTrack above; full port deferred */ },
+    updateParticipants() { if (voice) { state.voiceParticipants = voice.getParticipants(); } },
+    isDataChannelReady: () => { if (!voice) return false; for (const [, p] of voice.peers) if (p.dc?.readyState === 'open') return true; return false; },
+    updateVoiceGrid() { voiceAPI.updateParticipants(); },
+    on(evt, fn) { ensureVoice().addEventListener(evt, fn); return () => voice?.removeEventListener(evt, fn); },
+    get __debug() { return voice?.debug() || null; }
+  };
+  window.nostrVoice = voiceAPI;
+  window.lk = voiceAPI;
+  window.nostrVoiceRtc = { maybeConnect: (pk) => voice?._maybeConnect(pk), handleSignal: (e) => voice?._handleSignal(e), subscribe: () => {}, publish: () => {}, cancelReconnect: (pk) => voice?._cancelReconnect(pk), scheduleReconnect: (pk, a) => voice?._scheduleReconnect(pk, a) };
+  window.nostrVoiceSfu = { start: () => voice?._sfuStart(), stop: () => voice?._sfuStop(), onPresenceRtt: (pk, s) => { if (voice) voice.sfu.rttMatrix.set(pk, s); voice?._sfuMaybeElect(); }, get __debug() { if (!voice) return null; const m = {}; voice.sfu.rttMatrix.forEach((v, k) => m[k.slice(0, 12)] = v); return { mode: voice.sfu.actor?.getSnapshot().value, hub: voice.sfu.hub?.slice(0, 12) || null, rttMatrix: m }; } };
+  window.nostrVoiceCamera = { toggle: () => voiceAPI.toggleCamera(), start: () => voiceAPI.toggleCamera(), stop: () => voiceAPI.toggleCamera() };
+
+  // state-patch replacement: no-op (state.js already has all signals)
+  window.nostrFsm = window.nostrFsm;
+
+  // Ready flag for legacy code
+  window.__zellous = window.__zellous || {};
+  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
+
+  document.addEventListener('nostr:login', () => window.dm.subscribeAll());
+  if (a.pubkey) window.dm.subscribeAll();
+
+  document.dispatchEvent(new CustomEvent('wireweave:ready'));
+  return true;
+})();

@@ -1,0 +1,476 @@
+## [2026-08-25] Fix VAD auto-transmit deadlock: local-level listen track was born muted
+
+- `fix(voice): _localListenTrack was born muted, deadlocking VAD auto-transmit` (wireweave@6273fb54ba, zellous submodule pointer advanced + vendored copy refreshed in b4a8d1b953) — user live-diagnosed a severe bug via monkey-patching `MediaStreamTrack.prototype.enabled`'s setter against the deployed app: entering VAD mode never actually transmitted speech, and the local VAD level meter stayed permanently pinned at 0. This codebase already had a `_localListenTrack` clone mechanism specifically documented as solving exactly this class of problem (a cloned mic track whose `enabled` state is independent of the original, kept always-on for local analysis regardless of mute state). Root-caused the precise reason it wasn't working, confirmed via a real live browser test (`getUserMedia` + `.clone()` against a real track): `MediaStreamTrack.clone()` inherits the source track's *current* `enabled` state at the moment of cloning — it does not default to `true`. `connect()` cloned the raw mic track *after* already setting the original's `enabled` to `!pttMode` (`false` in the default PTT-starts-muted case), so the clone was born already disabled, and `setMuted()` never touched it afterward — permanently silencing the VAD analyser from the very first connect in the default mode, deadlocking auto-transmit (speech can never be detected because the analyser's input is silenced). Fixed with two changes: force `_localListenTrack.enabled = true` immediately after cloning in `connect()` (independent of the original's state at clone time), plus a defensive re-assert of the same in `setMuted()` on every toggle, so the invariant is self-healing rather than solely dependent on clone-order. Verified via `scratch-verify-vad-listen-track-not-muted.mjs` (11/11 checks, using a track fixture that faithfully replicates the *confirmed* real-browser clone-inheritance behavior rather than a convenient stub; confirmed discriminating by reverting the fix and re-running, which fails at exactly the expected assertion) and a live production browser witness (patched `AnalyserNode.prototype.getByteTimeDomainData` to inject a real signal before `connect()`, confirmed `local-level` fired 15 times with a non-zero level despite the session starting muted). Independently adversarially reviewed with specific focus on the one real risk this class of fix could introduce — whether an always-enabled listen-track clone could leak live mic audio to remote peers even while "muted" — confirmed via exhaustive trace of every `_localListenTrack` reference and every `addTransceiver`/`addTrack` call site that the clone is structurally never attached to any `RTCPeerConnection`, only ever passed to a local Web Audio node.
+
+## [2026-08-25] Wire VAD threshold slider to real setMicSensitivity, refresh stale vendored voice.js
+
+- `fix(voice): wire VAD threshold slider to real setMicSensitivity, refresh stale vendored voice.js` (zellous@d4a6f629e0) — user grepped `docs/vendor/wireweave/src/voice.js` and correctly found `local-level` missing there; root-caused to that file being a stale committed copy from before this session's own TURN/VAD fixes (CI regenerates `docs/vendor/wireweave/src` at build/deploy time but never commits the regenerated copy back, so the repo's own tracked source had drifted behind what actually ships). Refreshed the vendored copy to exactly match the submodule. Separately, user correctly found a real, still-live bug: the VAD threshold slider in the Voice Settings modal was fully cosmetic — `nostr-adapter.js`'s `voiceSettingsChange` only wrote the value into UI state, never called into the real voice session, and `wireweave-bridge.js`'s `window.lk` facade didn't even expose `wireweave.js`'s existing `setMicSensitivity(rms)` method for it to call, so the slider never actually retuned speaker-activity detection away from the hardcoded 0.045 RMS default. Fixed: exposed `setMicSensitivity` on the facade, wired `voiceSettingsChange` to call it plus persist to `localStorage` matching the existing `forceTurn`/`bitrate` pattern, restored the persisted value on `state.js`'s `vadThreshold` signal init, and applied it at the start of every `connect()` so it takes effect from session start, not just after touching the slider. Independently adversarially reviewed (a fresh agent with no access to this session's own reasoning): confirmed the full chain slider → `voiceSettingsChange` → `window.lk.setMicSensitivity` → `VoiceSession.micSensitivity` → `_pollActivity`'s threshold comparison is genuinely wired end-to-end, confirmed no load-order race between `state.js`'s localStorage restore and `connect()`'s read of it, and confirmed the refreshed vendored file is now byte-for-byte identical to the submodule. Live-witnessed post-deploy: `window.lk.setMicSensitivity` is a real function, calling it throws nothing, and the deployed vendored `voice.js` now contains both `local-level` and `setMicSensitivity`.
+
+## [2026-08-25] wireweave: STUN-only TURN, live VAD meter, adversarially-found Force TURN regression closed
+
+- `fix(voice): drop dead TURN credentials, ship STUN-only` (wireweave@07e18e6f6a, zellous submodule pointer advanced in 7efd3a7f2c) — user live-diagnosed peers stuck looping reconnect attempts forever; root-caused to the pinned TURN server (`global.relay.metered.ca`, static `openrelayproject` credentials) returning 400 on every allocate attempt. Exhaustive live testing (10+ candidate servers: metered.ca's current and newer staticauth HMAC scheme, numb.viagenie.ca, several ~2013-era demo servers) plus research into every major current provider (Metered, ExpressTURN, Cloudflare Calls, TurnRelay, elixir-webrtc/rel) confirmed no working free/static-credential public TURN provider exists anymore — all now require account signup, several explicitly citing abuse prevention as why static credentials were retired. This repo already hit this exact dead-end once before (the `openrelay.metered.ca` → `global.relay.metered.ca` swap, which has since also died) — a recurring pattern with free-tier TURN, not a one-off broken link. Cloudflare Calls (account-gated, the user's chosen fallback since they already have `wrangler`) was investigated but its own docs require keeping the API token server-side, which this no-backend app doesn't have — shipping it would mean exposing the token client-side, a real security regression traded for a UX improvement. User's final decision: ship STUN-only. Peers needing TURN (symmetric NAT/CGNAT on both sides) will fail to connect until a paid/account-gated provider or a self-hosted relay is set up — documented as a visible, intentional tradeoff in the file's own header comment, not a silent regression. Live-witnessed post-deploy: direct fetch of the deployed `docs/vendor/wireweave/src/voice.js` confirms the STUN-only config is live byte-for-byte; a real two-independent-tab test against production showed genuine cross-tab ICE candidate exchange and active connectivity checking succeeding (`iceState:'checking'` — impossible without real STUN candidates from both sides), though full `connectionState:'connected'` convergence wasn't observed within an 18s same-machine test budget (documented as a test-environment artifact, not a fix defect).
+- `feat(voice): emit local-level for a live VAD meter -- was permanently stuck at 0` (wireweave@377f0bedd1, zellous submodule pointer advanced in 0da93c8967) — separately, the user reported their own local mic-input VAD meter stayed silent while speaking. Root-caused via direct read of the live SDK bundle: the SDK's `VadMeter` component reads adapter snapshot field `micRawLevel`, but nothing in wireweave or zellous ever populated it — `_pollActivity` computed a real RMS value every 80ms purely to derive the pre-existing speaking boolean, then discarded it. Fixed: `_pollActivity` now also emits a `local-level` event with a normalized 0-1 level (`rms / LEVEL_METER_CEILING`, clamped); `docs/js/wireweave-bridge.js` listens and writes `state.micRawLevel` (quantized to 1% steps with a same-value skip); `docs/js/nostr-adapter.js` maps it into the SDK snapshot and reactivity signal list. Verified via `scratch-verify-vad-level.mjs` (13/13 checks) and a live production browser witness patching `AnalyserNode.prototype.getByteTimeDomainData` to inject a real signal — confirmed `rms:0.78125`/`level:1` propagated all the way to `window.stateSignals.micRawLevel.value` in the deployed app.
+- `fix(voice): warn when Force TURN is enabled with no TURN server configured` + `fix(voice): close constructor-bypass gap in Force TURN no-TURN-server guard` (wireweave@74b19091e3, @9670697e8a; zellous submodule pointer advanced in f238cd960c, 0d0a2dc6c0) — this session's own DECIDE-phase gate requires an independent adversarial review before any multi-file diff can complete; that review found a real regression the STUN-only fix above introduced: `setForceRelay()` (the backing for the user-facing "Force TURN" privacy toggle) still unconditionally set `iceTransportPolicy:'relay'` on every new peer connection, but relay-only ICE gathering requires TURN-sourced candidates — with zero TURN servers left, enabling this setting became a silent, permanent, unrecoverable connection failure. Fixed with a `hasTurnServer()` check that warns (via the existing `media-warning` → toast path) without silently disabling the setting, so a future `setIceServers()` call adding a real TURN provider re-enables it with no further code change. A second independent review then found the first fix was itself bypassable (`new VoiceSession({forceRelay:true})` sets the flag directly, skipping `setForceRelay()`'s check) — unreachable from any current production call site, but closed anyway by re-deriving the relay/no-relay decision at the actual point of consequence (`_maybeConnect`'s peer-connection-config construction) rather than trusting a flag that could be set another way. Both fixes verified via `scratch-verify-force-relay-no-turn.mjs` (12/12 checks, including two driving the real `_maybeConnect` end-to-end through the exact bypass path the second review found).
+
+## [2026-08-25] wireweave: fix connectionQuality permanently stuck at 'connecting'
+
+- `fix(voice): connectionQuality was permanently stuck at 'connecting', add peer-connect-failed terminal event` (wireweave@38179c7, zellous submodule pointer advanced in 843d855) — diagnosed live against the deployed app: a remote voice participant's `connectionQuality` was set once to `'connecting'` on presence and never updated by any other code path, so a peer's UI tile stayed stuck showing "connecting" forever regardless of whether the WebRTC connection actually succeeded, degraded, or the app gave up retrying. Investigated the surrounding recovery machinery first and found it already sound (`CONNECT_TIMEOUT`/`DISCONNECT_GRACE`, both 8000ms, already correctly watchdog a stuck peer within ~8s, followed by up to 6 exponential-backoff reconnect attempts before giving up) — the original live-diagnosis assumption that a stuck peer hangs for `PRESENCE_EXPIRY`'s 5 minutes was incorrect, so no timeout constants were changed. Added a `_setConnectionQuality` helper wired at every real state-change path (`good` on connected, `poor` on disconnected/ICE-restart, `failed` on retry exhaustion) plus a new `peer-connect-failed` event distinct from the pre-existing `peer-closed` (which also fires on a normal clean leave). Live-witnessed via `scratch-verify-connection-quality.mjs` (real unmodified `VoiceSession`, real xstate actor, controllable fake `RTCPeerConnection` — same pattern as the repo's existing `scratch-verify-connect-watchdog.mjs`): 12/12 checks passed. Production-witnessed post-deploy: fixed module live at the vendored path, `appReady`, zero console errors.
+
+## [2026-08-25] Submodule design+wireweave, CI builds from source, remove footer bar, mobile VC safe-area fix
+
+- `feat(submodules): add design and wireweave as git submodules for local editing` (21e8ab2) — added `design/` (AnEntrypoint/design) and `wireweave/` (AnEntrypoint/wireweave) as real git submodules for local dev/editing access, per user request. Runtime consumption architecture changed in a follow-up commit (below), not this one.
+- `feat(build): build+deploy anentrypoint-design and wireweave from submodules, drop jsdelivr CDN` (b9f692d, fixed further in 78edd5a/fccc87f) — CI now checks out with `submodules: true`, advances both to their latest `main` before building (`git submodule update --remote` — the `--merge` variant failed in real CI with "refusing to merge unrelated histories", caught and fixed same session), builds `design`'s SDK from source, and vendors the output into `docs/vendor/`. The importmap and stylesheet in `docs/nostr-chat/index.html` now reference these local paths instead of jsdelivr's `/gh/main` CDN. Production-witnessed: SDK module resolves from the vendored path, zero jsdelivr `/gh/` references, `appReady`, zero console errors.
+- `feat(ui): remove the .app-status footer bar` (beb2fa7) — deleted the "Zellous Public / nothing here yet / 2 rooms / powered by anentrypoint-design" status footer (its JS module, HTML markup, and CSS incl. the fixed 42px bottom-space reservation), per user request.
+- `fix(mobile): give the voice-control dock its own safe-area-inset-bottom accommodation` (4bd9560) — the SDK's `.vx-dock` (voice-control button cluster) had a fixed bottom padding with no notch/home-indicator awareness; added an additive `env(safe-area-inset-bottom)` override so VC buttons stay clear of a device's gesture bar on phones and tablets.
+- `feat(build): swap marketing landing off jsdelivr, drop dead anentrypoint-design npm dep` (45d6743) — `docs/index.html` and `site/theme.mjs` (the flatspace-built landing page) swapped off jsdelivr too. While tracing this, found `theme.mjs`'s only `import ... from 'anentrypoint-design'` was inside a template-literal string emitted as browser-side code text, never a real Node-level import — removed the now-genuinely-dead npm dependency (same shape as the `wireweave` entry an earlier session already removed for the identical reason).
+- Investigated a residual finding during final production verification: `anentrypoint-design`'s own bundled runtime code separately loads `prismjs` syntax-highlighting scripts from `cdn.jsdelivr.net/npm/...` (jsdelivr's npm-CDN mode, distinct from the `/gh/` GitHub-mode this session removed) — confirmed this is the SDK's own internal dependency choice, not a zellous first-party reference, and out of this session's requested scope. Documented for a future session if full CDN independence (including SDK-internal deps) is ever wanted.
+
+## [2026-08-20] Repo-sync: push unlanded commits, regenerate stale lockfile, revert a self-inflicted regression
+
+- `chore(gm): track PRD/mutables state for repo-sync session` + 3 prior unpushed commits (67182d9..1961c9f) — local `main` was 4 commits ahead of `origin/main`, entirely unpushed since 2026-08-18. Pushed to sync.
+- `chore(deps): regenerate stale package-lock.json (anentrypoint-design 0.0.484 -> 1.0.34)` (1961c9f) — the tracked lockfile had drifted ~6 months behind npm's real `latest` for `anentrypoint-design`. This was also the root cause of GitHub reporting 8 Dependabot alerts (`ws`/`qs`/`picomatch`/`path-to-regexp`/`minimatch`); confirmed none of those packages exist anywhere in the freshly-regenerated lockfile tree — a stale/lagging scan, not a real vulnerability, matching this repo's own documented 2026-08-06 precedent of the same phantom-alert pattern.
+- `fix(deps): restore anentrypoint-design's floating 'latest' range` (cfd39e2) — the lockfile regen above had npm silently rewrite `package.json`'s deliberate `"latest"` range to a caret pin (`^1.0.34`) as an unrequested side effect of `npm install <pkg>@latest --package-lock-only`. Caught and reverted same session: `"latest"` is intentional here per this repo's own history (a caret on a 0.x line freezes rather than floats), and the whole point of this Node-side-only dependency (used by `site/theme.mjs` at flatspace build time) is to auto-track the SDK's newest publish.
+- Verified both CDN-consumed sibling repos (`wireweave`, `anentrypoint-design`) live and healthy via their jsdelivr `/gh/main` endpoints — no importmap changes needed, confirming the architecture documented in AGENTS.md is intact.
+- Mid-session the shared `gm` plugkit daemon broke repo-wide (host-runner/plugin ABI mismatch after a version swap: runner moved to 0.1.84, plugin stayed pinned to 0.1.1236 briefly) — fell back to direct `git`/`gh` CLI for the affected window, same discipline and witness standard, matching this repo's own documented precedent for daemon outages (2026-07-26/07-28 entries). Daemon self-recovered later in the session.
+
+## [2026-08-06] Perfection pass: critical voice crash fix, GH Pages deploy race, branch consolidation
+
+- `fix(voice): add setAudioConstraints/setForceRelay, enforce bans on already-connected peers` (40368f2, sibling `wireweave` repo, published npm 0.3.64) — `VoiceSession` never actually defined `setAudioConstraints()` despite the consumer calling it on every voice `connect()`; every voice join in production threw `TypeError` immediately regardless of mic permission state. This was the highest-impact defect found this session. Also added `setForceRelay()` (Force-TURN setting had zero protocol-layer effect) and live ban/timeout/kick enforcement against already-open peer connections, not just future connection attempts — `kickFromVoice()` was previously a complete no-op.
+- `fix(voice+security): wire force-relay/bitrate settings live, fix XSS gap in channel type label` (5716392) — Voice Settings modal's force-TURN/bitrate controls updated localStorage/UI state but never called into the actual voice session; wired both through. Escaped an unescaped `ch.type` fallback in the channel settings modal (a malicious server owner could publish an arbitrary channel-type string via a crafted kind:30078 event and land it unescaped in innerHTML).
+- `ci: deploy GH Pages from main only, not main+master` (353885d) + `merge: consolidate master into main, master retired per single-branch policy` (08fdcbe) — `gh-pages.yml` triggered on both branches into the same deploy target with no tie-breaking beyond push order, so a stale `master` push could silently overwrite a newer `main` deploy (this is why the voice fix above initially failed to reach production despite CI passing). Merged master's 3 unique commits into main and deleted master.
+- `chore: regenerate stale package-lock.json, clears 8 Dependabot alerts` (399b28a) — the tracked lockfile had only 10 package entries and was missing playwright's real transitive tree; the vulnerable `ws`/`qs`/`picomatch`/`path-to-regexp`/`minimatch` versions Dependabot flagged weren't actually resolved by current `npm install`. Regenerated to a real 19-package tree, 0 vulnerabilities.
+- Full 3-agent parallel code audit (voice, XSS/security, moderation+chat+pages+forum) plus live browser witnessing against the deployed production URL confirmed the rest of the app — chat send/receive/deletion/reactions, Pages/Forum CRUD, moderation authorization, member list, all Nostr-event-sourced-field sanitization sinks except the one above — already correct.
+
+## [2026-08-06] Cross-repo doc-accuracy + CI hardening audit across zellous, design, wireweave
+
+- `docs: correct stale AGENTS.md claims, document docs->dist asset copy, add CI browser-witness job` (2100117) — AGENTS.md wrongly claimed 28 `sdk-*.js` mount files remained on disk unloaded; only `sdk-command-palette.js` remains and it is loaded. Documented how `docs/` reaches production (`gh-pages.yml` uploads `dist/`, and `site/theme.mjs`'s `assets` map copies `docs/nostr-chat` et al. into it verbatim at build time) and fixed `theme.mjs`'s comment that inaccurately described that copy as an iframe.
+- `ci: bump node-version from 20 to 22` (8f434c1) + `ci: bump pinned actions past their Node20-runtime majors` (2080f26) — cleared the recurring "Node.js 20 is deprecated" annotation on every CI/deploy run; `checkout`/`setup-node`/`cache`/`configure-pages`/`upload-pages-artifact`/`deploy-pages` bumped to their latest majors, watched live against a real push to confirm the annotation is gone and nothing regressed.
+- `wireweave test: cover createWireweave deps-guard and VoiceSession's synchronous API surface` (899aa00, sibling repo) — `Servers()` now throws 3 distinct per-field error messages instead of one generic one; `test.js` gained real coverage for `createWireweave`'s 3 dependency guards and for `VoiceSession`'s constructor guard + every live-settable setter, closing a real gap (the WebRTC voice-signaling module had zero test references at all).
+- `design docs: fix 3 stale (unreleased) markers on already-shipped CHANGELOG entries` (735135d, sibling repo) — `anentrypoint-design`'s own CHANGELOG.md had version headers for 0.0.246/0.0.243/0.0.239 still marked "(unreleased)" despite real `chore(release)` commits shipping all three.
+
+## [2026-07-30] 20-agent research+implementation fan-out: 6 fixes including one real functional bug and one XSS
+
+- `fix(xss): escape untrusted Nostr event fields before innerHTML insertion` (cdd88d2) — server name/color tags from kind:34550 events were concatenated raw into innerHTML/style in the join-preview modal, edit-server-name input, and server-icon list; any user able to rename a server could inject markup into another viewer's client. Fixed via the existing `escHtml()` helper. Bundled with a keyboard-accessibility pass (focus-visible styles, keyboard activation on channel/server rail items, Escape-to-close on legacy overlays).
+- `fix(adapter): implement uiMembers.categories() so the member list ever renders non-empty` (cdc8508) — the adapter's `memberCategories` computation called a method that was never defined, so the member list always rendered empty regardless of real online members.
+- `fix(files): route generic file upload through existing Blossom path, remove dead legacy code` (a7673d8) — generic (non-image/video) file uploads previously hit a dead, always-failing legacy path even though a working Blossom-based upload mechanism already existed for images/video.
+- `fix(wireweave-bridge): surface a clear boot-error message when wireweave import fails` (6437d5e) — matches the SDK import's existing graceful-failure messaging pattern; still hard-fails (no fallback mode), just with actionable feedback instead of a raw stack trace.
+- `fix(wireweave): pin CDN import to caret range instead of fully unpinned` (e2ef5ce) — narrows blast radius to same-major regressions only, while keeping the zero-vendor/zero-build live-CDN architecture and its automatic patch/minor tracking.
+- `ci: add advisory Playwright browser-witness job with chromium caching` (f9b654c) — CI now runs the full browser-witness validation loop step (appReady + zero console errors) as a non-blocking job, closing a gap this file had flagged as deferred.
+- 10 parallel research agents also surveyed recent NIP proposals (NIP-25 reactions, NIP-7D forum threads, NIP-07/NIP-17 DM signer interop), WebRTC voice-quality successors to RNNoise, and CSP/SRI/import-map hardening options — captured as implementable specs in AGENTS.md's caveats for future sessions, not all implemented this session since several require sibling-repo (`wireweave`) protocol-layer changes outside this repo's write scope.
+
+## [2026-07-30] wireweave now consumed live over CDN (esm.sh), matching the SDK's live-consumption pattern
+
+- `feat(wireweave): consume live from npm via esm.sh, remove vendored copy` (f8a0174 zellous) — the hand-copied `docs/vendor/wireweave/src/` directory had drifted several npm releases stale (this session's re-vendor found it missing 3 files entirely and a whole constructor-options architecture). Switched to the same live-CDN pattern already used for the `anentrypoint-design` SDK: `wireweave-bridge.js` now imports the bare specifier `wireweave`, mapped in the importmap to the unpinned `https://esm.sh/wireweave` (always resolves latest). Eliminates the vendor-drift class of bug at the root instead of re-vendoring by hand again next time it happens.
+- Also re-exercised a stale `blockedBy:external` mobile-viewport row from 2026-07-24 now that the original blocker (gm's own browser verb never spawning chromium) is confirmed fixed — zero regressions found at 375x667/667x375.
+
+## [2026-07-30] 6-agent parallel audit + wireweave re-vendor: 9 defects fixed across zellous, wireweave, and the SDK
+
+- `fix(voice,a11y,channels): re-vendor wireweave, wire real VAD, fix audit findings` (2a04694 zellous) — silent file-upload failures now toast; `#drawerOverlay` had zero CSS rules (same silent `body.scrollHeight` inflation class as `.video-playback`/`.settings-popover`), now `position:fixed`/`display:none`; a dark-theme `--bg-3` override broke the SDK's own 4.5:1 contrast guarantee, restored; several icon-only buttons gained `aria-label`; deleted the fully-dead legacy `docs/js/ptt.js` and a stale bare `ptt` reference that would have thrown post-delete; wired a real `'vad'` mode into `voice-ptt.js`.
+- `fix(voice,channels,servers,roles): close authz/validation gaps, wire real VAD transmit` (1666767 wireweave) — an admin could demote another admin or the owner via `roles.setRole` with no owner check; `channels.create`/`rename` had no name validation in the data layer at all (empty/duplicate names could reach the published event); `channels.remove` could delete the last channel, orphaning the server; `servers.rename` had no empty-name guard. VAD auto-transmit was architecturally broken — the only speaker-activity analyzer ran on the same mute-gated track it needed to hear the user's own speech on to auto-unmute; fixed by cloning the raw track into an always-enabled local listen-tap independent of the transmit gate. Re-vendored the whole `docs/vendor/wireweave/src/` tree into zellous, which had drifted several releases behind (missing 3 files entirely, missing the `pttMode`/`micSensitivity`/audio-quality-tier/DTX constructor architecture).
+- `fix(a11y): close the remaining focus-on-open races in 4 overlay primitives` (f31467c anentrypoint-design) — `FocusTrap`, `CommandPalette`'s search input, `RovingMenu`'s first-item focus, and `ApprovalPrompt`'s note textarea all still used `queueMicrotask` for focus-on-open, the same race already fixed in six other overlay types this repo tracks.
+- `fix(voice): clip PTT glow halo instead of letting it bleed past the button` (1e8cdb4 anentrypoint-design) — `.vx-ptt-glow`'s `-4px` inset had no clip on its parent, bleeding 4px past the button on every axis at every viewport; a prior width-only media-query patch had only closed the horizontal half of the same bug. `overflow:hidden` on `.vx-ptt` clips it uniformly.
+
+## [2026-07-28] Exhaustive GUI/mobile/voice audit: 5 real defects fixed across zellous + the SDK repo
+
+- `feat(voice+channels): wire real channel-context menus, create-channel, voice settings modal; remove dead ui-chat.js` (cc92e38 zellous) — channel/server right-click menus were invisible (missing `.open` class on `_mkMenu`'s element); the rail had no way to create a channel at all until `anentrypoint-design`'s `community-app.js` gained a "+" affordance this session; the Voice Settings modal was entirely dead (`window.openVoiceSettings` was never defined anywhere, even though every backing signal already existed); deleted `docs/js/ui-chat.js`, confirmed fully unreachable (targeted a DOM element the SDK no longer renders).
+- `feat(community-app): add rail create-channel affordance for admins` (`anentrypoint-design` c91abd2) + `fix(a11y): fix focus-race on modal/dialog/menu/lightbox open` (3bff8bf) + `fix(voice): shrink PTT button on height-constrained (landscape) viewports` (bb5e03f) — SDK-side changes: a real create-channel button gated on `canManage`; six overlay types (SettingsPopover/EmojiPicker/Popover/ContextMenu/Drawer/Dialog/VideoLightbox) had a `queueMicrotask` focus race that silently broke Escape-to-close for keyboard users, live-witnessed via a manually-focused popover before the fix; the PTT button clipped off-screen at phone-landscape heights (667x320).
+- `feat(pages): make the Pages feature reachable — create + real edit modal` (b4f728e) — Pages were fully built at the protocol level (kind 30078, real publish/delete) but had zero UI path to create one; added "Create Page" to the server context menu and a proper edit modal replacing a crude `window.prompt()`.
+- `fix(a11y): remove hidden file input from tab order` (ecb2569) — the hidden `#fileInput` was the very first Tab-focusable element on the page.
+
+## [2026-07-26] Fix voice-join requiring a mic, and dead mobile drawer/member-panel toggles
+
+- `fix(voice+mobile): join voice without a mic, open mobile drawer + member panel` (b9c5163) — two real, live-witnessed regressions found during a full-app audit prompted by "get it to actually function": (1) `voice.js`'s `connect()` threw hard on any `getUserMedia` failure with no listen-only fallback, even though every downstream `localStream` use already null-guards it, so anyone without a working mic (including this session's own headless-browser witness) could never join voice at all; (2) the mobile hamburger menu and member-list toggle buttons flipped classes on dead legacy scaffold elements instead of the `mobileMenuOpen`/`memberListOpen` signals the SDK's `mountCommunityApp` actually reads (confirmed by decompiling the live `247420.js` bundle), so on mobile neither the room rail nor the member panel could ever open despite the buttons visually responding to taps. Verified live on both a local server and the production GH Pages deploy: voice now joins listen-only with a toast, mobile drawer/member panel both open and close correctly, chat send/receive/delete/reply and desktop rendering all re-verified with zero regressions.
+
+## [2026-07-24] Fix mobile triple-header chrome stack
+
+- `fix(mobile): hide redundant app-topbar nav on narrow phones to reclaim vertical space` (b144c12) — three stacked SDK header rows consumed ~40% of a typical phone viewport before any content; hid the redundant home/servers/source nav row below 480px (still reachable via the hamburger drawer), shrinking the topbar 96px->56px.
+
+## [2026-07-24] Fix bans never enforced in text chat (voice-only until now)
+
+- `fix(chat): enforce bans/timeouts in text chat, not just voice` (c6edc4f/18c87e2) — bans.isBanned()/isTimedOut() were only ever consulted by voice.js. A banned user could send text messages freely, and their messages were never filtered from anyone's view. Fixed with send-time rejection plus receive-side filtering, verified live (simulated self-ban blocks sending with a real toast; normal sending unaffected).
+
+## [2026-07-24] Comprehensive audit: fix message deletion never propagating
+
+- `fix(chat): propagate message deletions to other clients (NIP-09 kind:5)` (14fe3ff) — found during a full-app audit prompted by "consider every aspect": no code anywhere subscribed to kind:5 deletion events, so a deleted message stayed visible for everyone except the person who deleted it. Fixed with the same authorization pattern already proven correct in the roles/bans/settings/pages stores. Also re-verified: relay reconnect banner, error surfacing for network/auth/voice failures, empty states across member list/thread panel/forum, voice control accessibility, and dead-code cleanup status -- all found solid, no further gaps.
+
+## [2026-07-24] Fix voice grid never rendering participants (regression since SDK migration)
+
+- `fix(voice): seed voiceParticipants on connect so the voice grid actually renders anyone` (ab7cdc0) — the actual bug behind the user's "voice used to work, broken since the redesign" report: `state.voiceParticipants` was only ever populated by a `'participants'` event that never fires for a self-only join, so the voice grid rendered zero tiles even on a fully successful connection. Verified live with a real (fake-device) getUserMedia + WebRTC mesh connect.
+
+## [2026-07-24] Fix reported layout/completeness bugs
+
+- `fix(layout): close 8px chat-composer/status-bar overlap on mobile; remove dead legacy topbar wiring` (7b39129) — closed an 8px overlap between the composer and fixed status bar on mobile viewports; removed `ui-shell.js` `wireCrumb()` logic believed dead at the time.
+- `fix(html+state): correct premature .app-div close reparenting legacy overlays to body; restore live status footer; clear composer on send` (50c2556) — the real root cause of the reported "incomplete GUI": a stray extra `</div>` in `docs/nostr-chat/index.html` closed `.app-body`/`.app` one tag early, reparenting the status footer (and thread-panel/member-list) to be direct children of `<body>` instead of the hidden legacy scaffold, so it rendered permanently-frozen placeholder text. Fixed the nesting, moved the footer to a standalone element, restored its live-update wiring (correcting the prior session's mistaken belief it was dead code), and fixed the chat composer not clearing after Enter-to-send.
+
+## [2026-04-13] Flow UI Enhancements - 13 GUI Improvements
+
+### Features
+- Command Palette: Ctrl+K search across channels, users, servers, commands with fuzzy matching
+- Emoji Reactions: First-class UI with top 3 inline, +N indicator, click-to-add
+- Voice Quality Indicators: Green/yellow/red icons, RTT/packet-loss popover
+- Sidebar Collapse: Icon-only 64px mode, hover-expand, localStorage state
+- Mobile Bottom Sheets: Modals slide up on <768px, swipe-down dismiss
+- Theme Customization: Light/dark/auto toggle, 6 accent presets
+- Micro-animations: Button press, message fade-in, participant slide, pulse effects
+- Keyboard Navigation: Tab nav, arrow keys, Enter/Space, focus trap, ARIA labels
+- Relay Status: Connected count in topbar, per-relay latency/status popover, offline banner
+- Markdown Support: Bold, italic, inline code, code blocks with language detection
+- Syntax Highlighting: js, python, rust, go keyword/string/comment coloring
+- Message Grouping: Collapse consecutive messages, thread indicators with reply counts
+- Observability: window.__debug with ui, voice, relay, cache, user, errors, perf
+
+### Implementation
+- 10 new modules created, all <200 lines
+- animations.css with spring-like easing, prefers-reduced-motion support
+- flow.html updated to load all enhancement modules
+- Command palette modal and bottom-sheet modal CSS
+
+
+## [2026-04-13] loading-ux-server-pages
+- index.html: Default user panel text changed from 'Not logged in' to 'Connecting...' — eliminates flash before scripts load.
+- nostr-pages.js: Admin-publishable server pages. kind 30078 events (zellous-page:<serverId>:<slug>). HTML sanitized (removes script/iframe/on* attrs). Admin-only via serverRoles.isAdmin(). window.__debug.pages exposes loaded pages.
+- ui-channels.js: Pages section in channel sidebar (below channels). Clicking page sets currentChannel to type:page and renders pageView.
+- nostr-servers.js: switchTo() calls serverPages.subscribe(serverId).
+- discord.css: page-view-header, page-view-body, page-editor, page-tb-btn styles.
+- index.html: pageView div added; nostr-pages.js in script load list; __debug.pages wired.
+
+## [2026-04-13] admin-ux-full
+- ui-voice.js: Role badge overlay on voice tiles. Reads serverRoles.getRole() per participant pubkey; shows Owner/Admin/Mod badge with color.
+- ui-chat.js: Announcement messages rendered with announcement-msg CSS class (gold left-border, tinted bg). announceBtn show/hide based on serverRoles.isAdmin() on every render cycle.
+- nostr-chat.js: sendAnnouncement() sends kind 42 with ['t','announcement'] tag. _eventToMsg() extracts t-tags into msg.tags array.
+- moderation.js: Kick from Voice menu item in Nostr mode when peer is in nostrVoice._peers. Closes peer locally and publishes best-effort kick signal (kind 30078 zellous-kick:<pubkey>).
+- discord.css: .announcement-msg and .voice-tile-role-badge styles added.
+- index.html: announceBtn added to chat input bar (hidden by default, shown to admins).
+- app.js: announceBtn click handler wired to chat.sendAnnouncement().
+
+## [2026-04-13] nostr-admin-roles-video-media
+- nostr-roles.js: Nostr-native role system (kind 30078 zellous-roles:<serverId>). Only server creator can assign admin; admins can assign moderator. All clients verify event.pubkey === serverId creator before applying. window.__debug.roles exposes live store.
+- nostr-settings.js: Server-owner/admin configurable Opus bitrate (8/16/24/48/96 kbps) stored as kind 30078 zellous-settings:<serverId>. Applied to AudioEncoder on voice connect and on change. Non-authorized events silently ignored.
+- nostr-voice-camera.js: Real WebRTC camera toggle. Injects video track into existing peer connections via addTrack/replaceTrack. Disconnects cleanly on voice leave.
+- nostr-voice-rtc.js: Handle remote video ontrack — create <video> element per peer, wire to participant hasVideo flag.
+- nostr-media.js: NIP-96 media upload (nostr.build, void.cat). sendMedia() uploads file and publishes kind 42 with imeta tag. window.__debug.media exposes server list.
+- nostr-chat.js: sendImage() wired to nostrMedia.sendMedia. linkify() renders inline image/video from URLs in messages. Paste-from-clipboard support in index.html.
+- moderation.js: showMemberMenu gates role options on serverRoles.isAdmin(). Owner-only admin assignment enforced. Nostr mode calls serverRoles.setRole() instead of REST API.
+- nostr-servers-ui.js: Bitrate selector added to edit modal for owner/admin; saved via serverSettings.setBitrate() on submit.
+- state.js: Added cameraEnabled signal.
+- index.html: Added nostr-roles/nostr-settings/nostr-media/nostr-voice-camera to load list. Camera button wired. Paste handler for clipboard images.
+
+## [2026-04-12] perfect-negotiation-pattern
+- Replace signalingState-guarded offer handler with RFC 8840 perfect negotiation pattern
+- polite peer (myPubkey < peerPubkey): rolls back own offer on collision via setLocalDescription({type:'rollback'}) then chains doAnswer
+- impolite peer: silently ignores colliding offers (early return), preventing deadlock
+- Extract doAnswer() local fn: setRemoteDescription → drainBuf → transceiver setup → createAnswer → setLocalDescription → publishSignal (called from both stable and rollback paths, no duplication)
+
+## [2026-04-12] sfu-hub-death-recovery
+- In onconnectionstatechange closed handler: detect hub loss via nostrVoiceSfu._hub===peerPubkey, call _dissolve() immediately, schedule _maybeElect() at 500ms
+- Add _hubLostAt timestamp field to nostrVoiceSfu, set on every _dissolve() call
+- Expose hubLostAt in nostrVoiceSfu.__debug for observability of hub loss events
+
+## [2026-04-12] peer-retry-unlimited
+- Replace failCount<=1 ICE restart cap with exponential backoff up to 6 attempts then give up
+- Add scheduleReconnect(pk, attempt): delay=min(2^attempt*2000,30000)ms, skips if attempt>=6
+- Add cancelReconnect(pk): clears timer and removes from __voiceRetrySchedule
+- cancelReconnect called in maybeConnect entry (presence event cancels pending retry)
+- cancelReconnect + failCount reset on connectionState=connected
+- window.__voiceRetrySchedule tracks all pending retries; exposed via window.__debug.voice.retrySchedule
+
+## [2026-04-12] peer-track-ended-recovery
+- Attach track.onended handler in ontrack: triggers doIceRestart if FSM=connected
+- Add 5s stall interval per peer: detects all-ended srcObject tracks while FSM=connected, triggers doIceRestart once via trackEndedRestart flag
+- Clear _stallInterval in _closePeer to prevent leaks on deliberate disconnect
+- Log recovery events to window.__debug keyed by peer pubkey prefix
+
+## [2026-04-12] debug-voice-registry
+- Enhance nostrVoice.__debug getter: per-peer audioState, trackState, fsmState, retryAttempt, retryAt, retrySchedule fields
+- Register window.__debug as live getter object: voice → nostrVoice.__debug, net → window.__debugNet (no page refresh needed)
+
+## 2026-04-12
+- Fix presence TTL 90s→300s preventing users from appearing (nostr-voice.js)
+- Upsert participant tile on WebRTC connected state (nostr-voice-rtc.js)
+- Add XState v5 to importmap + window.XState assignment (index.html)
+- Migrate makeFSM to XState createMachine+createActor (nostr-fsm.js)
+- Add XState topology actor to nostr-voice-sfu.js (mesh/electing/star)
+- Add XState relay actor to nostr-network.js (disconnected/connecting/connected/error)
+- Migrate nostr-voice.js and nostr-voice-rtc.js to direct XState actor API (remove makeFSM wrapper)
+- Replace nostr-fsm.js with voiceMachine/peerMachine exports via window.nostrFsm
+## [2026-04-12] sfu-mesh-rtt-optimizations
+- Add nostr-voice-sfu.js: dynamic hub election via RTT matrix, replaceTrack forwarding (no decode), dissolves mesh→star at 3+ peers, reverts to mesh at <3 peers
+- nostr-voice-rtc.js: playoutDelayHint=0.02 on receivers, maxBitrate=48kbps on senders, audio hints applied on connected and ontrack
+- nostr-voice.js: RTT scores carried in heartbeat presence events, SFU start/stop hooked to connect/disconnect, __debug exposes SFU state
+- nostr-network.js: relay latency scoring (reqSentAt→first EVENT), window.__debugNet exposes relay latencies, condensed to 159L
+- nostr-voice-sfu.js: window.nostrVoiceSfu.__debug exposes mode/hub/rttMatrix
+
+## [2026-04-12] context-menus-servers-invites-mobile
+- Right-click server icon shows context menu: Copy Invite Link, Edit Server (owner), Leave Server, Delete Server (owner)
+- Split nostr-servers.js UI methods into nostr-servers-ui.js (mirrors nostr-channels-ui.js pattern)
+- Server invite URL: location.origin + ?room=serverId, copies to clipboard with toast
+- ?room= param now shows preview modal (Join Server?) before joining, fetches server name from Nostr
+- Edit Server modal for owners: rename + recolor, republishes kind 34550 event
+- Mobile: server list becomes fixed bottom horizontal bar with env(safe-area-inset-bottom) padding
+- Mobile: channel sidebar slides from left, clears bottom server bar area
+- Mobile: chat input sticky bottom, min-height 44px touch targets on all interactive elements
+- Mobile: voice controls enlarged (56px buttons), context menu items 44px touch height
+
+## [2026-04-12] voice-channel-click
+- Clicking a voice channel immediately calls lk.connect() — no separate join button
+- Clicking the active voice channel calls lk.disconnect()
+- Channel item shows spinner animation during connecting state
+- Removed "Click to join voice channel" overlay from voice view grid
+
+## [2026-04-12] remove-self-hosted
+- Deleted server/ directory (all server-side modules)
+- Deleted lib/ directory (server SDK wrappers)
+- Deleted server.js, livekit.yaml, nixpacks.toml, nodemon.json, keep-alive.sh
+- Deleted server-mode-only js files: network.js, auth.js, auth-account.js, network-handlers.js, network-media.js, api.js, channels-api.js, channels-ui.js, chat.js, livekit.js, servers.js, servers-ui.js, ui-helpers.js
+- Removed server deps from package.json: busybase, cors, express, livekit-server-sdk, ws, msgpackr
+- docs/nostr-chat still works — all script imports verified present
+
+## [2026-04-12] redesign-css
+- Replace Discord-clone CSS with original minimal dark design
+- New color palette: slate-based dark (#0f1117 base, #1a1d27 panels, #6c63ff accent)
+- No --bg-primary: #313338 — all Discord variables replaced
+- Responsive breakpoints at 480px, 768px, 1024px
+- All component classes preserved; context menu, modal, toast styles present
+
+# Changelog
+
+## [2.0.0] - 2025-11-24 - Modular Architecture Refactor
+
+### Changed
+- Split monolithic app.js (1198L) into 8 modules (598L total, 50% reduction)
+- Modules: state, ui, audio, queue, network, ptt, webcam, app
+- All modules under 200-line hard limit
+- Complete UI redesign with modern CSS
+- Mobile-responsive layout with hamburger menu for sidebars
+
+### Added
+- Window globals for all modules (debugging via REPL)
+- Input/output device selectors
+- Skip/resume live audio controls
+- WebM video streaming with VP9/VP8
+
+### Removed
+- All test files (manual testing via MCP Playwright)
+- All console.log statements
+- All comments
+
+## [1.5.1] - 2025-11-14 - Comprehensive Testing & Sandboxbox Verification
+
+### Added
+- 20 comprehensive test suites covering all functionality (200+ test cases)
+- Sandboxbox MCP tool integration for parallel testing
+- Git workflow verification for sandboxbox@3.0.78
+- Test files: test12_volume_control.js through test20_debug.js
+
+### Fixed
+- Bug #1 (server.js:52): Audio echo - senders receiving own chunks (exclude parameter was null instead of client)
+- Bug #2 (app.js:252): Memory leak in pause - audio buffers not cleared after storing in pausedAudioBuffer
+
+### Testing
+- Tests 1-11: Sandboxbox MCP parallel execution
+- Tests 12-20: Local execution
+- 100% pass rate across all 200+ test cases
+- Verified sandboxbox git workflow with automatic commit/push
+
+### Code Metrics
+- app.js: 374 lines (unchanged, bug fix only)
+- server.js: 93 lines (unchanged, bug fix only)
+- Test files: 9 files, ~2000 lines total
+- Bugs fixed: 2 critical (audio echo, memory leak)
+- Regressions: 0
+
+## [1.5.0] - 2025-11-13 - Dynamic Rooms
+
+### Added
+- Dynamic room support via URL query parameters (?room=roomname)
+- Default "lobby" room when no room specified
+- Room name display in UI header
+- join_room message handler on client
+- room_joined message handler on server
+- Complete audio and message isolation between rooms
+
+### Changed
+- Client state now includes roomId property (18 properties total)
+- All outgoing messages include roomId
+- Server broadcast function filters by roomId
+- Client sends join_room on connection
+- Server confirms room join with current users in that room
+- Message handlers updated to support room_joined event
+
+### Technical
+- URL parsing: URLSearchParams extracts room from query string
+- Room assignment: Client-side on init, server-side on join_room
+- Broadcast filtering: O(1) roomId comparison per client
+- Zero server configuration required for new rooms
+- Unlimited concurrent rooms supported
+
+### Benefits
+- Instant room creation (no setup required)
+- Complete privacy between rooms
+- Easy to share room links
+- Scalable architecture
+
+### Code Metrics
+- app.js: 373 lines (+20 from v1.4.1)
+- server.js: 93 lines (+9 from v1.4.1)
+- index.html: 68 lines (+1 from v1.4.1)
+- Total: 558 lines (+30 from v1.4.1)
+
+## [1.4.1] - 2025-11-13 - Hot Reload for Development
+
+### Added
+- Hot reload support via nodemon for development workflow
+- nodemon.json configuration file (watches server.js)
+- npm run dev script for development mode with auto-restart
+
+### Changed
+- Updated package.json with nodemon devDependency
+- Enhanced deployment documentation with dev workflow
+- Development server automatically restarts on file changes
+
+### Technical
+- Nodemon watches server.js for changes only
+- Production workflow unchanged (npm start)
+- Development workflow: npm run dev
+- Configuration: nodemon.json (5 lines)
+
+### Code Metrics
+- package.json: 19 lines (+3 for devDependencies)
+- nodemon.json: 5 lines (new file)
+- Total: 509 lines (+5 from v1.4.0)
+
+## [1.4.0] - 2025-11-13 - Opus Codec via WebCodecs API
+
+### Changed
+- Replaced Int16 PCM compression with Opus codec
+- Implemented AudioEncoder with Opus (24kbps bitrate, mono, 48kHz)
+- Implemented AudioDecoder per user for Opus decoding
+- Bandwidth reduced from 192kbps (Int16) to 24kbps (Opus) - 87.5% improvement
+- Added audioEncoder and audioDecoders to state (17 properties total)
+- Updated audio module with initEncoder() and createDecoder() methods
+- Modified setupRecording() to use AudioEncoder with AudioData format
+- Modified handleChunk() to use AudioDecoder with EncodedAudioChunk
+- Updated replay() to use dedicated AudioDecoder for stored Opus audio
+
+### Technical
+- Uses native browser WebCodecs API (no external dependencies)
+- Opus encoding/decoding in separate threads (non-blocking)
+- Per-user decoder instances for concurrent playback
+- Automatic decoder initialization on speaker_joined
+- Replay creates synthetic decoder IDs for historical audio
+
+### Benefits
+- 93.75% bandwidth reduction (384kbps → 24kbps)
+- Superior voice quality compared to PCM
+- No WASM dependencies required
+- Native browser support (Chrome, Edge, Opera)
+- Lower latency with efficient codec
+
+### Code Metrics
+- app.js: 353 lines (+46)
+- server.js: 84 lines (unchanged)
+- index.html: 67 lines (unchanged)
+- Total: 504 lines (+30 from v1.3.0)
+- Zero external audio codec dependencies
+
+## [1.3.0] - 2025-11-13 - Audio Replay Feature
+
+### Added
+- Audio replay for last 50 messages with audio
+- `audioHistory` Map stores complete audio transmissions
+- `recordingAudio` Map captures audio during transmission
+- Replay buttons (▶ Replay) in message UI for messages with audio
+- `audio.replay(msgId)` function for playback of stored audio
+
+### Changed
+- Extended `state` object with audioHistory and recordingAudio Maps (15 properties total)
+- Modified `message.add()` to accept audio data and associate with messages
+- Updated `speaker_joined` handler to initialize audio recording
+- Updated `speaker_left` handler to save complete audio to history
+- Enhanced `audio_data` handler to store chunks during recording
+- UI messages now include unique IDs, hasAudio flag, userId, username
+- Message history auto-limits to 50 (FIFO), deletes old audio automatically
+- Server `speaker_left` broadcast now includes username
+
+### Code Metrics
+- app.js: 307 lines (+39)
+- server.js: 84 lines (unchanged)
+- index.html: 67 lines (+2)
+- package.json: 16 lines (unchanged)
+- Total: 474 lines (+41)
+- Zero regressions, all replay tests passing
+
+## [1.2.0] - 2025-11-04 - Code Cleanup & Testing
+
+### Changed
+- Removed `ui_controls` module (inlined into ui_events for simplicity)
+- Removed `ui_status` wrapper (inlined setStatus into ui object)
+- Optimized volume control logic (direct state update in event handler)
+- Reduced app.js from 277 to 268 lines (9 line reduction)
+
+### Testing
+- Created comprehensive test suite (60 tests, 100% pass rate)
+- Verified all module initialization
+- Tested audio compression/decompression (50% bandwidth savings confirmed)
+- Validated WebSocket communication
+- Confirmed message routing and handlers
+- Tested all UI elements and event handling
+- Verified state management and data structures
+
+### Documentation
+- Added TESTING.md with complete test report
+- All 60 tests documented with results
+- Performance metrics included
+- Audio compression validation shown
+
+### Metrics
+- **Total Lines: 433** (app 268 + server 84 + html 65 + package 16)
+- **Code Efficiency: Excellent** (minimal dependencies, maximum functionality)
+- **Test Coverage: 100%**
+- **Regressions: 0**
+
+## [1.1.0] - 2025-11-04 - Architecture Refactor
+
+### Changed
+- Refactored app.js from procedural to modular architecture
+- Introduced centralized `state` object for all application data
+- Reorganized into focused modules: config, ui, audio, message, network, ptt
+- Implemented handler-based message routing (extensible)
+- Improved code organization and separation of concerns
+- Simplified server.js with handler pattern (85 lines, down from 72)
+- Optimized HTML structure (66 lines, simplified CSS)
+- Made architecture forward-thinking and extension-ready
+
+### Benefits
+- **Scalability**: Easy to add rooms, channels, features
+- **Maintainability**: Clear module boundaries, single state object
+- **Extensibility**: Handler pattern for new message types
+- **Testability**: Debug console exposes all modules
+- **Performance**: Same efficient audio/network pipeline
+
+### Technical
+- Fixed variable declaration issue (audio module)
+- Updated HTML element IDs for consistency
+- Refactored UI rendering functions
+- Standardized CSS class names (item, item-header, item-meta)
+- Maintained all core functionality
+
+## [1.0.0] - 2025-11-04
+
+### Added
+- Initial release of Zellous PTT application
+- Push-to-Talk button with visual feedback
+- Web Audio API recording with Int16 compression
+- Real-time audio playback with buffer queue system
+- Audio pause/resume on PTT activation
+- WebSocket server for real-time communication
+- Active speakers list with live updates
+- Message history with timestamps
+- Connection status indicator
+- Volume control slider (0-100%)
+- Master volume management
+- User join/leave notifications
+- Full error handling and reconnection logic
+- Debug console access via window.zellousDebug
+- Responsive dark-themed UI (desktop and mobile)
+- Professional styling with smooth animations

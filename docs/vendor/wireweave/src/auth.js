@@ -1,0 +1,133 @@
+import { safeSetItem } from './safe-storage.js';
+
+const b2hex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+const hex2b = (hex) => {
+  const a = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < a.length; i++) a[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return a;
+};
+
+export class NostrAuth extends EventTarget {
+  constructor({ nostrTools, storage = null, extension = null } = {}) {
+    super();
+    if (!nostrTools) throw new Error('nostrTools required');
+    this.NT = nostrTools;
+    this.storage = storage;
+    this.extension = extension;
+    this.pubkey = '';
+    this.privkey = null;
+    this.profile = null;
+  }
+
+  loadFromStorage() {
+    if (!this.storage) return false;
+    const skHex = this.storage.getItem('zn_sk');
+    const pkHex = this.storage.getItem('zn_pk');
+    if (!skHex || !pkHex) return false;
+    try {
+      this.privkey = hex2b(skHex);
+      this.pubkey = pkHex;
+      this._emit('login', { pubkey: pkHex });
+      return true;
+    } catch { return false; }
+  }
+
+  generateKey() {
+    const sk = this.NT.generateSecretKey();
+    const pk = this.NT.getPublicKey(sk);
+    this._persist(sk, pk);
+    this._emit('login', { pubkey: pk });
+    return { pubkey: pk, privkey: sk };
+  }
+
+  importKey(input) {
+    const trimmed = (input || '').trim();
+    if (!trimmed) throw new Error('Enter a key');
+    const sk = trimmed.startsWith('nsec')
+      ? (() => { const d = this.NT.nip19.decode(trimmed); if (d.type !== 'nsec') throw new Error('not nsec'); return d.data; })()
+      : (() => {
+          if (!/^[0-9a-fA-F]{64}$/.test(trimmed)) throw new Error('Expected an nsec1… key or a 64-character hex secret key');
+          return hex2b(trimmed);
+        })();
+    const pk = this.NT.getPublicKey(sk);
+    this._persist(sk, pk);
+    this._emit('login', { pubkey: pk });
+    return { pubkey: pk, privkey: sk };
+  }
+
+  async loginWithExtension() {
+    if (!this.extension) throw new Error('No extension provided');
+    const pk = await this.extension.getPublicKey();
+    this.pubkey = pk;
+    this.privkey = null;
+    // A locally-generated/imported key from an earlier session may still be
+    // sitting in storage. Without clearing it here, loadFromStorage() on
+    // the NEXT page load would silently restore that stale local identity
+    // and switch the user back to it with no indication anything changed --
+    // two competing identity mechanisms (local key vs. extension) each
+    // persisting independently is exactly what makes "which identity am I
+    // posting as" ambiguous. Switching to extension auth is the definitive
+    // signal the local key is no longer the active identity.
+    this.storage?.removeItem('zn_sk');
+    this.storage?.removeItem('zn_pk');
+    this._emit('login', { pubkey: pk });
+    return pk;
+  }
+
+  async sign(eventTemplate) {
+    if (this.privkey) return this.NT.finalizeEvent(eventTemplate, this.privkey);
+    if (this.extension) return this.extension.signEvent(eventTemplate);
+    throw new Error('No signing key available');
+  }
+
+  logout() {
+    this.storage?.removeItem('zn_sk');
+    this.storage?.removeItem('zn_pk');
+    this.pubkey = '';
+    this.privkey = null;
+    this.profile = null;
+    this._emit('logout', {});
+  }
+
+  isLoggedIn() { return !!this.pubkey; }
+
+  npubShort(pubkey = this.pubkey) {
+    if (!pubkey) return '';
+    const npub = this.NT.nip19.npubEncode(pubkey);
+    return npub.slice(0, 8) + '...' + npub.slice(-4);
+  }
+
+  npubEncode(pubkey = this.pubkey) {
+    return pubkey ? this.NT.nip19.npubEncode(pubkey) : '';
+  }
+
+  // There is deliberately no backend/account here -- the private key IS the
+  // identity, so losing it (clearing site data, switching browsers/devices)
+  // is permanent and unrecoverable with no password-reset path even
+  // conceptually possible. Exposing the real nsec (not just the pubkey) is
+  // the only mitigation a static client can offer: it lets a user copy their
+  // own identity out before it's lost, the same way any other Nostr client's
+  // "export/backup key" flow works. Only meaningful when signing with a
+  // locally-held privkey (privkey === null under NIP-07 extension auth,
+  // where the extension itself owns key custody and export).
+  nsecEncode() {
+    if (!this.privkey) return null;
+    return this.NT.nip19.nsecEncode(this.privkey);
+  }
+
+  _persist(sk, pk) {
+    this.privkey = sk;
+    this.pubkey = pk;
+    if (!this.storage) return;
+    const okSk = safeSetItem(this.storage, this, 'zn_sk', b2hex(sk));
+    const okPk = safeSetItem(this.storage, this, 'zn_pk', pk);
+    if (!okSk || !okPk) {
+      try { this.storage.removeItem('zn_sk'); this.storage.removeItem('zn_pk'); } catch {}
+      this._emit('persist-failed', { pubkey: pk });
+    }
+  }
+
+  _emit(type, detail) { this.dispatchEvent(new CustomEvent(type, { detail })); }
+}
+
+export const createAuth = (opts) => new NostrAuth(opts);
