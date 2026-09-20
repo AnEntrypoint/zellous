@@ -468,6 +468,21 @@ window.__wireweaveReady = (async () => {
 
   // Voice bridge — the main one
   let voice = null;
+  // Re-applies volume/mute/sink to every already-created peer <audio> element --
+  // onAudioTrack only sets these at element-creation time, so a mid-call deafen
+  // toggle or a Voice Settings volume/output-device change previously had zero
+  // effect on peers that joined before the change. Lives outside ensureVoice()
+  // (unlike the identically-named local it replaces) since it only touches
+  // `document`/`state`, not the `voice` instance -- callers need it reachable
+  // whether or not a voice session is currently active.
+  const applyOutputSettings = () => {
+    const vol = typeof state.masterVolume === 'number' ? state.masterVolume : 1.0;
+    document.querySelectorAll('audio[data-voice-peer]').forEach((el) => {
+      el.muted = !!state.voiceDeafened;
+      el.volume = vol;
+      if (state.outputDeviceId && el.setSinkId) el.setSinkId(state.outputDeviceId).catch(() => {});
+    });
+  };
   const ensureVoice = () => {
     if (voice) { voice.serverId = state.currentServerId || ''; return voice; }
     voice = ww.ensureVoice({
@@ -524,18 +539,6 @@ window.__wireweaveReady = (async () => {
           if (el.tagName === 'AUDIO') { try { el.pause(); } catch {} }
           el.remove();
         }
-      });
-    };
-    // applyOutputSettings re-applies volume/mute/sink to every already-created
-    // peer <audio> element -- onAudioTrack only sets these at element-creation
-    // time, so a mid-call deafen toggle or a Voice Settings volume/output-device
-    // change previously had zero effect on peers that joined before the change.
-    const applyOutputSettings = () => {
-      const vol = typeof state.masterVolume === 'number' ? state.masterVolume : 1.0;
-      document.querySelectorAll('audio[data-voice-peer]').forEach((el) => {
-        el.muted = !!state.voiceDeafened;
-        el.volume = vol;
-        if (state.outputDeviceId && el.setSinkId) el.setSinkId(state.outputDeviceId).catch(() => {});
       });
     };
     voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });
