@@ -5,3 +5,4 @@ node_modules/
 .gm/exec-spool/
 .gm/dream-rsi/
 .gm/witness/
+.agentplug-kv/
