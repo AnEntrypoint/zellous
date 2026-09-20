@@ -6,3 +6,7 @@ node_modules/
 .gm/dream-rsi/
 .gm/witness/
 .agentplug-kv/
+.gm/last-dispatch-ts
+.gm/last-instruction-ts
+.gm/last-prompt.txt
+.gm/turn-state.json
