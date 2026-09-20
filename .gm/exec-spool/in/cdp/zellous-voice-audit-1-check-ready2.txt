@@ -1,0 +1,3 @@
+sessionId=zva1try2
+timeout=12000
+JSON.stringify({appReady: window.appReady, boot: window.__boot, href: location.href})

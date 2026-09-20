@@ -229,7 +229,10 @@
         if ('vadThreshold' in patch && S.vadThreshold) {
           S.vadThreshold.value = patch.vadThreshold;
           try { localStorage.setItem('vadThreshold', String(patch.vadThreshold)); } catch (_) {}
-          if (window.lk && window.lk.setMicSensitivity) window.lk.setMicSensitivity(patch.vadThreshold);
+          // setMicSensitivity takes a raw RMS; patch.vadThreshold is the UI's 0-1
+          // fraction -- scale by the same LEVEL_METER_CEILING wireweave-bridge.js
+          // uses at connect() so a live mid-call change matches the same mapping.
+          if (window.lk && window.lk.setMicSensitivity) window.lk.setMicSensitivity(Math.max(0, Math.min(1, patch.vadThreshold)) * 0.35);
         }
         if ('rnnoise' in patch) { if (S.rnnoiseEnabled) S.rnnoiseEnabled.value = patch.rnnoise; try { localStorage.setItem('rnnoise', patch.rnnoise ? '1' : '0'); } catch (_) {} }
         if ('autoGain' in patch) { if (S.autoGainEnabled) S.autoGainEnabled.value = patch.autoGain; try { localStorage.setItem('autoGain', patch.autoGain ? '1' : '0'); } catch (_) {} }
@@ -312,6 +315,7 @@
         return window.threadManager && window.threadManager.create(parentId);
       }),
       closeThreadPanel: () => call(() => window.threadManager && window.threadManager.closePanel()),
+      replyToThread: (text) => call(() => window.threadManager && window.threadManager.replyToForumPost(text)),
       newForumPost: () => call(() => window.channelManager && window.channelManager.showNewForumPostModal()),
       setAuthMode: (m) => call(() => { if (S.authMode) S.authMode.value = m; if (S.authError) S.authError.value = ''; }),
       closeAuth: () => call(() => { if (S.showAuthModal) S.showAuthModal.value = false; if (S.authError) S.authError.value = ''; if (S.authBusy) S.authBusy.value = false; }),

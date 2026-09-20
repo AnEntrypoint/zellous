@@ -532,8 +532,13 @@ window.__wireweaveReady = (async () => {
       state.voiceParticipants = e.detail.list;
       pruneVoiceMedia(new Set((e.detail.list || []).map((p) => p.identity)));
     });
-    voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.message.add('Voice connected'); });
-    voice.addEventListener('media-warning', (e) => { window.message.add(e.detail.message); });
+    // window.message.add feeds state.messages, which ui.render.messages() (ui.js)
+    // is an intentional no-op for -- the SDK owns rendering reactively and never
+    // reads state.messages, so anything routed only through window.message.add
+    // here is computed correctly but never reaches the screen. window.ui.showToast
+    // is the real, live-rendered surface (routes to the SDK's own toast).
+    voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.ui?.showToast?.('Voice connected', 2000); });
+    voice.addEventListener('media-warning', (e) => { window.ui?.showToast?.(e.detail.message, 4000, 'error'); });
     voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
     voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
     voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
@@ -558,7 +563,13 @@ window.__wireweaveReady = (async () => {
         autoGainControl: state.autoGainEnabled !== false,
       });
       v.setForceRelay(!!state.forceTurnEnabled);
-      if (typeof state.vadThreshold === 'number' && state.vadThreshold > 0) v.setMicSensitivity(state.vadThreshold);
+      // vadThreshold is a 0-1 UI fraction (Voice Settings slider); setMicSensitivity
+      // takes a raw RMS. LEVEL_METER_CEILING (wireweave's voice.js, 0.35) is the same
+      // ceiling the SDK's own level meter normalizes against, so scaling by it keeps
+      // the slider's 0-1 range meaningful instead of setting an RMS floor near-unreachable
+      // in practice (passing the 0-1 fraction straight through, e.g. the default 0.15,
+      // sets a threshold over 4x wireweave's own SPEAKER_ACTIVE_RMS default of 0.045).
+      if (typeof state.vadThreshold === 'number' && state.vadThreshold > 0) v.setMicSensitivity(Math.min(1, state.vadThreshold) * 0.35);
       await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' });
       state.micMuted = !!v.muted;
     },
@@ -575,11 +586,12 @@ window.__wireweaveReady = (async () => {
     requestTransmit() { const v = ensureVoice(); const live = v.requestTransmit(); state.micMuted = !!v.muted; return live; },
     releaseTransmit() { const v = ensureVoice(); v.releaseTransmit(); state.micMuted = !!v.muted; },
     anyRemoteSpeaking() { return voice ? voice.anyRemoteSpeaking() : false; },
-    toggleDeafen() { ensureVoice().toggleDeafen(); state.voiceDeafened = voice.deafened; },
+    toggleDeafen() { ensureVoice().toggleDeafen(); state.voiceDeafened = voice.deafened; applyOutputSettings(); },
     async toggleCamera() { /* camera handled via onVideoTrack above; full port deferred */ },
     updateParticipants() { if (voice) { state.voiceParticipants = voice.getParticipants(); } },
     isDataChannelReady: () => { if (!voice) return false; for (const [, p] of voice.peers) if (p.dc?.readyState === 'open') return true; return false; },
     updateVoiceGrid() { voiceAPI.updateParticipants(); },
+    applyOutputSettings,
     on(evt, fn) { ensureVoice().addEventListener(evt, fn); return () => voice?.removeEventListener(evt, fn); },
     get __debug() { return voice?.debug() || null; }
   };

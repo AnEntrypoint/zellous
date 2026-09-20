@@ -1,0 +1,4 @@
+sessionId=chatqa1
+timeout=15000
+screenshot=chatqa-reverify2
+document.title
