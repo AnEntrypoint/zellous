@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.gm/browser-chrome-profile-*/
+.gm/browser-profile*/
+.gm/exec-spool/
+.gm/dream-rsi/
