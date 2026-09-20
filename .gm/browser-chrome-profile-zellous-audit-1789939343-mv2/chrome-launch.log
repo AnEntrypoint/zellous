@@ -1,0 +1,5 @@
+
+DevTools listening on ws://127.0.0.1:35637/devtools/browser/4fbb429c-dd0c-46ba-8442-67b2c983ce5e
+[2283186:2283186:0920/215028.317109:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.Properties.GetAll: object_path= /org/freedesktop/UPower/devices/DisplayDevice: org.freedesktop.DBus.Error.ServiceUnknown: The name org.freedesktop.UPower was not provided by any .service files
+[2283186:2283186:0920/215035.488156:ERROR:chrome/browser/ui/webui/ntp/new_tab_ui.cc:54] Requested load of chrome://newtab/ for incorrect profile type.
+[2283237:2283245:0920/215131.427920:ERROR:net/socket/ssl_client_socket_impl.cc:962] handshake failed; returned -1, SSL error code 1, net_error -3

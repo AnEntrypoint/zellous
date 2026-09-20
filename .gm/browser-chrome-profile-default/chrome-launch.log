@@ -1,1 +1,0 @@
-[2036628:2036628:0920/213157.621600:ERROR:chrome/browser/process_singleton_posix.cc:365] The profile appears to be in use by another Chromium process (1696062) on another computer (88d6d8a5fabe). Chromium has locked the profile so that it doesn't get corrupted. If you are sure no other processes are using this profile, you can unlock the profile and relaunch Chromium.

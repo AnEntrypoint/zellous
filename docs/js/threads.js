@@ -104,7 +104,12 @@ const threadManager = {
     if (!window.nostrForum || !state.activeThreadId) return null;
     const posts = window.nostrForum.listFor(state.currentChannel?.id);
     const post = posts.find((p) => p.id === state.activeThreadId);
-    return window.nostrForum.reply(state.activeThreadId, post?.author, content);
+    const result = await window.nostrForum.reply(state.activeThreadId, post?.author, content);
+    window.nostrForum.loadReplies(state.activeThreadId);
+    state.threads = window.nostrForum.repliesFor(state.activeThreadId).map((r) => ({
+      id: r.id, title: r.content, author: r.author, time: r.timestamp
+    }));
+    return result;
   }
 };
 

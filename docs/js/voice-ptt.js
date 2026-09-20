@@ -23,6 +23,10 @@
   let pttState = 'idle';        // idle | live | queued | realtime
   let pttLabel = 'Hold to talk';
   let pttDisabled = false;
+  let paused = false;
+  const HISTORY_CAP = 30;
+  let history = [];             // played segments kept for the SDK's AudioQueue overlay (replay/scrub)
+  let nextSeq = 1;
 
   // Channel mode is published with the channel metadata (owner-controlled),
   // so every participant sees the same mode. We read it off the live channel
@@ -57,11 +61,28 @@
     if (window.state) window.state.pttState = mode;
   }
 
+  // Shape matches the SDK's AudioQueue overlay contract (community.css .vx-queue,
+  // 247420.js's Oa()): {id, isLive, color, speaker, duration}. history first
+  // (oldest to newest) so the currently-playing/most-recent segment reads at
+  // the strip's trailing end, matching a chat-log's natural chronological order.
+  function queueItems() {
+    const items = [...history, ...(playing ? [playing] : []), ...inboundQueue];
+    return items.map(s => ({
+      id: s._seq,
+      isLive: s === playing,
+      color: (window.getAvatarColor && window.getAvatarColor(s.from)) || null,
+      speaker: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(s.from)) || (s.from ? String(s.from).slice(0, 8) : 'Unknown'),
+      duration: s.dur || 0,
+    }));
+  }
   function renderQueue() {
     const count = inboundQueue.length + (playing ? 1 : 0);
     if (window.state) {
       window.state.pttQueueCount = count;
       window.state.pttQueuePlaying = !!playing;
+      window.state.audioQueueItems = queueItems();
+      window.state.audioQueueCurrentId = playing ? playing._seq : null;
+      window.state.audioQueuePaused = paused;
     }
   }
 
@@ -103,43 +124,82 @@
   //    <audio> element. Realtime listening is unaffected (the analyzer + mix
   //    of remote tracks happens via wireweave's own audioEls created by the
   //    onAudioTrack callback in wireweave-bridge.js).
+  function ensurePlayer() {
+    if (playerEl) return playerEl;
+    playerEl = document.createElement('audio');
+    playerEl.id = 'pttQueuePlayer';
+    playerEl.autoplay = true;
+    playerEl.style.display = 'none';
+    document.body.appendChild(playerEl);
+    return playerEl;
+  }
+  function pushHistory(seg) {
+    history.push(seg);
+    if (history.length > HISTORY_CAP) history.shift();
+  }
   function onSegment(e) {
     const seg = e.detail?.segment; if (!seg?.bytes?.length) return;
+    seg._seq = nextSeq++;
     inboundQueue.push(seg);
     renderQueue();
-    drainQueue();
+    if (!paused) drainQueue();
   }
 
   async function drainQueue() {
-    if (playing) return;
+    if (playing || paused) return;
     const next = inboundQueue.shift();
     if (!next) { renderQueue(); return; }
     playing = next;
     renderQueue();
-    if (!playerEl) {
-      playerEl = document.createElement('audio');
-      playerEl.id = 'pttQueuePlayer';
-      playerEl.autoplay = true;
-      playerEl.style.display = 'none';
-      document.body.appendChild(playerEl);
-    }
+    const el = ensurePlayer();
     try {
       const blob = new Blob([next.bytes], { type: next.mime || 'audio/webm' });
       const url = URL.createObjectURL(blob);
-      playerEl.src = url;
-      const cleanup = () => { URL.revokeObjectURL(url); playerEl.removeEventListener('ended', onEnd); playerEl.removeEventListener('error', onEnd); };
-      const onEnd = () => { cleanup(); playing = null; renderQueue(); drainQueue(); };
-      playerEl.addEventListener('ended', onEnd);
-      playerEl.addEventListener('error', onEnd);
-      try { await playerEl.play(); } catch { onEnd(); }
-    } catch { playing = null; renderQueue(); drainQueue(); }
+      el.src = url;
+      el.volume = typeof window.state?.masterVolume === 'number' ? window.state.masterVolume : 1.0;
+      const cleanup = () => { URL.revokeObjectURL(url); el.removeEventListener('ended', onEnd); el.removeEventListener('error', onEnd); };
+      const onEnd = () => { cleanup(); pushHistory(playing); playing = null; renderQueue(); drainQueue(); };
+      el.addEventListener('ended', onEnd);
+      el.addEventListener('error', onEnd);
+      try { await el.play(); } catch { onEnd(); }
+    } catch { pushHistory(next); playing = null; renderQueue(); drainQueue(); }
   }
 
   function skipQueue() {
+    if (playing) pushHistory(playing);
     inboundQueue = [];
     if (playerEl) { try { playerEl.pause(); playerEl.removeAttribute('src'); playerEl.load(); } catch {} }
     playing = null;
     renderQueue();
+    drainQueue();
+  }
+
+  function pauseQueue() {
+    paused = true;
+    if (playerEl && !playerEl.paused) { try { playerEl.pause(); } catch {} }
+  }
+  function resumeQueue() {
+    paused = false;
+    if (playing && playerEl && playerEl.paused) { try { playerEl.play().catch(() => {}); } catch {} }
+    else drainQueue();
+  }
+  // Re-play a specific already-played segment on demand (SDK's AudioQueue chip
+  // strip lets the user tap any past segment, live or from history, to hear it
+  // again) -- distinct from the auto FIFO drain above, so it does not consume
+  // or reorder the live inbound queue.
+  function replaySegment(segId) {
+    const seg = history.find(s => s._seq === segId) || (playing && playing._seq === segId ? playing : null) || inboundQueue.find(s => s._seq === segId);
+    if (!seg?.bytes?.length) return;
+    const el = ensurePlayer();
+    try {
+      const blob = new Blob([seg.bytes], { type: seg.mime || 'audio/webm' });
+      const url = URL.createObjectURL(blob);
+      el.src = url;
+      el.volume = typeof window.state?.masterVolume === 'number' ? window.state.masterVolume : 1.0;
+      const cleanup = () => URL.revokeObjectURL(url);
+      el.addEventListener('ended', cleanup, { once: true });
+      el.play().catch(() => {});
+    } catch {}
   }
 
   function attachKeyboard() {
@@ -218,6 +278,9 @@
     vadActive = false;
     holdEnd();
     skipQueue();
+    paused = false;
+    history = [];
+    renderQueue();
     while (unsubs.length) { try { unsubs.pop()(); } catch {} }
   }
 
@@ -249,6 +312,9 @@
       get label() { return pttLabel; },
       get disabled() { return pttDisabled; },
       skipQueue,
+      pauseQueue,
+      resumeQueue,
+      replaySegment,
       stop
     };
     window.addEventListener('beforeunload', stop);
