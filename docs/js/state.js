@@ -152,6 +152,7 @@ const state = {
   activeThreadId: signal(null),
   threads: signal([]),
   pagesVersion: signal(0),
+  reactionsVersion: signal(0),
   unreadCount: signal(0),
 };
 

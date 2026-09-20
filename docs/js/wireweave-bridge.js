@@ -230,7 +230,15 @@ window.__wireweaveReady = (async () => {
   // auto-fetch pattern above) so reaction counts populate without an
   // explicit per-message opt-in from the UI layer.
   const reactions = ww.reactions;
-  reactions.addEventListener('updated', () => { if (window.ui) ui.render.all(); });
+  // ui.render.all() targets removed legacy DOM -- the SDK's mountCommunityApp
+  // re-renders only from the adapter's preact-signal subscription (SIGNALS
+  // list in nostr-adapter.js), which never included a reactions dependency,
+  // so a reaction arriving from a relay never triggered a re-render until some
+  // unrelated signal happened to change. reactionsVersion is that dependency.
+  reactions.addEventListener('updated', () => {
+    if (window.ui) ui.render.all();
+    state.reactionsVersion = (state.reactionsVersion || 0) + 1;
+  });
   chat.addEventListener('messages', (e) => {
     const ids = (e.detail.list || []).map((m) => m.id).filter(Boolean);
     if (ids.length) reactions.subscribeMany(ids);
@@ -450,7 +458,10 @@ window.__wireweaveReady = (async () => {
     extractUrls: (t) => media.extractUrls(t),
     async sendMedia(file) {
       const r = await media.sendMedia(file, { channelId: state.currentChannelId, serverId: state.currentServerId || '' });
-      window.chat && window.chat.handleTextMessage && chat.handleTextMessage({ id: r.signed.id, type: 'text', userId: r.signed.pubkey, content: r.signed.content, timestamp: r.signed.created_at * 1000, tags: [] });
+      // window.chat, not the bare shadowed `chat` (module-scope const chat = ww.chat,
+      // which has no handleTextMessage) -- calling the raw wireweave object here
+      // threw TypeError on every non-image/video upload.
+      window.chat && window.chat.handleTextMessage && window.chat.handleTextMessage({ id: r.signed.id, type: 'text', userId: r.signed.pubkey, content: r.signed.content, timestamp: r.signed.created_at * 1000, tags: [] });
       return r;
     }
   };
