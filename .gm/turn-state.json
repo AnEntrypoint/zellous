@@ -1,8 +1,8 @@
 {
-  "phase": "PROVE",
-  "session_id": "a11y-sweep-1789939915",
-  "last_skill": "gm-emit",
-  "updated_at_ms": 1789939363105,
+  "phase": "DECIDE",
+  "session_id": "gmzellous920confirm",
+  "last_skill": "gm-complete",
+  "updated_at_ms": 1789943540610,
   "pending_step_id": null,
   "pending_step_deadline_ms": null,
   "phase_history": [
@@ -10,6 +10,51 @@
       "from": "SPECIFY",
       "to": "PROVE",
       "ts_ms": 1789939363105
+    },
+    {
+      "from": "SPECIFY",
+      "to": "PROVE",
+      "ts_ms": 1789943501694
+    },
+    {
+      "from": "PROVE",
+      "to": "EMIT",
+      "ts_ms": 1789943513518
+    },
+    {
+      "from": "EMIT",
+      "to": "STATE",
+      "ts_ms": 1789943513941
+    },
+    {
+      "from": "STATE",
+      "to": "CONC",
+      "ts_ms": 1789943514325
+    },
+    {
+      "from": "CONC",
+      "to": "STATE",
+      "ts_ms": 1789943521342
+    },
+    {
+      "from": "STATE",
+      "to": "CONC",
+      "ts_ms": 1789943525164
+    },
+    {
+      "from": "CONC",
+      "to": "SEC",
+      "ts_ms": 1789943531233
+    },
+    {
+      "from": "SEC",
+      "to": "RES",
+      "ts_ms": 1789943536027
+    },
+    {
+      "from": "RES",
+      "to": "DECIDE",
+      "ts_ms": 1789943540610
     }
   ]
 }
