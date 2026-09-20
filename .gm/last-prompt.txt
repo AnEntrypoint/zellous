@@ -1,1 +1,0 @@
-Confirming pass for goal: consolidate upstream AnEntrypoint deps + adversarial GUI audit and fix
