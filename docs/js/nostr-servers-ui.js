@@ -213,6 +213,37 @@ serverManager.showJoinPreview = function(serverId, onConfirm) {
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
 };
 
+serverManager.showCreateOrJoinModal = function() {
+  document.getElementById('serverCreateOrJoinModal')?.remove();
+  var modal = document.createElement('div');
+  modal.id = 'serverCreateOrJoinModal'; modal.className = 'modal-overlay open';
+  modal.innerHTML = '<div class="modal-box" style="max-width:380px">' +
+    '<div class="modal-title">Add a Server</div>' +
+    '<button type="button" class="modal-btn" id="createOrJoinCreateBtn">Create a New Server</button>' +
+    '<form id="joinServerForm" onsubmit="return false" style="margin-top:12px">' +
+      '<div class="modal-field"><label class="modal-label">Or Join by Server ID</label>' +
+        '<input type="text" class="modal-input" id="joinServerId" placeholder="pubkey:identifier"></div>' +
+      '<button type="submit" class="modal-btn secondary">Join Server</button>' +
+    '</form>' +
+    '<button type="button" class="modal-btn secondary" id="cancelCreateOrJoin" style="margin-top:8px">Cancel</button>' +
+    '</div>';
+  document.body.appendChild(modal);
+  _a11yModal(modal);
+  modal.querySelector('#createOrJoinCreateBtn').addEventListener('click', function() {
+    modal.remove();
+    serverManager.showCreateModal();
+  });
+  modal.querySelector('#joinServerForm').addEventListener('submit', function() {
+    var idEl = document.getElementById('joinServerId');
+    var id = idEl.value.trim();
+    if (!id) { _invalidInput(idEl); return; }
+    modal.remove();
+    serverManager.showJoinPreview(id, function() { return serverManager.join(id); });
+  });
+  modal.querySelector('#cancelCreateOrJoin').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+};
+
 serverManager.showCreateModal = function() {
   document.getElementById('serverCreateModal')?.remove();
   var modal = document.createElement('div');

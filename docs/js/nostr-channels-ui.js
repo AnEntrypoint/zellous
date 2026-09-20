@@ -252,6 +252,9 @@ channelManager.showCategoryContextMenu = function(categoryId, x, y) {
   channelManager.hideContextMenu();
   var cat = (state.categories || []).find(function(c) { return c.id === categoryId; });
   if (!cat) return;
+  var isOwnerCat = window.serverRoles && state.currentServerId &&
+    (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
+  if (!isOwnerCat) return;
   _mkMenu('categoryContextMenu', x, y,
     '<div class="context-menu-item" data-action="create-channel">Create Channel</div><div class="context-menu-item" data-action="rename">Rename Category</div><div class="context-menu-item danger" data-action="delete">Delete Category</div>',
     function(action) {
@@ -266,10 +269,17 @@ channelManager.showContextMenu = function(channelId, x, y) {
   channelManager.hideContextMenu();
   var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
   if (!ch) return;
-  var items = ''
-    + '<div class="context-menu-item" data-action="settings">Channel Settings…</div>'
-    + '<div class="context-menu-item" data-action="rename">Rename</div>'
-    + '<div class="context-menu-item danger" data-action="delete">Delete Channel</div>';
+  // Rename/delete always fail server-side for a non-owner ('owner only', see
+  // channels.js) -- showing them regardless invites a doomed action + error
+  // toast instead of the affordance simply not being there. Settings stays
+  // visible for everyone since it already renders read-only for non-owners.
+  var isOwner = window.serverRoles && state.currentServerId &&
+    (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
+  var items = '<div class="context-menu-item" data-action="settings">Channel Settings…</div>';
+  if (isOwner) {
+    items += '<div class="context-menu-item" data-action="rename">Rename</div>'
+      + '<div class="context-menu-item danger" data-action="delete">Delete Channel</div>';
+  }
   _mkMenu('channelContextMenu', x, y, items,
     function(action) {
       channelManager.hideContextMenu();
