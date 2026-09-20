@@ -1,0 +1,15 @@
+{
+  "phase": "PROVE",
+  "session_id": "a11y-sweep-1789939915",
+  "last_skill": "gm-emit",
+  "updated_at_ms": 1789939363105,
+  "pending_step_id": null,
+  "pending_step_deadline_ms": null,
+  "phase_history": [
+    {
+      "from": "SPECIFY",
+      "to": "PROVE",
+      "ts_ms": 1789939363105
+    }
+  ]
+}
