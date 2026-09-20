@@ -295,6 +295,7 @@
         }
       }),
       switchServer: (id) => call(() => { window.state.homeMode = false; window.serverManager.switchTo(id); }),
+      createOrJoinServer: () => call(() => window.serverManager.showCreateOrJoinModal()),
       channelContext: (id, x, y) => call(() => window.channelManager.showContextMenu(id, x, y)),
       createChannel: () => call(() => window.channelManager.showCreateModal(null, null)),
       serverContext: (id, x, y) => call(() => window.serverManager.showContextMenu(id, x, y)),

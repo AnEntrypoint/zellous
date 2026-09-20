@@ -809,3 +809,31 @@ html.ds-247420 .rail-empty {
   outline: 2px solid var(--accent) !important;
   outline-offset: 2px;
 }
+
+/* memberListOpen defaults false (state.js) and the SDK's .cm-member-list
+   collapses to width:0 whenever it lacks .open, on every viewport -- but the
+   SDK's own toggle button (.cm-mh-btn "show members") only renders inside
+   .cm-mobile-header, which the SDK itself hides above the mobile breakpoint.
+   Net effect: desktop users had no way to ever open the member list. This is
+   the desktop toggle, first-party markup injected by ui-shell.js. */
+.desktop-member-toggle {
+  display: none;
+  position: fixed;
+  top: 10px;
+  right: 12px;
+  z-index: 2600;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--r-2, 6px);
+  background: var(--panel-1, var(--bg-2));
+  color: var(--fg);
+  cursor: pointer;
+}
+.desktop-member-toggle:hover { background: var(--panel-hover, var(--bg-3)); }
+.desktop-member-toggle svg { width: 16px; height: 16px; }
+@media (min-width: 901px) {
+  .desktop-member-toggle { display: inline-flex; }
+}
