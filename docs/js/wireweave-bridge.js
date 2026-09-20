@@ -75,9 +75,9 @@ window.__wireweaveReady = (async () => {
       document.getElementById('userStatusDot')?.classList.add('online');
       return true;
     },
-    generateKey() { const r = a.generateKey(); state.nostrPrivkey = r.privkey; state.nostrPubkey = r.pubkey; return r; },
-    importKey(input) { try { const r = a.importKey(input); state.nostrPrivkey = r.privkey; state.nostrPubkey = r.pubkey; return true; } catch { return false; } },
-    async loginWithExtension() { const pk = await a.loginWithExtension(); state.nostrPubkey = pk; state.nostrPrivkey = null; return pk; },
+    generateKey() { const r = a.generateKey(); state.nostrPrivkey = r.privkey; state.nostrPubkey = r.pubkey; state.authVersion = (state.authVersion || 0) + 1; return r; },
+    importKey(input) { try { const r = a.importKey(input); state.nostrPrivkey = r.privkey; state.nostrPubkey = r.pubkey; state.authVersion = (state.authVersion || 0) + 1; return true; } catch { return false; } },
+    async loginWithExtension() { const pk = await a.loginWithExtension(); state.nostrPubkey = pk; state.nostrPrivkey = null; state.authVersion = (state.authVersion || 0) + 1; return pk; },
     sign: (t) => a.sign(t),
     async setDisplayName(name) {
       if (!a.pubkey) throw new Error('Not logged in');
@@ -90,7 +90,7 @@ window.__wireweaveReady = (async () => {
       if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = state.nostrProfile.name[0].toUpperCase(); }
       if (window.chat) chat.updateProfile(a.pubkey, state.nostrProfile);
     },
-    logout() { a.logout(); state.nostrPubkey = ''; state.nostrPrivkey = null; state.nostrProfile = null; net.disconnect(); },
+    logout() { a.logout(); state.nostrPubkey = ''; state.nostrPrivkey = null; state.nostrProfile = null; state.authVersion = (state.authVersion || 0) + 1; net.disconnect(); },
     getToken: () => a.pubkey || null,
     isLoggedIn: () => a.isLoggedIn(),
     npubShort: (pk) => a.npubShort(pk),
@@ -106,8 +106,13 @@ window.__wireweaveReady = (async () => {
         const d = document.getElementById('nostrNpubDisplay'); if (d) d.textContent = a.npubShort();
         const inp = document.getElementById('displayNameInput'); if (inp) inp.value = state.nostrProfile?.name || '';
       }
+      if (typeof _a11yPersistentModal === 'function') _a11yPersistentModal(modal, () => window.auth.hideModal());
     },
-    hideModal() { const modal = document.getElementById('authModal'); if (modal) modal.style.display = 'none'; },
+    hideModal() {
+      const modal = document.getElementById('authModal'); if (!modal) return;
+      modal.style.display = 'none';
+      modal._a11yRestoreFocus && modal._a11yRestoreFocus();
+    },
     _afterLogin() {
       const d = document.getElementById('nostrNpubDisplay'); if (d) d.textContent = a.npubShort();
       const cv = document.getElementById('nostrConnectView'); const lv = document.getElementById('nostrLoggedInView');
@@ -463,11 +468,12 @@ window.__wireweaveReady = (async () => {
           el.autoplay = true;
           el.playsInline = true;
           el.muted = !!state.voiceDeafened;
-          el.volume = 1.0;
+          el.volume = typeof state.masterVolume === 'number' ? state.masterVolume : 1.0;
           el.style.display = 'none';
           el.dataset.voicePeer = peerPubkey;
           document.body.appendChild(el);
           peer.audioEl = el;
+          if (state.outputDeviceId && el.setSinkId) el.setSinkId(state.outputDeviceId).catch(() => {});
         }
         peer.audioEl.srcObject = stream;
         const tryPlay = () => peer.audioEl.play().catch(() => {
@@ -507,6 +513,18 @@ window.__wireweaveReady = (async () => {
           if (el.tagName === 'AUDIO') { try { el.pause(); } catch {} }
           el.remove();
         }
+      });
+    };
+    // applyOutputSettings re-applies volume/mute/sink to every already-created
+    // peer <audio> element -- onAudioTrack only sets these at element-creation
+    // time, so a mid-call deafen toggle or a Voice Settings volume/output-device
+    // change previously had zero effect on peers that joined before the change.
+    const applyOutputSettings = () => {
+      const vol = typeof state.masterVolume === 'number' ? state.masterVolume : 1.0;
+      document.querySelectorAll('audio[data-voice-peer]').forEach((el) => {
+        el.muted = !!state.voiceDeafened;
+        el.volume = vol;
+        if (state.outputDeviceId && el.setSinkId) el.setSinkId(state.outputDeviceId).catch(() => {});
       });
     };
     voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });

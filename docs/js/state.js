@@ -23,6 +23,7 @@ const state = {
   scheduledPlaybackTime: signal(new Map()),
   ws: signal(null),
   userId: signal(null),
+  authVersion: signal(0),
   roomId: signal(getRoomFromURL()),
   audioQueue: signal([]),
   activeSegments: signal(new Map()),

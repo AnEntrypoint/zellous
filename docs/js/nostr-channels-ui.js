@@ -32,6 +32,40 @@ function _a11yModal(modal) {
   }, 0);
 }
 
+// Same contract as _a11yModal (dialog semantics, Tab-trap, Escape,
+// focus-restore) for a persistent modal element that's toggled via
+// style.display rather than appended/removed per-open (authModal). Wired
+// once per element; each open re-captures the trigger and re-focuses the
+// first field.
+function _a11yPersistentModal(modal, onClose) {
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  var trigger = document.activeElement;
+  var FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  var restoreFocus = function() {
+    if (trigger && document.body.contains(trigger) && typeof trigger.focus === 'function') trigger.focus();
+  };
+  if (!modal._a11yPersistentWired) {
+    modal._a11yPersistentWired = true;
+    modal.addEventListener('keydown', function(e) {
+      if (getComputedStyle(modal).display === 'none') return;
+      if (e.key === 'Escape') { e.preventDefault(); modal._a11yOnClose && modal._a11yOnClose(); return; }
+      if (e.key !== 'Tab') return;
+      var focusable = Array.prototype.slice.call(modal.querySelectorAll(FOCUSABLE));
+      if (!focusable.length) return;
+      var first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    });
+  }
+  modal._a11yOnClose = function() { onClose(); modal._a11yRestoreFocus && modal._a11yRestoreFocus(); };
+  modal._a11yRestoreFocus = restoreFocus;
+  setTimeout(function() {
+    var first = modal.querySelector(FOCUSABLE);
+    if (first) first.focus();
+  }, 0);
+}
+
 // Shared empty/invalid-field feedback for creation/rename forms: a brief
 // shake + red border so a blocked submit (e.g. empty name) is visible
 // instead of the button silently doing nothing.
