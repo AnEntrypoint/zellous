@@ -658,6 +658,15 @@ html.ds-247420 .ca-app { height: 100vh !important; overflow: hidden; }
     display: inline-flex; align-items: center; justify-content: center;
   }
   html.ds-247420 .app-side a { min-height: 44px; }
+  /* Voice-call control row (mic/deafen/camera/screen/settings/leave) measures
+     36x36px in the SDK's own 247420.css at every viewport -- below the 44x44
+     minimum touch target already enforced above for the topbar/composer
+     buttons, live-witnessed at 375x667. */
+  html.ds-247420 button.vx-vc-btn {
+    min-width: 44px; min-height: 44px;
+    width: 44px; height: 44px;
+  }
+  html.ds-247420 button.vx-ptt { min-height: 44px; }
 }
 
 /* Voice-control dock (.vx-dock, the PttButton+VoiceControls cluster at the

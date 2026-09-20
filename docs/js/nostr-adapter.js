@@ -129,6 +129,15 @@
           (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn() && window.auth.nsecEncode && window.auth.nsecEncode())
             ? { label: 'Back up key (nsec)', kind: 'button', onClick: () => window.channelManager && window.channelManager.showKeyBackupModal && window.channelManager.showKeyBackupModal() }
             : null,
+          // The SDK's Settings popover previously had no way to log out at all
+          // (only "switch identity", which reopens the sign-in tabs, never a
+          // logged-in/logout view) -- ui.actions.logout() has always existed
+          // and worked correctly, it was simply never exposed as an adapter
+          // action, so the real, reachable "Settings" surface had no logout
+          // affordance anywhere.
+          (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn())
+            ? { label: 'Logout', kind: 'button', onClick: () => { if (S.settingsOpen) S.settingsOpen.value = false; window.ui && window.ui.actions && window.ui.actions.logout && window.ui.actions.logout(); } }
+            : null,
         ].filter(Boolean),
       }],
       voiceSettingsOpen: v('voiceSettingsOpen', false),
@@ -148,6 +157,14 @@
       forceTurnEnabled: v('forceTurnEnabled', false),
       voiceBitrate: v('voiceBitrate', 64),
       masterVolume: v('masterVolume', 0.7),
+      // pttGate's inboundQueue is the real, live-populated voice-message queue
+      // (data-channel segments, voice-ptt.js) -- state.audioQueue/queue.js is a
+      // dead parallel pipeline (websocket-era chunk assembly with zero live
+      // callers into addSegment/addChunk/completeSegment) kept only for its
+      // still-reachable replay/download-of-a-completed-segment helpers.
+      audioQueueItems: v('audioQueueItems', []),
+      audioQueueCurrentId: v('audioQueueCurrentId', null),
+      audioQueuePaused: v('audioQueuePaused', false),
       replyTarget: v('replyTarget', null),
       threadPanelOpen: v('threadPanelOpen', false),
       activeThreadId: v('activeThreadId', null),
@@ -226,6 +243,16 @@
           try { localStorage.setItem('voiceBitrate', String(patch.bitrate)); } catch (_) {}
           if (window.lk && window.lk.setAudioBitrate) window.lk.setAudioBitrate(patch.bitrate);
         }
+        // SDK's VoiceSettingsModal sends the master-volume slider's patch as
+        // {volume: n} (matches its own `volume:S.masterVolume` prop name) --
+        // this key previously went unhandled, so S.masterVolume never updated
+        // and the slider had zero effect on realtime peer audio or queued
+        // voice-message playback (both read state.masterVolume live).
+        if ('volume' in patch && S.masterVolume) {
+          S.masterVolume.value = patch.volume;
+          try { localStorage.setItem('masterVolume', String(patch.volume)); } catch (_) {}
+        }
+        if (('outputId' in patch || 'volume' in patch) && window.lk && window.lk.applyOutputSettings) window.lk.applyOutputSettings();
         if (window.lk && window.lk.setAudioConstraints) window.lk.setAudioConstraints({ deviceId: v('inputDeviceId', null), noiseSuppression: v('rnnoiseEnabled', true), autoGainControl: v('autoGainEnabled', true) });
       }),
       voiceSettingsSave: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
@@ -269,10 +296,15 @@
       createChannel: () => call(() => window.channelManager.showCreateModal(null, null)),
       serverContext: (id, x, y) => call(() => window.serverManager.showContextMenu(id, x, y)),
       memberMenu: (id, name, x, y) => call(() => window.moderation.showMemberMenu(id, name, x, y)),
-      replaySegment: (id) => call(() => window.queue.replaySegment(id, true)),
-      skipSegment: () => call(() => { window.queue.stopReplay(); window.queue.playNext(); }),
-      pauseQueue: () => call(() => window.queue.pausePlayback()),
-      resumeQueue: () => call(() => window.queue.resumePlayback()),
+      // Routed through pttGate (voice-ptt.js), the queue that's actually
+      // populated live off inbound data-channel segments -- window.queue
+      // (queue.js) is a parallel pipeline nothing ever feeds real segments
+      // into (see audioQueueItems above), so its own replaySegment/
+      // pausePlayback/resumePlayback are unreachable from any real message.
+      replaySegment: (id) => call(() => window.__zellous?.pttGate?.replaySegment(id)),
+      skipSegment: () => call(() => window.__zellous?.pttGate?.skipQueue()),
+      pauseQueue: () => call(() => window.__zellous?.pttGate?.pauseQueue()),
+      resumeQueue: () => call(() => window.__zellous?.pttGate?.resumeQueue()),
       openThread: (id) => call(() => window.threadManager && window.threadManager.select(id)),
       selectThread: (id) => call(() => window.threadManager && window.threadManager.select(id)),
       createThread: () => call(() => {
@@ -334,7 +366,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });

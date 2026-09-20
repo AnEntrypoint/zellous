@@ -7,3 +7,8 @@ DevTools listening on ws://127.0.0.1:41359/devtools/browser/90401479-e148-46a4-a
 [2255217:2255250:0920/214300.071337:ERROR:google_apis/gcm/engine/mcs_client.cc:704] Failed to log in to GCM, resetting connection.
 [2255217:2255250:0920/214324.746678:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
 [2255217:2255250:0920/214409.440141:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[2255217:2255250:0920/214600.315630:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Warning: maxDynamicUniformBuffersPerPipelineLayout artificially reduced from 500000 to 16 to fit dynamic offset allocation limit.
+Warning: maxDynamicStorageBuffersPerPipelineLayout artificially reduced from 500000 to 16 to fit dynamic offset allocation limit.
+[2277695:2277695:0920/214631.552642:ERROR:services/on_device_model/ml/gpu_blocklist.cc:120] Unable to get gpu adapter
+[2255217:2255217:0920/214631.625064:ERROR:services/on_device_model/public/cpp/service_client.cc:37] Unexpected on_device_model service disconnect; reason: 1, description: Error loading backend.

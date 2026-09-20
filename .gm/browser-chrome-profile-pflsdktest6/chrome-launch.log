@@ -5,3 +5,8 @@ DevTools listening on ws://127.0.0.1:43041/devtools/browser/a559876d-1865-4169-b
 [2261259:2261288:0920/214352.820650:ERROR:google_apis/gcm/engine/mcs_client.cc:702]   Error code: 401  Error message: Authentication Failed: wrong_secret
 [2261259:2261288:0920/214352.820736:ERROR:google_apis/gcm/engine/mcs_client.cc:704] Failed to log in to GCM, resetting connection.
 [2261259:2261288:0920/214422.808153:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[2261259:2261288:0920/214516.325500:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+Warning: maxDynamicUniformBuffersPerPipelineLayout artificially reduced from 500000 to 16 to fit dynamic offset allocation limit.
+Warning: maxDynamicStorageBuffersPerPipelineLayout artificially reduced from 500000 to 16 to fit dynamic offset allocation limit.
+[2277962:2277962:0920/214650.385782:ERROR:services/on_device_model/ml/gpu_blocklist.cc:120] Unable to get gpu adapter
+[2261259:2261259:0920/214650.390386:ERROR:services/on_device_model/public/cpp/service_client.cc:37] Unexpected on_device_model service disconnect; reason: 1, description: Error loading backend.
