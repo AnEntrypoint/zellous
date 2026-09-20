@@ -1,0 +1,1 @@
+{"dispatch_id":"1789940316140-352-a7a6c15dc4776980","error":"mode \"regex\" got an invalid regular expression: regex parse error:\n    *:focus-visible\n    ^\nerror: repetition operator missing expression","error_code":"failed","next_dispatch_hint":"instruction","ok":false,"request_fingerprint":"961ae4f0cb3f4054","verb":"codesearch"}

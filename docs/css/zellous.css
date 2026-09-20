@@ -191,6 +191,7 @@ body:has(.reconnect-banner.visible) .ca-app { padding-top: 32px; }
   transition: border-color 0.1s;
 }
 .modal-input:focus { border-color: var(--accent); }
+.modal-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 textarea.modal-input { resize: vertical; min-height: 60px; }
 select.modal-input { cursor: pointer; }
 html.ds-247420 button.modal-btn,
