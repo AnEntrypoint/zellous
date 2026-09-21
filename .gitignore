@@ -10,3 +10,5 @@ node_modules/
 .gm/last-instruction-ts
 .gm/last-prompt.txt
 .gm/turn-state.json
+.gm/residual-check-fired
+.gm/claim-audit-fired
