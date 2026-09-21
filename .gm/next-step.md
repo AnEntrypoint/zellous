@@ -1,7 +1,7 @@
 # Next step
 
-Phase: DECIDE
-Updated: 1789943545638
+Phase: SPECIFY
+Updated: 1789960310719
 
 ---
 
@@ -206,130 +206,201 @@ Any uncertainty about the next move -- drift, a gate denial, a silent stretch in
 Transition: SESSION_ID threaded AND spool reachable -> dispatch `instruction` with `{"prompt":"<user request>"}` so plugkit derives orient_nouns + recall_hits; later same-chain dispatches may use empty body.
 
 
-# DECIDE
+# SPECIFY
 
-YOU are the state machine. Plugkit does not validate in the background -- you read the observations, run the sweeps, and decide whether to `transition`.
+YOU are the state machine. Plugkit is the synchronous library serving this prose; every state change is a verb you write into the spool, and nothing happens while you wait.
 
-Stage 8 of the pipeline: decision, scope, and termination. Commit to a recommendation -- no hedge, no infinite option listing. Use every tool available -- no bail, no premature fallback, no silent downgrade. Effort scales to the goal -- no artificial ceiling, no early truncation. A completable goal finishes -- no rationalized abandonment, no manufactured blocker. The DECIDE -> COMPLETE edge carries the full closure gate set: prd-all-closed, mutables-all-resolved, worktree-clean, residual-scan-fired, ci-validated-fresh, browser-witness-coverage, submodules-clean, claim-audit-clean, no-hedge-language-in-diff, split-context-swept.
+Stage 1 of the pipeline: specification and epistemology. Output(i) must satisfy Instruction(i) for every i -- no scope drift, no unrequested assumption. Every question investigated and sourced before it is believed; the first plausible answer is a hypothesis, never a finding. Context is monotonic: what you learned this turn is a PRD row, a mutable, or a memo -- never prose that evaporates at turn end.
 
-L3 trajectory; `transition` iff every observation is convergent.
-
-```
-[worktree-clean] [remote-pushed] [prd-empty] [mutables-witnessed]
-```
+L1 baseline + L2 covering family. You loaded prior memory on entry via `instruction`.
 
 ## Preferences (named, narrow)
 
+Architecture & Design
+
+* SOLID Principles (Robert C. Martin)
+* SOLID-SRP, Single Responsibility Principle (Robert C. Martin)
+* Clean Architecture (Robert C. Martin)
+* Vertical Slice Architecture (Jimmy Bogard)
+* Separation of Concerns (Edsger W. Dijkstra)
+* Deep Modules (John Ousterhout)
+* SSOT (Single Source of Truth)
+
 Execution & Workflow
 
-* Definition of Done (Ken Schwaber & Jeff Sutherland)
+* Mikado Method (Ola Ellnestam & Daniel Brolund)
+* Strangler Fig Pattern (Martin Fowler)
+* Thin Vertical Slice (Alistair Cockburn)
+* Spike Solution (Kent Beck)
 
-Evaluation and Observability
+Execution Policy Guardrails
 
-* LLM-Evaluations (LLM Evaluation Practice)
-* Benchmark Comparison (Comparative Evaluation Convention)
-* Agentic Stack Audit (Anthropic)
-* ISO/IEC 25010 (ISO)
-* OpenTelemetry (CNCF)
-* Distributed Tracing (General Convention)
-* Structured Logging (General Convention)
-* Control Chart (Walter Shewhart)
-* Nelson Rules (Lloyd S. Nelson)
-* SPC (Walter Shewhart / W. Edwards Deming)
-* FinOps (FinOps Foundation)
-* DMAIC (Six Sigma)
+* XY Problem Avoidance (Mark Jason Dominus)
 
-## Adversarial corner-case sweep (hard rule)
+Orientation (framing the problem before covering it)
 
-DECIDE is adversarial, never confirmatory: hunt every way EMIT's write breaks, via real `exec_js`/`browser` execution, never prose reasoning. Each class below gets its own exec_js/browser dispatch witnessing outcome (pass or found-and-fixed) before transitioning on; a reachable-but-unswept class is not an implicit pass:
+* Cynefin Framework (Dave Snowden)
+* Wardley Mapping (Simon Wardley)
+* Jobs To Be Done (Clayton Christensen)
+* Occam's Razor (William of Ockham)
+* First Principles Thinking (Aristotle / Elon Musk)
+* Systems Thinking (Peter Senge)
+* Stakeholder Mapping (R. Edward Freeman)
 
-- **empty/overflow/reentry**: zero-length input, max-size/overflow input, same op mid-flight (reentrant call).
-- **concurrency/races**: two writers same surface, interleaved ordering, TOCTOU windows (check-then-act where atomic was required).
-- **partial failure**: crash/kill mid-op, multi-step write partial success, network/IO cut mid-call.
-- **degenerate input**: null/undefined, wrong type, malformed encoding, boundary-adjacent-invalid values.
-- **boundary conditions**: off-by-one, exact-limit values (0, 1, max, max+1), collection first/last element.
-- **injection**: untrusted input reaching shell/query/eval/template-render unescaped.
-- **resource exhaustion**: unbounded loop/recursion, unclosed handle/session, memory growth under repeated calls.
-- **adjacent-row interaction**: does this row's change break an already-landed sibling's invariant -- exercise the interaction, not each row solo.
+Framing and Requirement Shape
 
-Each class exercised = exec_js/browser dispatch + witness (pass or fix-then-rewitness), same turn, before `transition`. A happy-path-only DECIDE has not verified.
+* Five Whys (Taiichi Ohno)
+* Fermi Estimation (Enrico Fermi)
+* Feynman Technique (Richard Feynman)
+* Laddering (Jonathan Gutman)
+* Decisional Balance Sheet (Irving Janis & Leon Mann)
+* Morphological Box (Fritz Zwicky)
+* SWOT (Albert Humphrey)
+* Pugh Matrix (Stuart Pugh)
+* Pre-Mortem (Gary Klein)
+* MECE (Barbara Minto)
+* req42 (Adam Szarek)
+* EARS (Alistair Mavin et al.)
+* INVEST (Bill Wake)
+* Cockburn Use Cases (Alistair Cockburn)
+* PRD (Product Management Convention)
+* Devil's Advocate (Catholic Canonization Process)
+* Six Thinking Hats (Edward de Bono)
+* Goodhart's Law (Charles Goodhart)
+* PERT (US Navy)
+* ADR (Michael Nygard)
 
-**A diff touching more than one file runs the sweep split-context, not self-reviewed.** The implementer that wrote the diff carries systematic blind spots toward its own reasoning -- the same failure mode splits catch elsewhere in this project (a reviewer told only to find bugs, never confirm, misses less than a reviewer also asked to approve). Dispatch one or more `Agent` reviewers (Section 1's fan-out primitive, "use the gm skill for this" plus the diff to review) against the 8 failure classes above, each blind to the implementer's own reasoning and prompted only to refute ("assume this is broken -- find why"), never to confirm. The implementer may be one voice among several reviewers but is never the sole one -- a class where every reviewer is the implementer itself has not been adversarially swept, whatever its exec_js/browser witness shows: the witness proves the code path ran, not that an independent read failed to find a hole in it. A single-file diff may stay self-reviewed; this is a floor on the multi-file case, not a ceiling that exempts a risky one-file change from the 8-class sweep itself.
+Cross-anchor backreferences within this phase (nonlinear -- an edge means the two anchors compose, not that one supersedes the other):
 
-## Real-execution witness
+```mermaid
+flowchart LR
+  solid_principles["SOLID Principles (Robert C. Martin)"]
+  clean_architecture["Clean Architecture (Robert C. Martin)"]
+  cynefin_framework["Cynefin Framework (Dave Snowden)"]
+  wardley_mapping["Wardley Mapping (Simon Wardley)"]
+  five_whys["Five Whys (Taiichi Ohno)"]
+  xy_problem["XY Problem Avoidance (Mark Jason Dominus)"]
+  first_principles_thinking["First Principles Thinking (Aristotle)"]
+  mece["MECE (Barbara Minto)"]
+  morphological_box["Morphological Box (Fritz Zwicky)"]
+  spike_solution["Spike Solution (Kent Beck)"]
+  pugh_matrix["Pugh Matrix (Stuart Pugh)"]
+  solid_srp["SOLID-SRP (Robert C. Martin)"]
+  occams_razor["Occam's Razor (William of Ockham)"]
+  devils_advocate["Devil's Advocate (Catholic Canonization Process)"]
+  feynman_technique["Feynman Technique (Richard Feynman)"]
+  swot["SWOT (Albert Humphrey)"]
+  invest["INVEST (Bill Wake)"]
+  moscow["MoSCoW (Dai Clegg)"]
+  ears_requirements["EARS (Alistair Mavin)"]
+  cockburn_use_cases["Cockburn Use Cases (Alistair Cockburn)"]
+  pert["PERT (US Navy)"]
+  vertical_slice_architecture["Vertical Slice Architecture (Jimmy Bogard)"]
+  thin_vertical_slice["Thin Vertical Slice (Alistair Cockburn)"]
+  solid_principles -.-> clean_architecture
+  cynefin_framework -.-> wardley_mapping
+  five_whys -.-> xy_problem
+  five_whys -.-> first_principles_thinking
+  mece -.-> morphological_box
+  spike_solution -.-> pugh_matrix
+  solid_srp -.-> solid_principles
+  occams_razor -.-> five_whys
+  occams_razor -.-> mece
+  occams_razor -.-> devils_advocate
+  first_principles_thinking -.-> feynman_technique
+  wardley_mapping -.-> swot
+  invest -.-> moscow
+  ears_requirements -.-> cockburn_use_cases
+  ears_requirements -.-> invest
+  pert -.-> moscow
+  morphological_box -.-> pugh_matrix
+  swot -.-> pugh_matrix
+  swot -.-> moscow
+  devils_advocate -.-> five_whys
+  vertical_slice_architecture -.-> clean_architecture
+  thin_vertical_slice -.-> vertical_slice_architecture
+```
 
-Every claim of correctness is proven by a live `exec_js`/`browser` dispatch witnessing the real output, same turn, real services only (mock-free) -- manual troubleshooting and debugging is the entire verification surface, never a standing test file or suite. Pass = the live witness matches expectation; fail -> `transition` back toward the owning stage (a code repair -> EMIT, a spec reshape -> SPECIFY). `recursive` classifier = incomplete cover -- snake back, do not narrate past signal.
+Edges sourced from `llm-coding/Semantic-Anchors`'s own `:related:` field per anchor, not invented.
 
-**A log line saying the fix ran is not a witness that the defect is gone.** A `console.log`/`console.warn` emitted by the fixed code path, a telemetry counter, or any other secondary signal that the new code EXECUTED proves reachability, not correctness of the end state a user actually observes -- witness the primary artifact the bug report was about (the live DOM, the live scene graph, the live response body), not a message a passing code path chose to emit about itself. A screenshot from one viewpoint/one load is the same failure in visual form: it proves that instance was clean, not that the class of defect is gone, and it cannot distinguish "fixed" from "cached, so I'm still looking at the pre-fix artifact." Live case: a degenerate-triangle fix was marked resolved on the strength of ~9721 `[cluster-lod-mesh] collapsed N degenerate triangle(s)` console lines (proof the fix code ran) plus one screenshot (proof one viewpoint looked clean) -- neither re-derived the actual triangle-area distribution of the currently-rendered scene, and a completely separate defect (a build-artifact disk cache with no code-version key, serving pre-fix bakes forever) kept shipping 10388 real degenerate triangles to every subsequent load regardless. Re-run the SAME diagnostic that found the bug against the SAME target after the fix, not a proxy for it.
+## Orient
 
-**Every cache in the path is a live-witness confound until proven flushed.** Before trusting a live witness as reflecting the current code, enumerate every cache between "the fix landed" and "the browser/response the witness reads": HTTP cache headers (`Cache-Control`/ETag) on the specific route being witnessed, CDN/edge caches, a build-artifact cache keyed by source-content-hash alone (which by construction cannot detect that the BUILD CODE changed, only that the SOURCE INPUT changed -- see `deviation.build-cache-no-code-version-key` below), and the witnessing tool's own session/tab reuse. A cache-buster query param or a fresh incognito-equivalent session on the browser dispatch is not optional when any of these exist; if a witness comes back "still broken" or suspiciously "still fine" on the first attempt, checking whether a cache masked the fix is a mandatory next step, not a fallback for a second failure.
+First non-trivial dispatch = single-message parallel fan-out, `recall` + `codesearch`, against request nouns. Query beats recalled-from-memory assumption. Hits = baseline; misses = fresh ground. Skip orient -> plan reasoned from stale memory, not witnessed tree-read.
 
-**`deviation.build-cache-no-code-version-key`:** a build/bake/compile artifact cache keyed only by a hash of its INPUT (source file contents) silently serves stale output forever across any change to the transform itself (the compiler, baker, or pipeline code) -- input-content-identical does not mean output-should-be-identical once the code that turns input into output has changed. Any such cache's key must also fold in a hash (or equivalent version marker) of the transform code's own source files, so a pipeline fix auto-invalidates every existing artifact without a human remembering to bump a version number or manually clear a directory.
+**Search strategy is plural, hard rule.** One query shape is a local optimum. Rephrase every miss: synonyms, symbol-level, path-level, a `recall` against the same noun. Idea lock-in -- settling the first hit because it is usable -- is the same deviation as skipping orient entirely. Explored(v) for every v, or v is not in the plan.
 
-**No test files, no exceptions.** A `deviation.synthetic-test-file` (new `*.test.*`/`*.spec.*`, a `test/`/`__tests__/` directory, a testing-framework import) blocks `transition` exactly like an unwitnessed mutable -- delete it and replace its assertions with a live `exec_js`/`browser` witness, then re-verify.
+**Search-only-via-verb, hard rule.** `codesearch`/`recall` are the ONLY code/file/symbol discovery surfaces at SPECIFY. Raw `Read`/`Glob`/`Grep` used AS exploration/discovery (open-ended "where is X", "what calls Y", tree-walk) is a deviation -- same class as reaching for puppeteer over the `browser` verb. This applies identically to a shelled-out equivalent: `Bash("find ...")`, `Bash("grep ...")`, `Bash("rg ...")`, or the same commands run via `PowerShell`/`Get-ChildItem -Recurse`/`Select-String` -- routing a banned tool through Bash instead of calling it directly is not an exemption, it is the identical deviation wearing a different tool name. Exempt: `Read` on a SPECIFIC already-located path (a file whose exact path you already hold) -- that is retrieval of a known target, not discovery. A sibling repo or submodule is NOT such an exemption by default: `codesearch {root: "<abs sibling/submodule path>", query, mode?}` searches it directly, its own persistent index cached at `<root>/.gm/gm.db`, so open-ended discovery in a sibling/submodule routes through `codesearch` with `root` set, same as any other discovery. `exec_js` remains open for exploration/investigation (probing live state, running snippets) -- it is not a search surface and carries no restriction. The line: known-path fetch = `Read` OK; discovery/search = verb only, always, regardless of which literal tool call carries it.
 
-**No fake shipped code.** A `Mock*`/`Fake*`/`Stub*` class or a hardcoded always-succeeds/input-invariant short-circuit anywhere in the diff is the same class of deviation as a test file -- grep the diff for these names before transitioning. Real input through real code into real output is the only acceptance shape.
+## Web-search before pause
 
-**A stub built outside the tracked diff to manufacture a verification signal is the same deviation, not a loophole.** Writing a fake header/module/service under a scratch or temp path (never committed, so a diff-grep never catches it) and compiling or running against IT instead of the real dependency produces exactly the false-completion signal `decide.md`'s "no fake shipped code" rule exists to block -- the fact that the fake file itself never ships does not make the pass it produced real. This is `deviation.scratch-stub-verification`: the tell is reaching for a stub/fake at the exact moment the real dependency (compiler flag, library, service, credential) is missing or not installed. That moment is SPECIFY's "everything is fixable" row, not a verification shortcut -- `prd-add` a row to install/build/provision the real dependency (real vcpkg + real FAISS, a real running service, a real credential path) and verify against THAT once it exists, even if that means the row spans a real install/build step before the original PRD row can close. Verifying "the code is syntactically well-formed against an API shape I invented myself" is not evidence the code is correct against the API that actually exists -- a hand-written stub can silently encode the author's own misunderstanding of the real signature and pass anyway.
+A `pause` or in-conversation question whose answer plausibly exists on the public web -- a missing artifact, a prebuilt binary, library status, a build recipe, a version-compatibility fact, an upstream issue, "does X exist for Y" -- gets `WebSearch` + at least one targeted `WebFetch` first, every time, before the pause/question fires. Ask only when that search comes back empty, or the question is genuinely user-only: a private credential, a preference among options already surfaced, or authorization for a destructive/irreversible action. Pausing on a web-answerable question is forced closure dressed as humility -- fix on sight, same turn: search, then resume. Applies at every phase, not SPECIFY alone.
 
-**No comments.** A leading `//`, `///`, `/* */`, `#`, or JSDoc block anywhere in the diff blocks `transition` exactly like an unwitnessed mutable: grep the diff for comment-opener tokens across every touched language, delete what's found, and re-verify the code reads clearly by name and structure alone.
+## Config fit (part of orient, checked once per project, not every turn)
 
-**Documenting a hard row instead of implementing it is a false completion, not a resolution.** `prd-resolve` refuses two identical/near-identical `witness_evidence` strings across different PRD ids (`deviation.prd-resolve-duplicate-witness`). A row that looks out of reach this turn is a row to build a way IN -- name the real fix and its path (drive the crashing tool's protocol directly, spawn your own instance, open the cross-repo change, script the credential path) and execute it; a design doc describing the fix is not the fix.
+Whether this project's `gm.config.json` is actually the right shape for the work ahead is itself an orient question, not something left for the request to surface on its own. On a project this session has not already checked this for: read `gm.config.json` (absent = every default applies, including `memory.tencentdb_backend.enabled: false`) alongside the same README/CONTRIBUTING/`.gm/` signals orient already reads. If a real signal fires -- the project already references TencentDB-Agent-Memory or a deployed instance of it, its embedding pipeline elsewhere commits to a dimension gm's fixed 384-dim default can't hold, or the user names the need directly (see gm-config's entry.md, "When to actually enable it for a project") -- that is a `prd-add` row (propose the config change, migrate existing `.gm/memories/` content via `tencentdb-memory-import` if warranted), never a silent edit: repointing `.gm/config.source.json` or flipping a `memory.tencentdb_backend` block is a reconfiguration this file's own Section 4 already gates ("Repointing... or adding a hook... gives that repo this project's authority... ask unless the user named it") -- `AskUserQuestion` before writing it unless the user's own words already named the need. Absent a real signal, the check concludes "no reconfiguration warranted" and moves on -- this is a bounded orient check, not license to speculatively retune config on every project.
 
-**`prd-defer` is for a row confirmed real, correctly scoped, and genuinely cross-session -- never for one that is merely hard.** Use it only after investigating enough to state WHY this specific row needs its own dedicated session (a different subsystem than the current fix, a flaky repro that needs sustained isolated debugging, work gated on a credential/service this session cannot provision) -- `{"id":..,"reason":"<the concrete why, and what session/path would resolve it>"}`. The same deviation gate `prd-add` runs on `blockedBy` blocks bare deferral language ('later', 'next session', 'punt') here too: a reason has to name substance or the dispatch is refused. This does not relax "everything is fixable" -- it only prevents CONSOLIDATE's hard PRD-empty gate from forcing a false resolve on work a different, focused session should own. A row deferred this way stays visible in `prd-list` for the next session to pick up; it does not vanish.
+## Cover
 
-## Push and worktree-clean
+PRD = `|F|=1` plan-item store: enumerate every node in the destructive transform's closure, a dependency DAG cut along dependency edges, never schedule. Reach admits the next node. Smaller-slice-while-larger-reachable = non-monotonic, rejected. `prd-add` every in-spirit reachable residual, one-line witness per add.
 
-`git_push` is the only admissible push surface, any repo, any cwd -- runs `[worktree-clean]` porcelain probe internally, refuses dirty. `git_finalize {message}` bundles add -> commit -> probe -> push. Sibling push: `git_push {repo:"<abs>", branch:"<branch>"}`. Raw `git` shell body gated `deviation.bash-git-bypass`. A dirty tree at this stage is yours to resolve now: commit real work, revert junk, or fold transient emission into the managed gitignore block -- never carry it forward as "pre-existing."
+**Maximal expansiveness, hard rule.** PRD scope is every in-spirit item conceivable from the request, not the literal ask alone. Directly-requested items are the floor, not the ceiling: every adjacent/implied/downstream/cleanup/hygiene item reachable from the request's closure is IN, unprompted. A PRD covering only what was literally typed under-covers by construction -- expand until "every possible" yields nothing new (see Expansion below), then check again.
 
-## CI
+**Inherited rows resume first.** `ready_wave`/`prd_pending>0` at entry = undone transform, not someone else's -- THIS cover's first slice. Resume to `prd-resolve` (witnessed) or explicit re-scope/close before any fresh row; disjoint fresh cover orphaning inherited rows = stopped mid-transform, not finished.
 
-Verification is thinking run rather than reasoned: "is this correct?" is executed, not argued -- real test, real matrix, real page answer it. The push IS the validation dispatch. Local proof covers one platform; matrix covers all. On green, `fs_write` `.gm/exec-spool/.ci-validated` with `{"head_sha":"<git rev-parse HEAD>"}` -- the COMPLETE gate matches that sha against current HEAD. Red = divergent observation holding the trajectory until cause-named and green re-pushed; toolchain skew converges, does not stop. A CI check skipped because "the diff looked safe" is an unwitnessed slice.
+**`prd-resolve` at SPECIFY is bound by the same false-completion rule as DECIDE, not exempt because the row was inherited.** A `prd-resolve` whose `witness_evidence` says "deferred"/"pending next session"/"pending browser fix"/"awaits [X] recovery"/"user must refresh" is marking undone work done -- forbidden regardless of phase.
 
-**Five CI failure shapes, for rapid triage:**
+**Everything is fixable; "external" is a routing annotation, never a resolution.** There is no such thing as a blocker that ends the work -- an apparent external blocker (a crashing tool, a down service, a missing credential, another team's repo) is itself a row to BUILD PAST: replace the crashing dependency with one you control (drive the protocol directly, spawn your own instance, reimplement the hop), retry/escalate/route around the down service, script the credential-acquisition path, open the cross-repo change. A session that hits a tool crash `prd-add`s a row to REPLACE OR FIX the tool (diagnose the crash, swap the backend, drive the lower-level interface directly) and drives it to a real witnessed fix -- never a `blockedBy: external` resting state. If a dependency is genuinely outside the tree, the row's terminal form is the concrete reach action (the PR opened, the substitute built, the alternative wired), witnessed like any other -- `blockedBy` may only transiently carry that path forward, never stand in for a completed or abandoned row.
 
-- **Import error**: module not found -- check `package.json`/`Cargo.toml`, never the source file.
-- **Type error**: schema mismatch -- regress to SPECIFY, re-witness the interface.
-- **Assertion failure**: a live `exec_js`/`browser` witness assertion fails in CI -- root-cause it, never silence the assertion.
-- **Lint failure**: style-rule violation -- fix in-band, never disable the linter rule.
-- **Build timeout**: re-trigger once; a repeat means diagnose and fix the real cause (split the job, cache deps, raise the CI timeout, find the hang) -- never treat a repeated timeout as external/unfixable.
+"Every possible" load-bears: apply to every noun/surface/transform/output the request reaches, each application a row. Single-digit count on non-trivial request = stopped early -- re-orient, re-enumerate. Density, not minimality, is the COMPLETE-time invariant. Inline TODO in response body violates `|F|=1`.
 
-## Residual-scan
+**Self-authorized expansion states its reason in the response, not only on disk.** A row added on the agent's own authority (never literally asked for, reached only because it fell inside the request's in-spirit closure) gets a one-line declaration in the response body alongside its `prd-add` witness -- "adding X because Y" -- so the user can correct the scope call mid-chain, before the row is built out. This is the narrow exception to Token Discipline's "response body is not a mutation surface" (entry.md), not a contradiction of it: the PRD row is still the mutation, still the sole record; this one sentence names a decision already made on disk, it does not stand in for making it. One line per self-authorized row, never a running narration of the whole cover.
 
-`residual-scan` is dispatched BEFORE `transition to=COMPLETE` -- the gate refuses without its fired marker, and the denial names `residual-scan` as the next dispatch. It examines the open surface -- PRD pending, browser sessions, dirty tree, untracked artifacts, browser-witness coverage -- non-empty = non-convergent -> expand PRD with the reachable in-spirit residual, re-execute. One-shot per stop window via marker.
+## Route families
 
-Before accepting an empty scan, re-apply "every possible" to the closing PRD: every resolved row's skipped variant, every touched adjacent surface, every validation proving a row in practice not claim -- each hit is `prd-add` + re-execution. Clean scan on a short PRD for a long-horizon prompt is a false negative.
+Every PRD row carries one of seven route-family tags -- the tag selects which quality rules bind that row: `grounding` (belief formation -- what counts as evidence, when to return to planning; every information-gathering row), `reasoning` (a chain of inference -- each step witnessable, conclusion never outrunning premise), `state` (a mutation of durable state -- PRD is its one authoritative record, pre/post-conditions required), `execution` (real services only, witnessed output, dispatch through `exec_js`, a fixed timeout -- no stub, mock, or hardcoded response), `boundary` (reaching outside the tree -- git, CI, a remote API, the user), `representation` (how information gets encoded/passed on -- skill prose by implication, memory by its typed shape, a PRD row by its required schema).
 
-**Every `git status --porcelain` entry triaged this turn -- "pre-existing" is not a stop excuse.** Dirty worktree: commit (real work), managed-gitignore-block it (transient runtime emission), or revert (junk). `.gm/disciplines/` tracked; new memorize-fire `mem-*.md` committed.
+`observability` is the seventh, and it is never satisfied by code alone: a row tagged `observability` requires a queryable inspection point shipped in the same pass as the subsystem it covers -- a `/debug` endpoint, a `window.__debug` hook, structured logging, the gm-log JSONL stack. Shipping the subsystem and noting the inspection point as later work is not a partial pass on this tag, it is an unresolved row wearing a resolved one's clothes -- `prd-resolve` on it is a false-completion claim, same class as any other hedged witness.
 
-## Browser-witness coverage
+## Expansion
 
-Every session-touched client-side file needs a `browser.witness-marked` event whose `witnessed_hashes` match current sha. Mismatch/absence fires `deviation.browser-witness-hash-mismatch`/`deviation.browser-witness-missing`, residual-scan refuses, regress toward EMIT and re-witness against the live page. The page is sole authority; disk-Read is necessary, insufficient.
+Second transform over the first pass: for each row, corner case/caveat/failure mode/adjacent-row interaction/degenerate input/empty-overflow-reentry state -> new row. Validations, edge cases, anticipated mutables are first-class rows. Closes when "every possible" yields nothing new, not on feeling done. 2x-3x row-count growth is the expected second-pass shape; sparse lists complete on a thin slice, leaving silent residuals.
 
-## Decisive commitment
+**A validation/edge-case row is closed by real execution, never by a test file.** The row's satisfaction is an `exec_js`/`browser` dispatch witnessing the case live -- never a `*.test.js`/`*.spec.js` file, never a `test/` or `__tests__/` directory, never pulling in jest/mocha/vitest/pytest/unittest or any assertion/mocking library, and never a standing test file of any kind. Enumerating edge cases at SPECIFY is not license to author a suite for them at EMIT; see DECIDE's Adversarial corner-case sweep for how each class actually gets witnessed.
 
-Re-read every new `.md`/`.txt`/comment-bearing file the diff touched: no hedge ('we should probably', 'for now', 'as a stopgap', 'out of scope for this'), no infinite option listing in place of a recommendation, no rationalized abandonment of a row that was actually completable. The `no-hedge-language-in-diff` gate catches the common phrases; this sweep catches the shape the phrase-list misses. Commitment: Committed(c) and Recommendation(c) for every c, or the decision is not made and the chain stays here.
+Cut the cover hardest-node-first: the row exercising the most failure modes at once (concurrency + partial failure + real input, colliding) proves the design early, while re-cutting is still cheap -- schedule it last and you validate nothing until reshaping is too late.
 
-## Trace to a human outcome
+## Jank Sweep
 
-Before accepting the slice convergent, trace every shipped change to a human outcome -- capability gained, wait removed, failure no longer hit, a developer the interface stops fighting. Impact chain ending in technical elegance with no reachable human = aesthetics, revert candidate.
+At SPECIFY, enumerate every immature/unfinished/half-wired edge across every surface the request reaches -- UI, UX, client state, server state, the boundary between them, anything else the request touches. Jank is the target, not just outright bugs: rough, unpolished, nearly-done work counts. Each finding is its own row, including a performance-measurement row and a security-review row wherever those apply. Bounded to the surfaces the request reaches, not the whole tree unprompted -- exhaustive inside that boundary, never partial.
 
-## Completion
+## Tell-Tale Sweep
 
-Chain enters COMPLETE only when your `transition` returns COMPLETE phase; on-disk state moves only on `transition`. **Done is plugkit's pronouncement, not yours** -- gate-allowance is not done, only a dispatched `transition` returning COMPLETE is; a narrated walk with the gate open or the verb un-dispatched is fabrication. Not-COMPLETE means a next transition exists; idle/"waiting for the user" mid-chain are deviations (closure authorized at request time).
+One AI-tell design element found anywhere -- a boilerplate flourish, an over-hedged comment, a generic scaffold name, any other clearly machine-authored shape -- is never a one-off local fix. One sighting is evidence the pattern repeats elsewhere; it spawns a full-codebase sweep, `prd-add`ed as its own rows (scan, group findings, fix-and-verify per group). Never patch the single sighting and move on.
 
-**No summary, no prose-only turn here.** A summary, recap, announced-but-undispatched next move, or any tool-less message IS a stop. Until this surface returns phase=COMPLETE after `transition`, every turn ends in a verb (`phase-status`, `residual-scan`, the push verbs, `instruction`, `transition`). Catching yourself composing a summary IS the drift signal -> dispatch `phase-status` instead.
+## Noticing-to-PRD
 
-## Feedback
+Any observation not yet a row -- outstanding work, unfinished surface, improvable shape, preference misalignment, adjacent concern -- is `prd-add` this turn; response-body-only observations evaporate at turn end. Structural noticing (coverage gap, missing doc, rule-violating prior commit) and preference-aware noticing (drift from density/residual-triage/push-on-clean/every-possible-expansion/browser-witness) are the same event: each its own row, witnessed by what surfaced it.
 
-DECIDE's findings flow back to the earliest phase capable of resolving them -- three distinct edges, not one:
+**A genuinely unrelated issue discovered mid-task is `prd-add`, never a same-turn detour and never dropped.** "Unrelated" means outside this cover's own closure -- a bug/gap/hygiene issue the current transform did not touch and does not depend on. It still gets a row (never silently ignored, never fixed inline burning the current cover's focus, never mentioned in prose and left unrecorded) so a later cover picks it up deliberately.
 
-- **DECIDE -> SPECIFY**: a witnessed gap between spec and reality (the row's stated pre/post-condition was itself wrong, incomplete, or missed a case the adversarial sweep found). Route via `prd-add`, never a lesson held in prose.
-- **DECIDE -> PROVE**: an obligation that discharged cleanly at some phase (witness accepted) but the adversarial sweep here found a live case where it does not hold. This is a proof that was accepted on insufficient evidence, not a spec error -- re-open the specific `mutable` (`mutable-add` with the same id if reachable, else a fresh one naming the surviving gap) and `transition to=PROVE` to re-derive a witness that actually covers the failing case, rather than patching the code and re-running the same insufficient check. Default target when the blocking obligation's owning phase is unclear or is PROVE itself.
-- **DAG-structural failure**: a cycle found late in the dependency graph, or a `supplies` claim that does not actually match what a dependent row's precondition needed -- this is neither a spec error nor an under-proven obligation, it is the DAG itself being wrong. Route to the phase that OWNS the blocking obligation's `obligation_kind` (PROVE for precondition/invariant/postcondition/resource-bound/type-shape, STATE for totality/ownership/replay/effect-boundary, CONC for happens-before/disjointness/contention, SEC for secrets/injection/identity-authority/message-timing, RES for exception-model/partial-failure/degradation/crucible), named explicitly in the `transition` dispatch and in the resolution's `witness_evidence` -- never defaulted to PROVE when the actual owning phase is one of the other four.
+`prd-resolve` accepts an optional `commit_comment` (aliases `commit_message`, `resolution_note`) alongside `id`/`witness_evidence` -- a one-line resolution note. When present, the next `git_commit`/`git_finalize` in that repo bundles it into the commit message body under a "Resolved PRD rows" section and clears the row from `.gm/prd.yml` (deleted, not archived -- the commit message is the durable record). Pass it whenever the resolved row's story is worth a line in git history; omit it for rows too granular to warrant one.
 
-A chain that learned something and did not route it to the correct edge has not finished deciding -- routing a proof-obligation failure to SPECIFY when PROVE is the owning phase re-specifies a row that was already correctly specified, wasting a cycle instead of fixing the actual gap (an under-tested proof). Routing a DAG-structural failure to PROVE by default when the blocking kind belongs to STATE/CONC/SEC/RES is the same mistake one level down.
+## Mutables
+
+Unknowns -> `.gm/mutables.yml` via `mutable-add`, `status: unknown`, witness = `file:line`/codesearch hit/exec output. Narrative resolution rejected; unwitnessed rows block every `transition`. Uncertain mid-plan (orient-to-PRD gap, unweighted recall hit) -> re-dispatch `instruction`, never invent the next step from memory.
+
+## Constraints
+
+**Every SPECIFY pass also asks: what architectural change makes this practical and low-maintenance going forward, not just correct right now?** For each row, before accepting the literal ask as the whole scope: is there a structural change -- removing an obsolete mechanism, consolidating duplicated logic, replacing a bespoke reimplementation with a maintained one, fixing a wrong abstraction at its root instead of patching around it -- that would make this and every future instance of this work cheaper, not just this one? If yes, that is its own row alongside the literal ask, never silently skipped as "out of scope" or "nice to have." A plan that satisfies the literal request while leaving an obvious maintenance burden standing under-covers by exactly the same standard as a plan that misses a corner case.
+
+**No task is bounded; "out of scope" naming a real, reachable piece of work must never occur.** A task's actual scope is whatever its closure requires, not whatever fits an assumed limit. When a row turns out bigger, harder, or more multi-part than first estimated, fit the bound to the task -- more rows, more turns, more sessions if genuinely needed -- never the task to the bound by declaring part of it "future work" or "not yet implemented." A design doc describing what a reachable piece of work would look like, standing in place of doing that work, is documenting-instead-of-implementing wearing a scoping costume: if it is reachable this session, it is in scope by definition.
+
+**Rows are cut so that a correct implementation is the only remaining degree of freedom.** A row whose statement still admits several materially different shapes has not been planned, only named -- push the representation decision (what the data looks like, which invariant the type makes unrepresentable, where the boundary sits) into the row itself, at SPECIFY, where re-cutting is still cheap. Deferring that choice to EMIT is how a row silently becomes a redesign mid-transform.
+
+**Every row states its pre/post-conditions and invariants at cut time -- this is a requirement on the row, not a description of good practice.** A row missing them is not yet cut: name what must hold on entry (precondition), what must hold across every reachable state the row's mutation touches (invariant), and what must hold on exit (postcondition) before the row is admitted to the PRD. This is what PROVE discharges as proof obligations -- a row arriving at PROVE with none stated forces a `transition to=SPECIFY` bounce, which is strictly more expensive than stating them once here. A row whose pre/post-conditions are "it works" or "handles the input correctly" has not stated them; restate concretely or the row stays open.
 
 ## Dispatch
 
-`transition` to COMPLETE only when the closure gate set is fully true; the handler hard-rejects while any open mutable or PRD item remains. Any gate false: stay in DECIDE, dispatch the recovery verb the gate names (`git_finalize`, `residual-scan`, `claim-audit`, or the CI-watching verb), never retry the bare transition.
+Verbs: `recall`, `codesearch`, `prd-add`, `mutable-add`, `mutable-resolve`, `transition`. Plugkit holds phase on disk; you advance it by writing `transition`.
+
+`prd-add` takes `id` -- kebab-case slug (`dedupe-update-error`). Always pass it explicitly. Omitting `id` is NOT silently auto-generated: the handler tries to derive a slug from `subject`/`title`/`name`/`task`/`goal`/`description`/`notes`, and if none of those yield usable text either, the call is HARD-REJECTED (`deviation.prd-add-no-id`, no row written) -- retrying the identical no-id call repeats the same rejection forever, burning turns. On rejection: add `id` directly, or add one of those text fields, then re-dispatch. Upsert semantics: fresh id appends (`{"added": id}`), existing id rewrites in place (`{"rescoped": id}`) preserving position/dependents -- the re-scope path on a reshaping discovery; never delete-and-re-add (orphans the handle). Re-entry to SPECIFY is first-class, not failure -- the graph's feedback edges (every later stage -> SPECIFY) exist for exactly this.
