@@ -238,7 +238,7 @@ html.ds-247420 .vx-view .vx-dock {
   html.ds-247420 button.vx-vc-btn {
     min-width: 44px; min-height: 44px;
   }
-  html.ds-247420 .app-topbar { display: none; }
+  html.ds-247420 .ca-app .app-topbar { display: none !important; }
   html.ds-247420 .app-side a { min-height: 44px; }
   html.ds-247420 button.vx-ptt { min-height: 44px; }
   html.ds-247420 .chat-head { padding: var(--space-3) var(--space-3) var(--space-2); }
