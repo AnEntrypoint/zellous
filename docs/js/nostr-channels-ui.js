@@ -91,12 +91,14 @@ var _mkMenu = function(id, x, y, html, onAction) {
   if (r.bottom > window.innerHeight) menu.style.top = (window.innerHeight - r.height - 8) + 'px';
   var items = menu.querySelectorAll('.context-menu-item');
   items.forEach(function(it) { it.setAttribute('tabindex', '0'); it.setAttribute('role', 'menuitem'); });
-  menu.addEventListener('click', function(e) { onAction(e.target.dataset.action, menu); });
+  menu.addEventListener('click', function(e) { var action = e.target.dataset.action; if (!action) return; closeMenu(); onAction(action, menu); });
   menu.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' || e.key === ' ') {
       if (e.target.classList && e.target.classList.contains('context-menu-item')) {
         e.preventDefault();
-        onAction(e.target.dataset.action, menu);
+        var action = e.target.dataset.action;
+        closeMenu();
+        onAction(action, menu);
       }
       return;
     }
