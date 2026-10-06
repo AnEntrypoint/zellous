@@ -261,7 +261,7 @@ window.__wireweaveReady = (async () => {
     async send(peerPubkey, text) {
       if (!peerPubkey || !text?.trim()) return null;
       const ev = await ww.ensureDM().send(peerPubkey, text.trim());
-      dmMessages.push({ id: ev.id, peer: peerPubkey, from: a.pubkey, text: text.trim(), timestamp: ev.created_at * 1000, mine: true });
+      dmMessages.push({ id: ev.id, peer: peerPubkey, from: a.pubkey, text: text.trim(), timestamp: Date.now(), mine: true, pending: true });
       if (dmMessages.length > DM_MESSAGES_CAP) dmMessages = dmMessages.slice(dmMessages.length - DM_MESSAGES_CAP);
       state.dmMessages = dmMessages.slice();
       if (window.ui) ui.render.all();
@@ -269,9 +269,13 @@ window.__wireweaveReady = (async () => {
     },
     subscribeAll() {
       if (dmSubId || !a.pubkey) return dmSubId;
-      dmSubId = ww.ensureDM().subscribe(({ event, plaintext, peer }) => {
-        if (dmMessages.find(m => m.id === event.id)) return;
-        dmMessages.push({ id: event.id, peer, from: event.pubkey, text: plaintext, timestamp: event.created_at * 1000, mine: event.pubkey === a.pubkey });
+      dmSubId = ww.ensureDM().subscribe(({ event, rumor, plaintext, peer }) => {
+        const id = rumor.id || event.id;
+        if (dmMessages.find(m => m.id === id)) return;
+        const mine = rumor.pubkey === a.pubkey;
+        if (mine) dmMessages = dmMessages.filter(m => !(m.pending && m.peer === peer && m.text === plaintext));
+        dmMessages.push({ id, peer, from: rumor.pubkey, text: plaintext, timestamp: rumor.created_at * 1000, mine });
+        dmMessages.sort((x, y) => x.timestamp - y.timestamp);
         if (dmMessages.length > DM_MESSAGES_CAP) dmMessages = dmMessages.slice(dmMessages.length - DM_MESSAGES_CAP);
         state.dmMessages = dmMessages.slice();
         if (window.ui) ui.render.all();
@@ -366,7 +370,7 @@ window.__wireweaveReady = (async () => {
           if (window.ui) ui.render.all();
         } catch (e) {
           console.warn('[zellous] public server join failed', e?.message);
-          if (window.ui?.showToast) ui.showToast('Could not join the public server: ' + e?.message, 'error');
+          if (window.ui?.showToast) ui.showToast('Could not join the public server: ' + e?.message, 4000, 'error');
         }
       }
     },
@@ -551,7 +555,7 @@ window.__wireweaveReady = (async () => {
     // here is computed correctly but never reaches the screen. window.ui.showToast
     // is the real, live-rendered surface (routes to the SDK's own toast).
     voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.ui?.showToast?.('Voice connected', 2000); });
-    voice.addEventListener('media-warning', (e) => { state.voiceListenOnly = true; window.ui?.showToast?.(e.detail.message, 5000, 'error'); });
+    voice.addEventListener('media-warning', (e) => { state.voiceListenOnly = true; window.ui?.showToast?.('Joined listen-only: no microphone available', 4500, 'error'); });
     voice.addEventListener('disconnected', () => { state.voiceListenOnly = false; state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
     voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
     voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });

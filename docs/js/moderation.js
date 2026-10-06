@@ -14,7 +14,7 @@ const moderation = {
     const serverId = state.currentServerId;
     const canManage = serverId && window.serverRoles && serverRoles.isAdmin(serverId);
     const isOwner = canManage && window.serverRoles && serverRoles.isOwner(serverId);
-    const guard = (fn) => async () => { try { await fn(); } catch (err) { console.warn('[Mod]', err.message); if (window.ui?.showToast) ui.showToast('Action failed: ' + err.message, 'error'); } };
+    const guard = (fn) => async () => { try { await fn(); } catch (err) { console.warn('[Mod]', err.message); if (window.ui?.showToast) ui.showToast('Action failed: ' + err.message, 4000, 'error'); } };
     const items = [];
 
     // Personal mute is available to every user against every other user —
@@ -35,11 +35,11 @@ const moderation = {
       items.push({ label: 'Set Moderator', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'moderator')) });
       items.push({ label: 'Set Member', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'member')) });
       if (window.nostrVoice?._peers?.has(memberId)) {
-        items.push({ label: 'Kick from Voice', danger: true, onSelect: guard(() => confirm(`Kick ${memberName} from voice?`) && moderation.kickFromVoice(memberId)) });
+        items.push({ label: 'Kick from Voice', danger: true, onSelect: guard(async () => { if (await ui.confirm({ title: `Kick ${memberName} from voice?`, confirmLabel: 'Kick', danger: true })) moderation.kickFromVoice(memberId); }) });
       }
-      items.push({ label: 'Ban User', danger: true, onSelect: guard(() => confirm(`Ban ${memberName}?`) && moderation.banUserNostr(serverId, memberId)) });
-      items.push({ label: 'Timeout 10m', danger: true, onSelect: guard(() => confirm(`Timeout ${memberName} for 10 minutes?`) && moderation.timeoutUserNostr(serverId, memberId, 10)) });
-      items.push({ label: 'Timeout 1h', danger: true, onSelect: guard(() => confirm(`Timeout ${memberName} for 1 hour?`) && moderation.timeoutUserNostr(serverId, memberId, 60)) });
+      items.push({ label: 'Ban User', danger: true, onSelect: guard(async () => { if (await ui.confirm({ title: `Ban ${memberName}?`, message: 'They will be removed and unable to rejoin this server.', confirmLabel: 'Ban', danger: true })) moderation.banUserNostr(serverId, memberId); }) });
+      items.push({ label: 'Timeout 10m', danger: true, onSelect: guard(async () => { if (await ui.confirm({ title: `Timeout ${memberName} for 10 minutes?`, confirmLabel: 'Timeout', danger: true })) moderation.timeoutUserNostr(serverId, memberId, 10); }) });
+      items.push({ label: 'Timeout 1h', danger: true, onSelect: guard(async () => { if (await ui.confirm({ title: `Timeout ${memberName} for 1 hour?`, confirmLabel: 'Timeout', danger: true })) moderation.timeoutUserNostr(serverId, memberId, 60); }) });
     }
 
     if (!items.length) return;

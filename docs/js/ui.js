@@ -50,6 +50,59 @@ ui.render = {
   authStatus() {}
 };
 
+ui.confirm = function({ title, message, confirmLabel = 'Confirm', danger = false }) {
+  return new Promise((resolve) => {
+    const opener = document.activeElement;
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay open';
+    modal.setAttribute('role', 'alertdialog');
+    modal.setAttribute('aria-modal', 'true');
+    const box = document.createElement('div');
+    box.className = 'modal-box';
+    const heading = document.createElement('div');
+    heading.className = 'modal-title';
+    heading.textContent = title;
+    const body = document.createElement('div');
+    body.className = 'modal-subtitle';
+    body.style.marginTop = '0';
+    body.textContent = message || '';
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'modal-btn secondary';
+    cancel.textContent = 'Cancel';
+    const ok = document.createElement('button');
+    ok.type = 'button';
+    ok.className = 'modal-btn' + (danger ? ' danger' : '');
+    ok.textContent = confirmLabel;
+    actions.append(cancel, ok);
+    box.append(heading);
+    if (message) box.append(body);
+    box.append(actions);
+    modal.append(box);
+    const done = (value) => {
+      modal.remove();
+      document.removeEventListener('keydown', onKey, true);
+      if (opener && opener.focus) opener.focus();
+      resolve(value);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); done(false); }
+      else if (e.key === 'Tab') {
+        e.preventDefault();
+        (document.activeElement === ok ? cancel : ok).focus();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    cancel.addEventListener('click', () => done(false));
+    ok.addEventListener('click', () => done(true));
+    modal.addEventListener('click', (e) => { if (e.target === modal) done(false); });
+    document.body.appendChild(modal);
+    (danger ? cancel : ok).focus();
+  });
+};
+
 ui.showToast = function(msg, duration, tone) {
   const sdkToast = window.__sdk?.C?.toast;
   if (typeof sdkToast === 'function') {

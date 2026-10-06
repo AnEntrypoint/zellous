@@ -223,8 +223,9 @@
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
-      deleteMessage: (id) => call(() => {
-        if (!confirm('Request deletion of this message? Relays are not required to honor this, and other clients may have already cached it — this is not a guarantee the content is gone.')) return;
+      deleteMessage: (id) => call(async () => {
+        const yes = await window.ui.confirm({ title: 'Delete this message?', message: 'Relays are not required to honor deletion, and other clients may already have cached it.', confirmLabel: 'Delete', danger: true });
+        if (!yes) return;
         if (S.replyTarget && S.replyTarget.value && S.replyTarget.value.id === id) S.replyTarget.value = null;
         return window.chat.deleteMessage(id)?.catch?.((e) => window.ui && window.ui.showToast && window.ui.showToast('Delete failed: ' + (e && e.message || 'unknown'), 3000, 'error'));
       }),

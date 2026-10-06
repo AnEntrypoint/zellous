@@ -172,7 +172,10 @@ channelManager.showRenameModal = function(channelId, currentName) {
 
 channelManager.showDeleteConfirm = function(channelId) {
   var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
-  if (ch && confirm('Delete #' + ch.name + '?')) channelManager.remove(channelId).catch(function(e) { if (window.ui && ui.showToast) ui.showToast(e && e.message || 'Delete failed', 3000, 'error'); });
+  if (!ch) return;
+  ui.confirm({ title: 'Delete #' + ch.name + '?', message: 'Messages in this channel will no longer be listed.', confirmLabel: 'Delete', danger: true }).then(function(yes) {
+    if (yes) channelManager.remove(channelId).catch(function(e) { if (window.ui && ui.showToast) ui.showToast(e && e.message || 'Delete failed', 3000, 'error'); });
+  });
 };
 
 channelManager.showNewForumPostModal = function() {
@@ -245,7 +248,10 @@ channelManager.showRenameCategoryModal = function(categoryId, currentName) {
 
 channelManager.showDeleteCategoryConfirm = function(categoryId) {
   var cat = (state.categories || []).find(function(c) { return c.id === categoryId; });
-  if (cat && confirm('Delete category "' + cat.name + '"? Channels will be moved to Uncategorized.')) channelManager.deleteCategory(categoryId).catch(function(e) { if (window.ui && ui.showToast) ui.showToast(e && e.message || 'Delete failed', 3000, 'error'); });
+  if (!cat) return;
+  ui.confirm({ title: 'Delete category "' + cat.name + '"?', message: 'Its channels will move to Uncategorized.', confirmLabel: 'Delete', danger: true }).then(function(yes) {
+    if (yes) channelManager.deleteCategory(categoryId).catch(function(e) { if (window.ui && ui.showToast) ui.showToast(e && e.message || 'Delete failed', 3000, 'error'); });
+  });
 };
 
 channelManager.showCategoryContextMenu = function(categoryId, x, y) {

@@ -18,7 +18,7 @@ serverManager.showContextMenu = function(serverId, x, y) {
           el.value = url; document.body.appendChild(el); el.select(); document.execCommand('copy'); el.remove();
           if (window.ui && ui.showToast) ui.showToast('Invite link copied!');
         } catch (err) {
-          if (window.ui && ui.showToast) ui.showToast('Copy failed: ' + err.message, 'error');
+          if (window.ui && ui.showToast) ui.showToast('Copy failed: ' + err.message, 4000, 'error');
         }
       });
     } else if (action === 'edit') {
@@ -26,9 +26,9 @@ serverManager.showContextMenu = function(serverId, x, y) {
     } else if (action === 'create-page') {
       serverManager.showCreatePageModal(serverId);
     } else if (action === 'leave') {
-      serverManager.leave(serverId);
+      ui.confirm({ title: 'Leave this server?', message: 'You can rejoin later with its server ID.', confirmLabel: 'Leave', danger: true }).then(function(yes) { if (yes) serverManager.leave(serverId); });
     } else if (action === 'delete') {
-      if (confirm('Delete this server? This cannot be undone.')) serverManager.delete(serverId);
+      ui.confirm({ title: 'Delete this server?', message: 'This cannot be undone.', confirmLabel: 'Delete', danger: true }).then(function(yes) { if (yes) serverManager.delete(serverId); });
     }
   });
 };

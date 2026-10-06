@@ -38,11 +38,11 @@ const queue = {
   decodeAndPlay: (segment) => {
     const decoder = new AudioDecoder({
       output: (d) => { const b = new ArrayBuffer(d.allocationSize({ planeIndex: 0 })); d.copyTo(b, { planeIndex: 0 }); segment.decodedSamples.push(new Float32Array(b)); d.close(); },
-      error: (e) => { console.warn('[Queue] decoder error:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 'error'); }
+      error: (e) => { console.warn('[Queue] decoder error:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 4000, 'error'); }
     });
     decoder.configure({ codec: 'opus', sampleRate: config.sampleRate, numberOfChannels: 1 });
     segment.chunks.forEach((c, i) => { try { decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: i * 20000, data: c })); } catch (e) {} });
-    decoder.flush().then(() => { queue.playSamples(segment); try { decoder.close(); } catch(e) {} }).catch((e) => { console.warn('[Queue] decode failed:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 'error'); try { decoder.close(); } catch(e2) {} queue.markAsPlayed(segment.id); });
+    decoder.flush().then(() => { queue.playSamples(segment); try { decoder.close(); } catch(e) {} }).catch((e) => { console.warn('[Queue] decode failed:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 4000, 'error'); try { decoder.close(); } catch(e2) {} queue.markAsPlayed(segment.id); });
   },
   playSamples: (s) => {
     if (!s.decodedSamples.length) { queue.markAsPlayed(s.id); return; }
@@ -83,7 +83,7 @@ const queue = {
       if (s.videoChunks?.length) webcam.showVideo(s.videoChunks, s.username);
       decoder.close();
       state.replayTimeout = setTimeout(() => { state.replayGainNode = null; state.replayTimeout = null; state.replayingSegmentId = null; webcam.hidePlayback(); ui.render.queue(); if (cont && idx + 1 < state.audioQueue.length) queue.replaySegment(state.audioQueue[idx + 1].id, true); }, dur * 1000 + 50);
-    }).catch((e) => { console.warn('[Queue] replay decode failed:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 'error'); decoder.close(); state.replayingSegmentId = null; ui.render.queue(); });
+    }).catch((e) => { console.warn('[Queue] replay decode failed:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 4000, 'error'); decoder.close(); state.replayingSegmentId = null; ui.render.queue(); });
   },
   downloadSegment: (id) => {
     const s = state.audioQueue.find(x => x.id === id);

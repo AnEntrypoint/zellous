@@ -142,6 +142,8 @@ html.ds-247420 button.modal-btn {
 html.ds-247420 button.modal-btn:hover { background: var(--accent-bright); }
 html.ds-247420 button.modal-btn.secondary { background: var(--bg-3); color: var(--fg); }
 html.ds-247420 button.modal-btn.secondary:hover { background: var(--bg-4); }
+html.ds-247420 button.modal-btn.danger { background: var(--warn); color: var(--warn-fg); }
+html.ds-247420 button.modal-btn.danger:hover { background: color-mix(in oklab, var(--warn) 85%, black); }
 html.ds-247420 button.modal-btn.block { width: 100%; }
 html.ds-247420 button.modal-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .modal-divider {
