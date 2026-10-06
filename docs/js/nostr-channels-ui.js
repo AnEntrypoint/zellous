@@ -462,7 +462,8 @@ channelManager.initDragAndDrop = function() {
 // Settings.
 channelManager.showProfileModal = function() {
   document.getElementById('profileModal')?.remove();
-  var cur = (window.chat && window.chat.profiles.get(window.state.nostrPubkey) || {}).name || '';
+  var resolved = (window.chat && window.chat.resolveProfile(window.state.nostrPubkey)) || '';
+  var cur = /^npub1/.test(resolved) ? '' : resolved;
   var modal = document.createElement('div');
   modal.id = 'profileModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box"><div class="modal-title">Display name</div>' +
