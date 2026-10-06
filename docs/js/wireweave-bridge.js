@@ -215,7 +215,7 @@ window.__wireweaveReady = (async () => {
     sendImage(file) {
       return window.nostrMedia.sendMedia(file).catch((e) => { window.ui?.showToast?.('Upload failed: ' + (e && e.message || 'unknown error'), 4000, 'error'); });
     },
-    async loadHistory(channelId) { ww.setCurrentChannel(channelId); await chat.loadHistory(channelId); },
+    async loadHistory(channelId) { await ww.setCurrentChannel(channelId); },
     deleteMessage: (id) => chat.deleteMessage(id),
     editMessage() { if (window.ui?.showToast) ui.showToast('Nostr messages cannot be edited'); },
     resolveProfile: (pk) => chat.resolveProfile(pk),
