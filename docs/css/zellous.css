@@ -254,3 +254,13 @@ html.ds-247420 .modal-input[readonly] { opacity: .65; cursor: default; }
   html.ds-247420 .cm-forum-sort,
   html.ds-247420 .ov-auth-input { font-size: 16px; }
 }
+
+@media (max-height: 500px) and (orientation: landscape) {
+  html.ds-247420 .cm-mobile-header { height: calc(40px + env(safe-area-inset-top)); }
+  html.ds-247420 .cm-user-panel { padding-block: 0; }
+  html.ds-247420 button.cm-mh-btn,
+  html.ds-247420 button.cm-user-btn { min-height: 36px; height: 36px; }
+  html.ds-247420 .chat-composer .chat-composer-hint { display: none; }
+  html.ds-247420 .chat .chat-composer { padding-block: var(--space-1); margin-bottom: var(--space-1); }
+  html.ds-247420 .chat-thread { padding-block: var(--space-2); }
+}
