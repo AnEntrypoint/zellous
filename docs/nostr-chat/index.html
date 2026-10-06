@@ -138,7 +138,6 @@ window.nostrFsm = null;
       setProgress(2,'starting');
     })();
   </script>
-  <div class="reconnect-banner" id="reconnectBanner">No relay connected. <button type="button" id="reconnectBannerBtn" class="reconnect-banner-btn">Retry now</button></div>
   <!-- SDK community-app render target. mountCommunityApp (anentrypoint-design)
        renders the full GUI here, driven by the Nostr adapter
        (js/nostr-adapter.js). The legacy hidden .app scaffold that used to sit
@@ -366,9 +365,6 @@ window.nostrFsm = null;
       window.stateSignals.micMuted.value;
       window.stateSignals.voiceDeafened.value;
 
-      const banner = document.getElementById('reconnectBanner');
-      if (banner) banner.classList.toggle('visible', !window.stateSignals.isConnected.value);
-
       if (window.ui?.render) {
         try { window.ui.render.all?.(); } catch (e) {}
       }
@@ -383,10 +379,6 @@ window.nostrFsm = null;
       if (!document.hidden && !window.stateSignals.isConnected.value) window.nostrNet?.reconnectAll?.();
     });
     window.addEventListener('online', () => { window.nostrNet?.reconnectAll?.(); });
-    document.getElementById('reconnectBannerBtn')?.addEventListener('click', () => {
-      window.nostrNet?.reconnectAll?.();
-      if (window.ui?.showToast) window.ui.showToast('Reconnecting...');
-    });
     window.appReady = true;
     window.__boot?.progress(100, 'ready');
     // One frame so the user sees the bar fill before fade.

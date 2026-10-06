@@ -213,8 +213,7 @@ window.__wireweaveReady = (async () => {
     send: (c, opts) => chat.send(c, opts),
     sendAnnouncement: (t) => chat.send(t, { announcement: true }),
     sendImage(file) {
-      if (!file) { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*,video/*'; i.onchange = () => { if (i.files[0]) window.nostrMedia.sendMedia(i.files[0]).catch(e => window.message.add('Upload failed: ' + e.message)); }; i.click(); return; }
-      window.nostrMedia.sendMedia(file).catch(e => window.message.add('Upload failed: ' + e.message));
+      return window.nostrMedia.sendMedia(file).catch((e) => { window.ui?.showToast?.('Upload failed: ' + (e && e.message || 'unknown error'), 4000, 'error'); });
     },
     async loadHistory(channelId) { ww.setCurrentChannel(channelId); await chat.loadHistory(channelId); },
     deleteMessage: (id) => chat.deleteMessage(id),

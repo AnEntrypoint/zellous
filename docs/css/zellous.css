@@ -34,13 +34,11 @@ html.ds-247420[data-theme="dark"] {
   --bg-3: #2E2E35;
   --bg-4: #42444B;
   --green-fg: var(--ink);
-  --border-color: color-mix(in oklab, var(--paper) 12%, transparent);
 }
 html.ds-247420[data-theme="light"],
 html.ds-247420[data-theme="paper"] {
   --bg-3: var(--paper-3);
   --bg-4: #C8C0A8;
-  --border-color: color-mix(in oklab, var(--ink) 12%, transparent);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="paper"]):not([data-theme="light"]) {
@@ -70,7 +68,9 @@ html.ds-247420 .app-side-shell { overflow-y: auto; min-height: 0; }
 html.ds-247420 .chat { padding-bottom: var(--space-3); }
 html.ds-247420 .chat-head { padding: var(--space-4) var(--space-5) var(--space-3); margin-bottom: 0; }
 html.ds-247420 .chat-thread { padding: var(--space-4) var(--space-5); justify-content: flex-start; }
-html.ds-247420 .chat .chat-composer { margin: 0 var(--space-5); }
+html.ds-247420 .chat .chat-composer,
+html.ds-247420 .chat .cm-reply-bar { margin: 0 var(--space-5); }
+html.ds-247420 .chat .cm-reply-bar { margin-bottom: var(--space-1); }
 
 html.ds-247420 .app-side a.active .glyph { color: var(--fg); }
 html.ds-247420 .app-side .count {
@@ -87,25 +87,6 @@ html.ds-247420 .rail-empty {
   font-family: var(--ff-mono);
 }
 
-.reconnect-banner {
-  display: none;
-  position: fixed; top: 0; left: 0; right: 0;
-  z-index: 9999;
-  background: var(--warn); color: var(--warn-fg);
-  text-align: center;
-  padding: 6px 12px;
-  font-size: var(--fs-xs); font-weight: 600;
-}
-.reconnect-banner.visible { display: block; }
-body:has(.reconnect-banner.visible) .ca-app { padding-top: 32px; }
-.reconnect-banner-btn {
-  margin-left: 8px; padding: 2px 10px;
-  border-radius: 4px; border: 1px solid currentColor;
-  background: transparent; color: inherit;
-  font-size: var(--fs-xs); font-weight: 600; cursor: pointer;
-}
-.reconnect-banner-btn:hover { background: color-mix(in oklab, currentColor 15%, transparent); }
-
 .modal-overlay {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.6); z-index: 9990;
@@ -119,7 +100,7 @@ body:has(.reconnect-banner.visible) .ca-app { padding-top: 32px; }
   padding: 24px;
   width: 100%; min-width: min(320px, 100%); max-width: 420px;
   max-height: 90vh; overflow-y: auto;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--rule);
   box-shadow: var(--shadow-2, 0 12px 40px rgba(0,0,0,.35));
   display: flex; flex-direction: column; gap: 14px;
 }
@@ -130,10 +111,10 @@ body:has(.reconnect-banner.visible) .ca-app { padding-top: 32px; }
   font-size: var(--fs-xs); font-weight: 500;
   letter-spacing: 0.02em; color: var(--fg-2);
 }
-.modal-input {
+html.ds-247420 .modal-input {
   width: 100%;
   background: var(--bg);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--rule-strong, var(--rule));
   border-radius: var(--r-1, 8px);
   padding: 10px 12px;
   color: var(--fg);
@@ -141,10 +122,12 @@ body:has(.reconnect-banner.visible) .ca-app { padding-top: 32px; }
   outline: none;
   transition: border-color 0.1s;
 }
-.modal-input:focus { border-color: var(--accent); }
+html.ds-247420 .modal-input:focus { border-color: var(--accent); }
+html.ds-247420 .modal-input { box-shadow: none; }
+html.ds-247420 .modal-input:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent); }
 .modal-input:focus-visible { outline: none; box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent); }
-textarea.modal-input { resize: vertical; min-height: 80px; }
-select.modal-input { cursor: pointer; }
+html.ds-247420 textarea.modal-input { resize: vertical; min-height: 80px; }
+html.ds-247420 select.modal-input { cursor: pointer; height: 42px; line-height: 1.2; appearance: none; padding-right: 36px; background-image: linear-gradient(45deg, transparent 50%, var(--fg-3) 50%), linear-gradient(135deg, var(--fg-3) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
 .modal-box form { display: flex; flex-direction: column; gap: 14px; }
 .modal-actions, .modal-box form > .modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 html.ds-247420 button.modal-btn {
@@ -165,12 +148,12 @@ html.ds-247420 button.modal-btn:focus-visible { outline: 2px solid var(--accent)
   display: flex; align-items: center; gap: 10px;
   font-size: var(--fs-xs); color: var(--fg-3);
 }
-.modal-divider::before, .modal-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-color); }
+.modal-divider::before, .modal-divider::after { content: ''; flex: 1; height: 1px; background: var(--rule); }
 
 .context-menu {
   position: fixed; z-index: 9995;
   background: var(--bg-2);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--rule);
   border-radius: var(--r-1, 8px);
   box-shadow: var(--shadow-2, 0 8px 24px rgba(0,0,0,.35));
   padding: 4px; min-width: 180px; display: none;
@@ -200,7 +183,7 @@ html.ds-247420 .video-playback {
   position: fixed; right: 16px; bottom: 64px; z-index: 2600;
   display: none; max-width: 320px;
   background: var(--bg-2);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--rule);
   border-radius: 8px; overflow: hidden;
 }
 html.ds-247420 .video-playback video { display: block; width: 100%; height: auto; }
@@ -217,7 +200,7 @@ html.ds-247420 .settings-popover {
   max-height: calc(100vh - 120px); overflow-y: auto;
   padding: 16px;
   background: var(--bg-2);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--rule);
   border-radius: 8px;
 }
 html.ds-247420 .settings-popover.open { display: block; }
@@ -243,7 +226,8 @@ html.ds-247420 .vx-view .vx-dock {
   html.ds-247420 button.vx-ptt { min-height: 44px; }
   html.ds-247420 .chat-head { padding: var(--space-3) var(--space-3) var(--space-2); }
   html.ds-247420 .chat-thread { padding: var(--space-3); }
-  html.ds-247420 .chat .chat-composer { margin: 0 var(--space-3); }
+  html.ds-247420 .chat .chat-composer,
+  html.ds-247420 .chat .cm-reply-bar { margin-inline: var(--space-3); }
 }
 
 .channel-item:focus-visible,
@@ -258,3 +242,4 @@ html.ds-247420 .vx-view .vx-dock {
   outline-offset: 2px;
 }
 .modal-error { color: var(--warn); font-size: var(--fs-sm); }
+html.ds-247420 .modal-input[readonly] { opacity: .65; cursor: default; }

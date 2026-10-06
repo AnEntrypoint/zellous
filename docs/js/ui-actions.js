@@ -66,9 +66,8 @@ ui.actions = {
   handleFileSelect(e) {
     const files = e.target.files;
     if (!files?.length) return;
-    const onUploadFail = (e) => { if (window.ui?.showToast) ui.showToast('Upload failed: ' + (e?.message || 'unknown error'), 3000, 'error'); };
     for (const file of files) {
-      chat.sendImage(file)?.catch?.(onUploadFail);
+      chat.sendImage(file);
     }
     e.target.value = '';
   },

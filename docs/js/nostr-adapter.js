@@ -93,6 +93,7 @@
         : '',
       pageUpdatedAt: pageData ? pageData.updatedAt : 0,
       canManage,
+      composerLockedReason: (curr && curr.type === 'announcement' && !canManage) ? 'Only admins can post in announcement channels' : '',
       homeMode: (window.state && window.state.homeMode) || false,
       messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).map((m) => {
         const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
@@ -244,6 +245,13 @@
         const ch = (window.state.channels || []).find(c => c.type === 'voice' && c.name === name);
         if (ch) window.ui.actions.switchChannel(ch);
       }),
+      attachFiles: (files) => call(() => {
+        if (window.state.homeMode) { window.ui.showToast('Attachments are not supported in direct messages yet', 3500, 'error'); return; }
+        for (const file of files) {
+          window.chat.sendImage(file);
+        }
+      }),
+      retryConnection: () => call(() => { window.nostrNet.reconnectAll(); window.ui.showToast('Reconnecting...'); }),
       toggleMembers: () => call(() => window.ui.actions.toggleMembers()),
       openMobileMenu: () => call(() => window.ui.actions.openMobileMenu && window.ui.actions.openMobileMenu()),
       closeMobileMenu: () => call(() => window.ui.actions.closeMobileMenu && window.ui.actions.closeMobileMenu()),
@@ -259,8 +267,9 @@
         if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = true;
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           navigator.mediaDevices.enumerateDevices().then((devices) => {
-            if (S.inputDevices) S.inputDevices.value = devices.filter(d => d.kind === 'audioinput').map(d => ({ value: d.deviceId, label: d.label || 'Microphone' }));
-            if (S.outputDevices) S.outputDevices.value = devices.filter(d => d.kind === 'audiooutput').map(d => ({ value: d.deviceId, label: d.label || 'Speaker' }));
+            const withDefault = (list) => list.length ? list : [{ value: '', label: 'System default' }];
+            if (S.inputDevices) S.inputDevices.value = withDefault(devices.filter(d => d.kind === 'audioinput').map(d => ({ value: d.deviceId, label: d.label || 'Microphone' })));
+            if (S.outputDevices) S.outputDevices.value = withDefault(devices.filter(d => d.kind === 'audiooutput').map(d => ({ value: d.deviceId, label: d.label || 'Speaker' })));
           }).catch((e) => { if (window.ui?.showToast) window.ui.showToast('Could not list audio devices: ' + (e?.message || 'unknown error'), 'error'); });
         }
       }),
