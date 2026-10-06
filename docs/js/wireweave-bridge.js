@@ -552,8 +552,8 @@ window.__wireweaveReady = (async () => {
     // here is computed correctly but never reaches the screen. window.ui.showToast
     // is the real, live-rendered surface (routes to the SDK's own toast).
     voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.ui?.showToast?.('Voice connected', 2000); });
-    voice.addEventListener('media-warning', (e) => { window.ui?.showToast?.(e.detail.message, 4000, 'error'); });
-    voice.addEventListener('disconnected', () => { state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
+    voice.addEventListener('media-warning', (e) => { state.voiceListenOnly = true; window.ui?.showToast?.(e.detail.message, 5000, 'error'); });
+    voice.addEventListener('disconnected', () => { state.voiceListenOnly = false; state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
     voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
     voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
     voice.addEventListener('local-level', (e) => {

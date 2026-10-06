@@ -155,6 +155,7 @@ const state = {
   pagesVersion: signal(0),
   reactionsVersion: signal(0),
   profilesVersion: signal(0),
+  voiceListenOnly: signal(false),
   unreadCount: signal(0),
 };
 
