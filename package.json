@@ -16,8 +16,8 @@
     "decentralized"
   ],
   "dependencies": {
-    "@preact/signals": "2.8.1",
-    "@preact/signals-core": "1.13.0",
+    "@preact/signals": "2.11.3",
+    "@preact/signals-core": "1.14.4",
     "htm": "3.1.1",
     "preact": "10.28.4",
     "xstate": "^5.18.2"
