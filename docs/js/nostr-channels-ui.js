@@ -134,7 +134,7 @@ channelManager.showCreateModal = function(type, categoryId) {
     '<div class="modal-field"><label class="modal-label">Channel Type</label><select class="modal-input" id="ccType"><option value="text">Text</option><option value="voice">Voice</option><option value="threaded">Threaded</option><option value="announcement">Announcement</option></select></div>' +
     '<div class="modal-field"><label class="modal-label">Channel Name</label><input type="text" class="modal-input" id="ccName" placeholder="new-channel" maxlength="40" autofocus></div>' +
     '<div class="modal-field"><label class="modal-label">Category</label><select class="modal-input" id="ccCat"><option value="">No Category</option>' + catOpts + '</select></div>' +
-    '<button type="submit" class="modal-btn" id="ccSubmit">Create Channel</button><button type="button" class="modal-btn secondary" id="ccCancel">Cancel</button></form></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="ccCancel">Cancel</button><button type="submit" class="modal-btn" id="ccSubmit">Create Channel</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var errEl = modal.querySelector('#ccErr'), submitBtn = modal.querySelector('#ccSubmit');
@@ -157,7 +157,7 @@ channelManager.showRenameModal = function(channelId, currentName) {
   modal.innerHTML = '<div class="modal-box" style="max-width:360px"><div class="modal-title">Rename Channel</div>' +
     '<form id="crForm" onsubmit="return false"><div class="modal-field"><label class="modal-label">Channel Name</label>' +
     '<input type="text" class="modal-input" id="crName" value="' + escHtml(currentName) + '" maxlength="40" autofocus></div>' +
-    '<button type="submit" class="modal-btn">Save</button><button type="button" class="modal-btn secondary" id="crCancel">Cancel</button></form></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="crCancel">Cancel</button><button type="submit" class="modal-btn">Save</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var input = modal.querySelector('#crName'); input.focus(); input.select();
@@ -183,7 +183,7 @@ channelManager.showNewForumPostModal = function() {
     '<div class="modal-error" id="fpErr" style="display:none"></div><form id="fpForm" onsubmit="return false">' +
     '<div class="modal-field"><label class="modal-label">Title</label><input type="text" class="modal-input" id="fpTitle" placeholder="Post title" maxlength="120" autofocus></div>' +
     '<div class="modal-field"><label class="modal-label">Body</label><textarea class="modal-input" id="fpBody" rows="8" style="resize:vertical" placeholder="Write your post..."></textarea></div>' +
-    '<button type="submit" class="modal-btn" id="fpSubmit">Post</button><button type="button" class="modal-btn secondary" id="fpCancel">Cancel</button></form></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="fpCancel">Cancel</button><button type="submit" class="modal-btn" id="fpSubmit">Post</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var errEl = modal.querySelector('#fpErr'), submitBtn = modal.querySelector('#fpSubmit');
@@ -207,7 +207,7 @@ channelManager.showCreateCategoryModal = function() {
   modal.innerHTML = '<div class="modal-box" style="max-width:360px"><div class="modal-title">Create Category</div>' +
     '<div class="modal-error" id="catErr" style="display:none"></div><form id="catForm" onsubmit="return false">' +
     '<div class="modal-field"><label class="modal-label">Category Name</label><input type="text" class="modal-input" id="catName" placeholder="Category Name" maxlength="50" autofocus></div>' +
-    '<button type="submit" class="modal-btn" id="catSubmit">Create Category</button><button type="button" class="modal-btn secondary" id="catCancel">Cancel</button></form></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="catCancel">Cancel</button><button type="submit" class="modal-btn" id="catSubmit">Create Category</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var errEl = modal.querySelector('#catErr'), submitBtn = modal.querySelector('#catSubmit');
@@ -230,7 +230,7 @@ channelManager.showRenameCategoryModal = function(categoryId, currentName) {
   modal.innerHTML = '<div class="modal-box" style="max-width:360px"><div class="modal-title">Rename Category</div>' +
     '<form id="carForm" onsubmit="return false"><div class="modal-field"><label class="modal-label">Category Name</label>' +
     '<input type="text" class="modal-input" id="carName" value="' + escHtml(currentName) + '" maxlength="50" autofocus></div>' +
-    '<button type="submit" class="modal-btn">Save</button><button type="button" class="modal-btn secondary" id="carCancel">Cancel</button></form></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="carCancel">Cancel</button><button type="submit" class="modal-btn">Save</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var input = modal.querySelector('#carName'); input.focus(); input.select();
@@ -335,7 +335,7 @@ channelManager.showSettingsModal = function(channelId) {
         '<input type="text" class="modal-input" id="csTopic" value="' + escHtml(topicNow) + '" maxlength="200" placeholder="What is this channel about?"' + (isOwner ? '' : ' disabled') + '></div>' +
       voiceSection +
       (isOwner
-        ? '<button type="button" class="modal-btn" id="csSave">Save</button><button type="button" class="modal-btn secondary" id="csCancel">Cancel</button>'
+        ? '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="csCancel">Cancel</button><button type="button" class="modal-btn" id="csSave">Save</button></div>'
         : '<button type="button" class="modal-btn secondary" id="csCancel">Close</button>') +
     '</div>';
   document.body.appendChild(modal);
@@ -452,6 +452,31 @@ channelManager.initDragAndDrop = function() {
 // than rendering the secret key directly in the DOM on modal open, so a
 // screen-recording or shoulder-surf doesn't capture it by just opening
 // Settings.
+channelManager.showProfileModal = function() {
+  document.getElementById('profileModal')?.remove();
+  var cur = (window.nostrProfile && window.nostrProfile.current().name) || '';
+  var modal = document.createElement('div');
+  modal.id = 'profileModal'; modal.className = 'modal-overlay open';
+  modal.innerHTML = '<div class="modal-box"><div class="modal-title">Display name</div>' +
+    '<div class="modal-subtitle">Shown to everyone instead of your key. Published to relays.</div>' +
+    '<form id="profileForm" onsubmit="return false">' +
+    '<div class="modal-field"><label class="modal-label" for="profileName">Name</label>' +
+    '<input type="text" class="modal-input" id="profileName" maxlength="40" autocomplete="off" value="' + escHtml(cur) + '" autofocus></div>' +
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="profileCancel">Cancel</button><button type="submit" class="modal-btn" id="profileSave">Save</button></div>' +
+    '</form></div>';
+  document.body.appendChild(modal);
+  _a11yModal(modal);
+  var input = modal.querySelector('#profileName');
+  modal.querySelector('#profileCancel').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  modal.querySelector('#profileForm').addEventListener('submit', async function() {
+    var name = input.value.trim();
+    if (!name) { _invalidInput(input); return; }
+    try { await window.nostrProfile.setDisplayName(name); modal.remove(); window.ui && window.ui.showToast && window.ui.showToast('Display name saved', 2500); }
+    catch (e) { window.ui && window.ui.showToast && window.ui.showToast('Could not save name: ' + (e && e.message || 'unknown'), 4000, 'error'); }
+  });
+};
+
 channelManager.showKeyBackupModal = function() {
   document.getElementById('keyBackupModal')?.remove();
   var nsec = window.auth && window.auth.nsecEncode && window.auth.nsecEncode();
@@ -459,11 +484,10 @@ channelManager.showKeyBackupModal = function() {
   var modal = document.createElement('div');
   modal.id = 'keyBackupModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box" style="max-width:440px"><div class="modal-title">Back Up Your Key</div>' +
-    '<p style="font-size:13px;color:var(--text-faint);margin:0 0 12px 0">This is your private key. Anyone with it can post as you, forever. Store it somewhere safe (a password manager) and never share it.</p>' +
+    '<p style="font-size:13px;color:var(--fg-3);margin:0 0 12px 0">This is your private key. Anyone with it can post as you, forever. Store it somewhere safe (a password manager) and never share it.</p>' +
     '<div class="modal-field"><button type="button" class="modal-btn" id="kbReveal">Click to reveal</button>' +
     '<textarea class="modal-input" id="kbNsec" readonly rows="3" style="display:none;font-family:var(--ff-mono,monospace);font-size:12px;word-break:break-all;margin-top:8px"></textarea></div>' +
-    '<button type="button" class="modal-btn" id="kbCopy" style="display:none">Copy to clipboard</button>' +
-    '<button type="button" class="modal-btn secondary" id="kbClose">Done</button></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="kbClose">Done</button><button type="button" class="modal-btn" id="kbCopy" style="display:none">Copy to clipboard</button></div></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var revealBtn = modal.querySelector('#kbReveal'), ta = modal.querySelector('#kbNsec'), copyBtn = modal.querySelector('#kbCopy');

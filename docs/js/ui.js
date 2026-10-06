@@ -5,7 +5,6 @@ const ui = {
   fileInput: document.getElementById('fileInput'),
   authModal: document.getElementById('authModal'),
   authError: document.getElementById('authError'),
-  drawerOverlay: document.getElementById('drawerOverlay'),
   settingsPopover: document.getElementById('settingsPopover'),
   _replyTarget: null,
 };

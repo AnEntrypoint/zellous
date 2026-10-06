@@ -177,7 +177,7 @@ window.__wireweaveReady = (async () => {
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all();
   }, 60000);
-  chat.addEventListener('profile', () => { if (window.ui) ui.render.all(); });
+  chat.addEventListener('profile', () => { state.profilesVersion = (state.profilesVersion || 0) + 1; });
   chat.addEventListener('rate-limited', (e) => {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
     if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
@@ -243,6 +243,16 @@ window.__wireweaveReady = (async () => {
     const ids = (e.detail.list || []).map((m) => m.id).filter(Boolean);
     if (ids.length) reactions.subscribeMany(ids);
   });
+  const profile = mod.createProfile({ relayPool: net, auth: ww.auth });
+  window.nostrProfile = {
+    current: () => (chat.profiles.get(ww.auth.pubkey) || {}),
+    async setDisplayName(name) {
+      const clean = String(name || '').trim().slice(0, 40);
+      if (!clean) throw new Error('Display name cannot be empty');
+      await profile.publish({ name: clean, display_name: clean });
+      chat.updateProfile(ww.auth.pubkey, { ...chat.profiles.get(ww.auth.pubkey), name: clean, display_name: clean });
+    }
+  };
   window.nostrReactions = {
     getFor: (id) => reactions.getFor(id),
     react: (id, authorPubkey, content) => reactions.react(id, authorPubkey, content),

@@ -118,6 +118,9 @@
         title: 'Account',
         rows: [
           { label: (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn()) ? ('Signed in as ' + (window.auth.npubShort ? window.auth.npubShort() : '')) : 'Not signed in', kind: 'value', value: '' },
+          (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn())
+            ? { label: 'Display name', kind: 'button', onClick: () => { if (S.settingsOpen) S.settingsOpen.value = false; window.channelManager && window.channelManager.showProfileModal && window.channelManager.showProfileModal(); } }
+            : null,
           { label: 'Switch or import identity', kind: 'button', onClick: () => { if (S.authMode) S.authMode.value = 'import'; if (S.authError) S.authError.value = ''; if (S.settingsOpen) S.settingsOpen.value = false; if (S.showAuthModal) S.showAuthModal.value = true; } },
           // There is no account/password-reset path here by design (the
           // private key IS the identity) -- clearing site data or losing the
@@ -136,7 +139,7 @@
           // action, so the real, reachable "Settings" surface had no logout
           // affordance anywhere.
           (window.auth && window.auth.isLoggedIn && window.auth.isLoggedIn())
-            ? { label: 'Logout', kind: 'button', onClick: () => { if (S.settingsOpen) S.settingsOpen.value = false; window.ui && window.ui.actions && window.ui.actions.logout && window.ui.actions.logout(); } }
+            ? { label: 'Logout', kind: 'button', danger: true, onClick: () => { if (S.settingsOpen) S.settingsOpen.value = false; window.ui && window.ui.actions && window.ui.actions.logout && window.ui.actions.logout(); } }
             : null,
         ].filter(Boolean),
       }],
@@ -212,7 +215,14 @@
       toggleMembers: () => call(() => window.ui.actions.toggleMembers()),
       openMobileMenu: () => call(() => window.ui.actions.openMobileMenu && window.ui.actions.openMobileMenu()),
       closeMobileMenu: () => call(() => window.ui.actions.closeMobileMenu && window.ui.actions.closeMobileMenu()),
-      openSettings: () => call(() => window.ui.actions.toggleSettings && window.ui.actions.toggleSettings()),
+      openSettings: () => call(() => {
+        const gear = document.querySelector('.cm-user-controls .cm-user-btn[aria-label="Settings"]');
+        if (gear && S.settingsAnchor) {
+          const r = gear.getBoundingClientRect();
+          S.settingsAnchor.value = { x: Math.max(8, Math.min(r.right - 300, window.innerWidth - 308)), y: r.bottom + 8 };
+        }
+        return window.ui.actions.toggleSettings && window.ui.actions.toggleSettings();
+      }),
       openVoiceSettings: () => call(() => {
         if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = true;
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
@@ -371,7 +381,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'reactionsVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'reactionsVersion', 'profilesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });

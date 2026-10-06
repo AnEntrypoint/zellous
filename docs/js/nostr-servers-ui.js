@@ -40,7 +40,7 @@ serverManager.showCreatePageModal = function(serverId) {
   modal.innerHTML = '<div class="modal-box" style="max-width:400px"><div class="modal-title">Create Page</div>' +
     '<div class="modal-error" id="pcErr" style="display:none"></div><form id="pcForm" onsubmit="return false">' +
     '<div class="modal-field"><label class="modal-label">Page Title</label><input type="text" class="modal-input" id="pcTitle" placeholder="About" maxlength="60" autofocus></div>' +
-    '<button type="submit" class="modal-btn" id="pcSubmit">Create Page</button><button type="button" class="modal-btn secondary" id="pcCancel">Cancel</button></form></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="pcCancel">Cancel</button><button type="submit" class="modal-btn" id="pcSubmit">Create Page</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var errEl = modal.querySelector('#pcErr'), submitBtn = modal.querySelector('#pcSubmit');
@@ -66,7 +66,7 @@ serverManager.showEditPageModal = function(serverId, slug, title, html) {
     '<div class="modal-error" id="peErr" style="display:none"></div><form id="peForm" onsubmit="return false">' +
     '<div class="modal-field"><label class="modal-label">Page Title</label><input type="text" class="modal-input" id="peTitle" value="' + escHtml(title) + '" maxlength="60"></div>' +
     '<div class="modal-field"><label class="modal-label">Content (HTML)</label><textarea class="modal-input" id="peHtml" rows="10" style="font-family:var(--ff-mono,monospace);resize:vertical" autofocus>' + escHtml(html) + '</textarea></div>' +
-    '<button type="submit" class="modal-btn" id="peSubmit">Save</button><button type="button" class="modal-btn secondary" id="peCancel">Cancel</button></form></div>';
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="peCancel">Cancel</button><button type="submit" class="modal-btn" id="peSubmit">Save</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var errEl = modal.querySelector('#peErr'), submitBtn = modal.querySelector('#peSubmit');
@@ -96,8 +96,7 @@ serverManager.showEditModal = function(serverId) {
         '<input type="text" class="modal-input" id="editServerName" value="' + escHtml(srv.name) + '" maxlength="40" autofocus></div>' +
       '<div class="modal-field"><label class="modal-label">Icon Color</label>' +
         '<div id="editServerColorPicker" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>' +
-      '<button type="submit" class="modal-btn">Save</button>' +
-      '<button type="button" class="modal-btn secondary" id="cancelEditServer">Cancel</button>' +
+      '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="cancelEditServer">Cancel</button><button type="submit" class="modal-btn">Save</button></div>' +
     '</form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
@@ -139,7 +138,7 @@ serverManager.showEditModal = function(serverId) {
     var curAllowlist = serverSettings.getEmbedAllowlist(serverId).join(', ');
     allowlistField.innerHTML = '<label class="modal-label">Embedding Allow List</label>' +
       '<textarea class="modal-input" id="editServerAllowlist" placeholder="example.com, *.example.com, localhost:3000" style="resize:vertical;min-height:60px">' + curAllowlist.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>' +
-      '<div style="font-size:11px;color:var(--text-faint);margin-top:4px">Comma-separated list of domains allowed to embed this server. Leave empty to allow all.</div>';
+      '<div style="font-size:11px;color:var(--fg-3);margin-top:4px">Comma-separated list of domains allowed to embed this server. Leave empty to allow all.</div>';
     modal.querySelector('#editServerForm').insertBefore(allowlistField, modal.querySelector('[type="submit"]'));
   }
   modal.querySelector('#editServerForm').addEventListener('submit', async function() {
@@ -195,9 +194,8 @@ serverManager.showJoinPreview = function(serverId, onConfirm) {
   modal.innerHTML = '<div class="modal-box" style="max-width:380px;text-align:center">' +
     '<div class="modal-title">Join Server?</div>' +
     '<div class="modal-subtitle" id="joinPreviewName">' + escHtml(name) + '</div>' +
-    '<div style="font-size:11px;color:var(--text-faint);margin-bottom:16px;word-break:break-all">' + serverId + '</div>' +
-    '<button class="modal-btn" id="joinPreviewConfirm">Join Server</button>' +
-    '<button type="button" class="modal-btn secondary" id="joinPreviewCancel">Cancel</button>' +
+    '<div style="font-size:11px;color:var(--fg-3);margin-bottom:16px;word-break:break-all">' + serverId + '</div>' +
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="joinPreviewCancel">Cancel</button><button class="modal-btn" id="joinPreviewConfirm">Join Server</button></div>' +
     '</div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
@@ -217,15 +215,18 @@ serverManager.showCreateOrJoinModal = function() {
   document.getElementById('serverCreateOrJoinModal')?.remove();
   var modal = document.createElement('div');
   modal.id = 'serverCreateOrJoinModal'; modal.className = 'modal-overlay open';
-  modal.innerHTML = '<div class="modal-box" style="max-width:380px">' +
-    '<div class="modal-title">Add a Server</div>' +
-    '<button type="button" class="modal-btn" id="createOrJoinCreateBtn">Create a New Server</button>' +
-    '<form id="joinServerForm" onsubmit="return false" style="margin-top:12px">' +
-      '<div class="modal-field"><label class="modal-label">Or Join by Server ID</label>' +
-        '<input type="text" class="modal-input" id="joinServerId" placeholder="pubkey:identifier"></div>' +
-      '<button type="submit" class="modal-btn secondary">Join Server</button>' +
+  modal.innerHTML = '<div class="modal-box">' +
+    '<div class="modal-title">Add a server</div>' +
+    '<button type="button" class="modal-btn block" id="createOrJoinCreateBtn">Create a new server</button>' +
+    '<div class="modal-divider">or join one</div>' +
+    '<form id="joinServerForm" onsubmit="return false">' +
+      '<div class="modal-field"><label class="modal-label" for="joinServerId">Server ID</label>' +
+        '<input type="text" class="modal-input" id="joinServerId" placeholder="pubkey:identifier" autocomplete="off" spellcheck="false"></div>' +
+      '<div class="modal-actions">' +
+        '<button type="button" class="modal-btn secondary" id="cancelCreateOrJoin">Cancel</button>' +
+        '<button type="submit" class="modal-btn">Join server</button>' +
+      '</div>' +
     '</form>' +
-    '<button type="button" class="modal-btn secondary" id="cancelCreateOrJoin" style="margin-top:8px">Cancel</button>' +
     '</div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
@@ -256,8 +257,7 @@ serverManager.showCreateModal = function() {
         '<input type="text" class="modal-input" id="newServerName" placeholder="My Server" maxlength="40" autofocus></div>' +
       '<div class="modal-field"><label class="modal-label">Icon Color</label>' +
         '<div id="serverColorPicker" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>' +
-      '<button type="submit" class="modal-btn">Create</button>' +
-      '<button type="button" class="modal-btn secondary" id="cancelCreateServer">Cancel</button>' +
+      '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="cancelCreateServer">Cancel</button><button type="submit" class="modal-btn">Create</button></div>' +
     '</form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);

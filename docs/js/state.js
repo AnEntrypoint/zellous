@@ -153,6 +153,7 @@ const state = {
   threads: signal([]),
   pagesVersion: signal(0),
   reactionsVersion: signal(0),
+  profilesVersion: signal(0),
   unreadCount: signal(0),
 };
 

@@ -1,40 +1,7 @@
 (function () {
   'use strict';
 
-  // -------- Collapsible rails (legacy; superseded by the app-side layout) --------
-  const rail = null;
-
-  // -------- Command palette --------
-  // Superseded by the SDK's C.CommandPalette (window.__commandPalette, wired
-  // in js/sdk-command-palette.js). This module used to hand-roll its own
-  // `#commandPalette .cmdk-overlay` and its own Ctrl/Cmd+K listener, which
-  // raced the SDK overlay for the same shortcut and always won (leaving the
-  // real C.CommandPalette permanently empty). Removed; see AGENTS.md.
-  const palette = null;
-
-  // -------- Persistent voice strip (SDK-mounted by sdk-voice-strip.js) --------
-  const voiceStrip = null;
-
-  // -------- SDK AppShell mount — disabled; mountCommunityApp renders its own .app-topbar --------
-  const sdkShell = null;
-
-  // -------- Desktop member-list toggle (see zellous.css .desktop-member-toggle) --------
-  (function wireDesktopMemberToggle() {
-    const t = document.createElement('template');
-    t.innerHTML = (
-      '<button type="button" class="desktop-member-toggle" title="Members" aria-label="toggle members">' +
-      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<circle cx="9" cy="8" r="3"></circle><path d="M3 20a6 6 0 0 1 12 0M16 6a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.7"></path></svg></button>'
-    ).trim();
-    const btn = t.content.firstElementChild;
-    btn.addEventListener('click', () => window.ui?.actions?.toggleMembers?.());
-    document.body.appendChild(btn);
-  })();
-
-  // Register on __shell directly; also wrap __debug after appReady so
-  // the inline module bootstrap (which redefines __debug after parallel
-  // script load) doesn't clobber us.
-  window.__shell = { palette, rail, voiceStrip, sdkShell };
+  window.__shell = {};
 
   const wrapDebug = () => {
     const prev = Object.getOwnPropertyDescriptor(window, '__debug');

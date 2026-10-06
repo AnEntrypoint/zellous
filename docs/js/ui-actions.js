@@ -19,7 +19,6 @@ ui.actions = {
       }
     }
     if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
-    ui.drawerOverlay?.classList.remove('open');
     ui._replyTarget = null;
     document.getElementById('replyComposeBar')?.remove();
   },
@@ -85,11 +84,9 @@ ui.actions = {
   },
   openMobileMenu() {
     if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = true;
-    ui.drawerOverlay?.classList.add('open');
   },
   closeMobileMenu() {
     if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
-    ui.drawerOverlay?.classList.remove('open');
   },
   closeVideoPlayback() {
     if (!ui.videoPlayback) return;
@@ -110,5 +107,5 @@ document.addEventListener('keydown', (e) => {
   // through the live code path anymore, so checking it here always read
   // false and Escape silently never closed the real popover.
   if (window.stateSignals?.settingsOpen?.value) { ui.actions.toggleSettings(); return; }
-  if (ui.drawerOverlay?.classList.contains('open')) { ui.actions.closeMobileMenu(); return; }
+  if (window.stateSignals?.mobileMenuOpen?.value) { ui.actions.closeMobileMenu(); return; }
 });
