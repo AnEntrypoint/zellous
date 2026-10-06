@@ -31,9 +31,11 @@ const moderation = {
     // admin-only action below is therefore hidden when memberId is the
     // acting user's own pubkey, mirroring the personal-mute self-exclusion.
     if (canManage && memberId !== state.nostrPubkey) {
+      if (items.length) items.push({ separator: true });
       if (isOwner) items.push({ label: 'Set Admin', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'admin')) });
       items.push({ label: 'Set Moderator', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'moderator')) });
       items.push({ label: 'Set Member', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'member')) });
+      items.push({ separator: true });
       if (window.nostrVoice?._peers?.has(memberId)) {
         items.push({ label: 'Kick from Voice', danger: true, onSelect: guard(async () => { if (await ui.confirm({ title: `Kick ${memberName} from voice?`, confirmLabel: 'Kick', danger: true })) moderation.kickFromVoice(memberId); }) });
       }
