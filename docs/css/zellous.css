@@ -1,4 +1,5 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 html, body {
   height: 100%; width: 100%;
   font-size: var(--fs-sm);
@@ -60,7 +61,7 @@ html.ds-247420[data-theme="paper"] {
 .dot.flame { background: var(--cat-flame); }
 .dot.sky { background: var(--cat-sky); }
 
-html.ds-247420 .ca-app { height: 100vh; overflow: hidden; }
+html.ds-247420 .ca-app { height: 100%; overflow: hidden; }
 html.ds-247420 .app-topbar nav { display: none !important; }
 html.ds-247420 .app-body { flex: 1 1 0; min-height: 0; }
 html.ds-247420 .app-main { padding: 0; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
@@ -199,7 +200,7 @@ html.ds-247420 .video-playback-close {
 html.ds-247420 .settings-popover {
   position: fixed; right: 16px; bottom: 64px; z-index: 2600;
   display: none; width: 280px;
-  max-height: calc(100vh - 120px); overflow-y: auto;
+  max-height: calc(100dvh - 120px); overflow-y: auto;
   padding: 16px;
   background: var(--bg-2);
   border: 1px solid var(--rule);
@@ -245,3 +246,11 @@ html.ds-247420 .vx-view .vx-dock {
 }
 .modal-error { color: var(--warn); font-size: var(--fs-sm); }
 html.ds-247420 .modal-input[readonly] { opacity: .65; cursor: default; }
+
+@media (pointer: coarse), (hover: none) {
+  html.ds-247420 .modal-input,
+  html.ds-247420 .chat-composer textarea,
+  html.ds-247420 .cm-forum-search,
+  html.ds-247420 .cm-forum-sort,
+  html.ds-247420 .ov-auth-input { font-size: 16px; }
+}
