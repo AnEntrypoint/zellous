@@ -62,6 +62,7 @@ const state = {
   chatMessages: signal([]),
   chatInputValue: signal(''),
   dmMessages: signal([]),
+  activeDmPeer: signal(null),
   dmPeer: signal(''),
 
   isAuthenticated: signal(false),

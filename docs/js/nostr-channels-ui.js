@@ -477,6 +477,34 @@ channelManager.showProfileModal = function() {
   });
 };
 
+channelManager.showNewDmModal = function() {
+  document.getElementById('newDmModal')?.remove();
+  var modal = document.createElement('div');
+  modal.id = 'newDmModal'; modal.className = 'modal-overlay open';
+  modal.innerHTML = '<div class="modal-box"><div class="modal-title">New message</div>' +
+    '<div class="modal-subtitle">Messages are end-to-end encrypted between you and them.</div>' +
+    '<form id="newDmForm" onsubmit="return false">' +
+    '<div class="modal-field"><label class="modal-label" for="newDmPeer">Their npub or public key</label>' +
+    '<input type="text" class="modal-input" id="newDmPeer" placeholder="npub1..." autocomplete="off" spellcheck="false" autofocus></div>' +
+    '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="newDmCancel">Cancel</button><button type="submit" class="modal-btn">Start</button></div>' +
+    '</form></div>';
+  document.body.appendChild(modal);
+  _a11yModal(modal);
+  var input = modal.querySelector('#newDmPeer');
+  modal.querySelector('#newDmCancel').addEventListener('click', function() { modal.remove(); });
+  modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+  modal.querySelector('#newDmForm').addEventListener('submit', function() {
+    var raw = input.value.trim(), hex = null;
+    try {
+      if (/^[0-9a-f]{64}$/i.test(raw)) hex = raw.toLowerCase();
+      else { var d = window.NostrTools.nip19.decode(raw); if (d.type === 'npub') hex = d.data; else if (d.type === 'nprofile') hex = d.data.pubkey; }
+    } catch (e) { hex = null; }
+    if (!hex) { _invalidInput(input); window.ui && window.ui.showToast && window.ui.showToast('That is not a valid npub or public key', 3000, 'error'); return; }
+    window.stateSignals.activeDmPeer.value = hex;
+    modal.remove();
+  });
+};
+
 channelManager.showKeyBackupModal = function() {
   document.getElementById('keyBackupModal')?.remove();
   var nsec = window.auth && window.auth.nsecEncode && window.auth.nsecEncode();

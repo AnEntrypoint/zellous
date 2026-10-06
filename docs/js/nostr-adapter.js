@@ -50,8 +50,29 @@
       }));
     };
 
+    const dmView = () => {
+      const peerName = (pk) => (window.chat && window.chat.resolveProfile(pk)) || pk.slice(0, 8);
+      const all = v('dmMessages', []);
+      const byPeer = new Map();
+      for (const m of all) {
+        const e = byPeer.get(m.peer);
+        if (!e || m.timestamp > e.timestamp) byPeer.set(m.peer, { peer: m.peer, timestamp: m.timestamp, preview: m.text });
+      }
+      const active = v('activeDmPeer', null);
+      if (active && !byPeer.has(active)) byPeer.set(active, { peer: active, timestamp: Date.now(), preview: '' });
+      const conversations = [...byPeer.values()].sort((a, b) => b.timestamp - a.timestamp)
+        .map((c) => ({ id: c.peer, name: peerName(c.peer), preview: c.preview, color: (window.getAvatarColor && window.getAvatarColor(c.peer)) || 'var(--accent)' }));
+      return {
+        conversations,
+        currentChannel: { id: 'dm:' + (active || ''), name: active ? peerName(active) : 'Direct messages', type: 'text', topic: active ? '' : 'Pick a conversation or start a new one' },
+        messages: active ? all.filter((m) => m.peer === active).map((m) => ({ id: m.id, userId: m.from, timestamp: m.timestamp, content: m.text, type: 'text' })) : [],
+      };
+    };
+
     const get = () => {
-      const curr = v('currentChannel', null);
+      const homeMode = !!(window.state && window.state.homeMode);
+      const dm = homeMode ? dmView() : null;
+      const curr = dm ? dm.currentChannel : v('currentChannel', null);
       const sid = v('currentServerId', null);
       const isPage = curr && curr.type === 'page';
       const pageData = isPage && window.serverPages
@@ -59,7 +80,9 @@
         : null;
       const canManage = !!(window.serverRoles && sid && window.serverRoles.isAdmin(sid));
       return {
-      channels: [...v('channels', []), ...pageChannels()],
+      channels: dm ? [] : [...v('channels', []), ...pageChannels()],
+      dmConversations: dm ? dm.conversations : [],
+      activeDmPeer: dm ? v('activeDmPeer', null) : null,
       categories: v('categories', []),
       servers: v('servers', []),
       currentChannel: curr,
@@ -71,7 +94,7 @@
       pageUpdatedAt: pageData ? pageData.updatedAt : 0,
       canManage,
       homeMode: (window.state && window.state.homeMode) || false,
-      messages: ((window.chat && window.chat.messages) || v('chatMessages', [])).map((m) => {
+      messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).map((m) => {
         const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
         return rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;
       }),
@@ -186,7 +209,15 @@
     };
     const actions = {
       switchChannel: (ch) => call(() => window.ui.actions.switchChannel(ch)),
-      send: (text, opts) => call(() => { window.chat.send(text, opts); if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }),
+      send: (text, opts) => call(() => {
+        if (window.state.homeMode) {
+          const peer = v('activeDmPeer', null);
+          if (!peer) { window.ui.showToast('Pick a conversation first', 2500, 'error'); return; }
+          window.dm.send(peer, text).catch((e) => window.ui.showToast('Could not send: ' + (e && e.message || 'unknown'), 4000, 'error'));
+          if (S.chatInputValue) S.chatInputValue.value = '';
+          return;
+        }
+        window.chat.send(text, opts); if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }),
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
@@ -270,6 +301,8 @@
       }),
       voiceSettingsSave: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
       voiceSettingsClose: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
+      newDm: () => call(() => window.channelManager.showNewDmModal()),
+      selectDm: (peer) => call(() => { if (S.activeDmPeer) S.activeDmPeer.value = peer; }),
       goHome: () => call(() => {
         // homeMode only drives the sidebar's active-highlight in the SDK
         // (community-app.js line ~121) -- it does NOT clear the rendered
@@ -381,7 +414,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'reactionsVersion', 'profilesVersion', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'reactionsVersion', 'profilesVersion', 'dmMessages', 'activeDmPeer', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });
