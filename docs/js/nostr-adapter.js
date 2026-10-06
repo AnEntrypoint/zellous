@@ -93,7 +93,7 @@
         : '',
       pageUpdatedAt: pageData ? pageData.updatedAt : 0,
       canManage,
-      composerLockedReason: (curr && curr.type === 'announcement' && !canManage) ? 'Only admins can post in announcement channels' : '',
+      composerLockedReason: (curr && curr.type === 'announcement' && !canManage) ? 'Admins only' : '',
       homeMode: (window.state && window.state.homeMode) || false,
       messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).map((m) => {
         const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
