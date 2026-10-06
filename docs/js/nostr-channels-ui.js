@@ -454,7 +454,7 @@ channelManager.initDragAndDrop = function() {
 // Settings.
 channelManager.showProfileModal = function() {
   document.getElementById('profileModal')?.remove();
-  var cur = (window.nostrProfile && window.nostrProfile.current().name) || '';
+  var cur = (window.chat && window.chat.profiles.get(window.state.nostrPubkey) || {}).name || '';
   var modal = document.createElement('div');
   modal.id = 'profileModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box"><div class="modal-title">Display name</div>' +
@@ -472,7 +472,7 @@ channelManager.showProfileModal = function() {
   modal.querySelector('#profileForm').addEventListener('submit', async function() {
     var name = input.value.trim();
     if (!name) { _invalidInput(input); return; }
-    try { await window.nostrProfile.setDisplayName(name); modal.remove(); window.ui && window.ui.showToast && window.ui.showToast('Display name saved', 2500); }
+    try { await window.auth.setDisplayName(name.slice(0, 40)); modal.remove(); window.ui && window.ui.showToast && window.ui.showToast('Display name saved', 2500); }
     catch (e) { window.ui && window.ui.showToast && window.ui.showToast('Could not save name: ' + (e && e.message || 'unknown'), 4000, 'error'); }
   });
 };

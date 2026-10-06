@@ -82,7 +82,7 @@ window.__wireweaveReady = (async () => {
     async setDisplayName(name) {
       if (!a.pubkey) throw new Error('Not logged in');
       if (!name?.trim()) throw new Error('Invalid display name');
-      const signed = await a.sign({ kind: 0, created_at: Math.floor(Date.now() / 1000), tags: [], content: JSON.stringify({ name: name.trim(), ...(state.nostrProfile || {}) }) });
+      const signed = await a.sign({ kind: 0, created_at: Math.floor(Date.now() / 1000), tags: [], content: JSON.stringify({ ...(state.nostrProfile || {}), name: name.trim() }) });
       net.publish(signed);
       state.nostrProfile = { ...(state.nostrProfile || {}), name: name.trim() };
       const nameEl = document.getElementById('userPanelName'); if (nameEl) nameEl.textContent = state.nostrProfile.name;
@@ -243,16 +243,6 @@ window.__wireweaveReady = (async () => {
     const ids = (e.detail.list || []).map((m) => m.id).filter(Boolean);
     if (ids.length) reactions.subscribeMany(ids);
   });
-  const profile = mod.createProfile({ relayPool: net, auth: ww.auth });
-  window.nostrProfile = {
-    current: () => (chat.profiles.get(ww.auth.pubkey) || {}),
-    async setDisplayName(name) {
-      const clean = String(name || '').trim().slice(0, 40);
-      if (!clean) throw new Error('Display name cannot be empty');
-      await profile.publish({ name: clean, display_name: clean });
-      chat.updateProfile(ww.auth.pubkey, { ...chat.profiles.get(ww.auth.pubkey), name: clean, display_name: clean });
-    }
-  };
   window.nostrReactions = {
     getFor: (id) => reactions.getFor(id),
     react: (id, authorPubkey, content) => reactions.react(id, authorPubkey, content),
@@ -497,7 +487,7 @@ window.__wireweaveReady = (async () => {
     if (voice) { voice.serverId = state.currentServerId || ''; return voice; }
     voice = ww.ensureVoice({
       serverId: state.currentServerId || '',
-      displayName: state.nostrProfile?.name || (a.pubkey ? a.npubShort() : 'Guest'),
+      displayName: (a.pubkey ? chat.resolveProfile(a.pubkey) : 'Guest'),
       onAudioTrack: ({ peer, stream, peerPubkey }) => {
         if (!peer.audioEl) {
           const el = new Audio();
@@ -594,7 +584,7 @@ window.__wireweaveReady = (async () => {
       // in practice (passing the 0-1 fraction straight through, e.g. the default 0.15,
       // sets a threshold over 4x wireweave's own SPEAKER_ACTIVE_RMS default of 0.045).
       if (typeof state.vadThreshold === 'number' && state.vadThreshold > 0) v.setMicSensitivity(Math.min(1, state.vadThreshold) * 0.35);
-      await v.connect(ch, { displayName: state.nostrProfile?.name || a.npubShort() || 'Guest' });
+      await v.connect(ch, { displayName: (a.pubkey && chat.resolveProfile(a.pubkey)) || 'Guest' });
       state.micMuted = !!v.muted;
     },
     setAudioConstraints(patch) { ensureVoice().setAudioConstraints(patch); },

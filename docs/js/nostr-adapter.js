@@ -116,7 +116,7 @@
       voiceConnected: v('voiceConnected', false),
       voiceChannelName: v('voiceChannelName', ''),
       voiceConnectionState: v('voiceConnectionState', 'connected'),
-      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, speaking: !!p.isSpeaking, color: (window.getAvatarColor && window.getAvatarColor(p.identity)) || 'var(--accent)' })),
+      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, speaking: !!p.isSpeaking, color: (window.getAvatarColor && window.getAvatarColor(p.isLocal ? (window.state.userId || window.state.nostrPubkey) : p.identity)) || 'var(--accent)' })),
       micMuted: v('micMuted', false),
       voiceDeafened: v('voiceDeafened', false),
       micRawLevel: v('micRawLevel', 0),
