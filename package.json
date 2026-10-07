@@ -5,7 +5,12 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "start": "npx serve docs"
+    "start": "npx serve docs",
+    "dev": "node scripts/dev-server.mjs",
+    "dev:local": "ZELLOUS_LOCAL_DEPS=1 node scripts/dev-server.mjs",
+    "witness": "node scripts/witness.mjs",
+    "drive": "node scripts/drive.mjs",
+    "audit": "node scripts/audit-ui.mjs"
   },
   "keywords": [
     "nostr",

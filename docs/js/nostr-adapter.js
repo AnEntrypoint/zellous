@@ -44,10 +44,23 @@
     const pageChannels = () => {
       const sid = v('currentServerId', null);
       if (!window.serverPages || !sid) return [];
-      return (window.serverPages.getPages(sid) || []).map(p => ({
+      return (window.serverPages.getPages(sid) || []).map((p, i) => ({
         id: 'page:' + p.slug, name: p.title || p.slug, type: 'page',
+        // Without a position these sort ahead of every real channel, which
+        // pins the page list above general/announcements in the rail.
+        position: 1000 + i,
         _serverId: sid, _slug: p.slug, updatedAt: p.updatedAt,
       }));
+    };
+
+    const LOCK_ANNOUNCEMENT = { reason: 'Only admins can post here', toast: 'Only admins can post in announcement channels' };
+    const LOCK_DM = { reason: 'Pick or start a conversation', toast: 'Start a conversation with the + button next to "direct messages".' };
+    const composerLock = () => {
+      if (!!(window.state && window.state.homeMode) && !v('activeDmPeer', null)) return LOCK_DM;
+      const curr = v('currentChannel', null);
+      const sid = v('currentServerId', null);
+      if (curr && curr.type === 'announcement' && !(window.serverRoles && sid && window.serverRoles.isAdmin(sid))) return LOCK_ANNOUNCEMENT;
+      return null;
     };
 
     const dmView = () => {
@@ -69,6 +82,13 @@
       };
     };
 
+    const resolveAuthor = (pk) => {
+      if (!pk) return '';
+      return (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(pk))
+        || (window.auth && window.auth.npubShort && window.auth.npubShort(pk))
+        || '';
+    };
+
     const get = () => {
       const homeMode = !!(window.state && window.state.homeMode);
       const dm = homeMode ? dmView() : null;
@@ -79,6 +99,7 @@
         ? (window.serverPages.getPages(curr._serverId || sid) || []).find(p => p.slug === curr._slug)
         : null;
       const canManage = !!(window.serverRoles && sid && window.serverRoles.isAdmin(sid));
+      const lock = composerLock();
       return {
       channels: dm ? [] : [...v('channels', []), ...pageChannels()],
       dmConversations: dm ? dm.conversations : [],
@@ -93,7 +114,7 @@
         : '',
       pageUpdatedAt: pageData ? pageData.updatedAt : 0,
       canManage,
-      composerLockedReason: (curr && curr.type === 'announcement' && !canManage) ? 'Admins only' : '',
+      composerLockedReason: lock ? lock.reason : '',
       homeMode: (window.state && window.state.homeMode) || false,
       messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).map((m) => {
         const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
@@ -113,7 +134,7 @@
         return resolved ? { id: pk, username: resolved, displayName: resolved } : v('currentUser', null);
       })(),
       userId: (window.state && (window.state.userId || window.state.nostrPubkey)) || null,
-      isConnected: v('isConnected', true),
+      isConnected: v('isConnected', true) ? true : !!v('relayGrace', true),
       voiceConnected: v('voiceConnected', false),
       voiceChannelName: v('voiceChannelName', ''),
       voiceConnectionState: v('voiceConnectionState', 'connected'),
@@ -197,7 +218,13 @@
       threadPanelOpen: v('threadPanelOpen', false),
       activeThreadId: v('activeThreadId', null),
       threads: v('threads', []),
-      forumPosts: (curr && curr.type === 'forum' && window.nostrForum) ? window.nostrForum.listFor(curr.id) : [],
+      // A forum post's `author` is the raw 64-char hex pubkey off the kind:11
+      // event; resolve it the same way pageAuthor already does so the list
+      // shows a name (or a short npub), never a hex string.
+      forumPosts: (curr && curr.type === 'forum' && window.nostrForum)
+        ? window.nostrForum.listFor(curr.id).map((p) => ({ ...p, author: resolveAuthor(p.author) }))
+        : [],
+      resolveAuthor,
       };
     };
 
@@ -209,12 +236,67 @@
         return r;
       } catch (e) { if (label) toastErr(label, e); }
     };
+    // Voice Settings changes apply eagerly (the modal reads straight off the
+    // live signals), so Cancel can only be honest if the pre-open state is
+    // captured here and re-applied -- including the localStorage writes and
+    // the live session calls applyVoicePatch makes.
+    let voiceSettingsSnapshot = null;
+    const snapshotVoiceSettings = () => ({
+      mode: v('vadEnabled', false) ? 'vad' : 'ptt',
+      inputId: v('inputDeviceId', null),
+      outputId: v('outputDeviceId', null),
+      vadThreshold: v('vadThreshold', 0.15),
+      rnnoise: v('rnnoiseEnabled', true),
+      autoGain: v('autoGainEnabled', true),
+      forceTurn: v('forceTurnEnabled', false),
+      bitrate: v('voiceBitrate', 64),
+      volume: v('masterVolume', 0.7),
+    });
+    const applyVoicePatch = (patch) => {
+      if ('mode' in patch && S.vadEnabled) S.vadEnabled.value = patch.mode === 'vad';
+      if ('inputId' in patch && S.inputDeviceId) S.inputDeviceId.value = patch.inputId;
+      if ('outputId' in patch && S.outputDeviceId) S.outputDeviceId.value = patch.outputId;
+      if ('vadThreshold' in patch && S.vadThreshold) {
+        S.vadThreshold.value = patch.vadThreshold;
+        try { localStorage.setItem('vadThreshold', String(patch.vadThreshold)); } catch (_) {}
+        // setMicSensitivity takes a raw RMS; patch.vadThreshold is the UI's 0-1
+        // fraction -- scale by the same LEVEL_METER_CEILING wireweave-bridge.js
+        // uses at connect() so a live mid-call change matches the same mapping.
+        if (window.lk && window.lk.setMicSensitivity) window.lk.setMicSensitivity(Math.max(0, Math.min(1, patch.vadThreshold)) * 0.35);
+      }
+      if ('rnnoise' in patch) { if (S.rnnoiseEnabled) S.rnnoiseEnabled.value = patch.rnnoise; try { localStorage.setItem('rnnoise', patch.rnnoise ? '1' : '0'); } catch (_) {} }
+      if ('autoGain' in patch) { if (S.autoGainEnabled) S.autoGainEnabled.value = patch.autoGain; try { localStorage.setItem('autoGain', patch.autoGain ? '1' : '0'); } catch (_) {} }
+      if ('forceTurn' in patch) {
+        if (S.forceTurnEnabled) S.forceTurnEnabled.value = patch.forceTurn;
+        try { localStorage.setItem('forceRelay', patch.forceTurn ? '1' : '0'); } catch (_) {}
+        if (window.lk && window.lk.setForceRelay) window.lk.setForceRelay(!!patch.forceTurn);
+      }
+      if ('bitrate' in patch && S.voiceBitrate) {
+        S.voiceBitrate.value = patch.bitrate;
+        try { localStorage.setItem('voiceBitrate', String(patch.bitrate)); } catch (_) {}
+        if (window.lk && window.lk.setAudioBitrate) window.lk.setAudioBitrate(patch.bitrate);
+      }
+      // SDK's VoiceSettingsModal sends the master-volume slider's patch as
+      // {volume: n} (matches its own `volume:S.masterVolume` prop name) --
+      // this key previously went unhandled, so S.masterVolume never updated
+      // and the slider had zero effect on realtime peer audio or queued
+      // voice-message playback (both read state.masterVolume live).
+      if ('volume' in patch && S.masterVolume) {
+        S.masterVolume.value = patch.volume;
+        try { localStorage.setItem('masterVolume', String(patch.volume)); } catch (_) {}
+      }
+      if (('outputId' in patch || 'volume' in patch) && window.lk && window.lk.applyOutputSettings) window.lk.applyOutputSettings();
+      if (window.lk && window.lk.setAudioConstraints) window.lk.setAudioConstraints({ deviceId: v('inputDeviceId', null), noiseSuppression: v('rnnoiseEnabled', true), autoGainControl: v('autoGainEnabled', true) });
+    };
     const actions = {
-      switchChannel: (ch) => call(() => window.ui.actions.switchChannel(ch)),
+      switchChannel: (ch) => call(() => {
+        if (S.mobileMenuOpen) S.mobileMenuOpen.value = false;
+        window.ui.actions.switchChannel(ch);
+      }),
       send: (text, opts) => call(() => {
         if (window.state.homeMode) {
           const peer = v('activeDmPeer', null);
-          if (!peer) { window.ui.showToast('Pick a conversation first', 2500, 'error'); return; }
+          if (!peer) { window.ui.showToast(LOCK_DM.toast, 3500, 'error'); return; }
           window.dm.send(peer, text).catch((e) => window.ui.showToast('Could not send: ' + (e && e.message || 'unknown'), 4000, 'error'));
           if (S.chatInputValue) S.chatInputValue.value = '';
           return;
@@ -247,6 +329,11 @@
         if (ch) window.ui.actions.switchChannel(ch);
       }),
       attachFiles: (files) => call(() => {
+        // chat.sendImage() -> nostrMedia.sendMedia() has no announcement-admin
+        // check, so without this guard a non-admin bypasses the locked composer
+        // with the still-enabled attach button.
+        const lock = composerLock();
+        if (lock) { window.ui.showToast(lock.toast, 3000, 'error'); return; }
         if (window.state.homeMode) { window.ui.showToast('Attachments are not supported in direct messages yet', 3500, 'error'); return; }
         for (const file of files) {
           window.chat.sendImage(file);
@@ -254,7 +341,13 @@
       }),
       retryConnection: () => call(() => { window.nostrNet.reconnectAll(); window.ui.showToast('Reconnecting...'); }),
       toggleMembers: () => call(() => window.ui.actions.toggleMembers()),
-      openMobileMenu: () => call(() => window.ui.actions.openMobileMenu && window.ui.actions.openMobileMenu()),
+      // The hamburger is the drawer's own toggle: tapping it while the drawer
+      // is open has to close it, or the only way out is tapping the main area
+      // or picking a channel.
+      openMobileMenu: () => call(() => {
+        if (v('mobileMenuOpen', false)) window.ui.actions.closeMobileMenu();
+        else window.ui.actions.openMobileMenu();
+      }),
       closeMobileMenu: () => call(() => window.ui.actions.closeMobileMenu && window.ui.actions.closeMobileMenu()),
       openSettings: () => call(() => {
         const gear = document.querySelector('.cm-user-controls .cm-user-btn[aria-label="Settings"]');
@@ -265,6 +358,7 @@
         return window.ui.actions.toggleSettings && window.ui.actions.toggleSettings();
       }),
       openVoiceSettings: () => call(() => {
+        voiceSettingsSnapshot = snapshotVoiceSettings();
         if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = true;
         if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
           navigator.mediaDevices.enumerateDevices().then((devices) => {
@@ -274,47 +368,21 @@
           }).catch((e) => { if (window.ui?.showToast) window.ui.showToast('Could not list audio devices: ' + (e?.message || 'unknown error'), 'error'); });
         }
       }),
-      voiceSettingsChange: (patch) => call(() => {
-        if ('mode' in patch && S.vadEnabled) S.vadEnabled.value = patch.mode === 'vad';
-        if ('inputId' in patch && S.inputDeviceId) S.inputDeviceId.value = patch.inputId;
-        if ('outputId' in patch && S.outputDeviceId) S.outputDeviceId.value = patch.outputId;
-        if ('vadThreshold' in patch && S.vadThreshold) {
-          S.vadThreshold.value = patch.vadThreshold;
-          try { localStorage.setItem('vadThreshold', String(patch.vadThreshold)); } catch (_) {}
-          // setMicSensitivity takes a raw RMS; patch.vadThreshold is the UI's 0-1
-          // fraction -- scale by the same LEVEL_METER_CEILING wireweave-bridge.js
-          // uses at connect() so a live mid-call change matches the same mapping.
-          if (window.lk && window.lk.setMicSensitivity) window.lk.setMicSensitivity(Math.max(0, Math.min(1, patch.vadThreshold)) * 0.35);
-        }
-        if ('rnnoise' in patch) { if (S.rnnoiseEnabled) S.rnnoiseEnabled.value = patch.rnnoise; try { localStorage.setItem('rnnoise', patch.rnnoise ? '1' : '0'); } catch (_) {} }
-        if ('autoGain' in patch) { if (S.autoGainEnabled) S.autoGainEnabled.value = patch.autoGain; try { localStorage.setItem('autoGain', patch.autoGain ? '1' : '0'); } catch (_) {} }
-        if ('forceTurn' in patch) {
-          if (S.forceTurnEnabled) S.forceTurnEnabled.value = patch.forceTurn;
-          try { localStorage.setItem('forceRelay', patch.forceTurn ? '1' : '0'); } catch (_) {}
-          if (window.lk && window.lk.setForceRelay) window.lk.setForceRelay(!!patch.forceTurn);
-        }
-        if ('bitrate' in patch && S.voiceBitrate) {
-          S.voiceBitrate.value = patch.bitrate;
-          try { localStorage.setItem('voiceBitrate', String(patch.bitrate)); } catch (_) {}
-          if (window.lk && window.lk.setAudioBitrate) window.lk.setAudioBitrate(patch.bitrate);
-        }
-        // SDK's VoiceSettingsModal sends the master-volume slider's patch as
-        // {volume: n} (matches its own `volume:S.masterVolume` prop name) --
-        // this key previously went unhandled, so S.masterVolume never updated
-        // and the slider had zero effect on realtime peer audio or queued
-        // voice-message playback (both read state.masterVolume live).
-        if ('volume' in patch && S.masterVolume) {
-          S.masterVolume.value = patch.volume;
-          try { localStorage.setItem('masterVolume', String(patch.volume)); } catch (_) {}
-        }
-        if (('outputId' in patch || 'volume' in patch) && window.lk && window.lk.applyOutputSettings) window.lk.applyOutputSettings();
-        if (window.lk && window.lk.setAudioConstraints) window.lk.setAudioConstraints({ deviceId: v('inputDeviceId', null), noiseSuppression: v('rnnoiseEnabled', true), autoGainControl: v('autoGainEnabled', true) });
+      voiceSettingsChange: (patch) => call(() => applyVoicePatch(patch || {})),
+      voiceSettingsSave: () => call(() => {
+        voiceSettingsSnapshot = null;
+        if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false;
       }),
-      voiceSettingsSave: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
-      voiceSettingsClose: () => call(() => { if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false; }),
+      voiceSettingsClose: () => call(() => {
+        const snapshot = voiceSettingsSnapshot;
+        voiceSettingsSnapshot = null;
+        if (snapshot) applyVoicePatch(snapshot);
+        if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false;
+      }),
       newDm: () => call(() => window.channelManager.showNewDmModal()),
       selectDm: (peer) => call(() => { if (S.activeDmPeer) S.activeDmPeer.value = peer; }),
       goHome: () => call(() => {
+        if (S.mobileMenuOpen) S.mobileMenuOpen.value = false;
         // homeMode only drives the sidebar's active-highlight in the SDK
         // (community-app.js line ~121) -- it does NOT clear the rendered
         // channel list or chat body on its own. Without also resetting these,
@@ -341,6 +409,7 @@
       // (a real dead link, `href="#"` with zero JS behind it) -- removed
       // rather than routed through, since there was nothing there to reach.
       openServers: () => call(() => {
+        if (S.mobileMenuOpen) S.mobileMenuOpen.value = false;
         if (window.state.homeMode) {
           const first = (window.state.servers || [])[0];
           if (first) { window.state.homeMode = false; window.serverManager.switchTo(first.id); }
@@ -348,10 +417,39 @@
           window.state.homeMode = true; window.state.currentServerId = null;
         }
       }),
-      switchServer: (id) => call(() => { window.state.homeMode = false; window.serverManager.switchTo(id); }),
+      switchServer: (id) => call(() => {
+        if (S.mobileMenuOpen) S.mobileMenuOpen.value = false;
+        window.state.homeMode = false; window.serverManager.switchTo(id);
+      }),
       createOrJoinServer: () => call(() => window.serverManager.showCreateOrJoinModal()),
       channelContext: (id, x, y) => call(() => window.channelManager.showContextMenu(id, x, y)),
       createChannel: () => call(() => window.channelManager.showCreateModal(null, null)),
+      // The SDK rail owns channel rendering (and therefore the drag/keydown
+      // handlers), so the ordering math lives here: `dir` is -1/1 from the
+      // keyboard, a channel id from a drop, and either way the full sibling
+      // list of the destination category is republished -- wireweave's
+      // ch.reorder(catId, ids) assigns position AND categoryId from that list,
+      // which is what makes a cross-category drop land in the target category.
+      reorderChannel: (id, arg) => call(() => {
+        const channels = window.state.channels || [];
+        if (!channels.some((c) => c.id === id)) return;
+        const siblings = (cat) => channels.filter((c) => (c.categoryId || null) === (cat || null)).sort((a, b) => (a.position || 0) - (b.position || 0)).map((c) => c.id);
+        let cat = (channels.find((c) => c.id === id) || {}).categoryId || null;
+        let ids;
+        if (typeof arg === 'number') {
+          ids = siblings(cat);
+          const from = ids.indexOf(id), to = from + arg;
+          if (from === -1 || to < 0 || to >= ids.length) return;
+          ids.splice(from, 1); ids.splice(to, 0, id);
+        } else {
+          const target = channels.find((c) => c.id === arg);
+          if (!target || arg === id) return;
+          cat = target.categoryId || null;
+          ids = siblings(cat).filter((cid) => cid !== id);
+          ids.splice(ids.indexOf(arg), 0, id);
+        }
+        return window.channelManager.reorderChannels(cat, ids);
+      }, 'Reorder'),
       serverContext: (id, x, y) => call(() => window.serverManager.showContextMenu(id, x, y)),
       memberMenu: (id, name, x, y) => call(() => window.moderation.showMemberMenu(id, name, x, y)),
       // Routed through pttGate (voice-ptt.js), the queue that's actually
@@ -388,13 +486,13 @@
           if (S.authBusy) S.authBusy.value = false;
         }
       }),
-      authGenerate: () => call(() => {
-        if (!window.auth) return;
+      authGenerate: () => call(async () => {
+        if (!window.__zellous || !window.__zellous.generateKeyWithConfirm) return;
         try {
-          window.auth.generateKey();
+          const done = await window.__zellous.generateKeyWithConfirm();
+          if (!done) return;
           if (S.showAuthModal) S.showAuthModal.value = false;
           if (S.authError) S.authError.value = '';
-          window.ui && window.ui.showToast && window.ui.showToast('New identity created — back it up before clearing browser storage.', 5000);
         } catch (e) {
           if (S.authError) S.authError.value = (e && e.message) || 'Failed to generate key';
         }
@@ -425,7 +523,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'reactionsVersion', 'profilesVersion', 'voiceListenOnly', 'dmMessages', 'activeDmPeer', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'forumVersion', 'relayGrace', 'reactionsVersion', 'profilesVersion', 'voiceListenOnly', 'dmMessages', 'activeDmPeer', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });

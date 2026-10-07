@@ -30,6 +30,13 @@ html.ds-247420[data-theme="dark"] {
   --accent-bright: var(--green-2);
   --accent-fg: var(--green-fg);
 }
+html.ds-247420[data-theme="paper"],
+html.ds-247420[data-theme="light"] {
+  --accent: var(--green);
+  --accent-ink: var(--green-deep);
+  --accent-bright: var(--green-2);
+  --accent-fg: var(--green-fg);
+}
 html.ds-247420[data-theme="ink"],
 html.ds-247420[data-theme="dark"] {
   --bg-3: #2E2E35;
@@ -221,6 +228,7 @@ html.ds-247420 .vx-view .vx-dock {
   html.ds-247420 button.cm-mh-btn,
   html.ds-247420 button.cm-user-btn,
   html.ds-247420 .chat-composer button.send,
+  html.ds-247420 .chat-composer button.composer-btn,
   html.ds-247420 button.vx-vc-btn {
     min-width: 44px; min-height: 44px;
   }

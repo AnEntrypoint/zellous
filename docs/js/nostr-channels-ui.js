@@ -84,6 +84,9 @@ var _mkMenu = function(id, x, y, html, onAction) {
   var menu = document.createElement('div');
   menu.id = id; menu.className = 'context-menu open';
   menu.style.cssText = 'position:fixed;top:' + y + 'px;left:' + x + 'px;z-index:2500';
+  var menuLabel = id.replace(/ContextMenu$/, '').replace(/([a-z])([A-Z])/g, '$1 $2');
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-label', (menuLabel.charAt(0).toUpperCase() + menuLabel.slice(1) || 'Context') + ' actions');
   menu.innerHTML = html;
   document.body.appendChild(menu);
   var r = menu.getBoundingClientRect();
@@ -375,83 +378,6 @@ channelManager.showSettingsModal = function(channelId) {
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
 };
 
-channelManager.initDragAndDrop = function() {
-  var cl = document.getElementById('channelList');
-  if (!cl) return;
-  var dCh = null, dCat = null, dropT = null, ind = null;
-  var mkInd = function(h) { var el = document.createElement('div'); el.style.cssText = 'height:' + (h||2) + 'px;background:var(--brand);margin:' + (h > 2 ? '4' : '2') + 'px 0;border-radius:1px;'; return el; };
-  var pos = function(e, el) { var r = el.getBoundingClientRect(); return e.clientY < (r.top + r.height / 2) ? 'before' : 'after'; };
-  cl.addEventListener('dragstart', function(e) {
-    var ci = e.target.closest('.channel-item'), ch = e.target.closest('.category-header');
-    if (ci) { dCh = ci.dataset.channel; e.dataTransfer.effectAllowed = 'move'; ci.style.opacity = '0.5'; }
-    else if (ch && ch.dataset.category !== 'uncategorized') { dCat = ch.dataset.category; e.dataTransfer.effectAllowed = 'move'; ch.style.opacity = '0.5'; }
-  });
-  cl.addEventListener('dragend', function(e) {
-    var ci = e.target.closest('.channel-item'), ch = e.target.closest('.category-header');
-    if (ci) ci.style.opacity = '1'; if (ch) ch.style.opacity = '1';
-    if (ind) { ind.remove(); ind = null; } dCh = null; dCat = null; dropT = null;
-  });
-  cl.addEventListener('dragover', function(e) {
-    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
-    if (ind) ind.remove();
-    if (dCh) {
-      ind = mkInd(2); var tc = e.target.closest('.channel-item'), th = e.target.closest('.category-header');
-      if (tc && tc.dataset.channel !== dCh) { var p = pos(e, tc); if (p === 'before') tc.parentNode.insertBefore(ind, tc); else tc.parentNode.insertBefore(ind, tc.nextSibling); dropT = { type: 'channel', id: tc.dataset.channel, position: p }; }
-      else if (th) { var cid = th.dataset.category, chs = (state.channels || []).filter(function(c) { return c.categoryId === cid; }); if (!chs.length) { th.parentNode.insertBefore(ind, th.nextSibling); dropT = { type: 'category', id: cid, position: 'after' }; } else { var fc = cl.querySelector('.channel-item[data-channel="' + chs[0].id + '"]'); if (fc) { th.parentNode.insertBefore(ind, fc); dropT = { type: 'category', id: cid, position: 'first' }; } } }
-    } else if (dCat) {
-      ind = mkInd(4); var th2 = e.target.closest('.category-header');
-      if (th2 && th2.dataset.category !== dCat && th2.dataset.category !== 'uncategorized') {
-        var p2 = pos(e, th2);
-        if (p2 === 'before') { th2.parentNode.insertBefore(ind, th2); } else { var nx = th2.nextSibling; while (nx && !nx.classList.contains('category-header')) nx = nx.nextSibling; if (nx) th2.parentNode.insertBefore(ind, nx); else th2.parentNode.appendChild(ind); }
-        dropT = { type: 'category-reorder', id: th2.dataset.category, position: p2 };
-      }
-    }
-  });
-  // Keyboard equivalent for drag-reorder (WCAG 2.1.1): Alt+ArrowUp/ArrowDown on a
-  // focused channel item moves it within its category; on a focused category header,
-  // moves the category. Reuses the same reorderChannels/reorderCategories calls the
-  // drop handler already uses -- delegated on #channelList since the SDK rail (not
-  // zellous) renders the individual .channel-item/.category-header nodes.
-  cl.addEventListener('keydown', async function(e) {
-    if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-    var dir = e.key === 'ArrowUp' ? -1 : 1;
-    var ci = document.activeElement && document.activeElement.closest && document.activeElement.closest('.channel-item');
-    var ch = document.activeElement && document.activeElement.closest && document.activeElement.closest('.category-header');
-    if (ci) {
-      e.preventDefault();
-      var id = ci.dataset.channel, channels = state.channels || [], me = channels.find(function(c) { return c.id === id; });
-      if (!me) return;
-      var siblings = channels.filter(function(c) { return c.categoryId === me.categoryId; }).sort(function(a, b) { return (a.position||0)-(b.position||0); });
-      var ids = siblings.map(function(c) { return c.id; }), idx = ids.indexOf(id), next = idx + dir;
-      if (next < 0 || next >= ids.length) return;
-      ids.splice(idx, 1); ids.splice(next, 0, id);
-      try { await channelManager.reorderChannels(me.categoryId, ids); } catch (err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); }
-    } else if (ch && ch.dataset.category !== 'uncategorized') {
-      e.preventDefault();
-      var cid = ch.dataset.category, cats = state.categories || [], sorted = cats.slice().sort(function(a, b) { return (a.position||0)-(b.position||0); });
-      var cids = sorted.map(function(c) { return c.id; }), cidx = cids.indexOf(cid), cnext = cidx + dir;
-      if (cidx === -1 || cnext < 0 || cnext >= cids.length) return;
-      cids.splice(cidx, 1); cids.splice(cnext, 0, cid);
-      try { await channelManager.reorderCategories(cids); } catch (err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); }
-    }
-  });
-  cl.addEventListener('drop', async function(e) {
-    e.preventDefault(); if (ind) { ind.remove(); ind = null; }
-    if (dCh && dropT) {
-      var channels = state.channels || [], draggedCh = channels.find(function(c) { return c.id === dCh; });
-      if (draggedCh) {
-        if (dropT.type === 'channel') {
-          var tch = channels.find(function(c) { return c.id === dropT.id; });
-          if (tch) { var nc = tch.categoryId, chs2 = channels.filter(function(c) { return c.categoryId === nc; }).sort(function(a, b) { return (a.position||0)-(b.position||0); }); var ti = chs2.findIndex(function(c) { return c.id === dropT.id; }), np = dropT.position === 'before' ? ti : ti+1, ids = chs2.map(function(c) { return c.id; }), fi = ids.indexOf(dCh); if (fi !== -1) ids.splice(fi, 1); ids.splice(np > fi ? np-1 : np, 0, dCh); try { await channelManager.reorderChannels(nc, ids); } catch(err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); } }
-        } else if (dropT.type === 'category') { var nc2 = dropT.id === 'uncategorized' ? null : dropT.id, chs3 = channels.filter(function(c) { return c.categoryId === nc2; }).sort(function(a,b){return(a.position||0)-(b.position||0);}), ids2 = chs3.map(function(c){return c.id;}); if (dropT.position === 'first') ids2.unshift(dCh); else ids2.push(dCh); try { await channelManager.reorderChannels(nc2, ids2); } catch(err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); } }
-      }
-    } else if (dCat && dropT) {
-      var cats = state.categories || [], sorted = cats.slice().sort(function(a,b){return(a.position||0)-(b.position||0);}); var di = sorted.findIndex(function(c){return c.id===dCat;}), ti2 = sorted.findIndex(function(c){return c.id===dropT.id;});
-      if (di !== -1 && ti2 !== -1) { var rem = sorted.splice(di,1)[0]; sorted.splice(dropT.position==='before'?ti2:ti2+1, 0, rem); try { await channelManager.reorderCategories(sorted.map(function(c){return c.id;})); } catch(err) { window.ui && window.ui.showToast && window.ui.showToast('Reorder failed: ' + (err && err.message || 'unknown'), 3000, 'error'); } }
-    }
-  });
-};
-
 // The private key IS the identity here (no backend, no account, no
 // password reset) -- this is the one recovery path a static client can
 // offer: show the real nsec so the user can copy it somewhere safe BEFORE
@@ -493,13 +419,35 @@ channelManager.showNewDmModal = function() {
   modal.innerHTML = '<div class="modal-box"><div class="modal-title">New message</div>' +
     '<div class="modal-subtitle">Messages are end-to-end encrypted between you and them.</div>' +
     '<form id="newDmForm" onsubmit="return false">' +
-    '<div class="modal-field"><label class="modal-label" for="newDmPeer">Their npub or public key</label>' +
-    '<input type="text" class="modal-input" id="newDmPeer" placeholder="npub1..." autocomplete="off" spellcheck="false" autofocus></div>' +
+    '<div class="modal-field"><label class="modal-label" for="newDmPeer">Their public key (npub)</label>' +
+    '<input type="text" class="modal-input" id="newDmPeer" placeholder="npub1..." autocomplete="off" spellcheck="false" autofocus>' +
+    '<div id="newDmOwnNpub" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--fg-3)"></div></div>' +
     '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="newDmCancel">Cancel</button><button type="submit" class="modal-btn">Start</button></div>' +
     '</form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
   var input = modal.querySelector('#newDmPeer');
+  var ownNpub = '';
+  try { ownNpub = (window.state && window.state.nostrPubkey && window.NostrTools) ? window.NostrTools.nip19.npubEncode(window.state.nostrPubkey) : ''; } catch (e) { ownNpub = ''; }
+  var hint = modal.querySelector('#newDmOwnNpub');
+  if (hint && ownNpub) {
+    var hintText = document.createElement('span');
+    hintText.textContent = 'Ask them for theirs — yours is ' + ownNpub.slice(0, 12) + '…';
+    var copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'modal-btn secondary';
+    copyBtn.style.cssText = 'padding:2px 8px;min-height:0;font-size:11px';
+    copyBtn.textContent = 'click to copy';
+    copyBtn.addEventListener('click', function() {
+      navigator.clipboard?.writeText(ownNpub).then(function() {
+        copyBtn.textContent = 'copied!';
+        setTimeout(function() { copyBtn.textContent = 'click to copy'; }, 1600);
+      }).catch(function(e) {
+        window.ui && window.ui.showToast && window.ui.showToast('Clipboard copy failed: ' + (e && e.message || 'select the key and copy manually'), 4000, 'error');
+      });
+    });
+    hint.append(hintText, copyBtn);
+  }
   modal.querySelector('#newDmCancel').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
   modal.querySelector('#newDmForm').addEventListener('submit', function() {

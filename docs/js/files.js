@@ -7,7 +7,7 @@ const fileTransfer = {
       if (item.kind === 'file') {
         const file = item.getAsFile();
         if (file) {
-          await chat.sendImage(file);
+          await ui.actions.sendFiles([file]);
           return true;
         }
       }
@@ -20,9 +20,7 @@ const fileTransfer = {
     const files = e.dataTransfer?.files;
     if (!files?.length) return;
 
-    for (const file of files) {
-      chat.sendImage(file);
-    }
+    ui.actions.sendFiles(files);
   }
 };
 

@@ -63,12 +63,29 @@ ui.actions = {
   },
   async logout() { await auth.logout(); this.hideAuthModal(); ui.render.authStatus(); },
   uploadFile() { ui.fileInput?.click(); },
+  // Single upload entry point for the file input, clipboard paste and
+  // drag-drop. media.js only enforces the 20MB cap after the whole file has
+  // been read and PUT, so the real numbers are surfaced here, before any of
+  // that starts.
+  sendFiles(files) {
+    const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
+    const ch = state.currentChannel;
+    if (ch && ch.type === 'announcement' && !(window.serverRoles && window.serverRoles.isAdmin(state.currentServerId))) {
+      ui.showToast('Only admins can post in announcement channels', 3000, 'error');
+      return;
+    }
+    for (const file of files || []) {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        ui.showToast('That file is ' + (Math.round((file.size / 1048576) * 10) / 10) + ' MB — the limit is 20 MB.', 4500, 'error');
+        continue;
+      }
+      chat.sendImage(file);
+    }
+  },
   handleFileSelect(e) {
     const files = e.target.files;
     if (!files?.length) return;
-    for (const file of files) {
-      chat.sendImage(file);
-    }
+    this.sendFiles(files);
     e.target.value = '';
   },
   toggleMembers() {
@@ -80,6 +97,11 @@ ui.actions = {
     const sig = window.stateSignals && window.stateSignals.settingsOpen;
     if (sig) { sig.value = !sig.value; return; }
     ui.settingsPopover?.classList.toggle('open');
+  },
+  closeSettings() {
+    const sig = window.stateSignals && window.stateSignals.settingsOpen;
+    if (sig) { sig.value = false; return; }
+    ui.settingsPopover?.classList.remove('open');
   },
   openMobileMenu() {
     if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = true;
@@ -105,6 +127,6 @@ document.addEventListener('keydown', (e) => {
   // #settingsPopover element -- that element's class never gets toggled
   // through the live code path anymore, so checking it here always read
   // false and Escape silently never closed the real popover.
-  if (window.stateSignals?.settingsOpen?.value) { ui.actions.toggleSettings(); return; }
+  if (window.stateSignals?.settingsOpen?.value) { ui.actions.closeSettings(); return; }
   if (window.stateSignals?.mobileMenuOpen?.value) { ui.actions.closeMobileMenu(); return; }
 });

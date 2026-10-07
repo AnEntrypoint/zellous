@@ -79,6 +79,9 @@ const state = {
   showSettingsModal: signal(false),
 
   isConnected: signal(false),
+  // Relay sockets need a moment to open; reporting the not-connected banner
+  // during that window flashes a warning on every load. True = suppress it.
+  relayGrace: signal(true),
   connectionStatus: signal('Connecting...'),
 
   users: signal(new Map()),
@@ -153,6 +156,7 @@ const state = {
   activeThreadId: signal(null),
   threads: signal([]),
   pagesVersion: signal(0),
+  forumVersion: signal(0),
   reactionsVersion: signal(0),
   profilesVersion: signal(0),
   voiceListenOnly: signal(false),

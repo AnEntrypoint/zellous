@@ -88,7 +88,11 @@ If you find yourself editing anything under `docs/vendor/`, stop — that's a th
 
 ## Validation loop (run before declaring done)
 
-Browser-facing changes must be witnessed live, not assumed. Minimum loop:
+Browser-facing changes must be witnessed live, not assumed.
+
+**Use `scripts/` — it does all three steps below and removes the jsdelivr wait.** `npm run dev` serves `docs/` with correct MIME types; `npm run dev:local` additionally repoints the `design`/`wireweave` importmap at the sibling checkouts (`/config/workspace/design`, `/config/workspace/wireweave`) so a dependency edit is visible on the next reload instead of 12-24h later. `node scripts/drive.mjs <script>.js --local --storage /tmp/gm/session.json --port 52XX` runs one page-context script and prints its value plus every console error; `node scripts/audit-ui.mjs --local --storage <state> --viewports 1280x800,375x667 --themes ink,light` measures contrast, tap targets, occlusion, focus order and unnamed controls across scenes. `--local` still serves `design/dist/247420.{js,css}`, so run `node scripts/build.mjs` in the design repo after editing its `src/`.
+
+Minimum loop, for reference (and for what CI runs):
 
 ```js
 // 1. Parse-check first-party JS

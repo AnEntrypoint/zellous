@@ -42,6 +42,26 @@ window.__wireweaveReady = (async () => {
     reconnectAll: () => net.heal(),
     get relays() { return new Map(net.relays); }
   };
+  let relayGraceTimer = null;
+  const startRelayGrace = () => {
+    if (relayGraceTimer) clearTimeout(relayGraceTimer);
+    state.relayGrace = true;
+    relayGraceTimer = setTimeout(() => { relayGraceTimer = null; state.relayGrace = false; }, 3000);
+  };
+  const clearRelayGrace = () => {
+    if (relayGraceTimer) { clearTimeout(relayGraceTimer); relayGraceTimer = null; }
+    state.relayGrace = false;
+  };
+  startRelayGrace();
+  // Boot is slower than the grace window on a cold load (module + relay setup
+  // can pass 3s before the SDK's first render), so the window is re-armed at
+  // appReady -- the point where the UI actually starts drawing -- or the banner
+  // would flash just after the grace had already expired.
+  const armGraceOnReady = () => {
+    if (window.appReady) { startRelayGrace(); return; }
+    setTimeout(armGraceOnReady, 50);
+  };
+  armGraceOnReady();
   net.addEventListener('relay-status', (e) => {
     const { url, status } = e.detail;
     const m = new Map(state.nostrRelayStatus || []);
@@ -49,6 +69,8 @@ window.__wireweaveReady = (async () => {
     state.nostrRelayStatus = m;
     const anyOpen = net.isConnected();
     if (state.isConnected !== anyOpen) state.isConnected = anyOpen;
+    if (anyOpen) clearRelayGrace();
+    else if (!relayGraceTimer) startRelayGrace();
     if (window.ui) ui.render.all();
   });
   window.__debugNet = { get relays() { return net.status(); } };
@@ -58,6 +80,23 @@ window.__wireweaveReady = (async () => {
   a.loadFromStorage();
   a.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage error', 4000, 'error'); });
   a.addEventListener('persist-failed', () => { if (window.ui) ui.showToast('Could not save your login key — storage is full. Free up space or your session won\'t persist after reload.', 6000, 'error'); });
+  // Both "generate" entry points (the legacy #generateKeyBtn and the SDK
+  // AuthModal's onGenerate -> adapter authGenerate) discard the current key
+  // with no confirmation, so the guard and the post-generate backup prompt
+  // live here once and both call it.
+  const generateKeyWithConfirm = async () => {
+    const yes = await window.ui.confirm({
+      title: 'Replace your current identity?',
+      message: 'Your current key is discarded and cannot be recovered. Anything already posted under it stays on relays, but you will never be able to sign in as it again.',
+      confirmLabel: 'Replace key', danger: true,
+    });
+    if (!yes) return false;
+    window.auth.generateKey();
+    window.auth._afterLogin();
+    if (window.channelManager && window.channelManager.showKeyBackupModal) window.channelManager.showKeyBackupModal();
+    return true;
+  };
+
   window.auth = {
     get user() {
       const pk = a.pubkey; if (!pk) return null;
@@ -134,7 +173,7 @@ window.__wireweaveReady = (async () => {
       const $ = id => document.getElementById(id);
       const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
       on('connectExtensionBtn', async () => { try { if (!window.nostr) throw new Error('No Nostr extension found'); await window.auth.loginWithExtension(); window.auth._afterLogin(); } catch (e) { window.auth._err(e.message); } });
-      on('generateKeyBtn', () => { try { window.auth.generateKey(); window.auth._afterLogin(); } catch (e) { window.auth._err(e.message); } });
+      on('generateKeyBtn', () => { generateKeyWithConfirm().catch((e) => window.auth._err(e.message)); });
       on('importKeyBtn', () => { const inp = $('importKeyInput'); const val = inp ? inp.value.trim() : ''; if (!val) { window.auth._err('Enter a key'); return; } window.auth.importKey(val) ? window.auth._afterLogin() : window.auth._err('Invalid key'); });
       on('copyNpubBtn', () => { const pk = a.pubkey; if (pk) navigator.clipboard.writeText(a.npubEncode(pk)).catch(() => {}); });
       on('saveDisplayNameBtn', async () => { const inp = $('displayNameInput'); const val = inp ? inp.value.trim() : ''; if (!val) { window.auth._err('Enter a display name'); return; } try { await window.auth.setDisplayName(val); } catch (e) { window.auth._err(e.message); } });
@@ -440,11 +479,12 @@ window.__wireweaveReady = (async () => {
   };
 
   // Forum bridge (kind:11 posts + NIP-22 kind:1111 replies, scoped per
-  // channel) -- re-renders on either the post list or a post's own reply
-  // thread changing, matching the reactive pattern every other manager here uses.
+  // channel) -- forumVersion is a real reactive signal (unlike ui.render.all(),
+  // which only re-renders the server list) so a newly published post appears
+  // without leaving and re-entering the channel.
   const forum = ww.forum;
-  forum.addEventListener('posts', () => { if (window.ui) ui.render.all(); });
-  forum.addEventListener('replies', () => { if (window.ui) ui.render.all(); });
+  forum.addEventListener('posts', () => { state.forumVersion = (state.forumVersion || 0) + 1; });
+  forum.addEventListener('replies', () => { state.forumVersion = (state.forumVersion || 0) + 1; });
   window.nostrForum = {
     listFor: (channelId) => forum.listFor(channelId),
     repliesFor: (postId) => forum.repliesFor(postId),
@@ -623,6 +663,7 @@ window.__wireweaveReady = (async () => {
 
   // Ready flag for legacy code
   window.__zellous = window.__zellous || {};
+  window.__zellous.generateKeyWithConfirm = generateKeyWithConfirm;
   Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
 
   document.addEventListener('nostr:login', () => window.dm.subscribeAll());

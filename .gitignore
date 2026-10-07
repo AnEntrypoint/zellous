@@ -12,3 +12,6 @@ node_modules/
 .gm/turn-state.json
 .gm/residual-check-fired
 .gm/claim-audit-fired
+.gm/.last-scan-deps-result.json
+.gm/.last-scan-deps-ts
+.gm/config-source-cache-*.sync.json

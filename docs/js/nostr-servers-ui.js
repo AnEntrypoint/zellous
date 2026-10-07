@@ -51,7 +51,7 @@ serverManager.showCreatePageModal = function(serverId) {
     if (!title) { errEl.textContent = 'Page title is required'; errEl.style.display = 'block'; return; }
     var slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'page';
     submitBtn.disabled = true; submitBtn.textContent = 'Creating...';
-    try { await window.serverPages.publish(serverId, slug, title, '<p>New page</p>'); modal.remove(); }
+    try { await window.serverPages.publish(serverId, slug, title, ''); modal.remove(); }
     catch (e) { errEl.textContent = e.message || 'Failed'; errEl.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = 'Create Page'; }
   });
   modal.querySelector('#pcCancel').addEventListener('click', function() { modal.remove(); });
@@ -65,7 +65,8 @@ serverManager.showEditPageModal = function(serverId, slug, title, html) {
   modal.innerHTML = '<div class="modal-box" style="max-width:520px"><div class="modal-title">Edit Page</div>' +
     '<div class="modal-error" id="peErr" style="display:none"></div><form id="peForm" onsubmit="return false">' +
     '<div class="modal-field"><label class="modal-label">Page Title</label><input type="text" class="modal-input" id="peTitle" value="' + escHtml(title) + '" maxlength="60"></div>' +
-    '<div class="modal-field"><label class="modal-label">Content (HTML)</label><textarea class="modal-input" id="peHtml" rows="10" style="font-family:var(--ff-mono,monospace);resize:vertical" autofocus>' + escHtml(html) + '</textarea></div>' +
+    '<div class="modal-field"><label class="modal-label">Content</label><textarea class="modal-input" id="peHtml" rows="10" style="font-family:var(--ff-mono,monospace);resize:vertical" autofocus>' + escHtml(html) + '</textarea>' +
+    '<div style="font-size:11px;color:var(--fg-3)">Paste text or HTML.</div></div>' +
     '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="peCancel">Cancel</button><button type="submit" class="modal-btn" id="peSubmit">Save</button></div></form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);

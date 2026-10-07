@@ -399,6 +399,7 @@ async function initNostr() {
   if (!auth.init()) {
     auth.generateKey();
     auth._afterLogin();
+    window.ui?.showFirstRunKeyNotice?.();
   }
 
   auth.bindUI();
