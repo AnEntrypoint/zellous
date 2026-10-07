@@ -287,6 +287,14 @@ window.__wireweaveReady = (async () => {
     unreact: (id) => reactions.unreact(id)
   };
 
+  const unread = ww.unread;
+  unread.addEventListener('unread', () => { state.unreadVersion = (state.unreadVersion || 0) + 1; });
+  window.nostrUnread = {
+    countsFor: () => unread.countsFor(),
+    countFor: (id) => unread.countFor(id),
+    markRead: (id) => unread.markRead(id)
+  };
+
   // DM bridge — NIP-44 encrypted 1:1 (kind 14), structurally isolated from
   // the plaintext broadcast Chat (kind 42 filtered by channel-hash '#e' tag).
   // DM.subscribe filters by '#p'/authors on the user's own pubkey, so a DM
@@ -664,7 +672,7 @@ window.__wireweaveReady = (async () => {
   // Ready flag for legacy code
   window.__zellous = window.__zellous || {};
   window.__zellous.generateKeyWithConfirm = generateKeyWithConfirm;
-  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, wireweave: ww });
+  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, unread: window.nostrUnread, wireweave: ww });
 
   document.addEventListener('nostr:login', () => window.dm.subscribeAll());
   if (a.pubkey) window.dm.subscribeAll();

@@ -100,12 +100,17 @@
         : null;
       const canManage = !!(window.serverRoles && sid && window.serverRoles.isAdmin(sid));
       const lock = composerLock();
+      const unreadCounts = (window.nostrUnread && window.nostrUnread.countsFor) ? window.nostrUnread.countsFor() : {};
+      // The rail's badge needs a per-channel count, and wireweave's unread
+      // tracker keys by channel id only, so a server's badge is the sum over
+      // the channels this client knows belong to it.
+      const withUnread = (list) => list.map((c) => ({ ...c, unreadCount: unreadCounts[c.id] || 0 }));
       return {
-      channels: dm ? [] : [...v('channels', []), ...pageChannels()],
+      channels: dm ? [] : withUnread([...v('channels', []), ...pageChannels()]),
       dmConversations: dm ? dm.conversations : [],
       activeDmPeer: dm ? v('activeDmPeer', null) : null,
       categories: v('categories', []),
-      servers: v('servers', []),
+      servers: v('servers', []).map((sv) => ({ ...sv, unreadCount: sv.id === sid ? (v('channels', []) || []).reduce((n, c) => n + (unreadCounts[c.id] || 0), 0) : 0 })),
       currentChannel: curr,
       currentServerId: sid,
       pageHtml: pageData ? pageData.html : '',
@@ -523,7 +528,7 @@
       formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
     };
 
-    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'forumVersion', 'relayGrace', 'reactionsVersion', 'profilesVersion', 'voiceListenOnly', 'dmMessages', 'activeDmPeer', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
+    const SIGNALS = ['channels', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'forumVersion', 'relayGrace', 'reactionsVersion', 'profilesVersion', 'unreadVersion', 'voiceListenOnly', 'dmMessages', 'activeDmPeer', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
     const subscribe = (cb) => {
       // preact effect: reading each .value registers a dependency, so cb re-fires on any change
       return effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });
