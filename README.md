@@ -75,7 +75,7 @@ tradeoffs, disclosed here rather than left implicit:
 npx serve docs
 ```
 
-Visit `http://localhost:3000/nostr-chat/`. See `AGENTS.md` for the live-run verification loop (`scripts/drive.mjs`) used when making changes.
+Visit `http://localhost:3000/nostr-chat/`. See `AGENTS.md` for the live-run verification method (the gm `crawl` verb with `engine=cdp`) used when making changes.
 
 ### Testing voice/signaling locally
 

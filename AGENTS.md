@@ -64,7 +64,7 @@ If you find yourself editing anything under `docs/vendor/`, stop — that's a th
 
 No hard-coded validations and no test files. Verify behaviour by running the real system and reading the observed output. Do not add scripts or CI jobs that encode pass/fail checks.
 
-- `node scripts/drive.mjs <probe.js> --local` (or `--expr "<js>"`, or `--url <absolute URL>`) runs a page-context script against the live app and prints its return value and console errors. `--local` serves the sibling wireweave and design checkouts; without it the app loads them from the pinned jsdelivr URLs.
+- Live browser checks use the gm `crawl` verb with `engine=cdp`. The body is plain text: first line `engine=cdp`, then `url=<absolute URL>`, `wait=<ms>` (about 6000 for the app to boot), and `eval=<js>` (the value is returned). Example: `engine=cdp\nurl=https://anentrypoint.github.io/zellous/nostr-chat/\nwait=6000\neval=JSON.stringify({appReady: window.appReady})`.
 - Parse-check a file by hand with `node --check <file>`.
 - Report what you observed, with the command and its output. Do not summarise a result you did not see.
 

@@ -18,3 +18,4 @@ node_modules/
 .gm/config-source-cache-*.lock/
 .gm/codesearch-result-*.json
 .gm/fsm-graph-rejected.json
+.gm/crawl-cdp-profile/
