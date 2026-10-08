@@ -237,9 +237,9 @@
     const call = (fn, label) => {
       try {
         const r = fn && fn();
-        if (r && typeof r.catch === 'function') return r.catch((e) => { if (label) toastErr(label, e); });
+        if (r && typeof r.catch === 'function') return r.catch((e) => { toastErr(label || 'Action failed', e); });
         return r;
-      } catch (e) { if (label) toastErr(label, e); }
+      } catch (e) { toastErr(label || 'Action failed', e); }
     };
     // Voice Settings changes apply eagerly (the modal reads straight off the
     // live signals), so Cancel can only be honest if the pre-open state is
