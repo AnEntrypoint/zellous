@@ -11,16 +11,6 @@
   <script>
     // Theme init — runs before any paint. Shares 'zellous-theme' localStorage with landing.
     (function(){try{var t=localStorage.getItem('zellous-theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');else document.documentElement.setAttribute('data-theme','ink');}catch(e){}})();
-    // Toggle wiring — bound on DOMContentLoaded since #themeToggleBtn is later in document.
-    document.addEventListener('DOMContentLoaded',function(){
-      var b=document.getElementById('themeToggleBtn');if(!b)return;
-      b.addEventListener('click',function(){
-        var cur=document.documentElement.getAttribute('data-theme')==='light'?'light':'ink';
-        var next=cur==='light'?'ink':'light';
-        document.documentElement.setAttribute('data-theme',next);
-        try{localStorage.setItem('zellous-theme',next);}catch(e){}
-      });
-    });
   </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%233F8A4A'/><text x='50' y='72' font-size='60' font-weight='800' font-family='monospace' fill='%23F5F0E4' text-anchor='middle'>Z</text></svg>">
   <script>
@@ -115,7 +105,7 @@ window.nostrFsm = null;
       var t0=performance.now(),events=[];
       function log(name,extra){events.push({t:+(performance.now()-t0).toFixed(1),name:name,extra:extra||null});}
       function setProgress(p,label){if(fill)fill.style.width=Math.max(0,Math.min(100,p))+'%';if(label&&phase)phase.textContent=label;log('progress',{p:p,label:label});}
-      function fail(msg){if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});console.error('[zellous boot]',msg,events);}
+      var failedOnce=false;function fail(msg){if(failedOnce)return;failedOnce=true;if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});console.error('[zellous boot]',msg,events);}
       function done(){if(!box)return;box.classList.add('gone');setTimeout(function(){box&&box.parentNode&&box.parentNode.removeChild(box);},250);log('done');}
       window.__boot={ progress:setProgress, fail:fail, done:done, events:events, t0:t0 };
       // Safety net — if nothing finalizes within 25s, surface the failure.
@@ -413,191 +403,6 @@ async function initNostr() {
   }
 
   window.zellousDebug = { state, auth, nostrNet, chat, channelManager, serverManager, queue, nostrVoice };
-
-document.getElementById('voiceCamBtn')?.addEventListener('click', function() {
-    if (window.lk && lk.toggleCamera) lk.toggleCamera();
-  });
-  document.getElementById('voiceVideoBtn')?.addEventListener('click', function() {
-    if (window.lk && lk.toggleCamera) lk.toggleCamera();
-  });
-
-  // Voice control bar: mic, deafen, leave wire-up. The icons render with the
-  // correct state from voice events, but the click bindings live here.
-  document.getElementById('voiceMicBtn')?.addEventListener('click', function() {
-    if (window.lk?.toggleMic) lk.toggleMic();
-  });
-  document.getElementById('voiceDeafenBtn')?.addEventListener('click', function() {
-    if (window.lk?.toggleDeafen) lk.toggleDeafen();
-  });
-  document.getElementById('voiceLeaveBtn')?.addEventListener('click', function() {
-    if (window.lk?.disconnect) lk.disconnect();
-  });
-
-  // Chat-header settings cog opens the unified channel-settings modal so it
-  // works for both text and voice channels regardless of how you got here.
-  document.getElementById('channelHeaderSettingsBtn')?.addEventListener('click', function() {
-    const id = state.currentChannel?.id;
-    if (id && window.channelManager?.showSettingsModal) channelManager.showSettingsModal(id);
-  });
-
-  // Connected banner — drives visibility from voice state. Hidden while
-  // viewing the same channel we're in; visible everywhere else.
-  (function() {
-    const banner = document.getElementById('voiceConnectedBanner');
-    const nameEl = document.getElementById('vcbChannelName');
-    const leaveBtn = document.getElementById('vcbLeaveBtn');
-    if (!banner) return;
-    const update = () => {
-      const connected = !!state.voiceConnected;
-      const voiceCh = state.voiceChannelName || '';
-      const curCh = state.currentChannel?.name || '';
-      const curType = state.currentChannel?.type;
-      const sameChannelView = connected && voiceCh && voiceCh === curCh && curType === 'voice';
-      const show = connected && !sameChannelView;
-      banner.classList.toggle('visible', show);
-      if (nameEl) nameEl.textContent = voiceCh || '—';
-    };
-    banner.addEventListener('click', (e) => {
-      if (e.target === leaveBtn || leaveBtn?.contains(e.target)) return;
-      const voiceCh = state.voiceChannelName;
-      if (!voiceCh) return;
-      const ch = (state.channels || []).find(c => c.type === 'voice' && c.name === voiceCh);
-      if (ch && window.ui?.actions?.switchChannel) ui.actions.switchChannel(ch);
-    });
-    leaveBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (window.lk?.disconnect) lk.disconnect();
-    });
-    if (typeof window.__effect === 'function') {
-      window.__effect(() => {
-        window.stateSignals?.voiceConnected?.value;
-        window.stateSignals?.voiceChannelName?.value;
-        window.stateSignals?.currentChannel?.value;
-        update();
-      });
-    } else {
-      setInterval(update, 500);
-    }
-    update();
-  })();
-
-  // Voice settings modal: device pickers, master volume, server-side bitrate
-  // when admin. Built on the existing modal-box vocabulary so it inherits
-  // every fix from the recent CSS sweep.
-  document.getElementById('voiceSettingsBtn')?.addEventListener('click', async function() {
-    document.getElementById('voiceSettingsModal')?.remove();
-    const modal = document.createElement('div');
-    modal.id = 'voiceSettingsModal';
-    modal.className = 'modal-overlay open';
-    const isAdmin = window.serverRoles && state.currentServerId &&
-      (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
-    const curBitrate = (window.serverSettings && state.currentServerId) ? serverSettings.getBitrate(state.currentServerId) : 48000;
-    const vol = Math.round(((state.masterVolume ?? 1) * 100));
-    const curChannelId = state.currentChannel?.id || '';
-    const curMode = (window.__zellous?.voiceMode?.get?.(curChannelId)) || 'ptt';
-    const canEditMode = isAdmin; // owner/admin controls the channel-wide mode
-    modal.innerHTML =
-      '<div class="modal-box" style="max-width:420px">' +
-        '<div class="modal-title">Voice Settings</div>' +
-        '<div class="modal-subtitle">Devices and volume. Channel mode is server-side; only the owner can change it.</div>' +
-        '<div class="modal-field"><label class="modal-label">Channel mode</label>' +
-          '<div style="display:flex;gap:8px">' +
-            '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:' + (canEditMode ? 'pointer' : 'not-allowed') + ';background:' + (curMode === 'ptt' ? 'var(--bg-4)' : 'var(--bg-3)') + ';opacity:' + (canEditMode ? '1' : '0.8') + '">' +
-              '<input type="radio" name="vsMode" value="ptt"' + (curMode === 'ptt' ? ' checked' : '') + (canEditMode ? '' : ' disabled') + ' style="accent-color:var(--accent)">' +
-              '<span><strong style="color:var(--fg)">Push-to-talk</strong><br><span style="font-size:11px;color:var(--fg-3)">Hold to speak. Anti-overtalk queues you if someone else is talking.</span></span>' +
-            '</label>' +
-            '<label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:6px;cursor:' + (canEditMode ? 'pointer' : 'not-allowed') + ';background:' + (curMode === 'realtime' ? 'var(--bg-4)' : 'var(--bg-3)') + ';opacity:' + (canEditMode ? '1' : '0.8') + '">' +
-              '<input type="radio" name="vsMode" value="realtime"' + (curMode === 'realtime' ? ' checked' : '') + (canEditMode ? '' : ' disabled') + ' style="accent-color:var(--accent)">' +
-              '<span><strong style="color:var(--fg)">Realtime</strong><br><span style="font-size:11px;color:var(--fg-3)">Mic always open. Toggle with the mic button.</span></span>' +
-            '</label>' +
-          '</div>' +
-          '<div style="font-size:11px;color:var(--fg-3);margin-top:6px">' + (canEditMode ? 'Applies to every participant in this channel.' : 'Only the server owner can change this.') + '</div>' +
-        '</div>' +
-        '<div class="modal-field"><label class="modal-label">Input device</label>' +
-          '<select class="modal-input" id="vsInputDevice"></select></div>' +
-        '<div class="modal-field"><label class="modal-label">Output device</label>' +
-          '<select class="modal-input" id="vsOutputDevice"></select></div>' +
-        '<div class="modal-field"><label class="modal-label">Master volume <span id="vsVolValue" style="float:right;color:var(--fg-3)">' + vol + '%</span></label>' +
-          '<input type="range" id="vsVolume" min="0" max="100" value="' + vol + '" style="width:100%;accent-color:var(--accent)"></div>' +
-        (isAdmin ?
-          '<div class="modal-field"><label class="modal-label">Voice quality (Opus bitrate)</label>' +
-            '<select class="modal-input" id="vsBitrate">' +
-            [8000,16000,24000,48000,96000].map(function(b){
-              return '<option value="' + b + '"' + (b === curBitrate ? ' selected' : '') + '>' + (b/1000) + ' kbps</option>';
-            }).join('') +
-            '</select>' +
-            '<div style="font-size:11px;color:var(--fg-3);margin-top:4px">Server-wide setting (admin only).</div></div>'
-          : '') +
-        '<button type="button" class="modal-btn" id="vsSave">Save</button>' +
-        '<button type="button" class="modal-btn secondary" id="vsClose">Close</button>' +
-      '</div>';
-    document.body.appendChild(modal);
-
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    const vsTrigger = document.activeElement;
-    const vsFocusable = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
-    const vsRestoreFocus = () => { if (vsTrigger && document.body.contains(vsTrigger) && typeof vsTrigger.focus === 'function') vsTrigger.focus(); };
-    const vsOrigRemove = modal.remove.bind(modal);
-    modal.remove = () => { vsOrigRemove(); vsRestoreFocus(); };
-    modal.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); modal.remove(); return; }
-      if (e.key !== 'Tab') return;
-      const focusable = Array.prototype.slice.call(modal.querySelectorAll(vsFocusable));
-      if (!focusable.length) return;
-      const first = focusable[0], last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
-    });
-    setTimeout(() => { const first = modal.querySelector(vsFocusable); if (first) first.focus(); }, 0);
-
-    const fillDevices = async () => {
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true }).then(s => s.getTracks().forEach(t => t.stop())).catch(() => {});
-        const devs = await navigator.mediaDevices.enumerateDevices();
-        const inSel = modal.querySelector('#vsInputDevice');
-        const outSel = modal.querySelector('#vsOutputDevice');
-        inSel.innerHTML = devs.filter(d => d.kind === 'audioinput').map(d => '<option value="' + d.deviceId + '">' + (d.label || 'Microphone') + '</option>').join('') || '<option>(no devices)</option>';
-        outSel.innerHTML = devs.filter(d => d.kind === 'audiooutput').map(d => '<option value="' + d.deviceId + '">' + (d.label || 'Speakers') + '</option>').join('') || '<option>(default)</option>';
-        if (state.preferredInputDevice) inSel.value = state.preferredInputDevice;
-        if (state.preferredOutputDevice) outSel.value = state.preferredOutputDevice;
-      } catch (e) {
-        if (window.ui?.showToast) ui.showToast('Could not list audio devices — check microphone permission', 'error');
-      }
-    };
-    fillDevices();
-
-    const volEl = modal.querySelector('#vsVolume');
-    const volLabel = modal.querySelector('#vsVolValue');
-    volEl.addEventListener('input', () => {
-      volLabel.textContent = volEl.value + '%';
-      const v = parseInt(volEl.value, 10) / 100;
-      state.masterVolume = v;
-      document.querySelectorAll('audio').forEach(a => { try { a.volume = v; } catch {} });
-    });
-
-    modal.querySelector('#vsSave').addEventListener('click', async () => {
-      const inSel = modal.querySelector('#vsInputDevice');
-      const outSel = modal.querySelector('#vsOutputDevice');
-      if (inSel?.value) state.preferredInputDevice = inSel.value;
-      if (outSel?.value) state.preferredOutputDevice = outSel.value;
-      const bitrateEl = modal.querySelector('#vsBitrate');
-      if (bitrateEl && isAdmin && window.serverSettings) {
-        try { await serverSettings.setBitrate(state.currentServerId, parseInt(bitrateEl.value, 10)); } catch {}
-      }
-      const modeEl = modal.querySelector('input[name="vsMode"]:checked');
-      if (modeEl && canEditMode && window.channelManager?.update) {
-        const newMode = modeEl.value;
-        if (newMode !== curMode) {
-          try { await channelManager.update(curChannelId, { voiceMode: newMode }); } catch (e) { if (window.ui?.showToast) ui.showToast('Could not change voice mode: ' + (e?.message || 'unknown error'), 'error'); }
-        }
-      }
-      if (window.ui?.showToast) ui.showToast('Voice settings saved');
-      modal.remove();
-    });
-    modal.querySelector('#vsClose').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
-  });
 
   document.addEventListener('paste', function(e) {
     if (!state.nostrPubkey || !state.currentChannelId) return;

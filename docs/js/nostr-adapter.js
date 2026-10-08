@@ -302,8 +302,7 @@
         if (window.state.homeMode) {
           const peer = v('activeDmPeer', null);
           if (!peer) { window.ui.showToast(LOCK_DM.toast, 3500, 'error'); return; }
-          window.dm.send(peer, text).catch((e) => window.ui.showToast('Could not send: ' + (e && e.message || 'unknown'), 4000, 'error'));
-          if (S.chatInputValue) S.chatInputValue.value = '';
+          window.dm.send(peer, text).then(() => { if (S.chatInputValue) S.chatInputValue.value = ''; }, (e) => window.ui.showToast('Could not send: ' + (e && e.message || 'unknown'), 4000, 'error'));
           return;
         }
         return Promise.resolve(window.chat.send(text, opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
