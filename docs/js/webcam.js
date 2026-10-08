@@ -1,3 +1,4 @@
+const LIVE_VIDEO_WINDOW = 120;
 const webcam = {
   showVideo: (chunks, username) => {
     if (!chunks?.length) { ui.videoPlayback.style.display = 'none'; return; }
@@ -10,7 +11,9 @@ const webcam = {
   streamChunk: (userId, chunk, username) => {
     if (!state.liveVideoChunks) state.liveVideoChunks = new Map();
     if (!state.liveVideoChunks.has(userId)) state.liveVideoChunks.set(userId, []);
-    state.liveVideoChunks.get(userId).push(chunk);
+    const chunks = state.liveVideoChunks.get(userId);
+    chunks.push(chunk);
+    if (chunks.length > LIVE_VIDEO_WINDOW) chunks.splice(1, chunks.length - LIVE_VIDEO_WINDOW);
     ui.videoPlaybackLabel.textContent = username || 'Unknown';
     ui.videoPlayback.style.display = 'block';
     if (!state.liveVideoInterval) {

@@ -16,6 +16,7 @@
   let attached = false;
   let connected = false;
   let lastConnected = null;
+  const INBOUND_QUEUE_CAP = 50;
   let inboundQueue = [];        // { segId, name, mime, bytes, dur, ts, url? }
   let playing = null;           // currently-playing segment
   let playerEl = null;          // <audio>
@@ -141,6 +142,7 @@
     const seg = e.detail?.segment; if (!seg?.bytes?.length) return;
     seg._seq = nextSeq++;
     inboundQueue.push(seg);
+    if (inboundQueue.length > INBOUND_QUEUE_CAP) for (const d of inboundQueue.splice(0, inboundQueue.length - INBOUND_QUEUE_CAP)) if (d.url) URL.revokeObjectURL(d.url);
     renderQueue();
     if (!paused) drainQueue();
   }
