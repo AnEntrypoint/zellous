@@ -53,14 +53,14 @@ tradeoffs, disclosed here rather than left implicit:
   cap on the composer this UI drives) — it slows down accidental flooding
   through this app's own send path, not a hostile client that bypasses this
   UI and publishes directly against the relay's own event-rate limits.
-- **The protocol layer and UI kit (wireweave, anentrypoint-design) are built
-  by CI from git submodules** (`design/`, `wireweave/`) and vendored into
-  the deployed app — CI advances both to their latest upstream `main` on
-  every push, so this app auto-tracks new commits with no manual bump. The
-  UI kit's own runtime code separately fetches syntax-highlighting libs
-  (prismjs) live from cdn.jsdelivr.net; nostr-tools is pinned to an exact
-  version fetched from esm.sh. None of these carry a Subresource Integrity
-  hash yet, so CDN or upstream-package compromise remains a real risk.
+- **The protocol layer and UI kit (wireweave, anentrypoint-design) are loaded
+  live from jsdelivr's GitHub `@main` CDN** (`cdn.jsdelivr.net/gh/AnEntrypoint/{wireweave,design}@main`)
+  with no vendored copy and no submodule. A push to either repo changes this
+  app on its next page load. The UI kit's own runtime code separately fetches
+  syntax-highlighting libs (prismjs) from cdn.jsdelivr.net; nostr-tools is
+  pinned to an exact version fetched from esm.sh. None of these carry a
+  Subresource Integrity hash yet, so CDN or upstream-package compromise
+  remains a real risk.
 - **No operational visibility.** There is no backend to log to, monitor, or
   run incident response from — if something breaks or is abused, this
   client has no built-in way to detect or report it.
@@ -94,8 +94,8 @@ Static site — `docs/` directory served via GitHub Pages. Full details (includi
 - `docs/nostr-chat/index.html` — app entry point
 - `docs/js/` — first-party client modules: feature logic (chat, voice, auth, files, queue, ...) plus `wireweave-bridge.js`, which wires the protocol layer to `window.*` globals, and `nostr-adapter.js`, which adapts app state to the UI layer
 - `docs/js/state.js` — shared Preact-signals state module
-- The real Nostr/voice protocol implementation (events, relay pool, auth, channels, roles, voice signaling) lives in the `wireweave` package, consumed live over `https://esm.sh/wireweave` — no local vendored copy
-- The entire chat/community UI (`mountCommunityApp`) is owned by the `anentrypoint-design` SDK and consumed live from its GitHub Pages deploy (`https://anentrypoint.github.io/design/247420.js`/`.css`) — there is no local vendored copy or bespoke UI code in this repo
+- The real Nostr/voice protocol implementation (events, relay pool, auth, channels, roles, voice signaling) lives in the `wireweave` package, loaded live from `https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@main/src/index.js` — no local vendored copy
+- The entire chat/community UI (`mountCommunityApp`) is owned by the `anentrypoint-design` SDK and loaded live from jsdelivr's GitHub `@main` build (`https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.{js,css}`) — there is no local vendored copy or bespoke UI code in this repo
 
 Voice uses native WebRTC with Nostr kind 30078 events as the signaling channel. No server, no STUN/TURN required for LAN; uses default browser STUN for WAN. Hub election, RTT scoring, and SFU forwarding live in `wireweave`'s `voice.js`.
 
