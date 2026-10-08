@@ -130,3 +130,5 @@ document.addEventListener('keydown', (e) => {
   if (window.stateSignals?.settingsOpen?.value) { ui.actions.closeSettings(); return; }
   if (window.stateSignals?.mobileMenuOpen?.value) { ui.actions.closeMobileMenu(); return; }
 });
+
+ui.fileInput?.addEventListener('change', (e) => ui.actions.handleFileSelect(e));

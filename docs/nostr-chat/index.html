@@ -222,7 +222,7 @@ window.nostrFsm = null;
     </div>
   </div>
 
-  <input type="file" class="hidden-input" id="fileInput" tabindex="-1" aria-hidden="true" accept="image/*,video/*" multiple autocomplete="off" tabindex="-1" aria-hidden="true">
+  <input type="file" class="hidden-input" id="fileInput" tabindex="-1" aria-hidden="true" multiple autocomplete="off">
 
   <script src="../msgpackr.min.js"></script>
   <script type="module">
@@ -245,7 +245,7 @@ window.nostrFsm = null;
     try {
       const sdk = await import('anentrypoint-design');
       // NOTE: do NOT call sdk.installStyles() — it injects ~3.4MB of bundled CSS that fights
-      // the canonical 30KB stylesheet pair (colors_and_type.css + app-shell.css) loaded in <head>.
+      // the bundled 247420.css stylesheet linked in <head> (the single kit CSS source).
       window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components, applyTheme: sdk.applyTheme };
       try {
         const resolved = import.meta.resolve ? import.meta.resolve('anentrypoint-design') : null;
