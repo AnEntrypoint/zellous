@@ -129,7 +129,7 @@ window.__wireweaveReady = (async () => {
       if (avatarEl) { const n = avatarEl.childNodes[0]; if (n?.nodeType === 3) n.textContent = state.nostrProfile.name[0].toUpperCase(); }
       if (window.chat) chat.updateProfile(a.pubkey, state.nostrProfile);
     },
-    logout() { a.logout(); state.nostrPubkey = ''; state.nostrPrivkey = null; state.nostrProfile = null; state.authVersion = (state.authVersion || 0) + 1; net.disconnect(); },
+    logout() { a.logout(); state.nostrPubkey = ''; state.nostrPrivkey = null; state.nostrProfile = null; state.authVersion = (state.authVersion || 0) + 1; net.disconnect(); window.dm.reset(); },
     getToken: () => a.pubkey || null,
     isLoggedIn: () => a.isLoggedIn(),
     npubShort: (pk) => a.npubShort(pk),
@@ -313,6 +313,11 @@ window.__wireweaveReady = (async () => {
       state.dmMessages = dmMessages.slice();
       if (window.ui) ui.render.all();
       return ev;
+    },
+    reset() {
+      try { ww.ensureDM().unsubscribe(); } catch {}
+      dmSubId = null;
+      dmMessages = [];
     },
     subscribeAll() {
       if (dmSubId || !a.pubkey) return dmSubId;
@@ -607,9 +612,13 @@ window.__wireweaveReady = (async () => {
     voice.addEventListener('disconnected', () => { state.voiceListenOnly = false; state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
     voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
     voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
+    let lastLevelWrite = 0;
     voice.addEventListener('local-level', (e) => {
-      const q = Math.round(e.detail.level * 100) / 100;
-      if (state.micRawLevel !== q) state.micRawLevel = q;
+      const q = Math.round(e.detail.level * 10) / 10;
+      const now = performance.now();
+      if (state.micRawLevel === q || (q !== 0 && now - lastLevelWrite < 150)) return;
+      lastLevelWrite = now;
+      state.micRawLevel = q;
     });
     return voice;
   };
@@ -674,7 +683,7 @@ window.__wireweaveReady = (async () => {
   window.__zellous.generateKeyWithConfirm = generateKeyWithConfirm;
   Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, unread: window.nostrUnread, wireweave: ww });
 
-  document.addEventListener('nostr:login', () => window.dm.subscribeAll());
+  document.addEventListener('nostr:login', () => { window.nostrNet.connect(); window.dm.subscribeAll(); });
   if (a.pubkey) window.dm.subscribeAll();
 
   document.dispatchEvent(new CustomEvent('wireweave:ready'));
