@@ -195,7 +195,7 @@ serverManager.showJoinPreview = function(serverId, onConfirm) {
   modal.innerHTML = '<div class="modal-box" style="max-width:380px;text-align:center">' +
     '<div class="modal-title">Join Server?</div>' +
     '<div class="modal-subtitle" id="joinPreviewName">' + escHtml(name) + '</div>' +
-    '<div style="font-size:11px;color:var(--fg-3);margin-bottom:16px;word-break:break-all">' + serverId + '</div>' +
+    '<div style="font-size:11px;color:var(--fg-3);margin-bottom:16px;word-break:break-all">' + escHtml(serverId) + '</div>' +
     '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="joinPreviewCancel">Cancel</button><button class="modal-btn" id="joinPreviewConfirm">Join Server</button></div>' +
     '</div>';
   document.body.appendChild(modal);
