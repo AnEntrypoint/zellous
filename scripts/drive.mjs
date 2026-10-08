@@ -3,9 +3,11 @@
 // The fast path for "what does this actually look like in the browser right now".
 //
 //   node scripts/drive.mjs probe.js [--local] [--viewport 1280x800] [--shot name]
-//   node scripts/drive.mjs --expr "document.title"
+//   node scripts/drive.mjs --expr "return document.title"
+//   node scripts/drive.mjs --url https://example.org/ --no-ready --expr "return document.title"
 //
-// The script file is a module body: it may be async and may `return` a value.
+// The script body is wrapped in an async function: it may await, and it must
+// `return` its value (a bare trailing expression is discarded).
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -19,30 +21,69 @@ const flag = (n, d) => {
 };
 const has = (n) => args.includes(`--${n}`);
 
-const file = args.find((a) => !a.startsWith('--'));
+const VALUE_FLAGS = new Set(['port', 'path', 'url', 'viewport', 'shot', 'timeout', 'settle', 'storage', 'storage-out', 'expr']);
+const positional = args.filter(
+  (a, i) => !a.startsWith('--') && !(i > 0 && args[i - 1].startsWith('--') && VALUE_FLAGS.has(args[i - 1].slice(2)))
+);
+const file = positional[0];
 const expr = typeof flag('expr') === 'string' ? flag('expr') : null;
-if (!file && !expr) {
-  console.error('usage: node scripts/drive.mjs <script.js> | --expr "<js>" [--local] [--viewport WxH] [--shot name] [--ready false] [--timeout ms]');
+const USAGE =
+  'usage: node scripts/drive.mjs <script.js> | --expr "<js, must return a value>"\n' +
+  '  [--url <absolute http(s) URL>]  drive an external page instead of the local app; no dev server, --local/--path ignored\n' +
+  '  [--path <app path>]             app path under the dev server (default nostr-chat/)\n' +
+  '  [--local]                       serve the sibling design/wireweave checkouts\n' +
+  '  [--port N] [--viewport WxH] [--shot name] [--timeout ms] [--settle ms]\n' +
+  '  [--no-ready]                    skip waiting for window.appReady (default for --url unless --wait-ready)\n' +
+  '  [--wait-ready]                  wait for window.appReady even with --url\n' +
+  '  [--fake-media]                  launch Chromium with a fake camera/microphone and auto-accepted media prompts\n' +
+  '  [--no-fake-media]               explicit default: real (absent) media devices, prompts as Chromium decides\n' +
+  '  [--storage file] [--storage-out file]';
+if (has('url') && typeof flag('url') !== 'string') {
+  console.error('--url needs a value\n' + USAGE);
   process.exit(2);
+}
+if (!file && !expr) {
+  console.error(USAGE);
+  process.exit(2);
+}
+
+const URL_OVERRIDE = typeof flag('url') === 'string' ? flag('url') : null;
+if (URL_OVERRIDE !== null) {
+  let parsed = null;
+  try {
+    parsed = new URL(URL_OVERRIDE);
+  } catch {}
+  if (!parsed || !/^https?:$/.test(parsed.protocol)) {
+    console.error(`--url must be an absolute http(s) URL, got: ${URL_OVERRIDE}`);
+    process.exit(2);
+  }
 }
 
 const PORT = Number(flag('port', 5201));
 const LOCAL = has('local') || process.env.ZELLOUS_LOCAL_DEPS === '1';
 const [W, H] = String(flag('viewport', '1280x800')).split('x').map(Number);
 const SHOT = typeof flag('shot') === 'string' ? flag('shot') : null;
-const WAIT_READY = !has('no-ready');
+// The app's appReady flag does not exist on an arbitrary page, so --url waits only on request.
+const WAIT_READY = has('wait-ready') || (URL_OVERRIDE === null && !has('no-ready'));
 const TIMEOUT = Number(flag('timeout', 20000));
 const OUT = path.resolve('.gm/witness');
 const STORAGE = typeof flag('storage') === 'string' ? flag('storage') : null;
+const FAKE_MEDIA = has('fake-media') && !has('no-fake-media');
+const CHROME_ARGS = [
+  '--no-sandbox',
+  '--disable-dev-shm-usage',
+  ...(FAKE_MEDIA ? ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] : []),
+];
 
 const raw = expr ?? fs.readFileSync(file, 'utf8');
 const body = `(async () => {\n${raw}\n})()`;
 
-const { up, stop } = startDevServer({ port: PORT, local: LOCAL });
+const server = URL_OVERRIDE === null ? startDevServer({ port: PORT, local: LOCAL }) : null;
+const stop = (code) => (server ? server.stop(code) : process.exit(code));
 
 async function main() {
-  await up();
-  const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  if (server) await server.up();
+  const browser = await chromium.launch({ args: CHROME_ARGS });
   const ctx = await browser.newContext({ viewport: { width: W, height: H } });
   if (STORAGE && fs.existsSync(STORAGE)) {
     await ctx.addInitScript(
@@ -57,7 +98,7 @@ async function main() {
     if (!/fonts\.g|favicon/.test(r.url())) errors.push(`${r.failure()?.errorText} ${r.url()}`);
   });
 
-  const url = `http://127.0.0.1:${PORT}/${String(flag('path', LOCAL ? 'nostr-chat/?local=1' : 'nostr-chat/'))}`;
+  const url = URL_OVERRIDE ?? `http://127.0.0.1:${PORT}/${String(flag('path', LOCAL ? 'nostr-chat/?local=1' : 'nostr-chat/'))}`;
   await page.goto(url, { waitUntil: 'domcontentloaded', timeout: TIMEOUT });
   if (WAIT_READY) await page.waitForFunction('window.appReady === true', { timeout: TIMEOUT });
   await page.waitForTimeout(Number(flag('settle', 800)));
@@ -86,7 +127,7 @@ async function main() {
   }
 
   await browser.close();
-  console.log(JSON.stringify({ result, errors }, null, 2));
+  console.log(JSON.stringify({ url, fakeMedia: FAKE_MEDIA, result, errors }, null, 2));
   stop(errors.length ? 1 : 0);
 }
 main().catch((e) => {

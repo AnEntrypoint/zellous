@@ -27,6 +27,12 @@ const VIEWPORTS = (typeof flag('viewports') === 'string' ? flag('viewports') : '
 const SHOTS = !has('no-shots');
 const OUT = path.resolve('.gm/witness');
 const TIMEOUT = Number(flag('timeout', 20000));
+const FAKE_MEDIA = has('fake-media') && !has('no-fake-media');
+const CHROME_ARGS = [
+  '--no-sandbox',
+  '--disable-dev-shm-usage',
+  ...(FAKE_MEDIA ? ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] : []),
+];
 
 const { up: waitForServer, stop } = startDevServer({ port: PORT, local: LOCAL });
 
@@ -36,8 +42,8 @@ async function run() {
   await waitForServer();
   fs.mkdirSync(OUT, { recursive: true });
 
-  const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  const report = { url: null, viewports: [], errors: [], failedRequests: [], boot: null };
+  const browser = await chromium.launch({ args: CHROME_ARGS });
+  const report = { url: null, fakeMedia: FAKE_MEDIA, viewports: [], errors: [], failedRequests: [], boot: null };
 
   for (const vp of VIEWPORTS) {
     const ctx = await browser.newContext({ viewport: vp, ignoreHTTPSErrors: true });

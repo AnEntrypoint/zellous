@@ -24,6 +24,12 @@ const VIEWPORTS = (typeof flag('viewports') === 'string' ? flag('viewports') : '
 const MIN_CONTRAST = Number(flag('min-contrast', 4.5));
 const MIN_TARGET = Number(flag('min-target', 40));
 const OUT = path.resolve('.gm/witness');
+const FAKE_MEDIA = has('fake-media') && !has('no-fake-media');
+const CHROME_ARGS = [
+  '--no-sandbox',
+  '--disable-dev-shm-usage',
+  ...(FAKE_MEDIA ? ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] : []),
+];
 
 const AUDIT = fs.readFileSync(path.resolve('scripts/audit-ui.pagescript.js'), 'utf8');
 
@@ -31,8 +37,8 @@ const { up, stop } = startDevServer({ port: PORT, local: LOCAL });
 
 async function main() {
   await up();
-  const browser = await chromium.launch({ args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  const report = { runs: [], findings: 0 };
+  const browser = await chromium.launch({ args: CHROME_ARGS });
+  const report = { runs: [], findings: 0, fakeMedia: FAKE_MEDIA };
 
   for (const vps of VIEWPORTS) {
     const [W, H] = vps.split('x').map(Number);
