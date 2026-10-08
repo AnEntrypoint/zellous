@@ -3,10 +3,10 @@
 // defect: contrast, touch-target size, occlusion, clipping, tiny type, missing
 // accessible names, stray scroll. Not a test suite -- a measuring instrument.
 
-import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { startDevServer } from './lib/dev-server.mjs';
 
 const args = process.argv.slice(2);
 const flag = (n, d) => {
@@ -27,27 +27,7 @@ const OUT = path.resolve('.gm/witness');
 
 const AUDIT = fs.readFileSync(path.resolve('scripts/audit-ui.pagescript.js'), 'utf8');
 
-const server = spawn(process.execPath, [path.resolve('scripts/dev-server.mjs'), 'docs', String(PORT)], {
-  env: { ...process.env, ZELLOUS_LOCAL_DEPS: LOCAL ? '1' : '0' },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let serverLog = '';
-server.stdout.on('data', (d) => (serverLog += d));
-server.stderr.on('data', (d) => (serverLog += d));
-const stop = (c) => {
-  server.kill('SIGKILL');
-  process.exit(c);
-};
-async function up() {
-  for (let i = 0; i < 100; i++) {
-    try {
-      if ((await fetch(`http://127.0.0.1:${PORT}/`)).ok) return;
-    } catch {}
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  console.error('server never came up:\n' + serverLog);
-  stop(1);
-}
+const { up, stop } = startDevServer({ port: PORT, local: LOCAL });
 
 async function main() {
   await up();

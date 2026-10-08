@@ -3,10 +3,10 @@
 // reports console errors, failed requests and boot state -- the step of the
 // validation loop that used to be hand-typed every time.
 
-import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright';
+import { startDevServer } from './lib/dev-server.mjs';
 
 const args = process.argv.slice(2);
 const flag = (name, dflt) => {
@@ -28,30 +28,7 @@ const SHOTS = !has('no-shots');
 const OUT = path.resolve('.gm/witness');
 const TIMEOUT = Number(flag('timeout', 20000));
 
-const server = spawn(process.execPath, [path.resolve('scripts/dev-server.mjs'), 'docs', String(PORT)], {
-  env: { ...process.env, ZELLOUS_LOCAL_DEPS: LOCAL ? '1' : '0' },
-  stdio: ['ignore', 'pipe', 'pipe'],
-});
-let serverLog = '';
-server.stdout.on('data', (d) => (serverLog += d));
-server.stderr.on('data', (d) => (serverLog += d));
-
-const stop = (code) => {
-  server.kill('SIGKILL');
-  process.exit(code);
-};
-
-async function waitForServer() {
-  for (let i = 0; i < 100; i++) {
-    try {
-      const r = await fetch(`http://127.0.0.1:${PORT}/`);
-      if (r.ok) return;
-    } catch {}
-    await new Promise((r) => setTimeout(r, 100));
-  }
-  console.error('dev server never came up:\n' + serverLog);
-  stop(1);
-}
+const { up: waitForServer, stop } = startDevServer({ port: PORT, local: LOCAL });
 
 const IGNORE = [/fonts\.googleapis/, /fonts\.gstatic/, /favicon/i];
 

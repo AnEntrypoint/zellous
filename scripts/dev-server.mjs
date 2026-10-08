@@ -14,10 +14,10 @@ const ROOT = path.resolve(process.argv[2] ?? 'docs');
 const PORT = Number(process.env.PORT ?? process.argv[3] ?? 5175);
 
 const CDN_DESIGN = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/';
-const CDN_WIREWEAVE = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@main/';
+const CDN_WIREWEAVE = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@f49c41e2dd0a336a31dd0dc75a6daffb9e03eb23/';
 
 const SIBLINGS = path.dirname(path.dirname(path.resolve('.')));
-// The CDN paths already carry the subdir (`design@main/dist/...`, `wireweave@main/src/...`),
+// The CDN paths already carry the subdir (`design@main/dist/...`, `wireweave@<sha>/src/...`),
 // so the mount prefix maps to each repo root, not to its build dir.
 const MOUNTS = [
   { prefix: '/deps/design/', dir: path.join(path.dirname(ROOT), '..', 'design') },

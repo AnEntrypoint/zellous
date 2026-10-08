@@ -129,19 +129,22 @@ If `errors` is non-empty (after filtering external Google Fonts failures, which 
 ## CI workflow
 
 `.github/workflows/ci.yml` operationalizes the validation loop on every push/PR
-across two jobs. `validate`: (1) a `node --check` parse-gate over `docs/js` +
-`site` + `flatspace.config.mjs` (skips `vendor/`), and (2) a static-serve smoke
-that HTTP-witnesses `/nostr-chat/` returns 200 HTML with explicit MIME types
-(`.js`/`.mjs` -> `text/javascript`). `browser-witness`: boots the same static
-server and drives it with Playwright chromium (cached via `actions/cache` on
-`~/.cache/ms-playwright`, keyed on `package-lock.json`), navigating to
-`/nostr-chat/`, waiting for `window.appReady===true`, and failing on any
-console error other than the expected Google Fonts failure — the exact
-validation loop step 3 check. It runs with `continue-on-error: true` since it
-depends on `anentrypoint.github.io` being reachable at run time and flake risk
-is still unknown; its pass/fail still reports on the PR/commit, it just doesn't
-block merge. Keep the `validate` job green before pushing; `browser-witness`
-is advisory for now.
+across two jobs. `validate`: (1) `sha256sum -c` over the vendored nostr-tools
+bundle (`docs/vendor/nostr-tools/SHA256SUMS`), (2) a `node --check` parse-gate
+over `docs/js` + `site` + `flatspace.config.mjs` (skips `vendor/`), and (3) a
+static-serve smoke that HTTP-witnesses `/nostr-chat/` returns 200 HTML with
+explicit MIME types (`.js`/`.mjs` -> `text/javascript`). `browser-witness`: boots
+a local static server on `docs/` and drives it with Playwright chromium (browsers
+cached via `actions/cache` on `~/.cache/ms-playwright`, keyed on
+`package-lock.json`), navigating to `/nostr-chat/`, waiting for
+`window.appReady===true`, and failing on any console error other than the
+expected Google Fonts failure — the exact validation loop step 3 check. It needs
+no external host; its advisory status comes from the Playwright install step
+(`npx playwright install --with-deps chromium`) flaking, and it runs with
+`continue-on-error: true` so its pass/fail still reports on the PR/commit without
+blocking merge. Keep the `validate` job green before pushing; `browser-witness`
+is advisory for now. Every `uses:` in both workflows is pinned to a commit SHA
+with the tag in a trailing comment; re-pin deliberately, never to a moving tag.
 
 ## Things that look broken but aren't
 

@@ -15,3 +15,6 @@ node_modules/
 .gm/.last-scan-deps-result.json
 .gm/.last-scan-deps-ts
 .gm/config-source-cache-*.sync.json
+.gm/config-source-cache-*.lock/
+.gm/codesearch-result-*.json
+.gm/fsm-graph-rejected.json
