@@ -14,7 +14,7 @@ const ROOT = path.resolve(process.argv[2] ?? 'docs');
 const PORT = Number(process.env.PORT ?? process.argv[3] ?? 5175);
 
 const CDN_DESIGN = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/';
-const CDN_WIREWEAVE = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@f49c41e2dd0a336a31dd0dc75a6daffb9e03eb23/';
+const CDN_WIREWEAVE = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@fbcee886afc492f95eba5d6d6efd7dab914b3125/';
 
 const SIBLINGS = path.dirname(path.dirname(path.resolve('.')));
 // The CDN paths already carry the subdir (`design@main/dist/...`, `wireweave@<sha>/src/...`),
