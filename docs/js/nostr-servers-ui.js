@@ -285,12 +285,15 @@ serverManager.showCreateModal = function() {
     picker.appendChild(dot);
   });
   modal.querySelector('#newServerName').focus();
+  var creating = false;
   modal.querySelector('#createServerForm').addEventListener('submit', async function() {
+    if (creating) return;
     var nameEl = document.getElementById('newServerName');
     var name = nameEl.value.trim();
     if (!name) { _invalidInput(nameEl); return; }
+    creating = true;
     try { await serverManager.create(name, selectedColor); modal.remove(); }
-    catch (e) { window.ui && window.ui.showToast && window.ui.showToast('Create server failed: ' + (e && e.message || 'unknown'), 3000, 'error'); }
+    catch (e) { creating = false; window.ui && window.ui.showToast && window.ui.showToast('Create server failed: ' + (e && e.message || 'unknown'), 3000, 'error'); }
   });
   modal.querySelector('#cancelCreateServer').addEventListener('click', function() { modal.remove(); });
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
