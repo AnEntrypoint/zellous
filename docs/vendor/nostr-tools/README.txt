@@ -1,0 +1,1 @@
+nostr-tools@2.25.2 bundle, fetched from https://esm.sh/nostr-tools@2.25.2/es2022/nostr-tools.bundle.mjs (self-contained, no imports). Vendored because native import maps carry no integrity check. Verify with: sha256sum -c SHA256SUMS

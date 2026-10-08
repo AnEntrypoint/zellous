@@ -17,6 +17,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Verify vendored nostr-tools bundle
+        run: sha256sum -c docs/vendor/nostr-tools/SHA256SUMS
       - name: Parse-check first-party JS
         run: |
           node -e "
