@@ -56,10 +56,8 @@ const threadManager = {
     if (!window.channelManager || !parentChannelId) return null;
     const parent = (state.channels || []).find(c => c.id === parentChannelId);
     const name = title || `thread-${Date.now().toString(36)}`;
-    const created = await window.channelManager.create(name, 'threaded', parent?.categoryId ?? null);
+    const created = await window.channelManager.create(name, 'threaded', parent?.categoryId ?? null, { parentChannelId });
     if (!created) return null;
-    await window.channelManager.update(created.id, { parentChannelId });
-    created.parentChannelId = parentChannelId;
     const existing = this._threads.get(parentChannelId) || [];
     existing.push({ id: created.id, title: name, author: state.userId || '', time: Date.now() });
     this._threads.set(parentChannelId, existing);

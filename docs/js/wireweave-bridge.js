@@ -360,7 +360,7 @@ window.__wireweaveReady = (async () => {
     loadChannels: (sid, onReady) => ch.load(sid, onReady),
     _setDefaults: () => ch._setDefaults(),
     _publishChannelList: () => ch._publish(),
-    create: (n, t, c) => ch.create(n, t, c),
+    create: (n, t, c, x) => ch.create(n, t, c, x),
     rename: (id, n) => ch.rename(id, n),
     update: (id, patch) => ch.update(id, patch),
     remove: (id) => ch.remove(id),
