@@ -61,7 +61,7 @@ tradeoffs, disclosed here rather than left implicit:
   design push changes this app on its next page load. The UI kit's own runtime code
   separately fetches syntax-highlighting libs (prismjs) from cdn.jsdelivr.net.
   nostr-tools 2.25.2 is vendored at `docs/vendor/nostr-tools` and checked against a
-  SHA-256 manifest in CI. The live CDN loads carry no Subresource Integrity hash yet,
+  SHA-256 manifest (`sha256sum -c` checks it by hand). The live CDN loads carry no Subresource Integrity hash yet,
   so CDN or upstream-package compromise remains a real risk.
 - **No operational visibility.** There is no backend to log to, monitor, or
   run incident response from — if something breaks or is abused, this
@@ -75,7 +75,7 @@ tradeoffs, disclosed here rather than left implicit:
 npx serve docs
 ```
 
-Visit `http://localhost:3000/nostr-chat/`. See `AGENTS.md` for the full local dev-server + browser-witness validation loop used when making changes.
+Visit `http://localhost:3000/nostr-chat/`. See `AGENTS.md` for the live-run verification loop (`scripts/drive.mjs`) used when making changes.
 
 ### Testing voice/signaling locally
 

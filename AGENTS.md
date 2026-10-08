@@ -60,58 +60,15 @@ Until then, `zellous.css` co-exists with the SDK's `community.css` (the SDK's `c
 
 If you find yourself editing anything under `docs/vendor/`, stop — that's a third-party drop, not first-party code. Protocol behavior changes belong in the `wireweave` sibling repo (`../wireweave`), consumed live over CDN at the pinned SHA, not vendored.
 
-## Validation loop (run before declaring done)
+## Verification (live runs only)
 
-Browser-facing changes must be witnessed live, not assumed.
+No hard-coded validations and no test files. Verify behaviour by running the real system and reading the observed output. Do not add scripts or CI jobs that encode pass/fail checks.
 
-**Use `scripts/` — it does all three steps below.** `npm run dev` serves `docs/` on port 5175 with correct MIME types; `npm run dev:local` (`ZELLOUS_LOCAL_DEPS=1`) additionally repoints the `design`/`wireweave` importmap at the sibling checkouts (`/config/workspace/design`, `/config/workspace/wireweave`) so a dependency edit is visible on the next reload instead of after a push and CDN refresh. `node scripts/drive.mjs <script>.js --local --storage /tmp/gm/session.json --port 52XX` runs one page-context script and prints its value plus every console error; `node scripts/audit-ui.mjs --local --storage <state> --viewports 1280x800,375x667 --themes ink,light` measures contrast, tap targets, occlusion, focus order and unnamed controls across scenes. `--local` still serves `design/dist/247420.{js,css}`, so run `node scripts/build.mjs` in the design repo after editing its `src/`. Without `--local`, the scripts load the production CDN URLs.
+- `node scripts/drive.mjs <probe.js> --local` (or `--expr "<js>"`, or `--url <absolute URL>`) runs a page-context script against the live app and prints its return value and console errors. `--local` serves the sibling wireweave and design checkouts; without it the app loads them from the pinned jsdelivr URLs.
+- Parse-check a file by hand with `node --check <file>`.
+- Report what you observed, with the command and its output. Do not summarise a result you did not see.
 
-Minimum loop, for reference. The CI workflow runs the equivalent of steps 1 and 2 (with explicit MIME types and port 5175) and step 3 through Playwright; see `.github/workflows/ci.yml`.
-
-```js
-// 1. Parse-check first-party JS
-exec:nodejs
-const {execSync}=require('child_process');
-const fs=require('fs'),p=require('path');
-function walk(d,a=[]){for(const e of fs.readdirSync(d,{withFileTypes:true})){if(e.name.startsWith('.')||e.name==='vendor')continue;const fp=p.join(d,e.name);e.isDirectory()?walk(fp,a):/\.(m?js)$/.test(e.name)&&a.push(fp);}return a;}
-const fails=[];for(const f of [...walk('docs/js'),...walk('site'),'flatspace.config.mjs'].filter(fs.existsSync)){try{execSync(`node --check "${f}"`,{stdio:'pipe'});}catch(e){fails.push(f+': '+String(e.stderr).split('\n')[0]);}}
-console.log(fails.length?fails:'parse OK');
-```
-
-```js
-// 2. Boot a static server and HTTP-witness key paths
-exec:nodejs
-const http=require('http'),fs=require('fs'),p=require('path'),url=require('url');
-const ROOT=p.resolve('docs');
-const MIME={'.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.html':'text/html'};
-http.createServer((q,s)=>{let f=p.normalize(p.join(ROOT,decodeURIComponent(url.parse(q.url).pathname)));if(!f.startsWith(ROOT))return s.writeHead(403).end();if(fs.existsSync(f)&&fs.statSync(f).isDirectory())f=p.join(f,'index.html');if(!fs.existsSync(f))return s.writeHead(404).end('404');const ext=p.extname(f);s.writeHead(200,MIME[ext]?{'Content-Type':MIME[ext]}:{});s.end(fs.readFileSync(f));}).listen(5173);
-setInterval(()=>{},1<<30);
-// run with run_in_background:true
-```
-
-```js
-// 3. Browser witness — appReady + globals + zero errors
-exec:browser
-const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>m.type()==='error'&&errors.push(m.text()));
-await page.goto('http://127.0.0.1:5173/nostr-chat/',{waitUntil:'networkidle'});
-await page.waitForFunction('window.appReady===true',{timeout:15000});
-const surface=await page.evaluate(()=>({zellousKeys:Object.keys(window.__zellous||{}).length,lk:typeof window.lk,auth:typeof window.auth,ui:typeof window.ui}));
-console.log('surface',surface,'errors',errors.filter(e=>!/fonts\.googleapis/.test(e)));
-```
-
-If `errors` is non-empty (after filtering external Google Fonts failures, which are expected when offline), fix at root cause before continuing — never proceed past a known-bad signal.
-
-## CI workflow
-
-**`.github/workflows/ci.yml`** runs on push and pull request to `main`. Every `uses:` in both workflows is pinned to a commit SHA with the tag in a trailing comment; re-pin deliberately, never to a moving tag.
-
-- `validate` job (keep it green before pushing):
-  1. `sha256sum -c SHA256SUMS` in `docs/vendor/nostr-tools` (vendored nostr-tools 2.25.2 bundle).
-  2. `node --check` parse-gate over `docs/js`, `site` and `flatspace.config.mjs` (skips `vendor/`).
-  3. Static-serve smoke on port 5175: `/nostr-chat/` must return 200 HTML, with `.js`/`.mjs` served as `text/javascript`.
-- `browser-witness` job, advisory (`continue-on-error: true`, so it reports on the commit but does not block merge): installs `playwright@^1.59.1` with `--no-save`, caches `~/.cache/ms-playwright` keyed on `package-lock.json`, boots the same static server and waits for `window.appReady===true`, failing on any console error except Google Fonts. It loads wireweave and the SDK from `cdn.jsdelivr.net`, so jsdelivr must be reachable; it needs no other external host.
-
-**`.github/workflows/gh-pages.yml` ("Deploy GH Pages")** runs after a successful `CI` workflow run on `main` (`workflow_run`), or on `workflow_dispatch`. It has a single concurrency group, `pages`, with `cancel-in-progress: true`, so a newer deploy cancels a stuck one. It builds with `npx --yes flatspace@1.0.23 build`, uploads `./dist` with `actions/upload-pages-artifact`, and deploys with `actions/deploy-pages` (v5, SHA-pinned, `timeout: 900000` with `timeout-minutes: 15`), because normal deploys take up to about 11.5 minutes. If a deploy fails with a bare `deployment_queued`/`Deployment cancelled` error, check `gh api repos/<owner>/<repo>/deployments/<id>/statuses` for a blocking `error`/`failure` entry before assuming the workflow config regressed; the recovery that has worked is a manual `workflow_dispatch` retry after a cooldown.
+There is no CI workflow. Deploy runs on every push to `main` (`.github/workflows/gh-pages.yml`).
 
 ## Things that look broken but aren't
 
@@ -216,7 +173,7 @@ There is no local SDK copy anywhere in zellous. `docs/sdk/` does not exist, and 
 
 **SDK component reaches consumers as `C.X` only via the barrel** — `src/components.js` does `import * as components` and a consumer reads `sdk.C.X`. A new `export function Foo` in a component file is invisible until re-exported from `src/components.js`. A consumer that polls `setTimeout(init,30)` on `!sdk.C.Foo` (see `docs/js/sdk-command-palette.js`) stays dead with no error, so a missing barrel re-export is a silently dead feature, not a crash.
 
-**Static dev server must set MIME types** — When serving `docs/` locally for module script testing, the dev server must send explicit `Content-Type` headers (e.g. `text/javascript` for `.js` files). Browsers enforce strict MIME checking for ES modules and will refuse to execute scripts served without the correct type, even if the file content is correct. `scripts/dev-server.mjs` and the CI smoke server both do this; the snippet in step 2 above does too.
+**Static dev server must set MIME types** — When serving `docs/` locally for module script testing, the dev server must send explicit `Content-Type` headers (e.g. `text/javascript` for `.js` files). Browsers enforce strict MIME checking for ES modules and will refuse to execute scripts served without the correct type, even if the file content is correct. `scripts/dev-server.mjs` does this.
 
 **The validation-loop snippet 2 at port 5173 is the exception.** The `.mjs` files it serves need `text/javascript`, which the snippet sets explicitly. If you copy an older snippet that omits the MIME map, `.mjs` module loads fail; use port 5175 or add the MIME map.
 
