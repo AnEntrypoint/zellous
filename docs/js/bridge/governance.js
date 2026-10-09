@@ -1,6 +1,6 @@
 export function installGovernance(ww) {
   const roles = ww.roles;
-  roles.addEventListener('updated', () => {});
+  roles.addEventListener('updated', () => { state.rolesVersion = (state.rolesVersion || 0) + 1; });
   window.serverRoles = {
     _store: roles.store,
     isOwner: (sid) => roles.isOwner(sid),
