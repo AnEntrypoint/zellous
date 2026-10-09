@@ -101,7 +101,8 @@ ui.showFirstRunKeyNotice = function() {
     '<p style="font-size:13px;color:var(--fg-2);margin:0">To let you look around before signing in, zellous generated a Nostr key and saved it in this browser only. There is no password, no email and no recovery: clearing site data, a private window, or another device loses this identity and everything posted under it, permanently.</p>' +
     '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="frSkip">Continue without a backup</button><button type="button" class="modal-btn" id="frBackup">Back up key</button></div></div>';
   document.body.appendChild(modal);
-  var dismiss = function() { try { localStorage.setItem(flag, '1'); } catch (_) {} modal.remove(); };
+  try { localStorage.setItem(flag, '1'); } catch (_) {}
+  var dismiss = function() { modal.remove(); };
   modal.querySelector('#frSkip').addEventListener('click', dismiss);
   modal.querySelector('#frBackup').addEventListener('click', function() {
     dismiss();
