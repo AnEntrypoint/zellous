@@ -23,7 +23,11 @@ export function installGovernance(ww) {
   };
 
   const mutes = ww.mutes;
-  mutes.addEventListener('updated', () => { if (window.ui) ui.render.all(); });
+  mutes.addEventListener('updated', () => {
+    state.mutesVersion = (state.mutesVersion || 0) + 1;
+    const ch = state.currentChannel;
+    if (ch && (ch.type === 'text' || ch.type === 'announcement') && window.chat?.loadHistory) window.chat.loadHistory(ch.id);
+  });
   window.nostrMutes = {
     isMuted: (pk) => mutes.isMuted(pk),
     list: () => mutes.list(),
