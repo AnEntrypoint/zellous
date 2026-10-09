@@ -1,3 +1,5 @@
+const sig = (name) => window.stateSignals && window.stateSignals[name];
+
 ui.actions = {
   switchChannel(channel) {
     state.currentChannel = channel;
@@ -18,7 +20,8 @@ ui.actions = {
           .catch((e) => { if (window.ui?.showToast) ui.showToast('Voice connect failed: ' + (e?.message || 'unknown error'), 3000, 'error'); });
       }
     }
-    if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
+    const menu = sig('mobileMenuOpen');
+    if (menu) menu.value = false;
     ui._replyTarget = null;
     document.getElementById('replyComposeBar')?.remove();
   },
@@ -89,25 +92,27 @@ ui.actions = {
     e.target.value = '';
   },
   toggleMembers() {
-    const sig = window.stateSignals && window.stateSignals.memberListOpen;
-    if (sig) sig.value = !sig.value;
+    const members = sig('memberListOpen');
+    if (members) members.value = !members.value;
   },
   toggleQueue() {},
   toggleSettings() {
-    const sig = window.stateSignals && window.stateSignals.settingsOpen;
-    if (sig) { sig.value = !sig.value; return; }
+    const settings = sig('settingsOpen');
+    if (settings) { settings.value = !settings.value; return; }
     ui.settingsPopover?.classList.toggle('open');
   },
   closeSettings() {
-    const sig = window.stateSignals && window.stateSignals.settingsOpen;
-    if (sig) { sig.value = false; return; }
+    const settings = sig('settingsOpen');
+    if (settings) { settings.value = false; return; }
     ui.settingsPopover?.classList.remove('open');
   },
   openMobileMenu() {
-    if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = true;
+    const menu = sig('mobileMenuOpen');
+    if (menu) menu.value = true;
   },
   closeMobileMenu() {
-    if (window.stateSignals && window.stateSignals.mobileMenuOpen) window.stateSignals.mobileMenuOpen.value = false;
+    const menu = sig('mobileMenuOpen');
+    if (menu) menu.value = false;
   },
   closeVideoPlayback() {
     if (!ui.videoPlayback) return;
@@ -127,8 +132,8 @@ document.addEventListener('keydown', (e) => {
   // #settingsPopover element -- that element's class never gets toggled
   // through the live code path anymore, so checking it here always read
   // false and Escape silently never closed the real popover.
-  if (window.stateSignals?.settingsOpen?.value) { ui.actions.closeSettings(); return; }
-  if (window.stateSignals?.mobileMenuOpen?.value) { ui.actions.closeMobileMenu(); return; }
+  if (sig('settingsOpen')?.value) { ui.actions.closeSettings(); return; }
+  if (sig('mobileMenuOpen')?.value) { ui.actions.closeMobileMenu(); return; }
 });
 
 ui.fileInput?.addEventListener('change', (e) => ui.actions.handleFileSelect(e));
