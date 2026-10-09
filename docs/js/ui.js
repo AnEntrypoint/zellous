@@ -32,21 +32,12 @@ const chIcon = (type) => {
 
 // Real UI rendering is owned by the SDK's mountCommunityApp (see AGENTS.md
 // GUI ownership) -- it re-renders reactively off nostr-adapter.js's tracked
-// signals. These entry points exist only so call sites elsewhere (event
-// bridges, feature modules) that used to trigger the old hand-rolled DOM
-// render still have something to call; they are intentional no-ops.
+// signals. messages/queue/authStatus remain as no-ops only because live call
+// sites in bridge/chat.js, queue.js and ui-actions.js still invoke them.
 ui.render = {
   all() { if (window.serverManager) serverManager.renderList(); },
   messages() {},
-  speakers() {},
-  channels() {},
-  channelView() {},
-  voiceGrid() {},
-  voiceTurnOrder() {},
-  members() {},
-  chat() {},
   queue() {},
-  voicePanel() {},
   authStatus() {}
 };
 
