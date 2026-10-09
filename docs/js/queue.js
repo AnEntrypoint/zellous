@@ -41,7 +41,7 @@ const queue = {
       error: (e) => { console.warn('[Queue] decoder error:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 4000, 'error'); }
     });
     decoder.configure({ codec: 'opus', sampleRate: config.sampleRate, numberOfChannels: 1 });
-    segment.chunks.forEach((c, i) => { try { decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: i * 20000, data: c })); } catch (e) {} });
+    segment.chunks.forEach((c, i) => { try { decoder.decode(new EncodedAudioChunk({ type: 'key', timestamp: i * 20000, data: c })); } catch (e) { console.warn('[Queue] chunk decode threw:', e.message); } });
     decoder.flush().then(() => { queue.playSamples(segment); try { decoder.close(); } catch(e) {} }).catch((e) => { console.warn('[Queue] decode failed:', e.message); if (window.ui?.showToast) ui.showToast('Voice message failed to decode', 4000, 'error'); try { decoder.close(); } catch(e2) {} queue.markAsPlayed(segment.id); });
   },
   playSamples: (s) => {
