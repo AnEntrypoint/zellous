@@ -24,12 +24,6 @@ const formatTime = (ts) => {
   if (d.toDateString() === y.toDateString()) return 'Yesterday at ' + time;
   return d.toLocaleDateString() + ' ' + time;
 };
-const chIcon = (type) => {
-  if (!window.getIcon) return '#';
-  const map = { text:'text', voice:'voiceAlt', threaded:'ptt', announcement:'announcement', forum:'forum', thread:'thread', stage:'stage' };
-  return getIcon(map[type] || 'text');
-};
-
 // Real UI rendering is owned by the SDK's mountCommunityApp (see AGENTS.md
 // GUI ownership) -- it re-renders reactively off nostr-adapter.js's tracked
 // signals. messages/queue/authStatus remain as no-ops only because live call
