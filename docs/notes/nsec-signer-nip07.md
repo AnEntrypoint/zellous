@@ -105,7 +105,7 @@ Costs and new risks:
 5. Persist only `zn_pk` plus a signer marker for extension users, so reloads resume without the button.
 6. Update the zellous auth modal: extension first, local key as an explicit mode, confirm before switching, backup prompt only for local keys, clear message when DMs are unavailable.
 7. Push wireweave to `main`. Use a commit SHA in the importmap during rollout if an immediate pin is needed (AGENTS.md documents this option). Purge the jsdelivr path if the fix must land fast.
-8. Validate live with the repo's own scripts, `node scripts/drive.mjs` and `node scripts/witness.mjs`, against the CDN path. Live witnessing of the extension flow requires a real NIP-07 extension installed in the browser profile. The repo scripts cannot install one, so this step needs a profile that already has an extension. Without that, only the non-extension paths and the code-level checks are witnessed.
+8. Validate live with the gm `crawl` verb (`engine=cdp`) against the CDN path, as AGENTS.md describes. Live witnessing of the extension flow requires a real NIP-07 extension installed in the browser the crawl engine uses. The crawl engine cannot install one today (its profile is wiped before each launch and it passes no extension flag), so this step needs a browser that already has an extension. Without that, only the non-extension paths and the code-level checks are witnessed.
 
 ## Open questions for the user
 
