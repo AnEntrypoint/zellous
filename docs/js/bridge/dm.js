@@ -18,6 +18,8 @@ export function installDm(ww) {
       try { ww.ensureDM().unsubscribe(); } catch {}
       dmSubId = null;
       dmMessages = [];
+      state.dmMessages = [];
+      if (window.ui) ui.render.all();
     },
     subscribeAll() {
       if (dmSubId || !a.pubkey) return dmSubId;
