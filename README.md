@@ -69,13 +69,13 @@ tradeoffs, disclosed here rather than left implicit:
 
 ## Local Development
 
-`docs/` is a static site with no build step; serve it with correct MIME types for `.js`/`.mjs` module scripts:
+`docs/` is a static site with no build step. `npm run dev` serves it with the correct MIME types for `.js`/`.mjs` module scripts:
 
 ```bash
-npx serve docs
+npm run dev
 ```
 
-Visit `http://localhost:3000/nostr-chat/`. See `AGENTS.md` for the live-run verification method (the gm `crawl` verb with `engine=cdp`) used when making changes.
+Visit `http://127.0.0.1:5175/nostr-chat/`. `npm run dev:local` also serves the sibling `design` and `wireweave` checkouts. See `AGENTS.md` for the live-run verification method (the gm `crawl` verb with `engine=cdp`) used when making changes.
 
 ### Testing voice/signaling locally
 
