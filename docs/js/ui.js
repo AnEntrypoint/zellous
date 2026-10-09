@@ -11,7 +11,7 @@ const ui = {
 
 const getInitial = (name) => (name || '?')[0].toUpperCase();
 const getAvatarColor = (id) => {
-  const colors = window.AVATAR_COLORS || ['#3F8A4A'];
+  const colors = window.AVATAR_COLORS;
   const h = Math.abs(typeof id === 'number' ? id : [...(id||'')].reduce((a,c)=>a+c.charCodeAt(0),0));
   return colors[h % colors.length];
 };

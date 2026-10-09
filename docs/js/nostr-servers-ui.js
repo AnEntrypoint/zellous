@@ -101,7 +101,7 @@ serverManager.showEditModal = function(serverId) {
     '</form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
-  var colors = (window.AVATAR_COLORS || ['#3F8A4A']).slice();
+  var colors = window.AVATAR_COLORS.slice();
   var selectedColor = srv.iconColor || colors[0];
   var picker = modal.querySelector('#editServerColorPicker');
   colors.forEach(function(c) {
@@ -262,7 +262,7 @@ serverManager.showCreateModal = function() {
     '</form></div>';
   document.body.appendChild(modal);
   _a11yModal(modal);
-  var colors = (window.AVATAR_COLORS || ['#3F8A4A']).slice();
+  var colors = window.AVATAR_COLORS.slice();
   var selectedColor = colors[0];
   var picker = modal.querySelector('#serverColorPicker');
   colors.forEach(function(c) {
@@ -307,7 +307,7 @@ serverManager.renderList = function() {
   var html = '';
   list.forEach(function(s) {
     var initial = (s.name || '?').trim().charAt(0).toUpperCase();
-    var fallbackBg = (window.AVATAR_COLORS || ['#3F8A4A'])[0];
+    var fallbackBg = window.AVATAR_COLORS[0];
     var bg = /^#[0-9a-fA-F]{6}$/.test(s.iconColor || '') ? s.iconColor : fallbackBg;
     var active = current === s.id ? ' active' : '';
     html += '<div class="server-icon' + active + '" data-server-id="' + escHtml(s.id) + '" style="background:' + escHtml(bg) + '" title="' + escHtml(s.name || '') + '" tabindex="0" role="button" aria-label="' + escHtml(s.name || 'Server') + '">' +
