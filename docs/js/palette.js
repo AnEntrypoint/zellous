@@ -20,7 +20,6 @@
     PALETTE.green, PALETTE.sky, PALETTE.sun,
     PALETTE.flame, PALETTE.purple, PALETTE.mascot,
   ];
-  window.PALETTE = PALETTE;
   window.ROLE_COLOR = ROLE_COLOR;
   window.AVATAR_COLORS = AVATAR_COLORS;
 })();

@@ -146,4 +146,3 @@ window.getInitial = getInitial;
 window.getAvatarColor = getAvatarColor;
 window.escHtml = escHtml;
 window.formatTime = formatTime;
-window.chIcon = chIcon;

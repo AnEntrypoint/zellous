@@ -69,8 +69,6 @@
         open();
       }
     });
-
-    window.__paletteCommands = { list: commands, open };
   }
   init();
 })();

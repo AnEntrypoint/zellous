@@ -33,5 +33,4 @@ const getIcon = (type, cls) => {
 window.__zellous.helpers = window.__zellous.helpers || {};
 window.__zellous.helpers.icons = icons;
 window.__zellous.helpers.getIcon = getIcon;
-window.icons = icons;
 window.getIcon = getIcon;

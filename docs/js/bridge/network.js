@@ -1,7 +1,7 @@
 export function installNetwork(ww) {
   // Relay pool bridge
   const net = ww.pool;
-  window.nostrNet = window.network = {
+  window.nostrNet = {
     connect: () => net.connect(),
     disconnect: () => net.disconnect(),
     subscribe: (id, filters, onEvent, onEose) => net.subscribe(id, filters, onEvent, onEose),

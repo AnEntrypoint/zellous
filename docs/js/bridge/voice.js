@@ -150,7 +150,5 @@ export function installVoice(ww) {
   };
   window.nostrVoice = voiceAPI;
   window.lk = voiceAPI;
-  window.nostrVoiceRtc = { maybeConnect: (pk) => voice?._maybeConnect(pk), handleSignal: (e) => voice?._handleSignal(e), subscribe: () => {}, publish: () => {}, cancelReconnect: (pk) => voice?._cancelReconnect(pk), scheduleReconnect: (pk, a) => voice?._scheduleReconnect(pk, a) };
   window.nostrVoiceSfu = { start: () => voice?._sfuStart(), stop: () => voice?._sfuStop(), onPresenceRtt: (pk, s) => { if (voice) voice.sfu.rttMatrix.set(pk, s); voice?._sfuMaybeElect(); }, get __debug() { if (!voice) return null; const m = {}; voice.sfu.rttMatrix.forEach((v, k) => m[k.slice(0, 12)] = v); return { mode: voice.sfu.actor?.getSnapshot().value, hub: voice.sfu.hub?.slice(0, 12) || null, rttMatrix: m }; } };
-  window.nostrVoiceCamera = { toggle: () => voiceAPI.toggleCamera(), start: () => voiceAPI.toggleCamera(), stop: () => voiceAPI.toggleCamera() };
 }

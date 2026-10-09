@@ -38,11 +38,8 @@ window.__zellous = {};
 // Backward compat placeholders — will be populated by modules
 window.lk = null;
 window.nostrVoice = null;
-window.nostrVoiceRtc = null;
 window.nostrVoiceSfu = null;
-window.nostrVoiceCamera = null;
 window.nostrNet = null;
-window.network = null;
 window.nostrBans = null;
 window.auth = null;
 window.serverManager = null;
@@ -57,12 +54,9 @@ window.nostrMedia = null;
 window.webcam = null;
 window.fileTransfer = null;
 window.queue = null;
-window.icons = null;
 window.getIcon = null;
 window.ui = null;
-window.uiVoice = null;
 window.uiMembers = null;
-window.uiChannels = null;
 window.moderation = null;
 window.nostrFsm = null;
 </script>
@@ -227,10 +221,8 @@ window.nostrFsm = null;
   <script src="../msgpackr.min.js"></script>
   <script type="module">
     window.__boot?.progress(4, 'loading core libs');
-    import { signal, computed, effect } from '@preact/signals';
+    import { effect } from '@preact/signals';
 
-    window.__signal = signal;
-    window.__computed = computed;
     window.__effect = effect;
 
     const { state, config } = await import('../js/state.js');
@@ -260,8 +252,6 @@ window.nostrFsm = null;
     window.__boot?.progress(7, 'core libs ready');
 
     const base = new URL('../', import.meta.url).href;
-    window.__appBase = base;
-    window.__nostrMode = true;
 
     const scripts = [
       'js/wireweave-bridge.js',
