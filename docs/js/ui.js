@@ -24,10 +24,6 @@ const formatTime = (ts) => {
   if (d.toDateString() === y.toDateString()) return 'Yesterday at ' + time;
   return d.toLocaleDateString() + ' ' + time;
 };
-// Real UI rendering is owned by the SDK's mountCommunityApp (see AGENTS.md
-// GUI ownership) -- it re-renders reactively off nostr-adapter.js's tracked
-// signals. messages/queue/authStatus remain as no-ops only because live call
-// sites in bridge/chat.js, queue.js and ui-actions.js still invoke them.
 ui.render = {
   all() { if (window.serverManager) serverManager.renderList(); },
   messages() {},
@@ -91,10 +87,6 @@ ui.confirm = function({ title, message, confirmLabel = 'Confirm', danger = false
   });
 };
 
-// First-run gate for the silent-mint path (index.html's `if (!auth.init())
-// { auth.generateKey(); ... }`). A visitor who never chose to make a key gets
-// one anyway, stored in plaintext localStorage, and previously learned that
-// only by losing it. Shown once; the two actions are the only way out.
 ui.showFirstRunKeyNotice = function() {
   var flag = 'zellous-firstrun-key-notice';
   try { if (localStorage.getItem(flag) === '1') return; } catch (_) {}
@@ -118,13 +110,7 @@ ui.showFirstRunKeyNotice = function() {
   setTimeout(function() { var b = modal.querySelector('#frBackup'); if (b) b.focus(); }, 0);
 };
 
-ui.showToast = function(msg, duration, tone) {
-  const sdkToast = window.__sdk?.C?.toast;
-  if (typeof sdkToast === 'function') {
-    sdkToast({ message: String(msg), kind: tone || 'info', duration: duration || 3000 });
-    return;
-  }
-  // Fallback (SDK not loaded yet, or failed to load) — original inline toast.
+const showInlineToast = (msg, duration) => {
   document.getElementById('uiToast')?.remove();
   const el = document.createElement('div');
   el.id = 'uiToast';
@@ -132,6 +118,15 @@ ui.showToast = function(msg, duration, tone) {
   el.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--bg-2);color:var(--fg);padding:8px 18px;border-radius:6px;z-index:9999;font-size:14px;pointer-events:none;opacity:1;transition:opacity 0.3s';
   document.body.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 350); }, duration || 2000);
+};
+
+ui.showToast = function(msg, duration, tone) {
+  const sdkToast = window.__sdk?.C?.toast;
+  if (typeof sdkToast === 'function') {
+    sdkToast({ message: String(msg), kind: tone || 'info', duration: duration || 3000 });
+    return;
+  }
+  showInlineToast(msg, duration);
 };
 
 window.__zellous.ui = ui;

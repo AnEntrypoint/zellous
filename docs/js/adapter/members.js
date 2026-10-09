@@ -1,4 +1,3 @@
-// Member list (right-hand panel on desktop, drawer on mobile).
 export function buildMembers({ v, call }) {
   return {
     snapshot: () => ({

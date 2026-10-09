@@ -17,19 +17,11 @@ const moderation = {
     const guard = (fn) => async () => { try { await fn(); } catch (err) { console.warn('[Mod]', err.message); if (window.ui?.showToast) ui.showToast('Action failed: ' + err.message, 4000, 'error'); } };
     const items = [];
 
-    // Personal mute is available to every user against every other user —
-    // not an admin-only moderation action, so it renders even when canManage
-    // is false (the early-return below only gated admin actions before).
     if (window.nostrMutes && memberId !== state.nostrPubkey) {
       const isMuted = window.nostrMutes.isMuted(memberId);
       items.push({ label: isMuted ? 'Unmute' : 'Mute', onSelect: guard(() => moderation.toggleMute(memberId)) });
     }
 
-    // Self-targeting admin actions (ban/timeout/kick/role-change) have no
-    // undo path in this client -- a sole owner who bans or demotes themself
-    // would lock themself out of their own server with no recovery UI. Every
-    // admin-only action below is therefore hidden when memberId is the
-    // acting user's own pubkey, mirroring the personal-mute self-exclusion.
     if (canManage && memberId !== state.nostrPubkey) {
       if (items.length) items.push({ separator: true });
       if (isOwner) items.push({ label: 'Set Admin', onSelect: guard(() => serverRoles.setRole(serverId, memberId, 'admin')) });

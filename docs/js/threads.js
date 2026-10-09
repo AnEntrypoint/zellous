@@ -13,8 +13,6 @@ const threadManager = {
     state.threads = this.listFor(parentId);
   },
 
-  // The SDK's own ThreadPanel overlay (mountCommunityApp) renders off
-  // state.threadPanelOpen -- there is no DOM host of ours to toggle.
   openPanel(channelId) {
     state.threadPanelOpen = true;
     this._syncOpenPanel();
@@ -66,10 +64,6 @@ const threadManager = {
   },
 
   select(threadId) {
-    // ForumView also calls adapter.actions.openThread(id) (same action name,
-    // reused by the SDK across both surfaces) -- when the current channel is
-    // a forum, threadId is a post id, not a threaded-channel id, so this
-    // branches to the forum-reply view instead of switchChannel.
     if (state.currentChannel?.type === 'forum') return this.selectForumPost(threadId);
     const parentId = state.currentChannel?.id;
     const list = this.listFor(parentId);

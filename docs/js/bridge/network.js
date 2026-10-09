@@ -1,5 +1,4 @@
 export function installNetwork(ww) {
-  // Relay pool bridge
   const net = ww.pool;
   window.nostrNet = {
     connect: () => net.connect(),
@@ -22,10 +21,6 @@ export function installNetwork(ww) {
     state.relayGrace = false;
   };
   startRelayGrace();
-  // Boot is slower than the grace window on a cold load (module + relay setup
-  // can pass 3s before the SDK's first render), so the window is re-armed at
-  // appReady -- the point where the UI actually starts drawing -- or the banner
-  // would flash just after the grace had already expired.
   const armGraceOnReady = () => {
     if (window.appReady) { startRelayGrace(); return; }
     setTimeout(armGraceOnReady, 50);

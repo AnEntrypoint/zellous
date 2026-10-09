@@ -9,12 +9,10 @@
   <meta name="description" content="Serverless voice and text chat over public Nostr relays. No backend, no account — your keys are your identity.">
   <title>Zellous - Nostr</title>
   <script>
-    // Theme init — runs before any paint. Shares 'zellous-theme' localStorage with landing.
     (function(){try{var t=localStorage.getItem('zellous-theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');else document.documentElement.setAttribute('data-theme','ink');}catch(e){}})();
   </script>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%233F8A4A'/><text x='50' y='72' font-size='60' font-weight='800' font-family='monospace' fill='%23F5F0E4' text-anchor='middle'>Z</text></svg>">
   <script>
-// Use relative URLs to vendor directory (sibling of nostr-chat/)
 document.currentScript.before(Object.assign(document.createElement('script'), {
   type: 'importmap',
   textContent: JSON.stringify({
@@ -33,9 +31,7 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
 }));
 </script>
   <script>
-// Initialize window.__zellous namespace before any modules load
 window.__zellous = {};
-// Backward compat placeholders — will be populated by modules
 window.lk = null;
 window.nostrVoice = null;
 window.nostrVoiceSfu = null;
@@ -65,8 +61,6 @@ window.nostrFsm = null;
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <style>
-    /* Boot overlay — visible before any module CSS resolves. Inline so it never blocks on a fetch. */
-    /* Boot tokens — must paint before zellous.css; mirror its ink/paper palette. */
     #zellousBoot{--zb-bg:#0B0B09;--zb-fg:#EFE9DD;--zb-accent:#92CEAC;--zb-rail:rgba(146,206,172,0.18);--zb-flame:#FF8454;position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--zb-bg);color:var(--zb-fg);font-family:'Nunito','JetBrains Mono',sans-serif;font-size:13px;font-weight:500;transition:opacity 200ms ease}
     [data-theme="light"] #zellousBoot{--zb-bg:#EFE9DD;--zb-fg:#0B0B09;--zb-accent:#3F8A4A;--zb-rail:rgba(36,116,32,0.15)}
     #zellousBoot.gone{opacity:0;pointer-events:none}
@@ -91,8 +85,6 @@ window.nostrFsm = null;
     <button type="button" class="zb-retry" id="zbRetry">Retry</button>
   </div>
   <script>
-    // Boot reporter — exposed early so any code path can update progress / mark errors.
-    // Phases: tokens → modules (each script counts) → ready. Observable via window.__boot.
     (function(){
       var fill=document.getElementById('zbFill'),phase=document.getElementById('zbPhase'),err=document.getElementById('zbError'),box=document.getElementById('zellousBoot'),retryBtn=document.getElementById('zbRetry');
       retryBtn?.addEventListener('click',function(){location.reload();});
@@ -102,14 +94,9 @@ window.nostrFsm = null;
       var failedOnce=false;function fail(msg){if(failedOnce)return;failedOnce=true;if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});console.error('[zellous boot]',msg,events);}
       function done(){if(!box)return;box.classList.add('gone');setTimeout(function(){box&&box.parentNode&&box.parentNode.removeChild(box);},250);log('done');}
       window.__boot={ progress:setProgress, fail:fail, done:done, events:events, t0:t0 };
-      // Safety net — if nothing finalizes within 25s, surface the failure.
       window.__boot._watchdog=setTimeout(function(){if(!window.appReady)fail('Took longer than 25s — check console for module load failures.');},25000);
-      // Catch unhandled module errors so the user sees them instead of a frozen splash.
       window.addEventListener('error',function(e){if(window.appReady)return;if(e&&e.message)fail(e.message);});
       window.addEventListener('unhandledrejection',function(e){if(window.appReady)return;var m=e&&e.reason&&(e.reason.message||String(e.reason));if(m)fail(m);});
-      // Post-boot safety net — an uncaught error/rejection after the splash is gone would
-      // otherwise be console-only and invisible to the user. Rate-limited to one toast per 5s
-      // so a repeating error doesn't spam the UI.
       var lastRuntimeErrorToast=0;
       function reportRuntimeError(msg){
         if(!window.appReady||!window.ui||typeof window.ui.showToast!=='function')return;
@@ -122,16 +109,8 @@ window.nostrFsm = null;
       setProgress(2,'starting');
     })();
   </script>
-  <!-- SDK community-app render target. mountCommunityApp (anentrypoint-design)
-       renders the full GUI here, driven by the Nostr adapter
-       (js/nostr-adapter.js). The legacy hidden .app scaffold that used to sit
-       below this mount point (dead duplicate chrome, still visible to
-       screen readers / text extraction despite display:none) was deleted
-       2026-07-31 after auditing every feature module that read its DOM ids;
-       see AGENTS.md's app-scaffold-cleanup history. -->
   <div id="app"></div>
 
-  <!-- VIDEO PLAYBACK OVERLAY -->
   <div class="video-playback" id="videoPlayback">
     <button class="video-playback-close" id="videoPlaybackClose" aria-label="Close video playback" onclick="ui.actions.closeVideoPlayback()">&#10005;</button>
     <video id="videoPlaybackVideo" autoplay playsinline></video>
@@ -139,7 +118,6 @@ window.nostrFsm = null;
   </div>
 
 
-  <!-- AUTH MODAL -->
   <div class="modal-overlay" id="authModal">
     <div class="modal-box">
       <div class="modal-title">Connect to Nostr</div>
@@ -171,7 +149,6 @@ window.nostrFsm = null;
     </div>
   </div>
 
-  <!-- SETTINGS POPOVER -->
   <div class="settings-popover" id="settingsPopover">
     <div class="settings-title">Audio Settings</div>
     <div class="ctrl-row" style="margin-bottom:12px">
@@ -226,7 +203,7 @@ window.nostrFsm = null;
     window.__effect = effect;
 
     const { state, config } = await import('../js/state.js');
-    window.config = config;  // Ensure config is accessible to classic scripts
+    window.config = config;
 
     import * as NostrTools from 'nostr-tools';
     window.NostrTools = NostrTools;
@@ -236,8 +213,6 @@ window.nostrFsm = null;
 
     try {
       const sdk = await import('anentrypoint-design');
-      // NOTE: do NOT call sdk.installStyles() — it injects ~3.4MB of bundled CSS that fights
-      // the bundled 247420.css stylesheet linked in <head> (the single kit CSS source).
       window.__sdk = { h: sdk.h, applyDiff: sdk.applyDiff, C: sdk.components, applyTheme: sdk.applyTheme };
       try {
         const resolved = import.meta.resolve ? import.meta.resolve('anentrypoint-design') : null;
@@ -271,20 +246,11 @@ window.nostrFsm = null;
       'js/nostr-adapter.js',      'js/sdk-command-palette.js'
     ];
 
-    // Two-phase parallel loader: wireweave-bridge runs first (creates managers
-    // asynchronously); we await __wireweaveReady before parallel-loading the rest,
-    // because several UI modules monkey-patch those managers at evaluation time.
-    // Within each phase, async=false preserves execution order while the browser
-    // fetches the URLs concurrently.
     function loadOne(src, onDone) {
       return new Promise((resolve, reject) => {
         const s = document.createElement('script');
         s.src = base + src;
         s.async = false;
-        // A slow/stalled fetch (as opposed to an outright error) never fires
-        // onload or onerror, so without this the generic 25s watchdog is the
-        // only signal -- and it can't name which file stalled. This surfaces
-        // the specific slow module well before that wall, in the console.
         const stallTimer = setTimeout(() => console.warn('[zellous boot] still waiting on', src, '(>8s)'), 8000);
         s.onload = () => { clearTimeout(stallTimer); onDone && onDone(src); resolve(); };
         s.onerror = () => { clearTimeout(stallTimer); reject(new Error('Failed to load ' + src)); };
@@ -361,7 +327,6 @@ window.nostrFsm = null;
     window.addEventListener('online', () => { window.nostrNet?.reconnectAll?.(); });
     window.appReady = true;
     window.__boot?.progress(100, 'ready');
-    // One frame so the user sees the bar fill before fade.
     requestAnimationFrame(() => window.__boot?.done());
     if (window.__boot?._watchdog) clearTimeout(window.__boot._watchdog);
   </script>
@@ -369,7 +334,6 @@ window.nostrFsm = null;
 async function initNostr() {
   const roomParam = new URLSearchParams(location.search).get('room');
 
-  // wait for wireweave bridge
   if (!window.__wireweaveReady) {
     await new Promise(r => { const iv = setInterval(() => { if (window.__wireweaveReady) { clearInterval(iv); r(); } }, 50); });
   }

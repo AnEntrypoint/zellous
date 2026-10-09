@@ -1,11 +1,3 @@
-// Shared accessibility wiring for zellous's own hand-rolled `.modal-overlay`
-// dialogs (Create Channel, Rename, Create Page, etc.) -- none of them had a
-// focus trap, an Escape-to-close, or dialog semantics, unlike every SDK-owned
-// overlay (SettingsPopover/EmojiPicker/etc, see anentrypoint-design's
-// _anchoredOverlayLifecycle). Attach once, right after the modal is appended
-// to the DOM: traps Tab/Shift+Tab inside the modal box, closes on Escape,
-// and focuses the first focusable field so keyboard users land inside it
-// immediately instead of needing to Tab in from wherever focus was before.
 function _a11yModal(modal) {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
@@ -32,11 +24,6 @@ function _a11yModal(modal) {
   }, 0);
 }
 
-// Same contract as _a11yModal (dialog semantics, Tab-trap, Escape,
-// focus-restore) for a persistent modal element that's toggled via
-// style.display rather than appended/removed per-open (authModal). Wired
-// once per element; each open re-captures the trigger and re-focuses the
-// first field.
 function _a11yPersistentModal(modal, onClose) {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
@@ -66,9 +53,6 @@ function _a11yPersistentModal(modal, onClose) {
   }, 0);
 }
 
-// Shared empty/invalid-field feedback for creation/rename forms: a brief
-// shake + red border so a blocked submit (e.g. empty name) is visible
-// instead of the button silently doing nothing.
 function _invalidInput(el) {
   if (!el) return;
   el.classList.remove('input-invalid');
@@ -280,10 +264,6 @@ channelManager.showContextMenu = function(channelId, x, y) {
   channelManager.hideContextMenu();
   var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
   if (!ch) return;
-  // Rename/delete always fail server-side for a non-owner ('owner only', see
-  // channels.js) -- showing them regardless invites a doomed action + error
-  // toast instead of the affordance simply not being there. Settings stays
-  // visible for everyone since it already renders read-only for non-owners.
   var isOwner = window.serverRoles && state.currentServerId &&
     (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
   var items = '<div class="context-menu-item" data-action="settings">Channel Settings…</div>';
@@ -300,10 +280,6 @@ channelManager.showContextMenu = function(channelId, x, y) {
     });
 };
 
-// Unified channel-settings modal. Works for any channel type. Voice channels
-// get an extra Mode (PTT/Realtime) section. The mode lives on the channel
-// metadata so all participants see the same setting — it is not a per-user
-// preference. Only the server owner can save; others see read-only.
 channelManager.showSettingsModal = function(channelId) {
   var ch = (state.channels || []).find(function(c) { return c.id === channelId; });
   if (!ch) return;
@@ -379,14 +355,6 @@ channelManager.showSettingsModal = function(channelId) {
   modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
 };
 
-// The private key IS the identity here (no backend, no account, no
-// password reset) -- this is the one recovery path a static client can
-// offer: show the real nsec so the user can copy it somewhere safe BEFORE
-// clearing site data or switching devices makes the identity permanently
-// unrecoverable. Deliberately requires an explicit "reveal" click rather
-// than rendering the secret key directly in the DOM on modal open, so a
-// screen-recording or shoulder-surf doesn't capture it by just opening
-// Settings.
 channelManager.showProfileModal = function() {
   document.getElementById('profileModal')?.remove();
   var resolved = (window.chat && window.chat.resolveProfile(window.state.nostrPubkey)) || '';

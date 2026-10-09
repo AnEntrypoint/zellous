@@ -1,5 +1,3 @@
-// Auth modal state and actions. The other overlays (context menu, emoji
-// picker, command palette) are imperative globals re-exposed by nostr-adapter.js.
 export function buildOverlays({ v, S, call }) {
   return {
     snapshot: () => ({

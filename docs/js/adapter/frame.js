@@ -18,8 +18,6 @@ export function resolveAuthor(pk) {
     || '';
 }
 
-// Values several builders read from the same moment in time. Computed once per
-// get() so every builder sees one consistent view of home/DM/channel/server state.
 export function deriveFrame(v) {
   const homeMode = !!(window.state && window.state.homeMode);
   const dm = homeMode ? dmSnapshot(v) : null;

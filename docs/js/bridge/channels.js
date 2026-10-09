@@ -1,11 +1,14 @@
 export function installChannels(ww) {
   const a = ww.auth;
-  // Channels bridge
   const ch = ww.channels;
+  const refreshCurrentChannel = (channels) => {
+    if (!state.currentChannel) return;
+    const cur = channels.find(c => c.id === state.currentChannel.id);
+    if (cur) state.currentChannel = cur;
+  };
   ch.addEventListener('updated', (e) => {
     state.channels = e.detail.channels; state.categories = e.detail.categories;
     if (window.ui) ui.render.all();
-    // If the channel we're currently in voice on had its voiceMode change, re-apply.
     if (state.voiceConnected && state.currentChannel && window.__zellous?.voiceMode) {
       const cur = (e.detail.channels || []).find(c => c.id === state.currentChannel.id);
       if (cur) {
@@ -13,11 +16,7 @@ export function installChannels(ww) {
         window.__zellous.voiceMode.apply();
       }
     }
-    // Update the chat-header topic if the current channel's topic was changed.
-    if (state.currentChannel) {
-      const cur = (e.detail.channels || []).find(c => c.id === state.currentChannel.id);
-      if (cur) state.currentChannel = cur;
-    }
+    refreshCurrentChannel(e.detail.channels || []);
   });
   window.channelManager = {
     isOwner: () => a.pubkey && state.currentServerId && a.pubkey === state.currentServerId.split(':')[0],

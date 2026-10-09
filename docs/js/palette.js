@@ -1,5 +1,3 @@
-// 247420 design palette — single source for role + avatar tints across UI modules.
-// Loaded as a classic script; exposes globals for downstream UI files.
 (function () {
   const PALETTE = {
     green:  '#3F8A4A',

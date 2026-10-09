@@ -1,5 +1,4 @@
 export function installGovernance(ww) {
-  // Roles / Bans / Settings / Pages / Media bridges
   const roles = ww.roles;
   roles.addEventListener('updated', () => {});
   window.serverRoles = {
@@ -23,9 +22,6 @@ export function installGovernance(ww) {
     kickFromVoice: (sid, pk) => bans.kickFromVoice(sid, pk)
   };
 
-  // Personal mute list bridge (NIP-51 kind:10000) -- a per-viewer curation
-  // independent of server admin bans; re-renders the chat view when it
-  // changes since chat.js filters muted authors out of the local message list.
   const mutes = ww.mutes;
   mutes.addEventListener('updated', () => { if (window.ui) ui.render.all(); });
   window.nostrMutes = {

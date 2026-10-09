@@ -1,6 +1,5 @@
 export function installChat(ww) {
   const a = ww.auth;
-  // Message bus bridge
   const msg = ww.message;
   window.message = {
     handlers: msg.handlers,
@@ -14,7 +13,6 @@ export function installChat(ww) {
   };
   msg.addEventListener('messages', (e) => { state.messages = e.detail.list; if (window.ui) ui.render.messages?.(); });
 
-  // Chat bridge
   const chat = ww.chat;
   let _lastChatMsgCount = 0;
   const CHAT_MESSAGES_CAP = 500;
@@ -57,10 +55,6 @@ export function installChat(ww) {
     }));
   }
   window.chat = {
-    // Delegates to the library Chat instance's own field rather than tracking
-    // a separate copy -- loadHistory() can be triggered either through this
-    // bridge's wrapper below or directly by wireweave.js's onSwitch callback
-    // (e.g. the first-run auto-join path), and both must be reflected here.
     get activeChannelId() { return chat.activeChannelId; },
     get messages() { return state.chatMessages || []; },
     set messages(v) { state.chatMessages = v; },
@@ -78,16 +72,7 @@ export function installChat(ww) {
     handleImageMessage() {}, handleFileShared() {}
   };
 
-  // Reactions bridge — NIP-25 kind:7 on native kind:42 chat messages. Auto-
-  // subscribes for every message currently in view (mirrors the profile
-  // auto-fetch pattern above) so reaction counts populate without an
-  // explicit per-message opt-in from the UI layer.
   const reactions = ww.reactions;
-  // ui.render.all() targets removed legacy DOM -- the SDK's mountCommunityApp
-  // re-renders only from the adapter's preact-signal subscription (SIGNALS
-  // list in nostr-adapter.js), which never included a reactions dependency,
-  // so a reaction arriving from a relay never triggered a re-render until some
-  // unrelated signal happened to change. reactionsVersion is that dependency.
   reactions.addEventListener('updated', () => {
     if (window.ui) ui.render.all();
     state.reactionsVersion = (state.reactionsVersion || 0) + 1;

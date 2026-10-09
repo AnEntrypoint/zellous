@@ -66,10 +66,6 @@ ui.actions = {
   },
   async logout() { await auth.logout(); this.hideAuthModal(); ui.render.authStatus(); },
   uploadFile() { ui.fileInput?.click(); },
-  // Single upload entry point for the file input, clipboard paste and
-  // drag-drop. media.js only enforces the 20MB cap after the whole file has
-  // been read and PUT, so the real numbers are surfaced here, before any of
-  // that starts.
   sendFiles(files) {
     const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
     const ch = state.currentChannel;
@@ -127,19 +123,12 @@ ui.actions = {
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
   if (ui.videoPlayback && ui.videoPlayback.style.display !== 'none') { ui.actions.closeVideoPlayback(); return; }
-  // The real settings popover is the SDK's own reactive SettingsPopover
-  // (driven by stateSignals.settingsOpen), not the legacy hidden
-  // #settingsPopover element -- that element's class never gets toggled
-  // through the live code path anymore, so checking it here always read
-  // false and Escape silently never closed the real popover.
   if (sig('settingsOpen')?.value) { ui.actions.closeSettings(); return; }
   if (sig('mobileMenuOpen')?.value) { ui.actions.closeMobileMenu(); return; }
 });
 
 ui.fileInput?.addEventListener('change', (e) => ui.actions.handleFileSelect(e));
 
-// Drop only fires if dragover is cancelled, and only for drags carrying files:
-// text and link drags keep the browser's own behaviour.
 document.addEventListener('dragover', (e) => {
   if (Array.from(e.dataTransfer?.types || []).includes('Files')) e.preventDefault();
 });
@@ -147,7 +136,6 @@ document.addEventListener('drop', (e) => {
   if (!e.dataTransfer?.files?.length) return;
   fileTransfer.handleDrop(e);
 });
-// Text paste is left alone so the composer still receives it normally.
 document.addEventListener('paste', (e) => {
   const items = e.clipboardData?.items;
   if (!items || !Array.from(items).some((item) => item.kind === 'file')) return;

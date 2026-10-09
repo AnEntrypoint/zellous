@@ -10,6 +10,5 @@ export function createReaders(S) {
 }
 
 export function makeSubscribe(S, effect) {
-  // preact effect: reading each .value registers a dependency, so cb re-fires on any change
   return (cb) => effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });
 }

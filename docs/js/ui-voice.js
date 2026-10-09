@@ -31,11 +31,5 @@ const uiMembers = {
   }
 };
 
-// uiVoice's DOM-rendering methods (renderGrid/renderQueue/renderPanel) and
-// uiMembers.render() were deleted 2026-07-31 -- they only ever targeted the
-// legacy hidden .app scaffold (removed the same day) and had zero live
-// callers once ui.render.* became no-ops. The SDK's own .vx-grid/.vx-queue/
-// MemberList components (mountCommunityApp) render the real UI, fed by
-// nostr-adapter.js's voiceParticipants/memberCategories()/audioQueue* fields.
 window.__zellous.uiMembers = uiMembers;
 window.uiMembers = uiMembers;

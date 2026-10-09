@@ -79,8 +79,6 @@ const state = {
   showSettingsModal: signal(false),
 
   isConnected: signal(false),
-  // Relay sockets need a moment to open; reporting the not-connected banner
-  // during that window flashes a warning on every load. True = suppress it.
   relayGrace: signal(true),
   connectionStatus: signal('Connecting...'),
 
@@ -106,8 +104,6 @@ const state = {
 
   voiceDeafened: signal(false),
 
-  // PTT gate state (voice-ptt.js) -- feeds the SDK's own .vx-ptt button via
-  // nostr-adapter.js's isSpeaking/pttUiMode; voice-ptt.js never touches DOM.
   pttState: signal('idle'),
   pttLabel: signal('Hold to talk'),
   pttDisabled: signal(false),

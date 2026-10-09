@@ -1,22 +1,18 @@
-// Rail (servers + channel groups) and the mobile drawer that holds it.
+const PAGE_CHANNEL_POSITION_BASE = 1000;
+
 export function buildRail({ v, S, call }) {
-  // Without a position these sort ahead of every real channel, which
-  // pins the page list above general/announcements in the rail.
   const pageChannels = () => {
     const sid = v('currentServerId', null);
     if (!window.serverPages || !sid) return [];
     return (window.serverPages.getPages(sid) || []).map((p, i) => ({
       id: 'page:' + p.slug, name: p.title || p.slug, type: 'page',
-      position: 1000 + i,
+      position: PAGE_CHANNEL_POSITION_BASE + i,
       _serverId: sid, _slug: p.slug, updatedAt: p.updatedAt,
     }));
   };
 
   return {
     snapshot(f) {
-      // The rail's badge needs a per-channel count, and wireweave's unread
-      // tracker keys by channel id only, so a server's badge is the sum over
-      // the channels this client knows belong to it.
       const unreadCounts = f.unreadCounts;
       const withUnread = (list) => list.map((c) => ({ ...c, unreadCount: unreadCounts[c.id] || 0 }));
       return {
@@ -35,9 +31,6 @@ export function buildRail({ v, S, call }) {
         if (S.mobileMenuOpen) S.mobileMenuOpen.value = false;
         window.ui.actions.switchChannel(ch);
       }),
-      // The hamburger is the drawer's own toggle: tapping it while the drawer
-      // is open has to close it, or the only way out is tapping the main area
-      // or picking a channel.
       openMobileMenu: () => call(() => {
         if (v('mobileMenuOpen', false)) window.ui.actions.closeMobileMenu();
         else window.ui.actions.openMobileMenu();
@@ -45,15 +38,6 @@ export function buildRail({ v, S, call }) {
       closeMobileMenu: () => call(() => window.ui.actions.closeMobileMenu && window.ui.actions.closeMobileMenu()),
       goHome: () => call(() => {
         if (S.mobileMenuOpen) S.mobileMenuOpen.value = false;
-        // homeMode only drives the sidebar's active-highlight in the SDK
-        // (community-app.js line ~121) -- it does NOT clear the rendered
-        // channel list or chat body on its own. Without also resetting these,
-        // switching to "home" left the PREVIOUS server's rooms/messages fully
-        // visible: only the highlighted rail item and status-bar label
-        // changed, matching the exact reported bug. serverManager.switchTo
-        // already resets this same state when switching to a real server;
-        // goHome needs the same reset since there is no dedicated "home"
-        // content surface to switch into.
         window.state.homeMode = true;
         window.state.currentServerId = null;
         window.state.currentChannelId = null;
@@ -63,13 +47,6 @@ export function buildRail({ v, S, call }) {
         window.state.chatMessages = [];
         if (window.chat) window.chat.messages = [];
       }),
-      // The SDK's real "servers" nav link (community-app.js) already calls
-      // this directly with e.preventDefault() -- there is no separate
-      // "servers browser" surface to open, so this toggles the same
-      // home/server view goHome()/switchServer() already drive. The legacy
-      // #zServersBtn anchor this used to click had no listener of its own
-      // (a real dead link, `href="#"` with zero JS behind it) -- removed
-      // rather than routed through, since there was nothing there to reach.
       openServers: () => call(() => {
         if (S.mobileMenuOpen) S.mobileMenuOpen.value = false;
         if (window.state.homeMode) {
@@ -86,12 +63,6 @@ export function buildRail({ v, S, call }) {
       createOrJoinServer: () => call(() => window.serverManager.showCreateOrJoinModal()),
       channelContext: (id, x, y) => call(() => window.channelManager.showContextMenu(id, x, y)),
       createChannel: () => call(() => window.channelManager.showCreateModal(null, null)),
-      // The SDK rail owns channel rendering (and therefore the drag/keydown
-      // handlers), so the ordering math lives here: `dir` is -1/1 from the
-      // keyboard, a channel id from a drop, and either way the full sibling
-      // list of the destination category is republished -- wireweave's
-      // ch.reorder(catId, ids) assigns position AND categoryId from that list,
-      // which is what makes a cross-category drop land in the target category.
       reorderChannel: (id, arg) => call(() => {
         const channels = window.state.channels || [];
         if (!channels.some((c) => c.id === id)) return;

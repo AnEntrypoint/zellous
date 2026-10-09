@@ -1,15 +1,10 @@
 export function installAuth(ww) {
   const net = ww.pool;
   const chat = ww.chat;
-  // Auth bridge
   const a = ww.auth;
   a.loadFromStorage();
   a.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage error', 4000, 'error'); });
   a.addEventListener('persist-failed', () => { if (window.ui) ui.showToast('Could not save your login key — storage is full. Free up space or your session won\'t persist after reload.', 6000, 'error'); });
-  // Both "generate" entry points (the legacy #generateKeyBtn and the SDK
-  // AuthModal's onGenerate -> adapter authGenerate) discard the current key
-  // with no confirmation, so the guard and the post-generate backup prompt
-  // live here once and both call it.
   const generateKeyWithConfirm = async () => {
     const yes = await window.ui.confirm({
       title: 'Replace your current identity?',

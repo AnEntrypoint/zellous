@@ -1,10 +1,3 @@
-// Wires Ctrl/Cmd+K to the SDK's C.CommandPalette (window.__commandPalette,
-// set by nostr-adapter.js once mountCommunityApp resolves). The SDK component
-// is a pure imperative surface: show(items, onSelect) / close(); it renders
-// whatever items it is given each time it is opened — nothing auto-populates
-// it, so this module builds the real command list from live state on every
-// open and re-opens with a fresh list on each keystroke (like ui-shell's
-// removed hand-rolled version did, but driving the real SDK overlay).
 (function () {
   function init() {
     if (!window.__commandPalette || !window.stateSignals) { setTimeout(init, 30); return; }

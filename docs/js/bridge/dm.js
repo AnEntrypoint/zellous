@@ -1,10 +1,5 @@
 export function installDm(ww) {
   const a = ww.auth;
-  // DM bridge — NIP-44 encrypted 1:1 (kind 14), structurally isolated from
-  // the plaintext broadcast Chat (kind 42 filtered by channel-hash '#e' tag).
-  // DM.subscribe filters by '#p'/authors on the user's own pubkey, so a DM
-  // event can never satisfy a channel chat subscription's kind/tag filter,
-  // and vice versa — no shared array, no shared subscription id.
   const DM_MESSAGES_CAP = 500;
   let dmMessages = [];
   let dmSubId = null;

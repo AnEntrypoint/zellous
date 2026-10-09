@@ -1,15 +1,11 @@
 import { composerLock, LOCK_DM, resolveAuthor } from './frame.js';
 
-// Chat body, composer, reply/thread/forum state, and the channel-page body.
 export function buildChat({ v, S, call }) {
   return {
     snapshot(f) {
       const { dm, curr, pageData, lock } = f;
       return {
         pageHtml: pageData ? pageData.html : '',
-        // A forum post's `author` is the raw 64-char hex pubkey off the kind:11
-        // event; resolve it the same way pageAuthor already does so the list
-        // shows a name (or a short npub), never a hex string.
         pageAuthor: pageData && pageData.author
           ? ((window.chat && window.chat.resolveProfile(pageData.author)) || (window.auth && window.auth.npubShort(pageData.author)) || '')
           : '',
@@ -56,9 +52,6 @@ export function buildChat({ v, S, call }) {
         return window.nostrReactions.react(id, authorPubkey, emoji || '+').catch((e) => window.ui && window.ui.showToast && window.ui.showToast('Reaction failed: ' + (e && e.message || 'unknown'), 3000, 'error'));
       }),
       attachFiles: (files) => call(() => {
-        // chat.sendImage() -> nostrMedia.sendMedia() has no announcement-admin
-        // check, so without this guard a non-admin bypasses the locked composer
-        // with the still-enabled attach button.
         const lock = composerLock(v);
         if (lock) { window.ui.showToast(lock.toast, 3000, 'error'); return; }
         if (window.state.homeMode) { window.ui.showToast('Attachments are not supported in direct messages yet', 3500, 'error'); return; }

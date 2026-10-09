@@ -1,9 +1,6 @@
-// Voice channel view, PTT/VAD controls, voice settings modal and the voice-message queue.
+const LEVEL_METER_CEILING = 0.35;
+
 export function buildVoice({ v, S, call }) {
-  // Voice Settings changes apply eagerly (the modal reads straight off the
-  // live signals), so Cancel can only be honest if the pre-open state is
-  // captured here and re-applied -- including the localStorage writes and
-  // the live session calls applyVoicePatch makes.
   let voiceSettingsSnapshot = null;
   const snapshotVoiceSettings = () => ({
     mode: v('vadEnabled', false) ? 'vad' : 'ptt',
@@ -23,10 +20,7 @@ export function buildVoice({ v, S, call }) {
     if ('vadThreshold' in patch && S.vadThreshold) {
       S.vadThreshold.value = patch.vadThreshold;
       try { localStorage.setItem('vadThreshold', String(patch.vadThreshold)); } catch (_) {}
-      // setMicSensitivity takes a raw RMS; patch.vadThreshold is the UI's 0-1
-      // fraction -- scale by the same LEVEL_METER_CEILING wireweave-bridge.js
-      // uses at connect() so a live mid-call change matches the same mapping.
-      if (window.lk && window.lk.setMicSensitivity) window.lk.setMicSensitivity(Math.max(0, Math.min(1, patch.vadThreshold)) * 0.35);
+      if (window.lk && window.lk.setMicSensitivity) window.lk.setMicSensitivity(Math.max(0, Math.min(1, patch.vadThreshold)) * LEVEL_METER_CEILING);
     }
     if ('rnnoise' in patch) { if (S.rnnoiseEnabled) S.rnnoiseEnabled.value = patch.rnnoise; try { localStorage.setItem('rnnoise', patch.rnnoise ? '1' : '0'); } catch (_) {} }
     if ('autoGain' in patch) { if (S.autoGainEnabled) S.autoGainEnabled.value = patch.autoGain; try { localStorage.setItem('autoGain', patch.autoGain ? '1' : '0'); } catch (_) {} }
@@ -40,11 +34,6 @@ export function buildVoice({ v, S, call }) {
       try { localStorage.setItem('voiceBitrate', String(patch.bitrate)); } catch (_) {}
       if (window.lk && window.lk.setAudioBitrate) window.lk.setAudioBitrate(patch.bitrate);
     }
-    // SDK's VoiceSettingsModal sends the master-volume slider's patch as
-    // {volume: n} (matches its own `volume:S.masterVolume` prop name) --
-    // this key previously went unhandled, so S.masterVolume never updated
-    // and the slider had zero effect on realtime peer audio or queued
-    // voice-message playback (both read state.masterVolume live).
     if ('volume' in patch && S.masterVolume) {
       S.masterVolume.value = patch.volume;
       try { localStorage.setItem('masterVolume', String(patch.volume)); } catch (_) {}
@@ -65,9 +54,6 @@ export function buildVoice({ v, S, call }) {
       micRawLevel: v('micRawLevel', 0),
       voiceSettingsOpen: v('voiceSettingsOpen', false),
       voiceMode: v('vadEnabled', false) ? 'vad' : 'ptt',
-      // Drives the SDK's own .vx-ptt button (mountCommunityApp's voice view) —
-      // voice-ptt.js does the real requestTransmit/releaseTransmit gating and
-      // publishes its live state as window.state.pttState, not DOM.
       pttUiMode: v('vadEnabled', false) ? 'vad' : 'ptt',
       isSpeaking: v('pttState', 'idle') === 'live',
       inputDeviceId: v('inputDeviceId', null),
@@ -80,11 +66,6 @@ export function buildVoice({ v, S, call }) {
       forceTurnEnabled: v('forceTurnEnabled', false),
       voiceBitrate: v('voiceBitrate', 64),
       masterVolume: v('masterVolume', 0.7),
-      // pttGate's inboundQueue is the real, live-populated voice-message queue
-      // (data-channel segments, voice-ptt.js) -- state.audioQueue/queue.js is a
-      // dead parallel pipeline (websocket-era chunk assembly with zero live
-      // callers into addSegment/addChunk/completeSegment) kept only for its
-      // still-reachable replay/download-of-a-completed-segment helpers.
       audioQueueItems: v('audioQueueItems', []),
       audioQueueCurrentId: v('audioQueueCurrentId', null),
       audioQueuePaused: v('audioQueuePaused', false),
@@ -122,11 +103,6 @@ export function buildVoice({ v, S, call }) {
         if (snapshot) applyVoicePatch(snapshot);
         if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false;
       }),
-      // Routed through pttGate (voice-ptt.js), the queue that's actually
-      // populated live off inbound data-channel segments -- window.queue
-      // (queue.js) is a parallel pipeline nothing ever feeds real segments
-      // into (see audioQueueItems above), so its own replaySegment/
-      // pausePlayback/resumePlayback are unreachable from any real message.
       replaySegment: (id) => call(() => window.__zellous?.pttGate?.replaySegment(id)),
       skipSegment: () => call(() => window.__zellous?.pttGate?.skipQueue()),
       pauseQueue: () => call(() => window.__zellous?.pttGate?.pauseQueue()),

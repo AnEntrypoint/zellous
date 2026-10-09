@@ -1,9 +1,3 @@
-// nostr-adapter — the thin consumer seam. Maps zellous's Nostr-backed state
-// (window.stateSignals preact signals) + action modules to the design-system
-// adapter contract, then hands the whole GUI to the SDK's mountCommunityApp.
-// All composition/rendering lives in the SDK (window.__sdk.C.mountCommunityApp);
-// zellous only supplies data + action callbacks. Each surface's fields and
-// actions come from its builder in ./adapter/ (one module per surface).
 (function () {
   async function init() {
     const sdk = window.__sdk;
@@ -46,8 +40,6 @@
       session.buildSession(deps),
     ];
 
-    // Snapshot read across the live signals. effect() (inside subscribe) tracks
-    // whichever .value reads happen during render, so any change re-renders.
     const get = () => {
       const f = frame.deriveFrame(v);
       return Object.assign({}, ...builders.map((b) => b.snapshot(f)));
@@ -57,7 +49,6 @@
 
     const app = mount(root, adapter);
 
-    // Preserve the imperative overlay globals other zellous modules call.
     if (app && app.api) {
       window.__contextMenu = app.api.contextMenu;
       window.__emojiPicker = app.api.emojiPicker;

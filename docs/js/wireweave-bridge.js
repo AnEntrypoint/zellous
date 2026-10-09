@@ -1,7 +1,3 @@
-// Protocol bridge entry. A classic script (loaded by docs/nostr-chat/index.html
-// before the other modules), so the concern modules under ./bridge/ are reached
-// through dynamic import(). Each install* call publishes its window globals in
-// the order below; that order is the boot side-effect order and must not change.
 window.__wireweaveReady = (async () => {
   const [bootStatus, network, auth, chat, unread, dm, channels, servers, governance, forum, media, voice] = await Promise.all([
     import('./bridge/boot-status.js'),
@@ -43,8 +39,6 @@ window.__wireweaveReady = (async () => {
   media.installMedia(ww);
   voice.installVoice(ww);
 
-  // Read-only snapshot of live protocol state for inspection; every field is a
-  // plain value (no relay sockets, media streams or peer objects leak out).
   const inspect = () => ({
     relays: Object.fromEntries(state.nostrRelayStatus || []),
     voiceParticipants: (state.voiceParticipants || []).map((p) => ({
