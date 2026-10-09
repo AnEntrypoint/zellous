@@ -138,7 +138,7 @@ serverManager.showEditModal = function(serverId) {
     allowlistField.className = 'modal-field';
     var curAllowlist = serverSettings.getEmbedAllowlist(serverId).join(', ');
     allowlistField.innerHTML = '<label class="modal-label">Embedding Allow List</label>' +
-      '<textarea class="modal-input" id="editServerAllowlist" placeholder="example.com, *.example.com, localhost:3000" style="resize:vertical;min-height:60px">' + curAllowlist.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</textarea>' +
+      '<textarea class="modal-input" id="editServerAllowlist" placeholder="example.com, *.example.com, localhost:3000" style="resize:vertical;min-height:60px">' + escHtml(curAllowlist) + '</textarea>' +
       '<div style="font-size:11px;color:var(--fg-3);margin-top:4px">Comma-separated list of domains allowed to embed this server. Leave empty to allow all.</div>';
     modal.querySelector('#editServerForm').insertBefore(allowlistField, modal.querySelector('[type="submit"]'));
   }
@@ -307,7 +307,8 @@ serverManager.renderList = function() {
   var html = '';
   list.forEach(function(s) {
     var initial = (s.name || '?').trim().charAt(0).toUpperCase();
-    var bg = s.iconColor || ((window.AVATAR_COLORS || ['#3F8A4A'])[0]);
+    var fallbackBg = (window.AVATAR_COLORS || ['#3F8A4A'])[0];
+    var bg = /^#[0-9a-fA-F]{6}$/.test(s.iconColor || '') ? s.iconColor : fallbackBg;
     var active = current === s.id ? ' active' : '';
     html += '<div class="server-icon' + active + '" data-server-id="' + escHtml(s.id) + '" style="background:' + escHtml(bg) + '" title="' + escHtml(s.name || '') + '" tabindex="0" role="button" aria-label="' + escHtml(s.name || 'Server') + '">' +
               '<div class="server-pill"></div>' + escHtml(initial) +
