@@ -132,3 +132,19 @@ document.addEventListener('keydown', (e) => {
 });
 
 ui.fileInput?.addEventListener('change', (e) => ui.actions.handleFileSelect(e));
+
+// Drop only fires if dragover is cancelled, and only for drags carrying files:
+// text and link drags keep the browser's own behaviour.
+document.addEventListener('dragover', (e) => {
+  if (Array.from(e.dataTransfer?.types || []).includes('Files')) e.preventDefault();
+});
+document.addEventListener('drop', (e) => {
+  if (!e.dataTransfer?.files?.length) return;
+  fileTransfer.handleDrop(e);
+});
+// Text paste is left alone so the composer still receives it normally.
+document.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items || !Array.from(items).some((item) => item.kind === 'file')) return;
+  fileTransfer.uploadFromClipboard(e);
+});
