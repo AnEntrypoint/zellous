@@ -73,7 +73,7 @@ Deploy runs on every push to `main` (`.github/workflows/gh-pages.yml`). It is th
 
 - **No `<script type="importmap">` in raw HTML.** It is injected at runtime by an early classic script in `docs/nostr-chat/index.html`. Static greps miss it; the importmap is real.
 - **`docs/js/state.js` imports `@preact/signals`.** This works because `state.js` is loaded with `await import('../js/state.js')` from the bootstrap module script, by which time the importmap is injected.
-- **`site/theme.mjs` embeds a browser importmap for `anentrypoint-design`** that loads from jsdelivr `@main`; there is no Node-side import. Don't vendor it locally.
+- **`site/theme.mjs` imports `anentrypoint-design` at build time** (its `installStyles()` call runs during the landing build) and embeds a browser importmap for it that loads from jsdelivr `@main`. Don't vendor it locally.
 - **`dist/index.html` differs from `docs/index.html`.** `docs/` is the live GH-Pages source; `dist/` is the flatspace build artifact.
 - **Repo-insight banners may flag `server.js`, SQL or hardcoded creds.** The summary indexer caches an old project shape. The tree has no server, SQL or embedded credentials; verify before "fixing".
 - **No `wireweave` under `docs/vendor/`.** It is resolved live at the pinned SHA; a plain `git clone` boots with no submodule step.
@@ -190,7 +190,7 @@ There is no local SDK copy and no vendored kit CSS; do not reintroduce one. Both
 - The bundle holds colors_and_type, app-shell, community, editor-primitives and community-app, all scoped under `.ds-247420`, which `<html class="ds-247420">` matches. Only `247420.css` is linked; the source cssParts are bundle inputs. A class missing from the bundle renders unstyled with no error, so confirm it is in `dist/247420.css` after an SDK change.
 - To propagate an SDK change: run `node scripts/build.mjs` in the design repo, commit the rebuilt `dist/247420.{js,css}` (both are tracked; the design `.gitignore` excludes only `dist/index.html` and `dist/.nojekyll`), and push to `main`. zellous picks it up on the next page load.
 - Tradeoff: boot depends on `cdn.jsdelivr.net`. The SDK import is in try/catch: on failure it sets `window.__sdk = null`, calls `window.__boot?.fail(...)` and rethrows, so the boot screen shows a message.
-- `package.json` declares no `anentrypoint-design` entry; nothing in the Node build imports the SDK.
+- `package.json` declares no `anentrypoint-design` entry. Only `site/theme.mjs` (the build-time landing) imports the SDK in Node; the app pages load it in the browser.
 - `gmsniff` (vendors a kit subset, makes zero external-origin runtime fetches, must run air-gapped) and `agentgui` (vendors the built kit for offline operation) stay excluded from CDN loads. Do not convert either.
 - A floating `@main` load means a design push can change zellous's UI with no zellous commit. That is intended for the SDK; wireweave is pinned because it is not.
 - jsdelivr `/gh/@main` purge is rate-limited per path: verify a fresh SDK push against a `@<sha>` URL instead of polling `@main`.
