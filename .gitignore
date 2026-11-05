@@ -19,3 +19,5 @@ node_modules/
 .gm/codesearch-result-*.json
 .gm/fsm-graph-rejected.json
 .gm/crawl-cdp-profile/
+.playwriter/
+runs/

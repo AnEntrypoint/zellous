@@ -1,7 +1,7 @@
 # Next step
 
-Phase: DECIDE
-Updated: 1791388738387
+Phase: AGENTSMD
+Updated: 1791526779638
 
 ---
 
@@ -82,13 +82,9 @@ spool paths, body shapes or phase mechanics -- `Skill(skill="gm")` supplies
 those. A single focused mechanical edit stays single-session; fan-out serves
 genuine decomposition, never a manufactured split of one small task.
 
-## Browser sessions in fan-out
-
-One task, one Chrome. The parent picks a single browser id for the task (e.g. `<parent_session_id>-web`) and puts `sessionId=<that id>` in every subagent prompt; every `browser`/`cdp` dispatch from parent and subagents opens with that `sessionId=` line, so they share one Chrome and one page (dispatches on it run one at a time; open extra tabs inside a script only when work must overlap). A subagent's own SESSION_ID still routes spool verbs; it is never the browser id. Before launching, dispatch `session list` and reuse a live session; `chrome_max_concurrent` defaults to 2 across every project the daemon serves, so a second unrelated Chrome is the exception. The last step of every agent and subagent is `session close-all` (closes every Chrome owned by the calling gm session; `session close <id>` closes the shared one), then `session list` to confirm none remain. The parent closes the shared id after its subagents finish.
-
 ## Inspection routing
 
-Every capability has exactly one sanctioned surface and the platform's native tools are never it: code/file/symbol search is the `codesearch` verb, defaulting to cwd but never confined to it -- `codesearch {root|projectPath: "<abs>", query, mode?}` targets any folder (a submodule, a sibling repo like `C:/dev/liqology`, any other project on disk), with its own persistent index/cache at `<root>/.gm/gm.db` isolated from and reusable independent of the current project's own index; a sibling repo is never `Read`-by-path scanned or shelled out to `find`/Grep/Glob just because it sits outside cwd -- pass `root`/`projectPath` instead. Runtime-state files (spool response JSON, `.status.json`) are `Read`, browser automation of any kind is the `browser` verb (no raw Chrome launch, no puppeteer/playwright import or CLI, ever -- same inadmissible-reach class as bypassing `codesearch`), and Bash survives only for the boot probe and shell-only non-git tooling (`curl`, `sh`, `pwsh`) -- `find`/`grep`/`rg` are explicitly NOT in that survivor list, whether typed directly or through `PowerShell`/`Get-ChildItem -Recurse`/`Select-String`. Reaching for Glob/Grep/Explore, or the identical search shelled out via `Bash("find ...")`/`Bash("grep ...")`/`Bash("rg ...")`, or any host-native search is reaching around the surface -- it is blocked; the verb IS the surface, regardless of which literal tool call carries the reach, and regardless of whether the target is cwd or an external root. Spool responses are synchronous; poll external state via `until <check>; do sleep N; done`.
+Every capability has exactly one sanctioned surface and the platform's native tools are never it: code/file/symbol search is the `codesearch` verb, defaulting to cwd but never confined to it -- `codesearch {root|projectPath: "<abs>", query, mode?}` targets any folder (a submodule, a sibling repo like `C:/dev/liqology`, any other project on disk), with its own persistent index/cache at `<root>/.gm/gm.db` isolated from and reusable independent of the current project's own index; a sibling repo is never `Read`-by-path scanned or shelled out to `find`/Grep/Glob just because it sits outside cwd -- pass `root`/`projectPath` instead. Runtime-state files (spool response JSON, `.status.json`) are `Read`, and Bash survives only for the boot probe and shell-only non-git tooling (`curl`, `sh`, `pwsh`) -- `find`/`grep`/`rg` are explicitly NOT in that survivor list, whether typed directly or through `PowerShell`/`Get-ChildItem -Recurse`/`Select-String`. Reaching for Glob/Grep/Explore, or the identical search shelled out via `Bash("find ...")`/`Bash("grep ...")`/`Bash("rg ...")`, or any host-native search is reaching around the surface -- it is blocked; the verb IS the surface, regardless of which literal tool call carries the reach, and regardless of whether the target is cwd or an external root. Spool responses are synchronous; poll external state via `until <check>; do sleep N; done`.
 
 **Code intelligence first.** A structural question -- who calls this, what breaks if it changes, is it dead, what is in this file -- goes to the call-graph verbs before `codesearch` or `Read`: they answer from the persisted symbol/call-edge index in about a second, one dispatch, no file bodies.
 
@@ -125,136 +121,8 @@ Any uncertainty about the next move -- drift, a gate denial, a silent stretch in
 Transition: SESSION_ID threaded AND spool reachable -> dispatch `instruction` with `{"prompt":"<user request>"}` so plugkit derives orient_nouns + recall_hits; later same-chain dispatches may use empty body.
 
 
-# DECIDE
+# AGENTS.md Hierarchical, Not Encyclopaedic
 
-YOU are the state machine. Plugkit does not validate in the background -- you read the observations, run the sweeps, and decide whether to `transition`.
+Principle `AGENTSMD`, phase P7 CONTEXT ECONOMY. Apply "AGENTS.md Hierarchical, Not Encyclopaedic" to the work of the P7 CONTEXT ECONOMY phase.
 
-Stage 8 of the pipeline: decision, scope, and termination. Commit to a recommendation -- no hedge, no infinite option listing. Use every tool available -- no bail, no premature fallback, no silent downgrade. Effort scales to the goal -- no artificial ceiling, no early truncation. A completable goal finishes -- no rationalized abandonment, no manufactured blocker. The DECIDE -> COMPLETE edge carries the full closure gate set: prd-all-closed, mutables-all-resolved, worktree-clean, residual-scan-fired, ci-validated-fresh, browser-witness-coverage, submodules-clean, claim-audit-clean, no-hedge-language-in-diff, split-context-swept.
-
-L3 trajectory; `transition` iff every observation is convergent.
-
-```
-[worktree-clean] [remote-pushed] [prd-empty] [mutables-witnessed]
-```
-
-## Preferences (named, narrow)
-
-Execution & Workflow
-
-* Definition of Done (Ken Schwaber & Jeff Sutherland)
-
-Evaluation and Observability
-
-* LLM-Evaluations (LLM Evaluation Practice)
-* Benchmark Comparison (Comparative Evaluation Convention)
-* Agentic Stack Audit (Anthropic)
-* ISO/IEC 25010 (ISO)
-* OpenTelemetry (CNCF)
-* Distributed Tracing (General Convention)
-* Structured Logging (General Convention)
-* Control Chart (Walter Shewhart)
-* Nelson Rules (Lloyd S. Nelson)
-* SPC (Walter Shewhart / W. Edwards Deming)
-* FinOps (FinOps Foundation)
-* DMAIC (Six Sigma)
-
-## Adversarial corner-case sweep (hard rule)
-
-DECIDE is adversarial, never confirmatory: hunt every way EMIT's write breaks, via real `exec_js`/`browser` execution, never prose reasoning. Each class below gets its own exec_js/browser dispatch witnessing outcome (pass or found-and-fixed) before transitioning on; a reachable-but-unswept class is not an implicit pass:
-
-- **empty/overflow/reentry**: zero-length input, max-size/overflow input, same op mid-flight (reentrant call).
-- **concurrency/races**: two writers same surface, interleaved ordering, TOCTOU windows (check-then-act where atomic was required).
-- **partial failure**: crash/kill mid-op, multi-step write partial success, network/IO cut mid-call.
-- **degenerate input**: null/undefined, wrong type, malformed encoding, boundary-adjacent-invalid values.
-- **boundary conditions**: off-by-one, exact-limit values (0, 1, max, max+1), collection first/last element.
-- **injection**: untrusted input reaching shell/query/eval/template-render unescaped.
-- **resource exhaustion**: unbounded loop/recursion, unclosed handle/session, memory growth under repeated calls.
-- **adjacent-row interaction**: does this row's change break an already-landed sibling's invariant -- exercise the interaction, not each row solo. Blast radius first: `callers {symbol}` for every function the diff changes, renames or removes; every caller outside the diff is a site this sweep exercises.
-
-Each class exercised = exec_js/browser dispatch + witness (pass or fix-then-rewitness), same turn, before `transition`. A happy-path-only DECIDE has not verified.
-
-**A diff touching more than one file runs the sweep split-context, not self-reviewed.** The implementer that wrote the diff carries systematic blind spots toward its own reasoning -- the same failure mode splits catch elsewhere in this project (a reviewer told only to find bugs, never confirm, misses less than a reviewer also asked to approve). Dispatch one or more `Agent` reviewers (Section 1's fan-out primitive, the entry.md fan-out opener plus the diff to review, so each reviewer starts from `callers` on the changed symbols) against the 8 failure classes above, each blind to the implementer's own reasoning and prompted only to refute ("assume this is broken -- find why"), never to confirm. The implementer may be one voice among several reviewers but is never the sole one -- a class where every reviewer is the implementer itself has not been adversarially swept, whatever its exec_js/browser witness shows: the witness proves the code path ran, not that an independent read failed to find a hole in it. A single-file diff may stay self-reviewed; this is a floor on the multi-file case, not a ceiling that exempts a risky one-file change from the 8-class sweep itself.
-
-## Real-execution witness
-
-Every claim of correctness is proven by a live `exec_js`/`browser` dispatch witnessing the real output, same turn, real services only (mock-free) -- manual troubleshooting and debugging is the entire verification surface, never a standing test file or suite. Pass = the live witness matches expectation; fail -> `transition` back toward the owning stage (a code repair -> EMIT, a spec reshape -> SPECIFY). `recursive` classifier = incomplete cover -- snake back, do not narrate past signal.
-
-**A log line saying the fix ran is not a witness that the defect is gone.** A `console.log`/`console.warn` emitted by the fixed code path, a telemetry counter, or any other secondary signal that the new code EXECUTED proves reachability, not correctness of the end state a user actually observes -- witness the primary artifact the bug report was about (the live DOM, the live scene graph, the live response body), not a message a passing code path chose to emit about itself. A screenshot from one viewpoint/one load is the same failure in visual form: it proves that instance was clean, not that the class of defect is gone, and it cannot distinguish "fixed" from "cached, so I'm still looking at the pre-fix artifact." Live case: a degenerate-triangle fix was marked resolved on the strength of ~9721 `[cluster-lod-mesh] collapsed N degenerate triangle(s)` console lines (proof the fix code ran) plus one screenshot (proof one viewpoint looked clean) -- neither re-derived the actual triangle-area distribution of the currently-rendered scene, and a completely separate defect (a build-artifact disk cache with no code-version key, serving pre-fix bakes forever) kept shipping 10388 real degenerate triangles to every subsequent load regardless. Re-run the SAME diagnostic that found the bug against the SAME target after the fix, not a proxy for it.
-
-**Every cache in the path is a live-witness confound until proven flushed.** Before trusting a live witness as reflecting the current code, enumerate every cache between "the fix landed" and "the browser/response the witness reads": HTTP cache headers (`Cache-Control`/ETag) on the specific route being witnessed, CDN/edge caches, a build-artifact cache keyed by source-content-hash alone (which by construction cannot detect that the BUILD CODE changed, only that the SOURCE INPUT changed -- see `deviation.build-cache-no-code-version-key` below), and the witnessing tool's own session/tab reuse. A cache-buster query param or a fresh incognito-equivalent session on the browser dispatch is not optional when any of these exist; if a witness comes back "still broken" or suspiciously "still fine" on the first attempt, checking whether a cache masked the fix is a mandatory next step, not a fallback for a second failure.
-
-**`deviation.build-cache-no-code-version-key`:** a build/bake/compile artifact cache keyed only by a hash of its INPUT (source file contents) silently serves stale output forever across any change to the transform itself (the compiler, baker, or pipeline code) -- input-content-identical does not mean output-should-be-identical once the code that turns input into output has changed. Any such cache's key must also fold in a hash (or equivalent version marker) of the transform code's own source files, so a pipeline fix auto-invalidates every existing artifact without a human remembering to bump a version number or manually clear a directory.
-
-**No test files, no exceptions.** A `deviation.synthetic-test-file` (new `*.test.*`/`*.spec.*`, a `test/`/`__tests__/` directory, a testing-framework import) blocks `transition` exactly like an unwitnessed mutable -- delete it and replace its assertions with a live `exec_js`/`browser` witness, then re-verify.
-
-**No fake shipped code.** A `Mock*`/`Fake*`/`Stub*` class or a hardcoded always-succeeds/input-invariant short-circuit anywhere in the diff is the same class of deviation as a test file -- grep the diff for these names before transitioning. Real input through real code into real output is the only acceptance shape.
-
-**A stub built outside the tracked diff to manufacture a verification signal is the same deviation, not a loophole.** Writing a fake header/module/service under a scratch or temp path (never committed, so a diff-grep never catches it) and compiling or running against IT instead of the real dependency produces exactly the false-completion signal `decide.md`'s "no fake shipped code" rule exists to block -- the fact that the fake file itself never ships does not make the pass it produced real. This is `deviation.scratch-stub-verification`: the tell is reaching for a stub/fake at the exact moment the real dependency (compiler flag, library, service, credential) is missing or not installed. That moment is SPECIFY's "everything is fixable" row, not a verification shortcut -- `prd-add` a row to install/build/provision the real dependency (real vcpkg + real FAISS, a real running service, a real credential path) and verify against THAT once it exists, even if that means the row spans a real install/build step before the original PRD row can close. Verifying "the code is syntactically well-formed against an API shape I invented myself" is not evidence the code is correct against the API that actually exists -- a hand-written stub can silently encode the author's own misunderstanding of the real signature and pass anyway.
-
-**No comments.** A leading `//`, `///`, `/* */`, `#`, or JSDoc block anywhere in the diff blocks `transition` exactly like an unwitnessed mutable: grep the diff for comment-opener tokens across every touched language, delete what's found, and re-verify the code reads clearly by name and structure alone. A directive a tool reads is not a comment and stays: a `#!` shebang on line 1, `@vite-ignore`, `oxlint-disable`/`eslint-disable`, `@ts-expect-error`/`@ts-ignore`, `c8 ignore`/`istanbul ignore`, `prettier-ignore`, and a `// SAFETY:` justification in Rust. A strip script must skip them by an allowlist of those tokens; stripping one changes behaviour, so a sweep that removed a directive restores it.
-
-**Documenting a hard row instead of implementing it is a false completion, not a resolution.** `prd-resolve` refuses two identical/near-identical `witness_evidence` strings across different PRD ids (`deviation.prd-resolve-duplicate-witness`). A row that looks out of reach this turn is a row to build a way IN -- name the real fix and its path (drive the crashing tool's protocol directly, spawn your own instance, open the cross-repo change, script the credential path) and execute it; a design doc describing the fix is not the fix.
-
-**`prd-defer` is for a row confirmed real, correctly scoped, and genuinely cross-session -- never for one that is merely hard.** Use it only after investigating enough to state WHY this specific row needs its own dedicated session (a different subsystem than the current fix, a flaky repro that needs sustained isolated debugging, work gated on a credential/service this session cannot provision) -- `{"id":..,"reason":"<the concrete why, and what session/path would resolve it>"}`. The same deviation gate `prd-add` runs on `blockedBy` blocks bare deferral language ('later', 'next session', 'punt') here too: a reason has to name substance or the dispatch is refused. This does not relax "everything is fixable" -- it only prevents CONSOLIDATE's hard PRD-empty gate from forcing a false resolve on work a different, focused session should own. A row deferred this way stays visible in `prd-list` for the next session to pick up; it does not vanish.
-
-## Push and worktree-clean
-
-`git_push` is the only admissible push surface, any repo, any cwd -- runs `[worktree-clean]` porcelain probe internally, refuses dirty. `git_finalize {message}` bundles add -> commit -> probe -> push. In a worktree another writer is also editing, commit only your files: `git_commit {message, paths:[...]}` / `git_finalize {message, paths:[...]}` stage and commit exactly those pathspecs, the porcelain probe checks only them, and the push goes by explicit ref when dirt remains outside them; `git_push {rev:"HEAD"}` is the sanctioned push of an already-made commit over someone else's dirt. Sibling push: `git_push {repo:"<abs>", branch:"<branch>"}`. Raw `git` shell body gated `deviation.bash-git-bypass`. A dirty tree at this stage is yours to resolve now: commit real work, revert junk, or fold transient emission into the managed gitignore block -- never carry it forward as "pre-existing."
-
-## Housekeeping and memorization are scheduled runs, not incidental cleanup
-
-Every pass through `git_finalize` opens a housekeeping run before the next SPECIFY cover: dead code, superseded paths, and stale PRD/mutable rows from earlier passes get swept so a later session never trips over them. This is the same NODELETE -> DELETIONGATE -> REACHABLE discipline `residual-scan` below already runs, applied proactively on every finalize rather than only when the gate fires.
-
-`memorize-fire` runs in the same pass: any correction the user gave, any default this walk had to pick, any recurring gap surfaced, is persisted immediately -- never deferred to session end, where a crash or context compaction would drop it. A correction given but not yet persisted by the time `git_finalize` runs is itself a residual, not a note to remember for next time.
-
-## CI
-
-Verification is thinking run rather than reasoned: "is this correct?" is executed, not argued -- real test, real matrix, real page answer it. The push IS the validation dispatch. Local proof covers one platform; matrix covers all. On green, `fs_write` `.gm/exec-spool/.ci-validated` with `{"head_sha":"<git rev-parse HEAD>"}` -- the COMPLETE gate matches that sha against current HEAD. Red = divergent observation holding the trajectory until cause-named and green re-pushed; toolchain skew converges, does not stop. A CI check skipped because "the diff looked safe" is an unwitnessed slice.
-
-**Five CI failure shapes, for rapid triage:**
-
-- **Import error**: module not found -- check `package.json`/`Cargo.toml`, never the source file.
-- **Type error**: schema mismatch -- regress to SPECIFY, re-witness the interface.
-- **Assertion failure**: a live `exec_js`/`browser` witness assertion fails in CI -- root-cause it, never silence the assertion.
-- **Lint failure**: style-rule violation -- fix in-band, never disable the linter rule.
-- **Build timeout**: re-trigger once; a repeat means diagnose and fix the real cause (split the job, cache deps, raise the CI timeout, find the hang) -- never treat a repeated timeout as external/unfixable.
-
-## Residual-scan
-
-`residual-scan` is dispatched BEFORE `transition to=COMPLETE` -- the gate refuses without its fired marker, and the denial names `residual-scan` as the next dispatch. It examines the open surface -- PRD pending, browser sessions, dirty tree, untracked artifacts, browser-witness coverage -- non-empty = non-convergent -> expand PRD with the reachable in-spirit residual, re-execute. One-shot per stop window via marker.
-
-Before accepting an empty scan, re-apply "every possible" to the closing PRD: every resolved row's skipped variant, every touched adjacent surface, every validation proving a row in practice not claim -- each hit is `prd-add` + re-execution. Clean scan on a short PRD for a long-horizon prompt is a false negative.
-
-**Every `git status --porcelain` entry triaged this turn -- "pre-existing" is not a stop excuse.** Dirty worktree: commit (real work), managed-gitignore-block it (transient runtime emission), or revert (junk). `.gm/disciplines/` tracked; new memorize-fire `mem-*.md` committed.
-
-## Browser-witness coverage
-
-Every session-touched client-side file needs a `browser.witness-marked` event whose `witnessed_hashes` match current sha. Mismatch/absence fires `deviation.browser-witness-hash-mismatch`/`deviation.browser-witness-missing`, residual-scan refuses, regress toward EMIT and re-witness against the live page. The page is sole authority; disk-Read is necessary, insufficient.
-
-## Decisive commitment
-
-Re-read every new `.md`/`.txt`/comment-bearing file the diff touched: no hedge ('we should probably', 'for now', 'as a stopgap', 'out of scope for this'), no infinite option listing in place of a recommendation, no rationalized abandonment of a row that was actually completable. The `no-hedge-language-in-diff` gate catches the common phrases; this sweep catches the shape the phrase-list misses. Commitment: Committed(c) and Recommendation(c) for every c, or the decision is not made and the chain stays here.
-
-## Trace to a human outcome
-
-Before accepting the slice convergent, trace every shipped change to a human outcome -- capability gained, wait removed, failure no longer hit, a developer the interface stops fighting. Impact chain ending in technical elegance with no reachable human = aesthetics, revert candidate.
-
-## Completion
-
-Chain enters COMPLETE only when your `transition` returns COMPLETE phase; on-disk state moves only on `transition`. **Done is plugkit's pronouncement, not yours** -- gate-allowance is not done, only a dispatched `transition` returning COMPLETE is; a narrated walk with the gate open or the verb un-dispatched is fabrication. Not-COMPLETE means a next transition exists; idle/"waiting for the user" mid-chain are deviations (closure authorized at request time).
-
-**No summary, no prose-only turn here.** A summary, recap, announced-but-undispatched next move, or any tool-less message IS a stop. Until this surface returns phase=COMPLETE after `transition`, every turn ends in a verb (`phase-status`, `residual-scan`, the push verbs, `instruction`, `transition`). Catching yourself composing a summary IS the drift signal -> dispatch `phase-status` instead.
-
-## Feedback
-
-DECIDE's findings flow back to the earliest phase capable of resolving them -- three distinct edges, not one:
-
-- **DECIDE -> SPECIFY**: a witnessed gap between spec and reality (the row's stated pre/post-condition was itself wrong, incomplete, or missed a case the adversarial sweep found). Route via `prd-add`, never a lesson held in prose.
-- **DECIDE -> PROVE**: an obligation that discharged cleanly at some phase (witness accepted) but the adversarial sweep here found a live case where it does not hold. This is a proof that was accepted on insufficient evidence, not a spec error -- re-open the specific `mutable` (`mutable-add` with the same id if reachable, else a fresh one naming the surviving gap) and `transition to=PROVE` to re-derive a witness that actually covers the failing case, rather than patching the code and re-running the same insufficient check. Default target when the blocking obligation's owning phase is unclear or is PROVE itself.
-- **DAG-structural failure**: a cycle found late in the dependency graph, or a `supplies` claim that does not actually match what a dependent row's precondition needed -- this is neither a spec error nor an under-proven obligation, it is the DAG itself being wrong. Route to the phase that OWNS the blocking obligation's `obligation_kind` (PROVE for precondition/invariant/postcondition/resource-bound/type-shape, STATE for totality/ownership/replay/effect-boundary, CONC for happens-before/disjointness/contention, SEC for secrets/injection/identity-authority/message-timing, RES for exception-model/partial-failure/degradation/crucible), named explicitly in the `transition` dispatch and in the resolution's `witness_evidence` -- never defaulted to PROVE when the actual owning phase is one of the other four.
-
-A chain that learned something and did not route it to the correct edge has not finished deciding -- routing a proof-obligation failure to SPECIFY when PROVE is the owning phase re-specifies a row that was already correctly specified, wasting a cycle instead of fixing the actual gap (an under-tested proof). Routing a DAG-structural failure to PROVE by default when the blocking kind belongs to STATE/CONC/SEC/RES is the same mistake one level down.
-
-## Dispatch
-
-`transition` to COMPLETE only when the closure gate set is fully true; the handler hard-rejects while any open mutable or PRD item remains. Any gate false: stay in DECIDE, dispatch the recovery verb the gate names (`git_finalize`, `residual-scan`, `claim-audit`, or the CI-watching verb), never retry the bare transition.
+The walk is recorded by the transition that leaves this node.

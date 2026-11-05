@@ -244,12 +244,6 @@
   SESSION_ID: zellous-turnfix-1787667820
   status: witnessed
   witness_evidence: 'Live exec_js dispatch 1787673245278 against real VoiceSession/_pollActivity: 10 edge RMS inputs (0, -0.5, 1, 2, NaN, Infinity, -Infinity, 0.045, 0.35, 0.3499999) all produced defined in-range [0,1] levels (allLevelsInRange0to1:true). Follow-up dispatch 1787673280273 specifically isolated the NaN case: confirmed rms and level both come out as clean finite values (level:1, rms:1), not NaN -- because Uint8Array typed-array writes coerce non-finite input to 0 per ECMAScript ToUint8 spec (Math.round(NaN*128) written into buf[i] silently becomes byte value 128, the silence midpoint), so _pollActivity''s real RMS computation from getByteTimeDomainData bytes structurally can never see a NaN input regardless of what the underlying analyser reports. No defensive coding gap exists; the platform''s own typed-array semantics already guarantee totality here.'
-- id: vad-level-totality-obligation
-  obligation_kind: totality
-  subject: Every RMS input to _pollActivity's new local-level emission must produce a defined, in-range [0,1] level, including pathological edge inputs (negative, >1, NaN, Infinity, -Infinity).
-  SESSION_ID: zellous-turnfix-1787667820
-  status: witnessed
-  witness_evidence: 'Live exec_js dispatch 1787673245278 against real VoiceSession/_pollActivity: 10 edge RMS inputs (0, -0.5, 1, 2, NaN, Infinity, -Infinity, 0.045, 0.35, 0.3499999) all produced defined in-range [0,1] levels (allLevelsInRange0to1:true). Follow-up dispatch 1787673280273 specifically isolated the NaN case: confirmed rms and level both come out as clean finite values (level:1, rms:1), not NaN -- because Uint8Array typed-array writes coerce non-finite input to 0 per ECMAScript ToUint8 spec (Math.round(NaN*128) written into buf[i] silently becomes byte value 128, the silence midpoint), so _pollActivity''s real RMS computation from getByteTimeDomainData bytes structurally can never see a NaN input regardless of what the underlying analyser reports. No defensive coding gap exists; the platform''s own typed-array semantics already guarantee totality here.'
 - id: vad-level-replay-obligation
   obligation_kind: replay
   subject: Running _pollActivity twice with the same analyser RMS input must produce the same computed level value both times (deterministic, no hidden state drift across repeated polls).
@@ -304,12 +298,6 @@
   SESSION_ID: zellous-turnfix-1787667820
   status: witnessed
   witness_evidence: 'Live exec_js dispatch 1787680... against real VoiceSession/setMicSensitivity: 10 edge inputs (0, -1, NaN, Infinity, -Infinity, 0.001, 1, string, null, undefined) all handled correctly by the pre-existing guard ''if (typeof rms !== number || !(rms > 0)) return;'' -- 0/-1/NaN/string/null/undefined all correctly rejected (micSensitivity stays at its prior value), Infinity/-Infinity correctly pass the rms>0 check (a real, non-NaN number in JS despite JSON.stringify displaying it as null) and are stored as-is -- a degenerate but non-crashing state (speaker detection never triggers), not a defect. resultIsNaN:false confirmed explicitly via Number.isNaN() for every case -- micSensitivity can never become NaN through this setter.'
-- id: threshold-wiring-totality-obligation
-  obligation_kind: totality
-  subject: setMicSensitivity must handle every edge input (0, negative, NaN, Infinity, non-number, null, undefined) without ever storing NaN or a value that would silently break _pollActivity's rms>micSensitivity comparison.
-  SESSION_ID: zellous-turnfix-1787667820
-  status: witnessed
-  witness_evidence: 'Live exec_js dispatch 1787680... against real VoiceSession/setMicSensitivity: 10 edge inputs (0, -1, NaN, Infinity, -Infinity, 0.001, 1, string, null, undefined) all handled correctly by the pre-existing guard ''if (typeof rms !== number || !(rms > 0)) return;'' -- 0/-1/NaN/string/null/undefined all correctly rejected (micSensitivity stays at its prior value), Infinity/-Infinity correctly pass the rms>0 check (a real, non-NaN number in JS despite JSON.stringify displaying it as null) and are stored as-is -- a degenerate but non-crashing state (speaker detection never triggers), not a defect. resultIsNaN:false confirmed explicitly via Number.isNaN() for every case -- micSensitivity can never become NaN through this setter.'
 - id: threshold-wiring-replay-obligation
   obligation_kind: replay
   subject: Calling setMicSensitivity twice with the same value must be idempotent (same resulting state both times).
@@ -346,9 +334,39 @@
   SESSION_ID: zellous-turnfix-1787667820
   status: witnessed
   witness_evidence: 'Live exec_js dispatch (task-1a03a49a95c) against real VoiceSession: (1) no-mic case -- getUserMedia throwing produced connectThrew:false and setMutedThrew:false (both fail gracefully via the pre-existing catch/null-guard chain), localListenTrackIsNull:true (correctly stays unset, no stale reference). (2) interrupted-connect case -- calling disconnect() immediately after starting a slow connect() (superseding it via the epoch guard) produced noThrowOnInterruptedConnect:true, and the final _localListenTrack state was still {enabled:true} -- even a torn/superseded connect leaves the listen track correctly enabled per the fix''s invariant, not a leaked disabled state.'
-- id: listen-track-fix-res-sweep
-  obligation_kind: degradation
-  subject: When getUserMedia fails entirely (no mic), connect() and setMuted() must not throw, and _localListenTrack must correctly stay null/undefined rather than a stale reference. An interrupted/superseded connect() call must not leave a torn listen-track state.
-  SESSION_ID: zellous-turnfix-1787667820
+- id: m-actions-tag-pinned
+  subject: all workflow actions are pinned to tags, not SHAs
+  kind: grounding
   status: witnessed
-  witness_evidence: 'Live exec_js dispatch (task-1a03a49a95c) against real VoiceSession: (1) no-mic case -- getUserMedia throwing produced connectThrew:false and setMutedThrew:false (both fail gracefully via the pre-existing catch/null-guard chain), localListenTrackIsNull:true (correctly stays unset, no stale reference). (2) interrupted-connect case -- calling disconnect() immediately after starting a slow connect() (superseding it via the epoch guard) produced noThrowOnInterruptedConnect:true, and the final _localListenTrack state was still {enabled:true} -- even a torn/superseded connect leaves the listen track correctly enabled per the fix''s invariant, not a leaked disabled state.'
+  SESSION_ID: zellous-goal-2
+  witness_evidence: 'codesearch literal uses: over .github: every line is actions/*@v3|v4|v5 (ci.yml 16-67, gh-pages.yml 27-39)'
+- id: m-cdn-reachable
+  subject: jsdelivr /gh/@main URLs for SDK css and wireweave entry return 200
+  kind: execution
+  status: witnessed
+  SESSION_ID: zellous-goal-2
+  witness_evidence: 'curl -s -w: 247420.css 200 585918B; wireweave src/index.js 200 1493B'
+- id: m-ci-no-anentrypoint-dep
+  subject: ci.yml does not depend on anentrypoint.github.io (AGENTS.md claim is stale)
+  kind: grounding
+  status: witnessed
+  SESSION_ID: zellous-goal-2
+  witness_evidence: 'codesearch literal anentrypoint.github.io: hits only AGENTS.md, README.md, site/, theme.mjs; none in .github/workflows/ci.yml'
+- id: m-sdk-palette-mounted
+  subject: sdk-command-palette.js is still loaded by index.html scripts[]
+  kind: grounding
+  status: witnessed
+  SESSION_ID: zellous-goal-2
+  witness_evidence: 'codesearch literal: docs/nostr-chat/index.html:281 lists js/sdk-command-palette.js'
+- id: m-audit-pagescript-used
+  subject: scripts/audit-ui.pagescript.js is read by audit-ui.mjs and must stay
+  kind: grounding
+  status: witnessed
+  SESSION_ID: zellous-goal-2
+  witness_evidence: 'codesearch literal audit-ui.pagescript: scripts/audit-ui.mjs:28 readFileSync(scripts/audit-ui.pagescript.js)'
+- id: m-playwright-local
+  subject: Playwright is installed locally for drive/audit scripts
+  kind: execution
+  status: witnessed
+  SESSION_ID: zellous-goal-2
+  witness_evidence: node_modules/playwright and node_modules/playwright-core present (ls node_modules)
