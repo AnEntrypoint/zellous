@@ -204,3 +204,12 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8800, design dist routed from the jsdelivr URL): appReady true; the reminders dialog text "No reminders set. Reminders are kept in this browser only."; page errors []. The populated list is not witnessed (no reminder exists, and creating one is not in this round).
     - Dev server stopped by PID 2524666; port 8800 returns STOPPED
 000.
+
+## Round 21: pins
+
+33. Pins data: a kind-42 channel message carrying a t tag 'pinned' (wireweave's _eventToMsg keeps t tags as msg.tags). Read from the loaded history by docs/js/pins.js pinsFor, newest first. Nothing is published; pinning would publish a pin to the relays, which is not approved, so zellous has no way to create a pin yet.
+34. Design (lanmower): src/components/game3-social.js PinList; src/community-app.js header button "pins" and the surface body.
+35. Zellous (lanmower): docs/js/pins.js; docs/js/adapter/game.js snapshot pins with resolved names.
+    - Witness (playwriter, local docs on localhost:8801, design dist routed from the jsdelivr URL): appReady true; the pins dialog text "No pinned messages in this channel. Pinning is not available yet: it would publish a pin to the relays."; page errors []. The populated path is not witnessed: no pinned message exists in the loaded history.
+    - Dev server stopped by PID 2549711; port 8801 returns STOPPED
+000.
