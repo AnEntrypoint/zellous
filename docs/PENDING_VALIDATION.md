@@ -146,3 +146,12 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8794, design dist routed from the jsdelivr URL): three tiles; the local tile (PTT, muted) carries the mic-off mark, the other two do not. Extras: "#general" enabled; "Soundboard" and "Lofi radio" disabled with titles "No sound clips are available yet" and "No radio stream is available yet"; the note text is shown. Clicking "#general" moved the header to "general" and left the voice view (vx-view false).
     - Dev server stopped by PID 2378288; port 8794 returns STOPPED
 000.
+
+## Round 15: user panel level bar and the xp data
+
+16. Design (lanmower): src/components/community/presence.js UserPanel takes level and xpPct and renders "Lv N" with a progressbar (fill width set through the element ref, not a style attribute, because lint-inline-styles caps those); src/community-app.js passes s.level and s.xpPct.
+17. Zellous (lanmower): docs/js/adapter/members.js levelFor derives the xp from the loaded chat history: 10 xp per message whose userId is the signed-in pubkey, level = floor(sqrt(xp / 40)), progress between 40*n^2 and 40*(n+1)^2 (the same curve as game-3 scripts/lib/discord.js LEVEL and LEVEL_XP).
+    - xp kind schema (as derived now): source is the kind-42 chat messages already on the relay; no published event. The published xp kind (game-3 awards xp from events) is deferred to the data layer.
+    - Witness (playwriter, local docs on localhost:8795, design dist routed from the jsdelivr URL): appReady true; .cm-user-level text "Lv 0"; progressbar aria-valuenow "0"; fill width "0%". The increase path (own messages) is not witnessed: it needs a posted message, which is outward-facing and not done.
+    - Dev server stopped by PID 2405361; port 8795 returns STOPPED
+000.
