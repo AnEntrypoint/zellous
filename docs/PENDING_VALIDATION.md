@@ -32,3 +32,15 @@ Changes committed locally as lanmower and pushed in Phase B. Each entry names it
 6. Zellous gameSurface signal and openSurface/closeSurface actions (zellous: see git log).
    - Witness: node --check docs/js/adapter/game.js and docs/js/state.js exit 0.
 7. ServerCreateForm DOM-read change confirmed in design 44712fd (git show 44712fd:src/components/game3-room.js has data-color and reads the input from the form).
+
+## Round 4 (live witness)
+
+8. Design SDK types: ServerDiscover emptyText declaration committed (design: see git log, the chore(types) commit). Reason: the build regenerates types/components.d.ts, and the change adds the prop the Discover panel passes; committing keeps consumers' declarations in step with the bundle.
+9. Live witness of the pinned design commit a18a18b with zellous js served from fdb371e:
+   - Boot: appReady true, mounted true, topbar preferences, discover, roles, split view.
+   - Discover: dialog 'discover', text 'This client has no public server directory yet...', focus on Done, Escape closes.
+   - Roles: 'This client does not show or assign roles yet.', focus on Done, Escape closes.
+   - Split view: 'Split view needs a second channel feed...', focus on Done, Escape closes.
+   - Preferences: focus on Notifications, Space sets it false, Sound click stores zellous-sound '0', Escape closes.
+   - Create server: real serverManager.create submitted; the dialog closed and the server appeared in the rail. The server is published on public relays and needs deleting by its owner.
+   - Page errors: none; only external wss://relay.damus.io 503 handshakes.
