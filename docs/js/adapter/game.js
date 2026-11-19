@@ -1,3 +1,5 @@
+import { subscribeChannelEvents } from '../events-feed.js';
+
 const PREFS = [
   { key: 'notificationsEnabled', store: 'zellous-notifications', label: 'Notifications' },
   { key: 'messagePreviewEnabled', store: 'zellous-message-preview', label: 'Message preview' },
@@ -5,6 +7,15 @@ const PREFS = [
 ];
 
 export function buildGame({ v, S, call, persistBool }) {
+  let stopEvents = null;
+  const startEvents = () => {
+    if (stopEvents) stopEvents();
+    stopEvents = null;
+    const ch = v('currentChannel', null);
+    if (S.channelEvents) S.channelEvents.value = [];
+    subscribeChannelEvents(ch && ch.id, v('currentServerId', null), (list) => { if (S.channelEvents) S.channelEvents.value = list; }).then((stop) => { stopEvents = stop; });
+  };
+  const stopEventsFeed = () => { if (stopEvents) stopEvents(); stopEvents = null; };
   return {
     snapshot: () => {
       const counts = (window.nostrUnread && window.nostrUnread.countsFor) ? window.nostrUnread.countsFor() : {};
@@ -15,6 +26,7 @@ export function buildGame({ v, S, call, persistBool }) {
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
         gameSurface: v('gameSurface', null),
+        channelEvents: v('channelEvents', []),
       };
     },
     actions: {
@@ -27,8 +39,8 @@ export function buildGame({ v, S, call, persistBool }) {
       closeGamePrefs: () => call(() => { if (S.gamePrefOpen) S.gamePrefOpen.value = false; }),
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
-      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; }),
-      closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; }),
+      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); }),
+      closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; stopEventsFeed(); }),
       createServer: (name, color) => call(async () => {
         if (!window.serverManager || !window.serverManager.create) return;
         try {

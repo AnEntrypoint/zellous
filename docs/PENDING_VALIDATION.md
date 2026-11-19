@@ -155,3 +155,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8795, design dist routed from the jsdelivr URL): appReady true; .cm-user-level text "Lv 0"; progressbar aria-valuenow "0"; fill width "0%". The increase path (own messages) is not witnessed: it needs a posted message, which is outward-facing and not done.
     - Dev server stopped by PID 2405361; port 8795 returns STOPPED
 000.
+
+## Round 16: events surface (read-only)
+
+18. Events data kind: NIP-52 time-based calendar event, kind 31923, read only. Tags: e = the channel's hex id (SHA-256 of serverId + ':' + channelId, the same mapping wireweave's chat uses in src/chat.js hexChannelId), title, start (unix seconds), end (unix seconds, optional), location (optional). Read in docs/js/events-feed.js through window.nostrNet.subscribe with filter { kinds: [31923], '#e': [hex] }, and unsubscribed on close. Nothing is published; creating an event is not part of this round.
+19. Design (lanmower): src/components/game3-social.js EventsList (empty state, rows with title, time, location and a LIVE mark while now is within start..end); src/community-app.js header button "events", and the events surface lists events from the last 3 hours, as game-3 does (scripts/ui.js line 515).
+20. Zellous (lanmower): docs/js/events-feed.js; docs/js/adapter/game.js starts the subscription on openSurface('events') and stops it on closeSurface; docs/js/state.js channelEvents signal; docs/js/adapter/signals.js lists channelEvents.
+    - Witness (playwriter, local docs on localhost:8796, design dist routed from the jsdelivr URL): appReady true; "events" header button opens the dialog labelled events with text "No events in this channel yet." and the Done button; page errors []. The list rows and LIVE mark are not witnessed, since no events exist and creating one is not approved.
+    - Dev server stopped by PID 2434903; port 8796 returns STOPPED
+000.
+    - The list rows have no CSS yet (unstyled), recorded as a gap.
