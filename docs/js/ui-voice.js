@@ -13,7 +13,7 @@ const uiMembers = {
       identity: m.id,
       name: m.username,
       color: roleColor[getRole(m.id)] || (window.getAvatarColor ? window.getAvatarColor(m.id) : null),
-      nameColor: roleColor[getRole(m.id)] || null,
+      nameColor: state.roleColorsEnabled !== false ? (roleColor[getRole(m.id)] || null) : null,
       suffix: getRole(m.id) === 'owner' ? 'owner' : null,
       status: m.online !== false ? 'online' : 'offline',
     });

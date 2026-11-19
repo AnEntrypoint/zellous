@@ -13,6 +13,7 @@ const PREFS = [
   { key: 'notificationsEnabled', store: 'zellous-notifications', label: 'Notifications' },
   { key: 'messagePreviewEnabled', store: 'zellous-message-preview', label: 'Message preview' },
   { key: 'soundEnabled', store: 'zellous-sound', label: 'Sound' },
+  { key: 'roleColorsEnabled', store: 'zellous-role-colors', label: 'Role colours' },
 ];
 
 export function buildGame({ v, S, call, persistBool }) {

@@ -127,6 +127,7 @@ const state = {
 
   themePref: signal(typeof localStorage !== 'undefined' && localStorage.getItem('zellous-theme') === 'light' ? 'light' : 'ink'),
   notificationsEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-notifications') !== '0' : true),
+  roleColorsEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-role-colors') !== '0' : true),
   messagePreviewEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-message-preview') !== '0' : true),
   soundEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-sound') !== '0' : true),
 

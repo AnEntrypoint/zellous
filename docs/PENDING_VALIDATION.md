@@ -253,3 +253,15 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8805, design dist routed from the jsdelivr URL): appReady true; with the current channel "general", the split dialog shows "Split view needs a second text channel. This server has none besides the one you are in."; after switching to "announcements", split shows "#general" with 10 messages from the loaded history (for example "plain test message 2", "hello, is anyone here?"); page errors [].
     - Dev server stopped by PID 2645671; port 8805 returns STOPPED
 000.
+
+## Round 26: preferences
+
+50. Preferences compared with game-3 PREF_BOOLS (scripts/lib/discord.js line 80): compact, h24, sound, motion, ulinks, rolecolors, previews, embeds, jumbo, spoilers, vcsounds, sbsounds, mentionsonly, devmode.
+51. Backed by zellous (real behaviour):
+    - sound: Sound toggle (zellous-sound), existing.
+    - previews: Message preview toggle (zellous-message-preview), existing.
+    - rolecolors: new Role colours toggle, stored in zellous-role-colors; when off, member list names drop the role colour (docs/js/state.js roleColorsEnabled, docs/js/ui-voice.js nameColor, docs/js/adapter/game.js PREFS).
+    - Witness (playwriter, local docs on localhost:8806, design dist routed from the jsdelivr URL): the preferences dialog lists Notifications, Message preview, Sound, Role colours, all true before; clicking Role colours gave aria-checked "false" and localStorage zellous-role-colors "0"; appReady true; page errors [].
+52. Not backed, with the cause: compact (no compact message layout in the SDK chat), h24 (the SDK formats times with the locale), motion (no animation layer), ulinks, embeds, jumbo, spoilers (no link preview, embed, emoji size or spoiler rendering in zellous), mentionsonly (zellous notifications are not per-mention), vcsounds and sbsounds (voice and soundboard clips are not available, see the voice view entry), devmode (no developer mode in zellous).
+    - Dev server stopped by PID 2670333; port 8806 returns STOPPED
+000.
