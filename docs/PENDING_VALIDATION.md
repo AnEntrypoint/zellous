@@ -175,3 +175,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Gap: the list covers only the loaded channel history (limit 50 per channel), not every message the relays hold.
     - Dev server stopped by PID 2452629; port 8797 returns STOPPED
 000.
+
+## Round 18: polls
+
+24. Polls data: game-3 polls are chat messages in the 📊¦question¦option¦option form (scripts/lib/discord.js POLL, 2 to 5 options). Zellous reads them from the loaded channel history, with no new published kind: docs/js/polls.js pollsFor parses the same pattern, newest first.
+25. Design (lanmower): src/components/game3-social.js PollList (question, author, numbered options, empty state); src/community-app.js header button "polls" and the surface body.
+26. Zellous (lanmower): docs/js/polls.js; docs/js/adapter/game.js snapshot polls.
+    - Votes: not counted. Game-3 counts votes per option; zellous has no vote message kind and voting would publish to the relays, which is not approved. The list shows the options without counts, and the empty state says so.
+    - Witness (playwriter, local docs on localhost:8798, design dist routed from the jsdelivr URL): appReady true; the polls dialog text "No polls in this channel yet. Votes are not counted by this client yet."; page errors []. The pattern itself was checked with node: a string in the 📊 form matches (true).
+    - Dev server stopped by PID 2477110; port 8798 returns STOPPED
+000.

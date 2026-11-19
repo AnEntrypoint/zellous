@@ -1,5 +1,6 @@
 import { subscribeChannelEvents } from '../events-feed.js';
 import { leaderboardFor } from '../xp.js';
+import { pollsFor } from '../polls.js';
 
 const PREFS = [
   { key: 'notificationsEnabled', store: 'zellous-notifications', label: 'Notifications' },
@@ -28,6 +29,7 @@ export function buildGame({ v, S, call, persistBool }) {
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
         gameSurface: v('gameSurface', null),
         channelEvents: v('channelEvents', []),
+        polls: pollsFor(v('chatMessages', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : '') })),
         leaderboard: leaderboardFor(v('chatMessages', [])).map((r) => ({ ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.id)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.id) : r.id.slice(0, 8)) })),
       };
     },
