@@ -100,3 +100,5 @@ Plan, in order, each step committed as lanmower with a witness here:
    - Signed-in state of the live site not witnessed; no login link or token used.
 
 Round 8 status: channel header witnessed for render, panel buttons (discover opened and closed) and the members toggle. Catch up not witnessed: it renders only when there are unread messages, a fresh profile has none, and creating them would post to public relays, which this round does not do. Surfaces 2 onward (rail, message list and composer, member list, voice view, user panel and level bar, events, leaderboard, polls, recap, reminders, pins, rules, announcements, roles and pick-roles, Discover, preferences, split view) are not started. Nothing is pushed.
+
+Round 9 step 1: rebase check. Zellous local commits 80548b5 and 44cab73 are ahead of origin/main f89fa0b with no origin-only commits, so no rebase or conflict resolution was needed. Design e2fdf0c is ahead of origin/main 28715f0 with no origin-only commits. Nothing is pushed.
