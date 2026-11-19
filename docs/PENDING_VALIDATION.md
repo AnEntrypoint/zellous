@@ -234,3 +234,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8803, design dist routed from the jsdelivr URL): appReady true; roles dialog lists "Server Owner 0", "Admin 0", "Moderator 0", "Online 4"; pick-roles dialog reads "Picking a role publishes a role change to the relays, which this client does not do yet."; page errors [].
     - Dev server stopped by PID 2596935; port 8803 returns STOPPED
 000.
+
+## Round 24: discover
+
+44. Discover data: the servers this client has joined (state.servers, read by the adapter as discoverServers). Game-3 lists every server in its world; zellous has no public directory, so the list is the joined servers only. No published kind.
+45. Design (lanmower): src/components/game3-social.js DiscoverList (name and open or joined state); src/community-app.js discover surface uses it with the honest empty text about the missing directory.
+46. Zellous (lanmower): docs/js/adapter/game.js snapshot discoverServers.
+    - Witness (playwriter, local docs on localhost:8804, design dist routed from the jsdelivr URL): appReady true; discover dialog lists one row, "Zellous Public" with "open" (the current server); page errors [].
+    - Gap: no join from discover (joining needs an invite; no directory exists), and member counts per server are not shown because only the current server's members are loaded.
+    - Dev server stopped by PID 2624648; port 8804 returns STOPPED
+000.
