@@ -107,3 +107,11 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
 - Reference: game-3 rail groups INFORMATION, TEXT CHANNELS, VOICE CHANNELS (scripts/ui.js).
 - Data: s.channels typed announcement/page (information), text-like (text channels), voice/threaded (voice channels), each with its create button for managers.
 - Witness (playwriter, zellous page, local dist via route): groups ["information","text channels","voice channels"]; channels ["announcements","general","General"]; create buttons [] (fresh profile is not a manager, so none shown, as intended).
+
+## Round 10: message list and composer
+
+10. Design SDK composer (design 05e9031, lanmower). src/components/chat/composer.js takes maxLength and onKeyDown; the textarea renders maxLength 190 and its keydown calls onKeyDown first. A chat-composer-count span shows the remaining characters once the text passes 150. src/community-app.js composerKey: Alt+ArrowUp/Down switches to the previous/next channel in rail order through A.switchChannel; ArrowUp on an empty composer loads the last own message into the input.
+    - Witness (playwriter, local docs served on localhost:8790, design dist routed from the jsdelivr URL): appReady true, textarea maxlength "190", 160 characters typed gave counter "30", Alt+ArrowDown moved the header from "general" to "General".
+    - ArrowUp edit-last not witnessed: a fresh profile has no own message to edit.
+    - Enter-to-send, reply bar and the sticker picker: unchanged in this round (the sticker picker waits for the stickers kind).
+    - Not pushed. Design 05e9031 is committed locally and goes to origin with the zellous commit in Phase B.
