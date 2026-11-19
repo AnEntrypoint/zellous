@@ -121,6 +121,8 @@ const state = {
   gameServerCreateOpen: signal(false),
   gameSurface: signal(null),
   channelEvents: signal([]),
+  splitChannel: signal(null),
+  splitMessages: signal([]),
   settingsAnchor: signal({ x: 0, y: 0 }),
 
   themePref: signal(typeof localStorage !== 'undefined' && localStorage.getItem('zellous-theme') === 'light' ? 'light' : 'ink'),

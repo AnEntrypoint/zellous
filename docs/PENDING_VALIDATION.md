@@ -244,3 +244,12 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Gap: no join from discover (joining needs an invite; no directory exists), and member counts per server are not shown because only the current server's members are loaded.
     - Dev server stopped by PID 2624648; port 8804 returns STOPPED
 000.
+
+## Round 25: split view with a second channel feed
+
+47. Split feed: a read-only subscription to the second text channel, kind 42 with '#e' set to the channel's hex id (SHA-256 of serverId + ':' + channelId, the same mapping as wireweave's chat.js), limit 50, newest last. docs/js/split-feed.js subscribeSplitMessages. Nothing is published; the split pane does not send.
+48. Zellous: the second channel is the first text channel of the server that is not the current one (not voice, threaded, announcement or page). docs/js/adapter/game.js startSplit on openSurface('split'), stopped on close; state.js splitChannel and splitMessages; signals.js lists both.
+49. Design (lanmower): src/components/game3-social.js SplitPane (channel title, messages with name and text, empty text); src/community-app.js split surface uses it.
+    - Witness (playwriter, local docs on localhost:8805, design dist routed from the jsdelivr URL): appReady true; with the current channel "general", the split dialog shows "Split view needs a second text channel. This server has none besides the one you are in."; after switching to "announcements", split shows "#general" with 10 messages from the loaded history (for example "plain test message 2", "hello, is anyone here?"); page errors [].
+    - Dev server stopped by PID 2645671; port 8805 returns STOPPED
+000.
