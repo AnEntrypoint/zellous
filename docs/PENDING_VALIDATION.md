@@ -224,3 +224,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Gap: game-3's rules and announcements text are static or Spawn-hosted content, not available to zellous, so the surfaces show zellous's own rules pages and announcement messages only.
     - Dev server stopped by PID 2572684; port 8802 returns STOPPED
 000.
+
+## Round 23: roles and pick-roles
+
+40. Roles data: counts of the room members per role (owner, admin, moderator, member) from window.serverRoles.getRole for the current server, read from state.roomMembers (docs/js/roles.js rolesFor). No published kind.
+41. Pick-roles: no data. Picking a role publishes a role change to the relays, which is not approved, so the surface shows only the honest empty state. No published kind is added.
+42. Design (lanmower): src/components/game3-social.js RoleList; src/community-app.js header button "roles" (now the counts list) and "pick roles", and their surface bodies.
+43. Zellous (lanmower): docs/js/roles.js; docs/js/adapter/game.js snapshot roles.
+    - Witness (playwriter, local docs on localhost:8803, design dist routed from the jsdelivr URL): appReady true; roles dialog lists "Server Owner 0", "Admin 0", "Moderator 0", "Online 4"; pick-roles dialog reads "Picking a role publishes a role change to the relays, which this client does not do yet."; page errors [].
+    - Dev server stopped by PID 2596935; port 8803 returns STOPPED
+000.
