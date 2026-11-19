@@ -122,3 +122,11 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8791, design dist routed from the jsdelivr URL): appReady true, members aria-pressed "false" then "true" after one click, categories returned [Members (1 online), Offline (3)].
     - The first-run key notice had to be dismissed before the header button was clickable; that is the existing modal, not a change.
     - Dev server stopped by PID 2309004; port 8791 returns 000.
+
+## Round 12: member list against game-3
+
+12. Member list fixes (design commit, lanmower): src/components/community/presence.js MemberList headers read "Label (N)" (game-3 reads "Label — N"; an em dash is rejected by lint-glyphs, so the parenthesised count is used); MemberItem takes a suffix, rendered as a span with class cm-member-suffix.
+13. Zellous (commit 327287f, lanmower): docs/js/ui-voice.js labels owner "Server Owner", member "Online" (game-3 Online catch-all), the owner row carries suffix "owner" and nameColor from ROLE_COLOR; docs/js/adapter/members.js hides the list in home and voice views, as game-3 does.
+    - Witness (playwriter, local docs on localhost:8792, design dist routed from the jsdelivr URL): members aria-pressed "false" then "true"; section headers ["Online (1)", "Offline (3)"]; row 1 status class "cm-member-status online"; offline rows status class "cm-member-status" (no offline style); clicking row 2 opened a dialog reading "npub1mv5...ue9e offline".
+    - Gaps left open: game-3 crown icon (no crown glyph in the SDK icon set, and glyphs are rejected in src); game-3 activity sub-line ("Playing <server>", custom status, voice, typing), zellous has no per-member activity data; game-3 offline row dimming (no offline style in the SDK); game-3 Apps bot row (zellous has no bot); game-3 invisible status (zellous has no invisible status).
+    - Dev server stopped by PID 2331224; port 8792 returns 000.
