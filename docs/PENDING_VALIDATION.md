@@ -213,3 +213,14 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8801, design dist routed from the jsdelivr URL): appReady true; the pins dialog text "No pinned messages in this channel. Pinning is not available yet: it would publish a pin to the relays."; page errors []. The populated path is not witnessed: no pinned message exists in the loaded history.
     - Dev server stopped by PID 2549711; port 8801 returns STOPPED
 000.
+
+## Round 22: rules and announcements
+
+36. Rules data: channels of type 'page' from the current server's channel list (docs/js/rules.js rulesFor). The rules text is the page content, shown through the existing page view; this surface lists the rules pages. No published kind.
+37. Announcements data: kind-42 messages in the loaded history carrying a t tag 'announcement' (zellous sends them with that tag, wireweave chat.js isAnnouncementPost), newest first (docs/js/announcements.js announcementsFor). No published kind is added.
+38. Design (lanmower): src/components/game3-social.js RulesList and AnnouncementList; src/community-app.js header buttons "rules" and "announcements" and their surface bodies.
+39. Zellous (lanmower): docs/js/rules.js, docs/js/announcements.js; docs/js/adapter/game.js snapshot rules and announcements with resolved names.
+    - Witness (playwriter, local docs on localhost:8802, design dist routed from the jsdelivr URL): appReady true; rules dialog "This server has no rules page yet."; announcements dialog "No announcements in this channel yet."; page errors []. The populated paths are not witnessed: this server has no page channel and no announcement message in the loaded history.
+    - Gap: game-3's rules and announcements text are static or Spawn-hosted content, not available to zellous, so the surfaces show zellous's own rules pages and announcement messages only.
+    - Dev server stopped by PID 2572684; port 8802 returns STOPPED
+000.
