@@ -185,3 +185,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8798, design dist routed from the jsdelivr URL): appReady true; the polls dialog text "No polls in this channel yet. Votes are not counted by this client yet."; page errors []. The pattern itself was checked with node: a string in the 📊 form matches (true).
     - Dev server stopped by PID 2477110; port 8798 returns STOPPED
 000.
+
+## Round 19: recap
+
+27. Recap data: messages from other users in the loaded channel history, the newest unread count of them (window.nostrUnread.countFor for the current channel), newest first. No published kind; docs/js/recap.js recapFor.
+28. Design (lanmower): src/components/game3-social.js RecapList (author name and text, text nodes only); src/community-app.js header button "recap" and the surface body.
+29. Zellous (lanmower): docs/js/recap.js; docs/js/adapter/game.js snapshot recap with resolved names.
+    - Gap: game-3 recap summarises what was missed; zellous has no last-read timestamp, so it lists the unread count from history, and an unread count of zero shows the empty state.
+    - Witness (playwriter, local docs on localhost:8799, design dist routed from the jsdelivr URL): appReady true; the recap dialog text "Nothing new in this channel since you last read it."; zero items; page errors []. The non-empty path is not witnessed in this profile (no unread messages).
+    - Dev server stopped by PID 2500517; port 8799 returns STOPPED
+000.
