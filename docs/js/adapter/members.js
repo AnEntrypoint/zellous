@@ -1,12 +1,4 @@
-const XP_PER_MESSAGE = 10;
-const levelFor = (messages, pubkey) => {
-  const mine = pubkey ? (messages || []).filter(m => m && m.userId === pubkey).length : 0;
-  const xp = mine * XP_PER_MESSAGE;
-  const level = Math.floor(Math.sqrt(xp / 40));
-  const base = 40 * level * level;
-  const next = 40 * (level + 1) * (level + 1);
-  return { level, xp, xpPct: ((xp - base) / (next - base)) * 100 };
-};
+import { levelFor } from '../xp.js';
 
 export function buildMembers({ v, call }) {
   return {

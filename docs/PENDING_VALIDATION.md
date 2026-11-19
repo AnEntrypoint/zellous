@@ -165,3 +165,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Dev server stopped by PID 2434903; port 8796 returns STOPPED
 000.
     - The list rows have no CSS yet (unstyled), recorded as a gap.
+
+## Round 17: leaderboard
+
+21. Leaderboard data: derived from the loaded channel history, the same xp rule as the user panel (10 xp per message, docs/js/xp.js leaderboardFor and progressFor, the game-3 LEVEL and LEVEL_XP curve). No published xp event exists yet; the published xp kind stays deferred to the data layer.
+22. Design (lanmower): src/components/game3-social.js LeaderboardList (ordered rows with rank, name, level and xp; empty state); src/community-app.js header button "leaderboard" and the surface body.
+23. Zellous (lanmower): docs/js/xp.js (shared xp curve and leaderboard), docs/js/adapter/members.js and docs/js/adapter/game.js use it; the leaderboard rows carry resolved names.
+    - Witness (playwriter, local docs on localhost:8797, design dist routed from the jsdelivr URL): appReady true; the leaderboard dialog listed six rows from the loaded history, the top one "Lv 1, 140 xp", the rest "Lv 0" with 20 or 10 xp; page errors [].
+    - Gap: the list covers only the loaded channel history (limit 50 per channel), not every message the relays hold.
+    - Dev server stopped by PID 2452629; port 8797 returns STOPPED
+000.
