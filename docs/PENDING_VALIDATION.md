@@ -195,3 +195,12 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8799, design dist routed from the jsdelivr URL): appReady true; the recap dialog text "Nothing new in this channel since you last read it."; zero items; page errors []. The non-empty path is not witnessed in this profile (no unread messages).
     - Dev server stopped by PID 2500517; port 8799 returns STOPPED
 000.
+
+## Round 20: reminders
+
+30. Reminders data: a per-viewer list in localStorage under zellous-reminders, entries { id, text, at } (at in ms). Reading goes through docs/js/reminders.js remindersFor, which tolerates a missing or bad value. Nothing is published. Creating a reminder is not part of this round.
+31. Design (lanmower): src/components/game3-social.js ReminderList; src/community-app.js header button "reminders" and the surface body.
+32. Zellous (lanmower): docs/js/reminders.js; docs/js/adapter/game.js snapshot reminders.
+    - Witness (playwriter, local docs on localhost:8800, design dist routed from the jsdelivr URL): appReady true; the reminders dialog text "No reminders set. Reminders are kept in this browser only."; page errors []. The populated list is not witnessed (no reminder exists, and creating one is not in this round).
+    - Dev server stopped by PID 2524666; port 8800 returns STOPPED
+000.
