@@ -44,3 +44,21 @@ Changes committed locally as lanmower and pushed in Phase B. Each entry names it
    - Preferences: focus on Notifications, Space sets it false, Sound click stores zellous-sound '0', Escape closes.
    - Create server: real serverManager.create submitted; the dialog closed and the server appeared in the rail. The server is published on public relays and needs deleting by its owner.
    - Page errors: none; only external wss://relay.damus.io 503 handshakes.
+
+## Round 5: reference parity inventory
+
+Reference: https://www.spawn.co/@mrmustard/game-3@dev, captured in playwriter as a signed-in agent (login link). The HUD sits in iframe[data-spawn-kernel-frame] > iframe[data-tome-realm="game"].
+
+Reference HUD text on the main view (innerText, 3862 chars): rail buttons Events, Leaderboard, lv 0; sections INFORMATION (rules, pick-roles, announcements), TEXT CHANNELS (general, gaming, memes, clips), VOICE CHANNELS (lounge, squad, late-night); a member list (zellous_builder Online); channel header "general / hang out, say hi" with Catch up and Split controls; messages with join lines, "Wave to say hi!", a bot line "GG ..., you just reached level 2!", and link embeds.
+
+Interaction inventory from scripts/ui.js (sendAction names, ~55 distinct): server, pref, srvmodal, switcher, profile, status, more, voice, settings, reply, mailbox, dm, send, search, react, mutech, mic, lightbox, leaderboard, home, events, event, drawer, collapse, channel, view, stickers, split, settab, save, rxpick, pins, escape, catchup, ac, wave, vote, typing, translate, toast, statusmenu, sound, servermenu, roles, remind, recap, readall, radio, pin, picker, members, markunread, markch, aiclose.
+
+Status per surface, with the cause for each gap:
+
+- Present in zellous and matched in shape: text channels, DM mailbox (dm), voice rooms (voice), member list (members), profile card (profile), status menu (status), reply, react, search, server create (server), server list and menu (servermenu), settings popover (settings).
+- Present now, honest: discover, roles, split view (empty states; no backing feed or role UI).
+- Present now, real: Catch up (markAllRead over window.nostrUnread), preferences (notifications, preview, sound), create server (serverManager.create).
+- Gap, no zellous backing (blocked): Events and event create/RSVP (event, events) because zellous has no event kind; Leaderboard and level bar (leaderboard, lv) because zellous has no XP events; polls (vote) because no poll message type; stickers (stickers, picker sticker tray) because no sticker catalogue; soundboard (sound) and lofi radio (radio) because the reference clips are /cdn names zellous cannot resolve; recap (recap) because no 'while you were away' source; reminders (remind) because no reminder store; pins (pins, pin) because no pin event; markunread (markunread, markch) because the unread store has no mark-unread; translate (translate) because no translation service; rxpick (rxpick) because reactions use the emoji picker only; mutech (mutech) because no mute store for channels; announcements, rules, pick-roles as pages (rules, pick-roles, announcements) because zellous channels use the announcement type and pages without the reference content.
+- Blocker: the reference content (rules text, announcements, role lists, XP, events, polls) lives in the Spawn world state and is not exposed to zellous. No parity is possible without a data source; zellous has no fake data and will not synthesise it.
+
+Witness for this round: the reference HUD text quoted above (playwriter, login link, innerText of the game frame).
