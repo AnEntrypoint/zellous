@@ -1,28 +1,24 @@
 # Pending validation
 
-Phase A changes were committed locally as lanmower. Phase B pushed them after witnessing the live page. Entries name the commits and the observed witness.
+Changes committed locally as lanmower and pushed in Phase B. Each entry names its commits and the witness observed.
 
-## Shipped and witnessed
+## Changes
 
-1. Design SDK: voice room, unread catch-up button and preferences dialog (design 0ad20e7, then fixes e40aa06, 2e30740, 25501f8).
-   - src/community-app.js: the voice view lists participants with VoiceRoom; the topbar shows CatchUpButton when unreadTotal > 0 and markAllRead exists; a 'preferences' button opens a Dialog of GameSettingsSection and ToggleRow.
-   - src/components/game3-room.js: VoiceRoom renders controls only when a handler is given.
-   - Fixes found in live witness: the trigger was inside a display:none nav (moved to a visible button); focus stayed on the trigger on open (now the first switch, after a task); a toggle dropped focus so Escape did nothing (focus re-applied after render); a Done button added.
-   - Build witness: node scripts/build.mjs exit 0 on each commit.
+1. Design SDK, preferences dialog and catch-up (design 0ad20e7, then fixes e40aa06, 2e30740, 25501f8). Witnessed live, see below.
+2. Zellous unread catch-up and preferences state (zellous 7d87ad6). Witnessed live.
+3. Design SDK, create-server dialog opened from the rail plus button (design 44712fd). ServerCreateForm reads its name and colour from the DOM on submit.
+   - Witness: node scripts/build.mjs exit 0.
+4. Zellous create-server state and action (zellous b556382): serverColors from AVATAR_COLORS, openServerCreate, closeServerCreate, createServer calling serverManager.create.
+   - Witness: node --check docs/js/adapter/game.js and docs/js/state.js exit 0.
 
-2. Zellous: unread catch-up and notifications dialog (zellous 7d87ad6).
-   - docs/js/adapter/game.js: snapshot { unreadTotal, gamePrefOpen, gamePrefToggles }; actions markAllRead, openGamePrefs, closeGamePrefs, setGamePref.
-   - docs/js/state.js: gamePrefOpen signal; docs/js/adapter/signals.js: listed in SIGNALS; docs/js/nostr-adapter.js: builder registered.
+## API check
 
-Live witness (fresh browser context, design SDK pinned to 25501f8 through a request route, because jsdelivr @main still served the previous bundle):
-- boot: appReady true, __communityAppMounted true, page errors 0, console errors 0.
-- preferences button visible; dialog opens with focus on the Notifications switch.
-- Space on the focused switch toggles Notifications to false and focus stays on it.
-- Escape closes the dialog. Mouse click on Sound sets localStorage zellous-sound to '0' and aria-checked false.
-- Done closes the dialog.
-- Chat send: text typed in the composer and Enter pressed; the sent text is in the page body and the composer is cleared.
-- Not witnessed: the catch-up button (no unread messages in the test profile); the voice room (no voice connection in the test).
+- serverManager.create(name, color) exists (docs/js/bridge/servers.js) and is what the legacy create modal calls.
+- markAllRead: window.nostrUnread.markRead(id) and countsFor() exist (docs/js/bridge/unread.js).
 
-## Not wired (open)
+## Open, not wired
 
-- Split view, roles and pick-roles, Discover modal layout, events, leaderboard, XP level bar, polls, away recap, invite card, sticker picker, soundboard, lofi radio, keyword alerts, server create form. Zellous has no state or action backing these, so the components exist in the SDK but are not mounted.
+- Split view: zellous loads one channel's messages at a time, so a second pane has no feed. Not mounted.
+- Roles and pick-roles: roles are read and set through ww.roles (getRole, setRole) for admins, but no role-picking UI exists in zellous to back the component. Not mounted.
+- Discover modal layout: zellous has no public server directory; only joined servers are known. Not mounted.
+- Events, leaderboard, XP level bar, polls, away recap, invite card, sticker picker, soundboard, lofi radio, keyword alerts: no zellous state or action backs them. Not mounted.
