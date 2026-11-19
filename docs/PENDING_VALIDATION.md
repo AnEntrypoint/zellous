@@ -62,3 +62,18 @@ Status per surface, with the cause for each gap:
 - Blocker: the reference content (rules text, announcements, role lists, XP, events, polls) lives in the Spawn world state and is not exposed to zellous. No parity is possible without a data source; zellous has no fake data and will not synthesise it.
 
 Witness for this round: the reference HUD text quoted above (playwriter, login link, innerText of the game frame).
+
+## Round 6: full GUI replacement with the game-3 site (blocked)
+
+Scope requested: replace every part of zellous's GUI with the game-3 site and roll out all of its functionality, without Spawn-platform bits, using only the local source (/config/workspace/game-3: ui/, design.md, mods/, AGENTS.md) and the components in design.
+
+Not witnessed: the signed-in state of the live game-3 site. No login link, token or account sign-in was requested for it, as instructed. Every reference fact below comes from the local source and the public page.
+
+Blockers, with cause:
+
+1. Architecture conflict. zellous's AGENTS.md says the anentrypoint-design SDK owns the whole app GUI and zellous is a thin consumer (mountCommunityApp composes every surface). Replacing the SDK-owned GUI with the game-3 HUD in zellous moves that ownership, so it needs an owner decision on where the replacement lives before any code change.
+2. Source dependency. The game-3 HUD in scripts/ui.js (about 757 lines, inside a 135 KB file) renders through Spawn engine APIs (sendAction, world.state, ctx.spawn, Spawn chat scopes, NIP-style relays provided by the platform). It has no standalone data layer, so there is no zellous source for its events, XP and levels, polls, stickers, recaps, reminders, pins, rules, announcements, roles and pick-roles. Wiring them means defining new Nostr event kinds and a data model for each, which is a protocol design task, not a GUI change.
+3. Media. Soundboard clips and lofi radio are /cdn names that only the Spawn CDN resolves; zellous cannot play them without bundling the audio, which the repo rules forbid for vendored art.
+4. Already matched: text channels, DMs, voice rooms, members, profiles, statuses, reply, reactions, search, server create and menu, settings, Catch up, preferences. Honest empty states: discover, roles, split view. The gap list with causes is in the earlier Round 5 section.
+
+Witness for this round: none beyond the Round 5 witness; no code was changed.
