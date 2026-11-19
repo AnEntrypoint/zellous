@@ -117,6 +117,7 @@ const state = {
   mobileMenuOpen: signal(false),
   memberListOpen: signal(false),
   settingsOpen: signal(false),
+  gamePrefOpen: signal(false),
   settingsAnchor: signal({ x: 0, y: 0 }),
 
   themePref: signal(typeof localStorage !== 'undefined' && localStorage.getItem('zellous-theme') === 'light' ? 'light' : 'ink'),

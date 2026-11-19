@@ -8,7 +8,7 @@
     const root = document.getElementById('app');
     if (!root) return;
 
-    const [signals, callMod, themeMod, frame, rail, chat, dm, members, voice, settings, overlays, session] = await Promise.all([
+    const [signals, callMod, themeMod, frame, rail, chat, dm, members, voice, settings, overlays, session, game] = await Promise.all([
       import('./adapter/signals.js'),
       import('./adapter/call.js'),
       import('./adapter/theme.js'),
@@ -21,6 +21,7 @@
       import('./adapter/settings.js'),
       import('./adapter/overlays.js'),
       import('./adapter/session.js'),
+      import('./adapter/game.js'),
     ]);
 
     const S = window.stateSignals;
@@ -38,6 +39,7 @@
       settings.buildSettings(deps),
       overlays.buildOverlays(deps),
       session.buildSession(deps),
+      game.buildGame(deps),
     ];
 
     const get = () => {
