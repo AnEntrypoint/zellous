@@ -14,6 +14,7 @@ export function buildGame({ v, S, call, persistBool }) {
         gamePrefToggles: PREFS.map((p) => ({ key: p.key, label: p.label, checked: !!v(p.key, true) })),
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
+        gameSurface: v('gameSurface', null),
       };
     },
     actions: {
@@ -26,6 +27,8 @@ export function buildGame({ v, S, call, persistBool }) {
       closeGamePrefs: () => call(() => { if (S.gamePrefOpen) S.gamePrefOpen.value = false; }),
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
+      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; }),
+      closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; }),
       createServer: (name, color) => call(async () => {
         if (!window.serverManager || !window.serverManager.create) return;
         try {
