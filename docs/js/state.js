@@ -118,6 +118,7 @@ const state = {
   memberListOpen: signal(false),
   settingsOpen: signal(false),
   gamePrefOpen: signal(false),
+  gameServerCreateOpen: signal(false),
   settingsAnchor: signal({ x: 0, y: 0 }),
 
   themePref: signal(typeof localStorage !== 'undefined' && localStorage.getItem('zellous-theme') === 'light' ? 'light' : 'ink'),
