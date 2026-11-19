@@ -130,3 +130,11 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8792, design dist routed from the jsdelivr URL): members aria-pressed "false" then "true"; section headers ["Online (1)", "Offline (3)"]; row 1 status class "cm-member-status online"; offline rows status class "cm-member-status" (no offline style); clicking row 2 opened a dialog reading "npub1mv5...ue9e offline".
     - Gaps left open: game-3 crown icon (no crown glyph in the SDK icon set, and glyphs are rejected in src); game-3 activity sub-line ("Playing <server>", custom status, voice, typing), zellous has no per-member activity data; game-3 offline row dimming (no offline style in the SDK); game-3 Apps bot row (zellous has no bot); game-3 invisible status (zellous has no invisible status).
     - Dev server stopped by PID 2331224; port 8792 returns 000.
+
+## Round 13: voice view witness
+
+13. Voice view (no code change this round; gap recorded).
+    - Witness (playwriter, local docs on localhost:8793, design dist routed from the jsdelivr URL): clicking the VOICE CHANNELS General entry opened the voice view. Header "General", "2 connected", two participant tiles, "push to talk", "No microphone: listening only", buttons Unmute, Deafen, Voice settings, Leave voice. appReady true.
+    - Gap against game-3 (scripts/ui.js lines 580-594): game-3's control bar has a text-channel link back to the channel (the zellous voice view has none), a mic-off mark on tiles (not witnessed: both tiles had no mic-off in the text read), and the radio and soundboard, which are blocked by the missing sound and radio data.
+    - Dev server stopped by PID 2354487; port 8793 returns STOPPED
+000.
