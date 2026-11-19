@@ -22,3 +22,13 @@ Changes committed locally as lanmower and pushed in Phase B. Each entry names it
 - Roles and pick-roles: roles are read and set through ww.roles (getRole, setRole) for admins, but no role-picking UI exists in zellous to back the component. Not mounted.
 - Discover modal layout: zellous has no public server directory; only joined servers are known. Not mounted.
 - Events, leaderboard, XP level bar, polls, away recap, invite card, sticker picker, soundboard, lofi radio, keyword alerts: no zellous state or action backs them. Not mounted.
+
+## Round 3
+
+5. Design SDK, honest discover, roles and split-view surfaces (design: see git log for the commit, build exit 0).
+   - src/community-app.js: topbar buttons discover, roles and split view open a Dialog; each shows an explicit empty state.
+   - src/components/game3-social.js: ServerDiscover takes emptyText.
+   - Witness: node scripts/build.mjs exit 0.
+6. Zellous gameSurface signal and openSurface/closeSurface actions (zellous: see git log).
+   - Witness: node --check docs/js/adapter/game.js and docs/js/state.js exit 0.
+7. ServerCreateForm DOM-read change confirmed in design 44712fd (git show 44712fd:src/components/game3-room.js has data-color and reads the input from the form).
