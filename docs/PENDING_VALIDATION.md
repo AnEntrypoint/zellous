@@ -90,3 +90,11 @@ Plan, in order, each step committed as lanmower with a witness here:
 3. Design composition: one design component per game-3 surface (rail items, channel header, Catch up, Split, Events, Leaderboard, Polls, Stickers, Soundboard, Radio, Recap, Reminders, Pins, Rules, Announcements, Roles, Pick-roles, Discover, Preferences), mounted in mountCommunityApp.
 4. Media: zellous-owned clips in docs/ or silent fallbacks, recorded with their source.
 5. Witness: each surface on zellous with playwriter, outputs quoted here.
+
+## Round 8: GUI replacement, surface by surface
+
+1. Channel header (topbar replaced). Design commit: the feat(app) commit "replace the topbar with the game 3 channel header" (src/components/game3-header.js, src/community-app.js).
+   - Reference: game-3 channel header in scripts/ui.js (channel name, topic, Catch up, Split, member toggle).
+   - Data: s.currentChannel.name and type, s.unreadTotal, s.memberListOpen, s.servers and s.currentServerId, and ch.topic when present (zellous channels carry no topic, so none is shown).
+   - Witness (playwriter, zellous page with the local design build served through a route, no push): appReady true, mounted true, oldTopbar false, header true, name 'general', buttons [home, servers, preferences, discover, roles, split view, members], members aria-pressed false then true after a click, discover panel opened with the surface class present, page errors [].
+   - Signed-in state of the live site not witnessed; no login link or token used.
