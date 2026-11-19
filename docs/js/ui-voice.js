@@ -2,7 +2,7 @@ const uiMembers = {
   categories() {
     const members = state.roomMembers || [];
     const roleOrder = ['owner', 'admin', 'moderator', 'member'];
-    const roleLabel = { owner: 'Owner', admin: 'Admin', moderator: 'Moderator', member: 'Members' };
+    const roleLabel = { owner: 'Server Owner', admin: 'Admin', moderator: 'Moderator', member: 'Online' };
     const roleColor = window.ROLE_COLOR || {};
     const sid = state.currentServerId;
     const getRole = (id) => (window.serverRoles && sid ? window.serverRoles.getRole(sid, id) : null) || 'member';
@@ -13,6 +13,8 @@ const uiMembers = {
       identity: m.id,
       name: m.username,
       color: roleColor[getRole(m.id)] || (window.getAvatarColor ? window.getAvatarColor(m.id) : null),
+      nameColor: roleColor[getRole(m.id)] || null,
+      suffix: getRole(m.id) === 'owner' ? 'owner' : null,
       status: m.online !== false ? 'online' : 'offline',
     });
 
@@ -25,7 +27,7 @@ const uiMembers = {
       cats.push({ label: roleLabel[role] || role, members: byRole[role].map(toMember) });
     });
     const nonStd = online.filter(m => !roleOrder.includes(getRole(m.id)));
-    if (nonStd.length) cats.push({ label: 'Members', members: nonStd.map(toMember) });
+    if (nonStd.length) cats.push({ label: 'Online', members: nonStd.map(toMember) });
     if (offline.length) cats.push({ label: 'Offline', members: offline.map(toMember) });
     return cats;
   }

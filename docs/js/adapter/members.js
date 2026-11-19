@@ -2,7 +2,7 @@ export function buildMembers({ v, call }) {
   return {
     snapshot: () => ({
       memberCategories: (window.uiMembers && window.uiMembers.categories && window.uiMembers.categories()) || [],
-      memberListOpen: v('memberListOpen', false),
+      memberListOpen: v('memberListOpen', false) && !v('homeMode', false) && (v('currentChannel', {}) || {}).type !== 'voice',
     }),
     actions: {
       toggleMembers: () => call(() => window.ui.actions.toggleMembers()),
