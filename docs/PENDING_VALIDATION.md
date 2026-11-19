@@ -77,3 +77,16 @@ Blockers, with cause:
 4. Already matched: text channels, DMs, voice rooms, members, profiles, statuses, reply, reactions, search, server create and menu, settings, Catch up, preferences. Honest empty states: discover, roles, split view. The gap list with causes is in the earlier Round 5 section.
 
 Witness for this round: none beyond the Round 5 witness; no code was changed.
+
+## Round 7: full replacement, status open
+
+Decisions recorded: the replacement lives in the design SDK composition (mountCommunityApp); the data layer is built with Nostr kinds for events, XP and levels, polls, stickers, recaps, reminders, pins, rules, announcements, roles and pick-roles; media uses zellous's own clips or silent fallbacks; no Spawn CDN, no login link, token or sign-in for the live site. The signed-in state of the live site is not witnessed, by decision.
+
+Status: open. No code for the replacement has been written yet in this round.
+
+Plan, in order, each step committed as lanmower with a witness here:
+1. Data schema: document one Nostr kind per area in this file (events, xp, polls, stickers, recaps, reminders, pins, rules, announcements, roles, pick-roles) with tags and content fields, and a parser per kind in docs/js/nostr-*.js.
+2. Adapter builders: one docs/js/adapter/ builder per area reading the parsed state, with actions that publish the kind.
+3. Design composition: one design component per game-3 surface (rail items, channel header, Catch up, Split, Events, Leaderboard, Polls, Stickers, Soundboard, Radio, Recap, Reminders, Pins, Rules, Announcements, Roles, Pick-roles, Discover, Preferences), mounted in mountCommunityApp.
+4. Media: zellous-owned clips in docs/ or silent fallbacks, recorded with their source.
+5. Witness: each surface on zellous with playwriter, outputs quoted here.
