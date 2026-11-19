@@ -115,3 +115,10 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - ArrowUp edit-last not witnessed: a fresh profile has no own message to edit.
     - Enter-to-send, reply bar and the sticker picker: unchanged in this round (the sticker picker waits for the stickers kind).
     - Not pushed. Design 05e9031 is committed locally and goes to origin with the zellous commit in Phase B.
+
+## Round 11: member list
+
+11. Member list: no code change. The SDK renders the member list from zellous's memberCategories (docs/js/ui-voice.js categories(): role sections Owner, Admin, Moderator, Members, then Offline), toggled by toggleMembers.
+    - Witness (playwriter, local docs on localhost:8791, design dist routed from the jsdelivr URL): appReady true, members aria-pressed "false" then "true" after one click, categories returned [Members (1 online), Offline (3)].
+    - The first-run key notice had to be dismissed before the header button was clickable; that is the existing modal, not a change.
+    - Dev server stopped by PID 2309004; port 8791 returns 000.
