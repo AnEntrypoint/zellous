@@ -47,7 +47,7 @@ export function buildVoice({ v, S, call }) {
       voiceConnected: v('voiceConnected', false),
       voiceChannelName: v('voiceChannelName', ''),
       voiceConnectionState: v('voiceConnectionState', 'connected'),
-      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, speaking: !!p.isSpeaking, color: (window.getAvatarColor && window.getAvatarColor(p.isLocal ? (window.state.userId || window.state.nostrPubkey) : p.identity)) || 'var(--accent)' })),
+      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, speaking: !!p.isSpeaking, muted: !!p.isMuted, color: (window.getAvatarColor && window.getAvatarColor(p.isLocal ? (window.state.userId || window.state.nostrPubkey) : p.identity)) || 'var(--accent)' })),
       voiceListenOnly: v('voiceListenOnly', false),
       micMuted: v('micMuted', false),
       voiceDeafened: v('voiceDeafened', false),

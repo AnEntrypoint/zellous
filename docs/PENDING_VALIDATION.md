@@ -138,3 +138,11 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Gap against game-3 (scripts/ui.js lines 580-594): game-3's control bar has a text-channel link back to the channel (the zellous voice view has none), a mic-off mark on tiles (not witnessed: both tiles had no mic-off in the text read), and the radio and soundboard, which are blocked by the missing sound and radio data.
     - Dev server stopped by PID 2354487; port 8793 returns STOPPED
 000.
+
+## Round 14: voice view gaps closed
+
+14. Design (lanmower): src/components/game3-room.js VoiceRoom marks a muted participant with the mic-off icon (aria-label muted) instead of the word; src/community-app.js voiceView adds a control row: "#<first text channel>" switches to that channel, Soundboard and Lofi radio are disabled with a title, and a note says zellous has no sound or radio data yet.
+15. Zellous (lanmower): docs/js/adapter/voice.js passes muted from wireweave's isMuted.
+    - Witness (playwriter, local docs on localhost:8794, design dist routed from the jsdelivr URL): three tiles; the local tile (PTT, muted) carries the mic-off mark, the other two do not. Extras: "#general" enabled; "Soundboard" and "Lofi radio" disabled with titles "No sound clips are available yet" and "No radio stream is available yet"; the note text is shown. Clicking "#general" moved the header to "general" and left the voice view (vx-view false).
+    - Dev server stopped by PID 2378288; port 8794 returns STOPPED
+000.
