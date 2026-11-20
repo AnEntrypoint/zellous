@@ -347,3 +347,12 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Gap: game-3's status line under the name (the status label and custom status) has no zellous data; zellous has no self-status field, so the status line is not shown.
     - Witness (playwriter, local docs on localhost:8826, design dist routed, 1280x800): appReady true; .ds-g3-me 1 at height 52; name "npub1v4p...nkgq"; buttons ["Mute", "User Settings"]; level bars 0; SDK .cm-user-panel 0; clicking Mute gave title "Unmute" and class "ds-g3-ibtn red"; clicking again restored the state.
     - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr18; the witness page was closed in a finally block.
+
+## Round 36: events panel (game-3 surface 8, events)
+
+64. Design (lanmower, commit in the design log): src/components/game3-events.js is a new game-3 events panel (Game3EventsPanel). Header: calendar icon and "Events" (game-3 .evh). Rows (game-3 .ev): LIVE NOW badge when the start has passed, else the start time; the title; the location as the detail line. Empty state: "no events yet." (game-3 wording). src/community-app.js surfaceBody maps s.channelEvents to { id, title, location, at: start }.
+    - Not matched, with the cause: game-3's author line ("by <name> · N interested") and its Interested and Cancel buttons, and the Create Event section. Zellous's event records carry no author name or interest list, and publishing kinds stay read-only, so those controls are not rendered. The empty-state wording drops game-3's "make the first one below" suggestion because nothing can be created here.
+    - Dialog: the surface dialog (community-app surfaceBody) keeps its own close control; game-3's header close glyph is not duplicated.
+    - Ratchets moved, with reason: scripts/lint-spacing.baseline.json 153 to 161 and scripts/lint-fontsize.baseline.json 51 to 57 (game-3 event panel padding, 17px title and 10px live badge).
+    - Witness (playwriter, local docs on localhost:8829, design dist routed, 1280x800): appReady true; the header button "events" opens the dialog labelled "events"; .ds-g3-evm 1; header "Events"; rows 0; empty state "no events yet.". No event exists on the loaded relays, so the row and LIVE NOW paths are not witnessed.
+    - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr21; the witness page was closed in a finally block.
