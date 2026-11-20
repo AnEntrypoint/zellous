@@ -539,3 +539,10 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - mentionsonly (Only ping for mentions): game-3 pings only for mentions or alert words. Zellous's message ping (soundEnabled) plays for every message and does not detect mentions. Blocked: the mention test is not implemented; it is a new notification rule.
     - devmode (Developer Mode): game-3 adds Copy Message ID and Copy User ID to the message actions. Zellous's message actions (game3-message) have react, reply and delete only. Implementable as two extra actions gated by the preference; not done in this turn.
     - Applied in this turn: none. Build and witness: not run, because no code changed. Dev servers: none running. The preference dialog itself is witnessed in PENDING 83.
+
+## Preference effect 1 of 11: Developer Mode (done)
+
+85. Built (lanmower). Game-3 behaviour (scripts/ui.js and scripts/player.js PREF devmode): when Developer Mode is on, the message actions add Copy Message ID and Copy User ID. Zellous: the snapshot exposes devMode from the pref_devmode signal (docs/js/adapter/game.js); game3Rows passes devMode, messageId and userId to the message row (src/community-app.js); the row shows two extra bar buttons titled Copy Message ID and Copy User ID when devMode is on (src/components/game3-message.js), which copy the id with the clipboard.
+    - Witness (playwriter, local docs on localhost:8850, design dist routed, 1280x800): with zellous-pref-devmode unset, rows 3, copy message id 0, copy user id 0; after localStorage zellous-pref-devmode is set to 1 and the page reloads, rows 3, copy message id 3, copy user id 3; clicking the first Copy Message ID button ran without error (clicked). The stored key was then removed.
+    - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr42; the witness page was closed in a finally block.
+    - Remaining game-3 preferences with real effects still to build (one at a time): h24, compact, motion, ulinks, jumbo, spoilers, embeds, vcsounds, sbsounds, mentionsonly. Each is listed in PENDING 84 with its game-3 behaviour.
