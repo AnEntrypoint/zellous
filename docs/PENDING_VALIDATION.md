@@ -327,3 +327,13 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - The first-run key notice blocked the header on a fresh profile; it was dismissed through its "Continue without a backup" button in that profile only. No message or key was published.
     - Build: node scripts/build.mjs exit 0 (design). Zellous has no build step (static docs served as-is).
     - Dev servers stopped by jobs devr13 to devr16; every page opened was closed in a finally block.
+
+## Round 34: voice panel (game-3 surface 6)
+
+61. Design (lanmower, commit in the design log): src/components/game3-voice.js is a new game-3 voice view (Game3VoiceView). Header: speaker icon, channel name, Deafen and Voice settings links. Tiles: 200x180 tile per participant with an 80px avatar, name, a mic-off mark when muted, and the talk ring while speaking. Control row, as game-3: Lofi radio (disabled, no stream data), #channel link back to the text channel, mute button with the off state, and Disconnect. src/community-app.js voiceView uses it; the old vx-extras block (soundboard and radio placeholders with a note) is removed.
+    - Zellous-only extension kept below the control row, not in game-3: the push-to-talk or voice-activity dock, the webcam preview and the audio queue. Game-3 has no equivalent in its voice view; they stay because they are zellous's transmit path.
+    - Not in game-3 and left out: the Spawn voice tip line, the soundboard row (no sound data), the radio-on line (no radio data).
+    - Ratchets moved, with reason: scripts/lint-spacing.baseline.json 140 to 149 and scripts/lint-fontsize.baseline.json 44 to 48 (game-3 voice header height, tile size and control padding).
+    - Witness (playwriter, local docs on localhost:8825, design dist routed, 1280x800): appReady true; the voice channel entry opens the voice view; .ds-g3-voice 1; header "General"; tiles 1 ("npub1k00...a63m", the local participant, muted); control row ["No radio stream is available yet [disabled]", "#general", "Unmute", "Disconnect"]; the mute button class "ds-g3-vcbtn off"; .vx-extras 0; the extension dock 1.
+    - Gaps: the local participant was the only one in the room, so the speaking ring and a second tile are not witnessed; the Deafen state is not witnessed; the zellous-only extension dock stays under the control row.
+    - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr17; the witness page was closed in a finally block.
