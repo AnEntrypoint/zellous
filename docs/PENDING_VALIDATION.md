@@ -295,3 +295,11 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
 52. Not backed, with the cause: compact (no compact message layout in the SDK chat), h24 (the SDK formats times with the locale), motion (no animation layer), ulinks, embeds, jumbo, spoilers (no link preview, embed, emoji size or spoiler rendering in zellous), mentionsonly (zellous notifications are not per-mention), vcsounds and sbsounds (voice and soundboard clips are not available, see the voice view entry), devmode (no developer mode in zellous).
     - Dev server stopped by PID 2670333; port 8806 returns STOPPED
 000.
+
+## Round 31: message list (game-3 surface 3)
+
+58. Design 51535db (lanmower): src/components/game3-message.js is a new game-3 message row (grp/cont rows, 40px avatar, name and time head, stamp on hover for continuations, .tx body, .ds-g3-rep reply line, .ds-g3-rx reaction chips, hover .ds-g3-bar with quick reactions, add reaction, reply and delete for own messages). src/components/chat/threads.js Chat takes rows, and src/community-app.js game3Rows maps s.messages into it. The CSS block is appended to community-app.css with game-3 values.
+    - Ratchet moves, with reason: scripts/lint-spacing.baseline.json 118 to 128 and scripts/lint-fontsize.baseline.json 29 to 35. The game-3 row uses exact spacing and type values (2px/16px/48px padding, 17px top margin, 72px continuation indent, 11px stamp, 12px time, 14px reply and reaction text, 18px action glyphs) that no scale token holds.
+    - Witness (playwriter, local docs on localhost:8818, design dist routed): appReady true; 3 .ds-g3-msg rows rendered; 0 SDK .chat-msg rows; the thread text shows the real authors and messages (for example "yo", "hello").
+    - Gaps: game-3 message text supports mentions, links, code blocks, spoilers and markdown, and zellous renders plain text only; reply lines are wired to the reply data but no reply data is loaded yet; the hover colour is the design hover token, not game-3's #2e3035; the signed-in live HUD is not witnessed (out of scope), so the reference is the local game-3 source.
+    - Dev server stopped by job devr10; the witness page was closed.
