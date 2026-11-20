@@ -303,3 +303,7 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Witness (playwriter, local docs on localhost:8818, design dist routed): appReady true; 3 .ds-g3-msg rows rendered; 0 SDK .chat-msg rows; the thread text shows the real authors and messages (for example "yo", "hello").
     - Gaps: game-3 message text supports mentions, links, code blocks, spoilers and markdown, and zellous renders plain text only; reply lines are wired to the reply data but no reply data is loaded yet; the hover colour is the design hover token, not game-3's #2e3035; the signed-in live HUD is not witnessed (out of scope), so the reference is the local game-3 source.
     - Dev server stopped by job devr10; the witness page was closed.
+
+## HUD reference
+
+The live game-3 HUD cannot be reached by any automated tool: the game refuses an automated browser, and the signed-in session is out of scope. The reference for the HUD is therefore the local game-3 source (/config/workspace/game-3: ui/, scripts/ui.js, design.md, mods/). The landing-page tokens reference (/config/workspace/hyperagent/runs/dembrandt-game3/DESIGN.md: Geist Pixel 16/14/12px, bg rgb(7,7,8), text rgb(250,250,250), primary #15172D, spacing 1/8/32px, radius 9999px, motion 150/230/500ms) applies to the landing page, not the app HUD.
