@@ -276,6 +276,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Not exact: the hover radius (14px token) and the colours (tokens).
     - Dev server stopped by job devr3; port 8812 returns STOPPED.
 
+## Round 30: channel column (game-3 surface 2)
+
+57. Design 9cb4f7f (lanmower): the channel column is 240px wide with a 48px server header (ca-rail-shead, the server name, 16px semibold, bottom rule); group labels use padding 18px 8px 4px 2px and letter-spacing .02em; channel rows are flex with gap 6px, margin 1px 0, padding 0 8px, font 16px weight 500, radius 4px. New exact tokens in colors_and_type.css and tokens.json: --space-cat-top, --space-cat-bottom, --space-cat-pad-x, --space-cat-indent, --space-ch-gap, --space-ch-height, --space-ch-pad-x, --space-ch-margin, --space-shead-height, --space-shead-pad-x.
+    - Witness (playwriter, local docs on localhost:8813, design dist routed): appReady true; column 240; header text "Zellous Public" height 48; groups ["information","text channels","voice channels"]; group padding-top 18px; row font 16px; row weight 500; row margin-top 1px.
+    - Gaps: channel row height measures 44px, not 34px (a later rule overrides the height; not yet traced); the header has no game-3 box-shadow stack (a bottom rule instead); row colours are tokens, not game-3 hex values.
+    - Dev server stopped by job devr4; port 8813 returns STOPPED.
+
 ## Round 26: preferences
 
 50. Preferences compared with game-3 PREF_BOOLS (scripts/lib/discord.js line 80): compact, h24, sound, motion, ulinks, rolecolors, previews, embeds, jumbo, spoilers, vcsounds, sbsounds, mentionsonly, devmode.
