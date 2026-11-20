@@ -18,7 +18,8 @@ export function installChat(ww) {
   const chat = ww.chat;
   let _lastChatMsgCount = 0;
   let _pingChannel = null;
-  let _pingLastAt = null;
+  let _pingSince = 0;
+  let _pinged = new Set();
   const CHAT_MESSAGES_CAP = 500;
   chat.addEventListener('messages', (e) => {
     const list = e.detail.list || [];
@@ -26,21 +27,26 @@ export function installChat(ww) {
       state.unreadCount = (state.unreadCount || 0) + (list.length - _lastChatMsgCount);
     }
     _lastChatMsgCount = list.length;
-    const last = list[list.length - 1];
     const channel = chat.activeChannelId;
-    if (last && _pingLastAt && channel === _pingChannel && last.timestamp > _pingLastAt) {
+    if (channel !== _pingChannel) {
+      _pingChannel = channel;
+      _pingSince = Math.floor(Date.now() / 1000) * 1000;
+      _pinged = new Set(list.map((m) => m.id));
+    } else {
       const me = state.nostrPubkey;
-      const name = chat.resolveProfile(me);
-      if (shouldPing({
-        text: last.content,
-        fromSelf: last.userId === me,
-        soundOn: state.soundEnabled,
-        mentionsOnly: state.pref_mentionsonly,
-        name
-      })) playPing();
+      for (const m of list) {
+        if (_pinged.has(m.id)) continue;
+        _pinged.add(m.id);
+        if (m.timestamp < _pingSince) continue;
+        if (shouldPing({
+          text: m.content,
+          fromSelf: m.userId === me,
+          soundOn: state.soundEnabled,
+          mentionsOnly: state.pref_mentionsonly,
+          name: chat.resolveProfile(me)
+        })) playPing();
+      }
     }
-    _pingChannel = channel;
-    _pingLastAt = last ? last.timestamp : null;
     state.chatMessages = list.length > CHAT_MESSAGES_CAP ? list.slice(list.length - CHAT_MESSAGES_CAP) : list;
     _updateChatMembers(list); if (window.ui) ui.render.all();
   });
