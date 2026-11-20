@@ -28,7 +28,7 @@ export function installChat(ww) {
     _lastChatMsgCount = list.length;
     const last = list[list.length - 1];
     const channel = chat.activeChannelId;
-    if (last && channel === _pingChannel && last.timestamp > (_pingLastAt || 0)) {
+    if (last && _pingLastAt && channel === _pingChannel && last.timestamp > _pingLastAt) {
       const name = chat.resolveProfile(a.pubkey);
       if (shouldPing({
         text: last.content,
