@@ -47,16 +47,16 @@ export function buildGame({ v, S, call, persistBool }) {
   };
   const stopEventsFeed = () => { if (stopEvents) stopEvents(); stopEvents = null; };
   let stopSplit = null;
-  const startSplit = () => {
+  const setSplit = (other) => {
     if (stopSplit) stopSplit();
     stopSplit = null;
-    const cur = v('currentChannel', null);
-    const other = (v('channels', []) || []).find((c) => c && c.id !== (cur && cur.id) && c.type !== 'voice' && c.type !== 'threaded' && c.type !== 'announcement' && c.type !== 'page');
     if (S.splitChannel) S.splitChannel.value = other || null;
     if (S.splitMessages) S.splitMessages.value = [];
     if (!other) return;
     subscribeSplitMessages(other.id, v('currentServerId', null), (list) => { if (S.splitMessages) S.splitMessages.value = list; }).then((stop) => { stopSplit = stop; });
   };
+  const splitTo = (id) => setSplit(id ? (v('channels', []) || []).find((c) => c && c.id === id) : null);
+  const splitMain = () => { const sp = v('splitChannel', null); if (sp) goToChannel(sp.name); };
   const stopSplitFeed = () => { if (stopSplit) stopSplit(); stopSplit = null; };
   const currentChannelRef = () => { const ch = v('currentChannel', null); return ch && ch.id ? ch : null; };
   const startPins = () => { const ch = currentChannelRef(); if (ch && window.nostrPins) window.nostrPins.subscribe(v('currentServerId', null), ch.id); };
@@ -137,7 +137,8 @@ export function buildGame({ v, S, call, persistBool }) {
         rulesStats: (() => { const m = v('roomMembers', []); return { online: m.filter((x) => x.online).length, members: m.length }; })(),
         selfRoles: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const mine = window.nostrSelfRoles && sid && me ? window.nostrSelfRoles.roles(sid, me) : []; return GAME_ROLES.map((r) => ({ ...r, on: mine.includes(r.id), online: window.nostrSelfRoles && sid ? window.nostrSelfRoles.holders(sid, r.id) : 0 })); })(),
         splitChannel: v('splitChannel', null),
-        splitMessages: (v('splitMessages', []) || []).map((m) => ({ ...m, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
+        splitOptions: (() => { const cur = v('currentChannel', null); return (v('channels', []) || []).filter((c) => c && (c.type === 'text' || c.type === 'announcement') && !(cur && c.id === cur.id)).map((c) => ({ id: c.id, name: c.name })); })(),
+        splitMessages: (v('splitMessages', []) || []).slice().reverse().map((m) => ({ ...m, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !v('pref_h24', false) }), name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
         discoverServers: v('servers', []).map((sv) => { const current = sv.id === v('currentServerId', null); const ownerPk = String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null; const members = v('roomMembers', []); return { id: sv.id, name: sv.name || 'server', current, owner: ownerPk ? ((window.chat && window.chat.resolveProfile && window.chat.resolveProfile(ownerPk)) || ownerPk.slice(0, 12)) : 'nobody (public room)', members: current ? members.length : null, online: current ? members.filter((m) => m.online).length : null, channels: current ? v('channels', []).filter((c) => c.type !== 'voice').map((c) => c.name) : null }; }),
         announcements: announcementsFor(v('chatMessages', []), window.state && window.state.nostrPubkey).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         pins: pinsFor(v('chatMessages', []), window.state && window.state.nostrPubkey, v('channelPins', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
@@ -158,7 +159,7 @@ export function buildGame({ v, S, call, persistBool }) {
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
       explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
-      openSurface: (name) => call(() => { if (name === 'announcements') return goToChannel('announcements'); if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); if (name === 'pick-roles') startSelfRoles(); }),
+      openSurface: (name) => call(() => { if (name === 'announcements') return goToChannel('announcements'); if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); if (name === 'pick-roles') startSelfRoles(); }),
       pinMessage: (id) => call(() => pinMessage(id)),
       toggleSelfRole: (id) => call(() => toggleSelfRole(id)),
       goToGeneral: () => call(() => goToGeneral()),
@@ -178,6 +179,8 @@ export function buildGame({ v, S, call, persistBool }) {
       }),
       playSound: (id) => call(() => playSoundboard(id, () => !!v('pref_sbsounds', true))),
       setGamePrefTab: (t) => call(() => { if (S.gamePrefTab) S.gamePrefTab.value = t; }),
+      splitTo: (id) => call(() => splitTo(id)),
+      splitMain: () => call(() => splitMain()),
       setGamePref: (key, val) => call(() => {
         if (key === 'kw') return storeText('pref_kw', 'zellous-pref-kw', String(val || '').slice(0, 200));
         if (key === 'banner') return storeText('pref_banner', 'zellous-pref-banner', String(val || ''));
