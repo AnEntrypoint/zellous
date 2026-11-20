@@ -1,3 +1,5 @@
+import { playPing, shouldPing } from '../notify.js';
+
 export function installChat(ww) {
   const a = ww.auth;
   const msg = ww.message;
@@ -15,6 +17,8 @@ export function installChat(ww) {
 
   const chat = ww.chat;
   let _lastChatMsgCount = 0;
+  let _pingChannel = null;
+  let _pingLastAt = null;
   const CHAT_MESSAGES_CAP = 500;
   chat.addEventListener('messages', (e) => {
     const list = e.detail.list || [];
@@ -22,6 +26,20 @@ export function installChat(ww) {
       state.unreadCount = (state.unreadCount || 0) + (list.length - _lastChatMsgCount);
     }
     _lastChatMsgCount = list.length;
+    const last = list[list.length - 1];
+    const channel = chat.activeChannelId;
+    if (last && channel === _pingChannel && last.timestamp > (_pingLastAt || 0)) {
+      const name = chat.resolveProfile(a.pubkey);
+      if (shouldPing({
+        text: last.text,
+        fromSelf: last.userId === a.pubkey,
+        soundOn: state.soundEnabled.value,
+        mentionsOnly: state.pref_mentionsonly.value,
+        name
+      })) playPing();
+    }
+    _pingChannel = channel;
+    _pingLastAt = last ? last.timestamp : null;
     state.chatMessages = list.length > CHAT_MESSAGES_CAP ? list.slice(list.length - CHAT_MESSAGES_CAP) : list;
     _updateChatMembers(list); if (window.ui) ui.render.all();
   });
