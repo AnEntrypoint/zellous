@@ -29,10 +29,11 @@ export function installChat(ww) {
     const last = list[list.length - 1];
     const channel = chat.activeChannelId;
     if (last && _pingLastAt && channel === _pingChannel && last.timestamp > _pingLastAt) {
-      const name = chat.resolveProfile(a.pubkey);
+      const me = state.nostrPubkey;
+      const name = chat.resolveProfile(me);
       if (shouldPing({
         text: last.content,
-        fromSelf: last.userId === a.pubkey,
+        fromSelf: last.userId === me,
         soundOn: state.soundEnabled,
         mentionsOnly: state.pref_mentionsonly,
         name
