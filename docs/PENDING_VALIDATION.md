@@ -269,6 +269,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Not matched exactly: colours and the 16px hover radius use tokens (14px) because the build lints reject raw colours and radii; the home glyph is the forum icon.
     - Dev server stopped; port 8811 returns STOPPED.
 
+## Round 29: exact game-3 rail values
+
+56. Design 1b5290f (lanmower): colors_and_type.css and tokens.json gain --space-rail-gap 8px, --space-rail-pad 12px and --fs-rail-tile 18px (exact game-3 values, added to the scale rather than rounded); community-app.css rail uses them.
+    - Witness (playwriter, local docs on localhost:8812, design dist routed): appReady true; rail width 72; row gap "8px"; padding-top "12px"; separator 32; tile font "18px"; tile 48; active bar left -12px, height 40px.
+    - Not exact: the hover radius (14px token) and the colours (tokens).
+    - Dev server stopped by job devr3; port 8812 returns STOPPED.
+
 ## Round 26: preferences
 
 50. Preferences compared with game-3 PREF_BOOLS (scripts/lib/discord.js line 80): compact, h24, sound, motion, ulinks, rolecolors, previews, embeds, jumbo, spoilers, vcsounds, sbsounds, mentionsonly, devmode.
