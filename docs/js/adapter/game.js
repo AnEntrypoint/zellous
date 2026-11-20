@@ -8,7 +8,6 @@ import { pinsFor } from '../pins.js';
 import { rulesFor } from '../rules.js';
 import { subscribeSplitMessages } from '../split-feed.js';
 import { announcementsFor } from '../announcements.js';
-import { rolesFor } from '../roles.js';
 import { GAME_ROLES } from '../selfroles.js';
 
 const PREFS = [
@@ -95,11 +94,18 @@ export function buildGame({ v, S, call, persistBool }) {
     return window.nostrSelfRoles.set(sid, next).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Role change failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
   };
   const startSelfRoles = () => { const sid = v('currentServerId', null); if (sid && window.nostrSelfRoles) window.nostrSelfRoles.subscribe(sid); };
-  const goToGeneral = () => {
+  const roleGroupsFor = (members, sid) => {
+    const mine = (m) => (window.nostrSelfRoles && sid ? window.nostrSelfRoles.roles(sid, m.id) : []);
+    const groups = GAME_ROLES.map((r) => ({ id: r.id, label: r.name, count: (members || []).filter((m) => mine(m)[0] === r.id).length }));
+    groups.push({ id: 'online', label: 'Online', count: (members || []).filter((m) => !mine(m).length).length });
+    return groups;
+  };
+  const goToChannel = (name) => {
     S.gameSurface.value = null;
-    const ch = v('channels', []).find((c) => c.name === 'general' && c.type !== 'voice');
+    const ch = v('channels', []).find((c) => c.name === name && c.type !== 'voice');
     if (ch && window.ui && window.ui.actions) window.ui.actions.switchChannel(ch);
   };
+  const goToGeneral = () => goToChannel('general');
   return {
     snapshot: () => {
       const counts = (window.nostrUnread && window.nostrUnread.countsFor) ? window.nostrUnread.countsFor() : {};
@@ -121,7 +127,8 @@ export function buildGame({ v, S, call, persistBool }) {
         channelEvents: v('channelEvents', []).map((e) => ({ ...e, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(e.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(e.author) : e.author.slice(0, 8)), mine: e.author === (window.state && window.state.nostrPubkey), interested: e.going.includes(window.state && window.state.nostrPubkey) })),
         reminders: remindersFor(),
         rules: rulesFor(v('channels', [])),
-        roles: rolesFor(v('roomMembers', []), v('currentServerId', null)),
+        roles: roleGroupsFor(v('roomMembers', []), v('currentServerId', null), v('selfRolesVersion', 0)),
+        rulesStats: (() => { const m = v('roomMembers', []); return { online: m.filter((x) => x.online).length, members: m.length }; })(),
         selfRoles: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const mine = window.nostrSelfRoles && sid && me ? window.nostrSelfRoles.roles(sid, me) : []; return GAME_ROLES.map((r) => ({ ...r, on: mine.includes(r.id), online: window.nostrSelfRoles && sid ? window.nostrSelfRoles.holders(sid, r.id) : 0 })); })(),
         splitChannel: v('splitChannel', null),
         splitMessages: (v('splitMessages', []) || []).map((m) => ({ ...m, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
@@ -144,7 +151,7 @@ export function buildGame({ v, S, call, persistBool }) {
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
       explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
-      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); if (name === 'pick-roles') startSelfRoles(); }),
+      openSurface: (name) => call(() => { if (name === 'announcements') return goToChannel('announcements'); if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); if (name === 'pick-roles') startSelfRoles(); }),
       pinMessage: (id) => call(() => pinMessage(id)),
       toggleSelfRole: (id) => call(() => toggleSelfRole(id)),
       goToGeneral: () => call(() => goToGeneral()),

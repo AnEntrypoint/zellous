@@ -758,3 +758,18 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Measured: surface present; 6 cards; names [Gamer, Artist, Night Owl, Music Head, Memer, Chill]; h1 "Pick your roles"; CTA "Done, take me to #general →"; stale text absent. Clicking Gamer: on [Gamer], check "✓", "here to play · 1 online"; relay log gained kind 30078 d zellous-selfroles:<serverId>:public content {"roles":["gamer"]}. Clicking again: on count 0.
     - Not fixed in this entry: home, servers, preferences, discover, rules, announcements, pins, recap, polls, leaderboard, events, roles (beyond the dead line). Those stay open.
     - Cleanup: page closed; relay and dev server stopped by PID; ports 5190 and 7447 return 000.
+
+115. Topbar: rules (game-3 rules page). Fixed; witnessed on the local dist.
+    - Change: design src/components/game3-rules.js renders game-3's page: hero "Welcome to <server name>" with "N online · N members · a place to hang out", the six game-3 rules (numbered, bold title, description, verbatim from game-3 scripts/lib/discord.js RULES), and "Got it, take me to #general →". The old server-rules list (RulesList with page channel names) is no longer shown for the rules button.
+    - Method: local relay and dev server on PORT 5190 serving docs/ with local design (/deps/design dist rebuilt with scripts/build.mjs, all gates passed) and local wireweave. One page on localhost:5190.
+    - Measured: h1 "Welcome to Zellous Public"; sub "1 online · 1 members · a place to hang out"; items [Be kind, Keep it in the right channel, No spam, Keep it clean, Voice etiquette, Have fun]; CTA "Got it, take me to #general →"; old rules list count 0.
+    - Difference kept: the server name is the zellous room name, not game-3's hard-coded "game 3".
+    - Cleanup: see entry 118.
+
+116. Topbar: announcements (game-3 channel). Fixed; witnessed on the local dist.
+    - Change: game-3 treats announcements as a channel (CHI announcements with the mega icon, topic "news from the owner"), not a panel. The adapter's openSurface('announcements') now switches to the announcements channel (goToChannel) instead of opening the announcement list.
+    - Measured: after clicking announcements, activeChannelId "announcements", gameSurface null, channel list [general:text, announcements:announcement, General:voice], composer present.
+
+117. Topbar: roles (game-3 role groups). Fixed; witnessed on the local dist.
+    - Change: game-3 has no admin role list; its member list groups members by their picked role. The roles surface now lists the six game-3 roles with the number of members holding each, plus an Online group for members with no picked role (adapter roleGroupsFor, from window.nostrSelfRoles). The admin-role list (rolesFor) and its import are removed.
+    - Measured: surface "roles" shows Gamer 0, Artist 0, Night Owl 0, Music Head 0, Memer 0, Chill 0, Online 1, with a Done button.
