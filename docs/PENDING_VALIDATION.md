@@ -773,3 +773,14 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
 117. Topbar: roles (game-3 role groups). Fixed; witnessed on the local dist.
     - Change: game-3 has no admin role list; its member list groups members by their picked role. The roles surface now lists the six game-3 roles with the number of members holding each, plus an Online group for members with no picked role (adapter roleGroupsFor, from window.nostrSelfRoles). The admin-role list (rolesFor) and its import are removed.
     - Measured: surface "roles" shows Gamer 0, Artist 0, Night Owl 0, Music Head 0, Memer 0, Chill 0, Online 1, with a Done button.
+
+118. Topbar batch (discover, pins, leaderboard, recap, servers, preferences, home). Witnessed on the local dist; some differences remain blocked.
+    - discover: fixed. Rows follow game-3's Discover servers list: a tile with the server initial, the name, an Open button, and the heading "Discover servers". Measured: h2 "Discover servers"; 1 row "Zellous Public" with button "Open". Blocked part: game-3 shows members, online count, owner and channel list per server; zellous has no server directory and does not receive those fields for other servers, so the row says "members not shared by this client".
+    - pins: fixed. Heading "Pinned Messages" and game-3's empty text "This channel doesn't have any pinned messages... yet." with "hover a message and press the pin". Measured: empty state text matches; header is rendered when pins exist. Blocked part: clicking a pin should jump to the message; zellous has no jump-to-message action, so the click does nothing yet. Timestamps per pin are not shown (pin data carries no time in zellous).
+    - leaderboard: fixed empty text to game-3's "nobody has XP yet. every message earns some, once every 30 seconds." Measured: exact text, surface "leaderboard".
+    - recap: blocked. The empty text already matches game-3. game-3's recap is an AI-written summary ("while you were away"); zellous builds a plain list and has no AI call path (no backend rule). Cause: no AI path.
+    - servers: blocked. game-3 has no servers panel; its server strip is the rail. The zellous button toggles home and servers, which has no game-3 counterpart. Cause: structural difference, left as-is.
+    - preferences: blocked for the part game-3 has and zellous lacks. game-3 has tabs (Appearance, Notifications, Voice & Audio, Language & Time, Advanced), Keyword Alerts and Banner Colour. zellous has no keyword-alert store and no banner colour data. Cause: missing data paths in zellous.
+    - home: open. game-3's home is "People here" (Online — N, one row per online member with activity and a message button). zellous home shows the DM conversation list. Not changed in this batch; needs the DM home rework.
+    - events, polls: earlier entries (105, 106) matched them; not re-witnessed in this batch.
+    - Cleanup: the page closed, and the relay and dev server were stopped by PID.
