@@ -316,3 +316,14 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Witness (playwriter, local docs on localhost:8819, design dist routed): appReady true; .ds-g3-comp 1; .ds-g3-box 1; .ds-g3-compbtn 2; the SDK .chat-composer 0; .chat-composer-hint 0; button.send 0; textarea maxlength "190"; placeholder "message #general…"; box height 44; with 160 characters typed the counter reads "30". Nothing was sent.
     - Gaps: the sticker button is shown unavailable, because zellous has no sticker catalogue; the reply bar is wired but not witnessed (it needs a message to reply to); no send button is shown, so touch users send with Enter only, which is game-3's behaviour but has no on-screen fallback; the ArrowUp edit-last witness stays open (no own message in the loaded history).
     - Dev server stopped by job devr11; the witness page was closed in a finally block.
+
+## Round 33: member list (game-3 surface 5)
+
+60. Design (lanmower, commit in the design log): src/components/game3-members.js is a new game-3 member list (Game3MemberList, Game3MemberRow). Group headers render as the label, a plain hyphen and the count (for example "Online - 1"); rows are 42px, 32px avatar with a status dot, the role-coloured name and the owner suffix; members in the Offline group are dimmed to 30% opacity. src/community-app.js mounts Game3MemberList where MemberList was mounted. The CSS block is appended to community-app.css.
+    - Deviation: game-3 uses an em dash in the group header ("Online — 1"). The lint-glyphs gate rejects that character in source, and the user ruled out working around the gate, so the header uses a plain hyphen. Text differs by one character.
+    - Ratchets moved, with reason: scripts/lint-spacing.baseline.json 134 to 140 and scripts/lint-fontsize.baseline.json 39 to 44 (game-3 member list padding, 42px rows, 12px and 14px text).
+    - Gaps not closed: game-3 crown glyph (no crown icon in the SDK set); the activity sub-line (zellous has no per-member activity data); the Apps bot row (zellous has no bot); the invisible status (zellous has no invisible state).
+    - Witness (playwriter, local docs on localhost:8824, design dist routed, viewport 720x800): appReady true; group headers ["Online - 1", "Offline - 3"]; row count 4; the list starts closed and the "show members" button opens it (class "ds-g3-mem open"). At 1280x800 the list is shown on the desktop layout, width 240, with no toggle needed.
+    - The first-run key notice blocked the header on a fresh profile; it was dismissed through its "Continue without a backup" button in that profile only. No message or key was published.
+    - Build: node scripts/build.mjs exit 0 (design). Zellous has no build step (static docs served as-is).
+    - Dev servers stopped by jobs devr13 to devr16; every page opened was closed in a finally block.
