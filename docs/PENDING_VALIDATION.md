@@ -262,6 +262,13 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Gap: game-3's home icon is the Spawn home glyph; zellous keeps the forum glyph. The server colour comes from iconColor, which is the default #5865F2 unless the server was created with a colour.
     - Dev server stopped; port 8810 returns STOPPED.
 
+## Round 28: server rail metrics against game-3
+
+55. Design b612df6 (lanmower): rail padding 12px 0 scale and gap, separator div (ca-rail-sep, 32x2) between home and servers, active bar left -12px, 4px wide, 40px tall; tile font var(--fs-lg), weight 700.
+    - Witness (playwriter, local docs on localhost:8811, design dist routed): appReady true; separator 32x2; active tile bar left -12px, height 40px; tiles 48px.
+    - Not matched exactly: colours and the 16px hover radius use tokens (14px) because the build lints reject raw colours and radii; the home glyph is the forum icon.
+    - Dev server stopped; port 8811 returns STOPPED.
+
 ## Round 26: preferences
 
 50. Preferences compared with game-3 PREF_BOOLS (scripts/lib/discord.js line 80): compact, h24, sound, motion, ulinks, rolecolors, previews, embeds, jumbo, spoilers, vcsounds, sbsounds, mentionsonly, devmode.
