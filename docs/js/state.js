@@ -60,6 +60,7 @@ const state = {
   outputDevices: signal([]),
 
   chatMessages: signal([]),
+  channelPins: signal([]),
   chatInputValue: signal(''),
   dmMessages: signal([]),
   activeDmPeer: signal(null),

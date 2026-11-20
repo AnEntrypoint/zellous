@@ -55,6 +55,13 @@ export function buildGame({ v, S, call, persistBool }) {
     subscribeSplitMessages(other.id, v('currentServerId', null), (list) => { if (S.splitMessages) S.splitMessages.value = list; }).then((stop) => { stopSplit = stop; });
   };
   const stopSplitFeed = () => { if (stopSplit) stopSplit(); stopSplit = null; };
+  const currentChannelRef = () => { const ch = v('currentChannel', null); return ch && ch.id ? ch : null; };
+  const startPins = () => { const ch = currentChannelRef(); if (ch && window.nostrPins) window.nostrPins.subscribe(v('currentServerId', null), ch.id); };
+  const pinMessage = (id) => {
+    const ch = currentChannelRef();
+    if (!ch || !window.nostrPins) return;
+    return window.nostrPins.pin(v('currentServerId', null), ch.id, id).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Pin failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
+  };
   return {
     snapshot: () => {
       const counts = (window.nostrUnread && window.nostrUnread.countsFor) ? window.nostrUnread.countsFor() : {};
@@ -81,7 +88,7 @@ export function buildGame({ v, S, call, persistBool }) {
         splitMessages: (v('splitMessages', []) || []).map((m) => ({ ...m, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
         discoverServers: v('servers', []).map((sv) => ({ id: sv.id, name: sv.name || 'server', current: sv.id === v('currentServerId', null) })),
         announcements: announcementsFor(v('chatMessages', []), window.state && window.state.nostrPubkey).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
-        pins: pinsFor(v('chatMessages', []), window.state && window.state.nostrPubkey).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
+        pins: pinsFor(v('chatMessages', []), window.state && window.state.nostrPubkey, v('channelPins', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         recap: recapFor(v('chatMessages', []), window.state && window.state.nostrPubkey, (window.nostrUnread && window.nostrUnread.countFor && v('currentChannel', null) && window.nostrUnread.countFor(v('currentChannel', null).id)) || 0).map((r) => ({ ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.author) : r.author.slice(0, 8)) })),
         polls: pollsFor(v('chatMessages', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : '') })),
         leaderboard: leaderboardFor(v('chatMessages', [])).map((r) => ({ ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.id)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.id) : r.id.slice(0, 8)) })),
@@ -98,7 +105,8 @@ export function buildGame({ v, S, call, persistBool }) {
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
       explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
-      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); }),
+      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); }),
+      pinMessage: (id) => call(() => pinMessage(id)),
       closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; stopEventsFeed(); stopSplitFeed(); }),
       createServer: (name, color) => call(async () => {
         if (!window.serverManager || !window.serverManager.create) return;
