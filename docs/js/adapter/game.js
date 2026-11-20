@@ -1,3 +1,4 @@
+import { SOUNDS, playSoundboard } from '../soundboard.js';
 import { subscribeChannelEvents } from '../events-feed.js';
 import { leaderboardFor } from '../xp.js';
 import { pollsFor } from '../polls.js';
@@ -67,6 +68,7 @@ export function buildGame({ v, S, call, persistBool }) {
         previews: !!v('messagePreviewEnabled', true),
         embeds: !!v('pref_embeds', true),
         vcsounds: !!v('pref_vcsounds', true),
+        soundboard: SOUNDS.map(({ id, e, name }) => ({ id, e, name })),
         gamePrefToggles: PREFS.filter((p) => !p.radio).map((p) => ({ key: p.key, label: p.label, hint: p.hint, checked: !!v(p.signal, p.def) })),
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
@@ -107,6 +109,7 @@ export function buildGame({ v, S, call, persistBool }) {
           if (window.ui && window.ui.showToast) window.ui.showToast('Create server failed: ' + ((e && e.message) || 'unknown'), 3000, 'error');
         }
       }),
+      playSound: (id) => call(() => playSoundboard(id, () => !!v('pref_sbsounds', true))),
       setGamePref: (key, val) => call(() => {
         const p = PREFS.find((x) => x.key === key);
         if (p) persistBool(p.signal, p.store, val);
