@@ -173,6 +173,7 @@ const state = {
   pagesVersion: signal(0),
   mutesVersion: signal(0),
   rolesVersion: signal(0),
+  pollVotesVersion: signal(0),
   forumVersion: signal(0),
   reactionsVersion: signal(0),
   unreadVersion: signal(0),

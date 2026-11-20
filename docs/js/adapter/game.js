@@ -74,6 +74,12 @@ export function buildGame({ v, S, call, persistBool }) {
     if (!ev || !window.nostrEvents) return;
     return window.nostrEvents.delete(ev).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Cancel failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
   };
+  const startPolls = () => { for (const p of pollsFor(v('chatMessages', []))) { if (window.nostrPolls) window.nostrPolls.subscribe(p.id); } };
+  const votePoll = (id, i) => {
+    const p = pollsFor(v('chatMessages', [])).find((x) => x.id === id);
+    if (!p || !window.nostrPolls) return;
+    return window.nostrPolls.vote(id, i, p.options.length).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Vote failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
+  };
   const pinMessage = (id) => {
     const ch = currentChannelRef();
     if (!ch || !window.nostrPins) return;
@@ -107,7 +113,7 @@ export function buildGame({ v, S, call, persistBool }) {
         announcements: announcementsFor(v('chatMessages', []), window.state && window.state.nostrPubkey).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         pins: pinsFor(v('chatMessages', []), window.state && window.state.nostrPubkey, v('channelPins', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         recap: recapFor(v('chatMessages', []), window.state && window.state.nostrPubkey, (window.nostrUnread && window.nostrUnread.countFor && v('currentChannel', null) && window.nostrUnread.countFor(v('currentChannel', null).id)) || 0).map((r) => ({ ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.author) : r.author.slice(0, 8)) })),
-        polls: pollsFor(v('chatMessages', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : '') })),
+        polls: pollsFor(v('chatMessages', [])).map((p) => { const t = window.nostrPolls ? window.nostrPolls.tally(p.id, p.options.length) : { counts: p.options.map(() => 0), total: 0, mine: -1 }; v('pollVotesVersion', 0); return { ...p, ...t, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : '') }; }),
         leaderboard: leaderboardFor(v('chatMessages', [])).map((r) => ({ ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.id)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.id) : r.id.slice(0, 8)) })),
       };
     },
@@ -122,10 +128,11 @@ export function buildGame({ v, S, call, persistBool }) {
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
       explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
-      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); }),
+      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); }),
       pinMessage: (id) => call(() => pinMessage(id)),
       createEvent: (f) => call(() => createEvent(f)),
       rsvpEvent: (id) => call(() => rsvpEvent(id)),
+      votePoll: (id, i) => call(() => votePoll(id, i)),
       deleteEvent: (id) => call(() => deleteEvent(id)),
       closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; stopEventsFeed(); stopSplitFeed(); }),
       createServer: (name, color) => call(async () => {
