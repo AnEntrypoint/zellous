@@ -381,3 +381,12 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Ratchets moved, with reason: scripts/lint-spacing.baseline.json 172 to 175 and scripts/lint-fontsize.baseline.json 63 to 66 (game-3 card padding and the 14px and 22px text).
     - Witness (playwriter, local docs on localhost:8832, design dist routed, 1280x800): appReady true; the header button "recap" opens the dialog labelled "recap"; card 1; header "While you were away"; note "only you can see this"; rows 0; empty text "nothing new from anyone since you got here. you're all caught up.". The populated rows are not witnessed, because the loaded history has no unread messages for this profile.
     - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr24; the witness page was closed in a finally block.
+
+## Round 40: reminders panel (game-3 surface 8, reminders)
+
+68. Design (lanmower, commit in the design log): src/components/game3-reminders.js is Game3ReminderStat, the game-3 reminders stat (the number of reminders, then the word "reminders", as in game-3's profile stat block, scripts/ui.js line 697). src/community-app.js surfaceBody uses it for the reminders surface in place of the reminder list. The reminder count comes from s.reminders.
+    - Why this is the match: game-3 has no reminders panel. Its only reminders UI is that count in the profile stats (scripts/ui.js line 697), and the /remind chat command creates a reminder whose firing shows a private toast (scripts/player.js addReminder and the due check). Zellous's list of reminders with its own empty copy (round 20) is not in game-3, so it is removed.
+    - Not matched, with the cause: game-3's add flow is the /remind chat command, which zellous does not implement, so there is no add control here. Reminders are stored in zellous's localStorage (round 20) and the toast on fire is not wired in this round.
+    - Ratchets moved, with reason: scripts/lint-spacing.baseline.json 175 to 176 (the stat's 16px padding).
+    - Witness (playwriter, local docs on localhost:8833, design dist routed, 1280x800): appReady true; the header button "reminders" opens the dialog labelled "reminders"; .ds-g3-rstat 1; count "0"; label "reminders"; the old reminder list elements 0.
+    - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr25; the witness page was closed in a finally block.
