@@ -10,10 +10,20 @@ import { announcementsFor } from '../announcements.js';
 import { rolesFor } from '../roles.js';
 
 const PREFS = [
-  { key: 'notificationsEnabled', store: 'zellous-notifications', label: 'Notifications' },
-  { key: 'messagePreviewEnabled', store: 'zellous-message-preview', label: 'Message preview' },
-  { key: 'soundEnabled', store: 'zellous-sound', label: 'Sound' },
-  { key: 'roleColorsEnabled', store: 'zellous-role-colors', label: 'Role colours' },
+  { key: 'compact', signal: 'pref_compact', store: 'zellous-pref-compact', def: false, radio: true },
+  { key: 'h24', signal: 'pref_h24', store: 'zellous-pref-h24', def: false, label: '24-hour time', hint: '13:37 instead of 1:37 PM' },
+  { key: 'sound', signal: 'soundEnabled', store: 'zellous-sound', def: true, label: 'Message sounds', hint: 'a soft ping when someone posts where you can hear it' },
+  { key: 'motion', signal: 'pref_motion', store: 'zellous-pref-motion', def: false, label: 'Reduced motion', hint: 'stops animations: typing dots, the radio bars, flashes' },
+  { key: 'ulinks', signal: 'pref_ulinks', store: 'zellous-pref-ulinks', def: false, label: 'Always underline links', hint: 'easier to tell links from text' },
+  { key: 'rolecolors', signal: 'roleColorsEnabled', store: 'zellous-role-colors', def: true, label: 'Show role colours on names', hint: 'off: every name in the chat is plain' },
+  { key: 'previews', signal: 'messagePreviewEnabled', store: 'zellous-message-preview', def: true, label: 'Link previews', hint: 'a card under links, with YouTube thumbnails' },
+  { key: 'embeds', signal: 'pref_embeds', store: 'zellous-pref-embeds', def: true, label: 'Show pictures from links', hint: 'image links show the picture itself' },
+  { key: 'jumbo', signal: 'pref_jumbo', store: 'zellous-pref-jumbo', def: true, label: 'Big emoji', hint: 'a message of only emoji shows them large' },
+  { key: 'spoilers', signal: 'pref_spoilers', store: 'zellous-pref-spoilers', def: false, label: 'Always reveal spoilers', hint: 'no click needed on ||hidden|| text' },
+  { key: 'vcsounds', signal: 'pref_vcsounds', store: 'zellous-pref-vcsounds', def: true, label: 'Join and leave sounds', hint: 'the bloop when someone enters or leaves your voice room' },
+  { key: 'sbsounds', signal: 'pref_sbsounds', store: 'zellous-pref-sbsounds', def: true, label: 'Hear the soundboard', hint: 'off: airhorns and rimshots skip you' },
+  { key: 'mentionsonly', signal: 'pref_mentionsonly', store: 'zellous-pref-mentionsonly', def: false, label: 'Only ping for mentions', hint: 'stay quiet unless someone @s you or says an alert word' },
+  { key: 'devmode', signal: 'pref_devmode', store: 'zellous-pref-devmode', def: false, label: 'Developer Mode', hint: 'adds Copy Message ID and Copy User ID' },
 ];
 
 export function buildGame({ v, S, call, persistBool }) {
@@ -44,7 +54,8 @@ export function buildGame({ v, S, call, persistBool }) {
       return {
         unreadTotal: Object.values(counts).reduce((n, c) => n + (c || 0), 0),
         gamePrefOpen: v('gamePrefOpen', false),
-        gamePrefToggles: PREFS.map((p) => ({ key: p.key, label: p.label, checked: !!v(p.key, true) })),
+        gamePrefCompact: !!v('pref_compact', false),
+        gamePrefToggles: PREFS.filter((p) => !p.radio).map((p) => ({ key: p.key, label: p.label, hint: p.hint, checked: !!v(p.signal, p.def) })),
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
         gameSurface: v('gameSurface', null),
@@ -86,7 +97,7 @@ export function buildGame({ v, S, call, persistBool }) {
       }),
       setGamePref: (key, val) => call(() => {
         const p = PREFS.find((x) => x.key === key);
-        if (p) persistBool(key, p.store, val);
+        if (p) persistBool(p.signal, p.store, val);
       }),
     },
   };
