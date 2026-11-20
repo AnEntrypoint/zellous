@@ -33,8 +33,8 @@ export function installChat(ww) {
       if (shouldPing({
         text: last.content,
         fromSelf: last.userId === a.pubkey,
-        soundOn: state.soundEnabled.value,
-        mentionsOnly: state.pref_mentionsonly.value,
+        soundOn: state.soundEnabled,
+        mentionsOnly: state.pref_mentionsonly,
         name
       })) playPing();
     }
