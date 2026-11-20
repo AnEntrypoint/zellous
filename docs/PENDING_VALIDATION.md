@@ -307,3 +307,12 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
 ## HUD reference
 
 The live game-3 HUD cannot be reached by any automated tool: the game refuses an automated browser, and the signed-in session is out of scope. The reference for the HUD is therefore the local game-3 source (/config/workspace/game-3: ui/, scripts/ui.js, design.md, mods/). The landing-page tokens reference (/config/workspace/hyperagent/runs/dembrandt-game3/DESIGN.md: Geist Pixel 16/14/12px, bg rgb(7,7,8), text rgb(250,250,250), primary #15172D, spacing 1/8/32px, radius 9999px, motion 150/230/500ms) applies to the landing page, not the app HUD.
+
+## Round 32: composer (game-3 surface 4)
+
+59. Design 93962ca (lanmower): src/components/game3-composer.js is a new game-3 composer (reply bar with cancel, a box with the 24px attach button, a textarea with maxlength 190 and Enter-to-send, the character counter from 150, stickers and emoji compbtns). src/community-app.js swaps it in at the community chat call site (replyTo, onCancelReply, onInput, onSend, onKeyDown with composerKey, onAttach, onEmoji inserting into the draft). The shared SDK composer is unchanged. The CSS block is appended to community-app.css.
+    - Limit checked against game-3 scripts/ui.js: maxlength="190" and the counter shows 190 minus length once the text passes 150. The 160 in the witness is the length typed, so the counter reads 30, which is correct.
+    - Ratchets moved, with reason: scripts/lint-spacing.baseline.json 128 to 134 and scripts/lint-fontsize.baseline.json 35 to 39 (game-3 composer padding, 22px and 11px values).
+    - Witness (playwriter, local docs on localhost:8819, design dist routed): appReady true; .ds-g3-comp 1; .ds-g3-box 1; .ds-g3-compbtn 2; the SDK .chat-composer 0; .chat-composer-hint 0; button.send 0; textarea maxlength "190"; placeholder "message #general…"; box height 44; with 160 characters typed the counter reads "30". Nothing was sent.
+    - Gaps: the sticker button is shown unavailable, because zellous has no sticker catalogue; the reply bar is wired but not witnessed (it needs a message to reply to); no send button is shown, so touch users send with Enter only, which is game-3's behaviour but has no on-screen fallback; the ArrowUp edit-last witness stays open (no own message in the loaded history).
+    - Dev server stopped by job devr11; the witness page was closed in a finally block.
