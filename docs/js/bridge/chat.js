@@ -31,7 +31,7 @@ export function installChat(ww) {
     if (last && channel === _pingChannel && last.timestamp > (_pingLastAt || 0)) {
       const name = chat.resolveProfile(a.pubkey);
       if (shouldPing({
-        text: last.text,
+        text: last.content,
         fromSelf: last.userId === a.pubkey,
         soundOn: state.soundEnabled.value,
         mentionsOnly: state.pref_mentionsonly.value,
