@@ -27,7 +27,10 @@ const PREFS = [
   { key: 'devmode', signal: 'pref_devmode', store: 'zellous-pref-devmode', def: false, label: 'Developer Mode', hint: 'adds Copy Message ID and Copy User ID' },
 ];
 
+const PREF_GROUP = { sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', h24: 'lang', devmode: 'adv' };
+
 export function buildGame({ v, S, call, persistBool }) {
+  const storeText = (signal, key, text) => { if (S[signal]) S[signal].value = text; if (typeof localStorage !== 'undefined') localStorage.setItem(key, text); };
   const applyMotion = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-motion-reduced', !!on); };
   applyMotion(v('pref_motion', false));
   const applyUlinks = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-ulinks', !!on); };
@@ -120,7 +123,10 @@ export function buildGame({ v, S, call, persistBool }) {
         embeds: !!v('pref_embeds', true),
         vcsounds: !!v('pref_vcsounds', true),
         soundboard: SOUNDS.map(({ id, e, name }) => ({ id, e, name })),
-        gamePrefToggles: PREFS.filter((p) => !p.radio).map((p) => ({ key: p.key, label: p.label, hint: p.hint, checked: !!v(p.signal, p.def) })),
+        gamePrefToggles: PREFS.filter((p) => !p.radio && PREF_GROUP[p.key]).map((p) => ({ key: p.key, label: p.label, hint: p.hint, checked: !!v(p.signal, p.def), group: PREF_GROUP[p.key] })),
+        gamePrefKeywords: v('pref_kw', ''),
+        gamePrefBanner: v('pref_banner', ''),
+        gamePrefTab: v('gamePrefTab', 'appearance'),
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
         gameSurface: v('gameSurface', null),
@@ -132,7 +138,7 @@ export function buildGame({ v, S, call, persistBool }) {
         selfRoles: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const mine = window.nostrSelfRoles && sid && me ? window.nostrSelfRoles.roles(sid, me) : []; return GAME_ROLES.map((r) => ({ ...r, on: mine.includes(r.id), online: window.nostrSelfRoles && sid ? window.nostrSelfRoles.holders(sid, r.id) : 0 })); })(),
         splitChannel: v('splitChannel', null),
         splitMessages: (v('splitMessages', []) || []).map((m) => ({ ...m, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
-        discoverServers: v('servers', []).map((sv) => ({ id: sv.id, name: sv.name || 'server', current: sv.id === v('currentServerId', null) })),
+        discoverServers: v('servers', []).map((sv) => { const current = sv.id === v('currentServerId', null); const ownerPk = String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null; const members = v('roomMembers', []); return { id: sv.id, name: sv.name || 'server', current, owner: ownerPk ? ((window.chat && window.chat.resolveProfile && window.chat.resolveProfile(ownerPk)) || ownerPk.slice(0, 12)) : 'nobody (public room)', members: current ? members.length : null, online: current ? members.filter((m) => m.online).length : null, channels: current ? v('channels', []).filter((c) => c.type !== 'voice').map((c) => c.name) : null }; }),
         announcements: announcementsFor(v('chatMessages', []), window.state && window.state.nostrPubkey).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         pins: pinsFor(v('chatMessages', []), window.state && window.state.nostrPubkey, v('channelPins', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         recap: recapFor(v('chatMessages', []), window.state && window.state.nostrPubkey, (window.nostrUnread && window.nostrUnread.countFor && v('currentChannel', null) && window.nostrUnread.countFor(v('currentChannel', null).id)) || 0).map((r) => ({ ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.author) : r.author.slice(0, 8)) })),
@@ -146,6 +152,7 @@ export function buildGame({ v, S, call, persistBool }) {
         if (!u || !u.countsFor || !u.markRead) return;
         Object.keys(u.countsFor()).forEach((id) => u.markRead(id));
       }),
+      jumpToMessage: (id) => call(() => { if (S.gameSurface) S.gameSurface.value = null; setTimeout(() => { const el = typeof document !== 'undefined' ? document.getElementById('m-' + id) : null; if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('ds-g3-flash'); setTimeout(() => el.classList.remove('ds-g3-flash'), 1600); } else if (window.ui && window.ui.showToast) window.ui.showToast('That message is not loaded in this channel', 2500, 'error'); }, 50); }),
       openGamePrefs: () => call(() => { if (S.gamePrefOpen) S.gamePrefOpen.value = true; }),
       closeGamePrefs: () => call(() => { if (S.gamePrefOpen) S.gamePrefOpen.value = false; }),
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
@@ -170,8 +177,13 @@ export function buildGame({ v, S, call, persistBool }) {
         }
       }),
       playSound: (id) => call(() => playSoundboard(id, () => !!v('pref_sbsounds', true))),
+      setGamePrefTab: (t) => call(() => { if (S.gamePrefTab) S.gamePrefTab.value = t; }),
       setGamePref: (key, val) => call(() => {
+        if (key === 'kw') return storeText('pref_kw', 'zellous-pref-kw', String(val || '').slice(0, 200));
+        if (key === 'banner') return storeText('pref_banner', 'zellous-pref-banner', String(val || ''));
+        if (key === 'reset') { PREFS.forEach((p) => persistBool(p.signal, p.store, p.def)); storeText('pref_kw', 'zellous-pref-kw', ''); storeText('pref_banner', 'zellous-pref-banner', ''); applyMotion(false); applyUlinks(false); applySpoilers(false); return; }
         const p = PREFS.find((x) => x.key === key);
+
         if (p) persistBool(p.signal, p.store, val);
         if (key === 'motion') applyMotion(val);
         if (key === 'ulinks') applyUlinks(val);

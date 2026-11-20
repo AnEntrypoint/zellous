@@ -43,7 +43,8 @@ export function installChat(ww) {
           fromSelf: m.userId === me,
           soundOn: state.soundEnabled,
           mentionsOnly: state.pref_mentionsonly,
-          name: chat.resolveProfile(me)
+          name: chat.resolveProfile(me),
+          alerts: String(state.pref_kw || '').split(',').map((w) => w.trim()).filter((w) => w.length > 1)
         })) playPing();
       }
     }

@@ -7,9 +7,11 @@ export const mentionsName = (text, name) => {
     return new RegExp('(^|\\s)@' + escapeRe(name) + '(?![\\w.-])', 'i').test(String(text || ''));
 };
 
-export const shouldPing = ({ text, fromSelf, soundOn, mentionsOnly, name }) => {
+export const alertHit = (text, words) => (words || []).some((w) => new RegExp('(^|\\W)' + escapeRe(w) + '(?!\\w)', 'i').test(String(text || '')));
+
+export const shouldPing = ({ text, fromSelf, soundOn, mentionsOnly, name, alerts }) => {
     if (fromSelf || !soundOn) return false;
-    return !mentionsOnly || mentionsName(text, name);
+    return !mentionsOnly || mentionsName(text, name) || alertHit(text, alerts);
 };
 
 export const playPing = () => {
