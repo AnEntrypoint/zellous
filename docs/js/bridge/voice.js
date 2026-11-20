@@ -1,5 +1,23 @@
 const LEVEL_METER_CEILING = 0.35;
 
+let bloopCtx = null;
+const playBloop = (up) => {
+  if (typeof AudioContext === 'undefined') return;
+  bloopCtx = bloopCtx || new AudioContext();
+  const t = bloopCtx.currentTime;
+  const osc = bloopCtx.createOscillator();
+  const gain = bloopCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(up ? 520 : 780, t);
+  osc.frequency.exponentialRampToValueAtTime(up ? 780 : 520, t + 0.2);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+  osc.connect(gain).connect(bloopCtx.destination);
+  osc.start(t);
+  osc.stop(t + 0.26);
+};
+
 export function installVoice(ww) {
   const a = ww.auth;
   const chat = ww.chat;
@@ -66,7 +84,13 @@ export function installVoice(ww) {
     };
     voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });
     voice.addEventListener('participants', (e) => {
+      const prevIds = new Set((state.voiceParticipants || []).map((p) => p.identity));
       state.voiceParticipants = e.detail.list;
+      const nowIds = (e.detail.list || []).map((p) => p.identity);
+      if (state.pref_vcsounds && state.pref_vcsounds.value && prevIds.size > 0) {
+        if (nowIds.some((id) => !prevIds.has(id))) playBloop(true);
+        else if ([...prevIds].some((id) => !nowIds.includes(id))) playBloop(false);
+      }
       pruneVoiceMedia(new Set((e.detail.list || []).map((p) => p.identity)));
     });
     voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.ui?.showToast?.('Voice connected', 2000); });
