@@ -62,6 +62,18 @@ export function buildGame({ v, S, call, persistBool }) {
     if (!ch || !window.nostrEvents) return;
     return window.nostrEvents.create(v('currentServerId', null), ch.id, { title: f.title, about: f.about, start: Math.floor(f.at / 1000) }).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Create event failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
   };
+  const findEvent = (id) => (v('channelEvents', []) || []).find((e) => e.id === id) || null;
+  const rsvpEvent = (id) => {
+    const ev = findEvent(id);
+    if (!ev || !window.nostrEvents) return;
+    const me = window.state && window.state.nostrPubkey;
+    return window.nostrEvents.rsvp(ev, !ev.going.includes(me)).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('RSVP failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
+  };
+  const deleteEvent = (id) => {
+    const ev = findEvent(id);
+    if (!ev || !window.nostrEvents) return;
+    return window.nostrEvents.delete(ev).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Cancel failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
+  };
   const pinMessage = (id) => {
     const ch = currentChannelRef();
     if (!ch || !window.nostrPins) return;
@@ -85,7 +97,7 @@ export function buildGame({ v, S, call, persistBool }) {
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
         gameSurface: v('gameSurface', null),
-        channelEvents: v('channelEvents', []),
+        channelEvents: v('channelEvents', []).map((e) => ({ ...e, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(e.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(e.author) : e.author.slice(0, 8)), mine: e.author === (window.state && window.state.nostrPubkey), interested: e.going.includes(window.state && window.state.nostrPubkey) })),
         reminders: remindersFor(),
         rules: rulesFor(v('channels', [])),
         roles: rolesFor(v('roomMembers', []), v('currentServerId', null)),
@@ -113,6 +125,8 @@ export function buildGame({ v, S, call, persistBool }) {
       openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); }),
       pinMessage: (id) => call(() => pinMessage(id)),
       createEvent: (f) => call(() => createEvent(f)),
+      rsvpEvent: (id) => call(() => rsvpEvent(id)),
+      deleteEvent: (id) => call(() => deleteEvent(id)),
       closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; stopEventsFeed(); stopSplitFeed(); }),
       createServer: (name, color) => call(async () => {
         if (!window.serverManager || !window.serverManager.create) return;
