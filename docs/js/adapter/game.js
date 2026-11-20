@@ -57,6 +57,11 @@ export function buildGame({ v, S, call, persistBool }) {
   const stopSplitFeed = () => { if (stopSplit) stopSplit(); stopSplit = null; };
   const currentChannelRef = () => { const ch = v('currentChannel', null); return ch && ch.id ? ch : null; };
   const startPins = () => { const ch = currentChannelRef(); if (ch && window.nostrPins) window.nostrPins.subscribe(v('currentServerId', null), ch.id); };
+  const createEvent = (f) => {
+    const ch = currentChannelRef();
+    if (!ch || !window.nostrEvents) return;
+    return window.nostrEvents.create(v('currentServerId', null), ch.id, { title: f.title, about: f.about, start: Math.floor(f.at / 1000) }).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Create event failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
+  };
   const pinMessage = (id) => {
     const ch = currentChannelRef();
     if (!ch || !window.nostrPins) return;
@@ -107,6 +112,7 @@ export function buildGame({ v, S, call, persistBool }) {
       explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
       openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); }),
       pinMessage: (id) => call(() => pinMessage(id)),
+      createEvent: (f) => call(() => createEvent(f)),
       closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; stopEventsFeed(); stopSplitFeed(); }),
       createServer: (name, color) => call(async () => {
         if (!window.serverManager || !window.serverManager.create) return;

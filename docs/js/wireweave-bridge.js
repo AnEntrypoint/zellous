@@ -1,5 +1,5 @@
 window.__wireweaveReady = (async () => {
-  const [bootStatus, network, auth, chat, unread, dm, channels, servers, governance, forum, media, voice, pinsBridge] = await Promise.all([
+  const [bootStatus, network, auth, chat, unread, dm, channels, servers, governance, forum, media, voice, pinsBridge, eventsBridge] = await Promise.all([
     import('./bridge/boot-status.js'),
     import('./bridge/network.js'),
     import('./bridge/auth.js'),
@@ -12,7 +12,8 @@ window.__wireweaveReady = (async () => {
     import('./bridge/forum.js'),
     import('./bridge/media.js'),
     import('./bridge/voice.js'),
-    import('./bridge/pins.js')
+    import('./bridge/pins.js'),
+    import('./bridge/events.js')
   ]);
   const mod = await bootStatus.loadProtocol();
   const NT = window.NostrTools;
@@ -40,6 +41,7 @@ window.__wireweaveReady = (async () => {
   media.installMedia(ww);
   voice.installVoice(ww);
   pinsBridge.installPins(ww);
+  eventsBridge.installEvents(ww);
 
   const inspect = () => ({
     relays: Object.fromEntries(state.nostrRelayStatus || []),
