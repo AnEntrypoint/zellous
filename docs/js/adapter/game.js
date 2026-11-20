@@ -31,6 +31,8 @@ export function buildGame({ v, S, call, persistBool }) {
   applyMotion(v('pref_motion', false));
   const applyUlinks = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-ulinks', !!on); };
   applyUlinks(v('pref_ulinks', false));
+  const applySpoilers = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-spoilers', !!on); };
+  applySpoilers(v('pref_spoilers', false));
   let stopEvents = null;
   const startEvents = () => {
     if (stopEvents) stopEvents();
@@ -109,6 +111,7 @@ export function buildGame({ v, S, call, persistBool }) {
         if (p) persistBool(p.signal, p.store, val);
         if (key === 'motion') applyMotion(val);
         if (key === 'ulinks') applyUlinks(val);
+        if (key === 'spoilers') applySpoilers(val);
       }),
     },
   };
