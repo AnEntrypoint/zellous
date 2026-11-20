@@ -72,6 +72,7 @@ export function buildGame({ v, S, call, persistBool }) {
       closeGamePrefs: () => call(() => { if (S.gamePrefOpen) S.gamePrefOpen.value = false; }),
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
+      explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
       openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); }),
       closeSurface: () => call(() => { if (S.gameSurface) S.gameSurface.value = null; stopEventsFeed(); stopSplitFeed(); }),
       createServer: (name, color) => call(async () => {

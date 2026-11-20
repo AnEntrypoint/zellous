@@ -254,6 +254,14 @@ Round 9 surface 2: rail. Design commit "feat(app): group the rail into informati
     - Dev server stopped by PID 2645671; port 8805 returns STOPPED
 000.
 
+## Round 27: server rail (game-3 surface 1)
+
+53. Design (lanmower): community-app.js railServerPill renders 48px tiles, with the server's iconColor as --sv-color and game-3's initials rule (first letters of up to 3 words); the home tile is the DM entry with class ca-rail-home; the add and explore tiles are 48px circles; the create dialog gains "or join one: discover servers" (ServerCreateForm onJoin); community-app.css rail is 72px wide with circular tiles that become 14px-radius when active or hovered.
+54. Zellous (lanmower): docs/js/adapter/game.js explore opens the discover surface.
+    - Witness (playwriter, local docs on localhost:8810, design dist routed from the jsdelivr URL): appReady true; rail tiles 48px wide; "Zellous Public" tile class active, radius 14px, colour rgb(88, 101, 242); add and explore tiles 48px with the neutral background; "find new servers to join" opens dialog "discover" with "Zellous Public / open / Done"; "create a server" dialog buttons ["Cancel", "Create server", "or join one: discover servers"].
+    - Gap: game-3's home icon is the Spawn home glyph; zellous keeps the forum glyph. The server colour comes from iconColor, which is the default #5865F2 unless the server was created with a colour.
+    - Dev server stopped; port 8810 returns STOPPED.
+
 ## Round 26: preferences
 
 50. Preferences compared with game-3 PREF_BOOLS (scripts/lib/discord.js line 80): compact, h24, sound, motion, ulinks, rolecolors, previews, embeds, jumbo, spoilers, vcsounds, sbsounds, mentionsonly, devmode.
