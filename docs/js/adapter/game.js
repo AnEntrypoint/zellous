@@ -9,6 +9,7 @@ import { rulesFor } from '../rules.js';
 import { subscribeSplitMessages } from '../split-feed.js';
 import { announcementsFor } from '../announcements.js';
 import { rolesFor } from '../roles.js';
+import { GAME_ROLES } from '../selfroles.js';
 
 const PREFS = [
   { key: 'compact', signal: 'pref_compact', store: 'zellous-pref-compact', def: false, radio: true },
@@ -85,6 +86,20 @@ export function buildGame({ v, S, call, persistBool }) {
     if (!ch || !window.nostrPins) return;
     return window.nostrPins.pin(v('currentServerId', null), ch.id, id).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Pin failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
   };
+  const toggleSelfRole = (id) => {
+    const sid = v('currentServerId', null);
+    const me = (window.state && window.state.nostrPubkey) || null;
+    if (!sid || !me || !window.nostrSelfRoles) return;
+    const cur = window.nostrSelfRoles.roles(sid, me);
+    const next = cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    return window.nostrSelfRoles.set(sid, next).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Role change failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
+  };
+  const startSelfRoles = () => { const sid = v('currentServerId', null); if (sid && window.nostrSelfRoles) window.nostrSelfRoles.subscribe(sid); };
+  const goToGeneral = () => {
+    S.gameSurface.value = null;
+    const ch = v('channels', []).find((c) => c.name === 'general' && c.type !== 'voice');
+    if (ch && window.ui && window.ui.actions) window.ui.actions.switchChannel(ch);
+  };
   return {
     snapshot: () => {
       const counts = (window.nostrUnread && window.nostrUnread.countsFor) ? window.nostrUnread.countsFor() : {};
@@ -107,6 +122,7 @@ export function buildGame({ v, S, call, persistBool }) {
         reminders: remindersFor(),
         rules: rulesFor(v('channels', [])),
         roles: rolesFor(v('roomMembers', []), v('currentServerId', null)),
+        selfRoles: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const mine = window.nostrSelfRoles && sid && me ? window.nostrSelfRoles.roles(sid, me) : []; return GAME_ROLES.map((r) => ({ ...r, on: mine.includes(r.id), online: window.nostrSelfRoles && sid ? window.nostrSelfRoles.holders(sid, r.id) : 0 })); })(),
         splitChannel: v('splitChannel', null),
         splitMessages: (v('splitMessages', []) || []).map((m) => ({ ...m, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
         discoverServers: v('servers', []).map((sv) => ({ id: sv.id, name: sv.name || 'server', current: sv.id === v('currentServerId', null) })),
@@ -128,8 +144,10 @@ export function buildGame({ v, S, call, persistBool }) {
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
       explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
-      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); }),
+      openSurface: (name) => call(() => { if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'split') startSplit(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); if (name === 'pick-roles') startSelfRoles(); }),
       pinMessage: (id) => call(() => pinMessage(id)),
+      toggleSelfRole: (id) => call(() => toggleSelfRole(id)),
+      goToGeneral: () => call(() => goToGeneral()),
       createEvent: (f) => call(() => createEvent(f)),
       rsvpEvent: (id) => call(() => rsvpEvent(id)),
       votePoll: (id, i) => call(() => votePoll(id, i)),
