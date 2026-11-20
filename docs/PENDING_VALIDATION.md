@@ -552,3 +552,10 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
 86. Built (lanmower). Game-3 behaviour (scripts/ui.js and scripts/lib/discord.js h24, labelled "24-hour time", hint "13:37 instead of 1:37 PM"): the message times show the 24-hour clock. Zellous: the snapshot exposes h24 from the pref_h24 signal (docs/js/adapter/game.js); game3Rows formats each message time with the 24-hour clock when h24 is on and with the 12-hour clock otherwise (src/community-app.js).
     - Witness (playwriter, local docs on localhost:8851, design dist routed, 1280x800): with zellous-pref-h24 unset, the first three message times read "3:55 PM", "11:42 PM", "1:40 PM" (AM or PM present); with it set to 1 and the page reloaded, they read "15:55", "23:42", "13:40" (no AM or PM). The stored key was then removed.
     - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr43; the witness page was closed in a finally block.
+
+## Preference effect: Reduced motion (done)
+
+87. Built (lanmower, zellous only; design has no change for this preference). Game-3 behaviour (scripts/ui.js, label "Reduced motion", hint "stops animations: typing dots, the radio bars, flashes"): animations stop. Zellous: the adapter (docs/js/adapter/game.js) toggles the zellous-motion-reduced class on the document root from the pref_motion signal, on load and when the preference changes; docs/css/zellous.css sets animation and transition to none on the page while that class is present.
+    - Witness (playwriter, local docs on localhost:8852, design dist routed, 1280x800): with zellous-pref-motion unset, the root class is absent and the rail tile transition is 0.15s; with it set to 1 and the page reloaded, the root class is present and the rail tile transition is 0s; the stored key was then removed. The animation name on the rail tile is none in both cases, so the rail tile itself has no keyframe animation to stop.
+    - Not witnessed: the typing dots and the radio bars, because no one is typing and no radio exists in zellous.
+    - Build: no design build (no design change). Dev server stopped by job devr44; the witness page was closed in a finally block.

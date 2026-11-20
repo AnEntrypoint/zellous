@@ -272,3 +272,5 @@ html.ds-247420 .modal-input[readonly] { opacity: .65; cursor: default; }
   html.ds-247420 .chat .chat-composer { padding-block: var(--space-1); margin-bottom: var(--space-1); }
   html.ds-247420 .chat-thread { padding-block: var(--space-2); }
 }
+
+html.zellous-motion-reduced *, html.zellous-motion-reduced *::before, html.zellous-motion-reduced *::after { animation: none !important; transition: none !important; }

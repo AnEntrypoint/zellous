@@ -27,6 +27,8 @@ const PREFS = [
 ];
 
 export function buildGame({ v, S, call, persistBool }) {
+  const applyMotion = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-motion-reduced', !!on); };
+  applyMotion(v('pref_motion', false));
   let stopEvents = null;
   const startEvents = () => {
     if (stopEvents) stopEvents();
@@ -100,6 +102,7 @@ export function buildGame({ v, S, call, persistBool }) {
       setGamePref: (key, val) => call(() => {
         const p = PREFS.find((x) => x.key === key);
         if (p) persistBool(p.signal, p.store, val);
+        if (key === 'motion') applyMotion(val);
       }),
     },
   };
