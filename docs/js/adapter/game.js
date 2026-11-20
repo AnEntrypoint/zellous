@@ -63,6 +63,7 @@ export function buildGame({ v, S, call, persistBool }) {
         h24: !!v('pref_h24', false),
         jumbo: !!v('pref_jumbo', true),
         previews: !!v('messagePreviewEnabled', true),
+        embeds: !!v('pref_embeds', true),
         gamePrefToggles: PREFS.filter((p) => !p.radio).map((p) => ({ key: p.key, label: p.label, hint: p.hint, checked: !!v(p.signal, p.def) })),
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
