@@ -546,3 +546,9 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Witness (playwriter, local docs on localhost:8850, design dist routed, 1280x800): with zellous-pref-devmode unset, rows 3, copy message id 0, copy user id 0; after localStorage zellous-pref-devmode is set to 1 and the page reloads, rows 3, copy message id 3, copy user id 3; clicking the first Copy Message ID button ran without error (clicked). The stored key was then removed.
     - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr42; the witness page was closed in a finally block.
     - Remaining game-3 preferences with real effects still to build (one at a time): h24, compact, motion, ulinks, jumbo, spoilers, embeds, vcsounds, sbsounds, mentionsonly. Each is listed in PENDING 84 with its game-3 behaviour.
+
+## Preference effect: 24-hour time (done)
+
+86. Built (lanmower). Game-3 behaviour (scripts/ui.js and scripts/lib/discord.js h24, labelled "24-hour time", hint "13:37 instead of 1:37 PM"): the message times show the 24-hour clock. Zellous: the snapshot exposes h24 from the pref_h24 signal (docs/js/adapter/game.js); game3Rows formats each message time with the 24-hour clock when h24 is on and with the 12-hour clock otherwise (src/community-app.js).
+    - Witness (playwriter, local docs on localhost:8851, design dist routed, 1280x800): with zellous-pref-h24 unset, the first three message times read "3:55 PM", "11:42 PM", "1:40 PM" (AM or PM present); with it set to 1 and the page reloaded, they read "15:55", "23:42", "13:40" (no AM or PM). The stored key was then removed.
+    - Build: node scripts/build.mjs exit 0. Dev server stopped by job devr43; the witness page was closed in a finally block.
