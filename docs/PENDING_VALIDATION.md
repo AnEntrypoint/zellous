@@ -802,3 +802,14 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Blocked: game-3's message box in the split column (placeholder "Message #<channel>", Enter sends to the split channel). zellous's chat.send posts only to the active channel (wireweave chat.js uses the current channel context), so a split send cannot reach another channel without a wireweave change. Not shown; cause recorded.
     - Commits: zellous (adapter: setSplit, splitTo, splitMain, splitOptions, time on split messages); design (game3-split.js, community-app.js, css, dist, glyph allowance).
     - Cleanup: page closed; relay and dev server stopped by PID.
+
+121. Game-3 HUD comparison (reference /config/Desktop/test.html), first pass: server rail, channel column, topbar header, user panel, member list, message rows.
+    - Server rail (72 px, #1e1f22, 12 px top padding, 8 px gaps, 48 px circular tiles, 16 px radius on hover/active, 4x40 active bar at -12 px, #313338 home tile, #23a55a add tile at 26 px, 32x2 #35363c separator): compared by computed style; matched already (no change).
+    - Channel column (240 px, #2b2d31): category header changed to the reference: 12 px/600, letter-spacing .02em, #949ba4, padding 18 px 8 px 4 px 2 px, right padding 8 px, no bottom margin. Channel rows (34 px, 8 px padding, 6 px gap, 16 px/500, #80848e, #404249 active with #fff text, 4 px radius): matched already.
+    - Topbar header (.mhead): changed to 48 px high, padding 0 58 px 0 16 px, 16 px/600 #f2f3f5 title, topic 14 px #b5bac1 with 1 px #3f4147 left rule, 12 px padding, 4 px margin, game-3 double box-shadow. Measured after: 880x48, padding 0 58px 0 16px, title 16px/600 #f2f3f5, topic 14px #b5bac1 padding-left 12px.
+    - User panel (.me, 52 px, #232428): matched; name 14px/600 #f2f3f5, 18 px line height; button radius changed to 4 px (reference .mebtn).
+    - Member list: category 12px/600 #949ba4, 24/8/4 padding, .02em; rows 42 px, 16px/500 #949ba4, 12 px gap: matched.
+    - Message rows (.grp/.ln): padding 1 px 48 px 1 px 16 px, 17 px top margin, 16 px gap, text 16/22 #dbdee1: matched.
+    - Build gates: spacing baseline 193 -> 195 and fontsize baseline 54 -> 58, both with a reason in the baseline file (the reference uses px values with no matching --space or --fs token).
+    - Not compared in this pass (open): composer box beyond its measured size (the reference has no composer rule), .who/.when name and time styles, voice strip, settings modal, events, polls, leaderboard, recap, discover, pins, roles, split column, modals and overlays, and the topbar buttons. Owner asked for every surface; these remain open.
+    - Witness: header computed style after build; rail and channel values listed above; user panel and member values listed above.
