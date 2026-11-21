@@ -890,3 +890,12 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Data gap: the channel topic is empty for general, so the topic line is not rendered; the saved file shows "hang out, say hi".
     - Not witnessed this turn: the Member List toggle (its click handler is unchanged; the probe had a syntax error).
     - Cleanup: page closed; relay and dev server stopped by PID.
+
+131. Phase B push (zellous and design). Pushed once each; no force push; wireweave not pushed.
+    - zellous: origin/main 9119e8f -> 54e2906 (fast-forward, 91 commits).
+    - design: origin/main 91e031a -> 804ee2f (fast-forward, 41 commits). The design checkout is on master; pushed as master:main.
+    - Local build: design build.mjs exit 0, no lint failure (bundle 635.3kb, types regenerated); zellous has no build step (dev server only).
+    - Local dist witness after build (page on localhost:5190 with local design and wireweave): icon-only header (titles Pinned Messages, Member List; 0 text topbar buttons); message header time "11/21/2026 7:01 AM"; composer placeholder "Message #general", upload title "Upload a picture"; rail header "Zellous Public" with groups INFORMATION, TEXT CHANNELS, VOICE CHANNELS; member status dot 10px; user panel 52px with "Online"; typing row present.
+    - Pages status (one check): gh-pages workflow run 44878286879 for 54e2906, status in_progress at the check (created 2026-11-21T07:01:38Z). Result not yet known; URL https://github.com/AnEntrypoint/zellous/actions/runs/44878286879. Live site: https://anentrypoint.github.io/zellous/nostr-chat/.
+    - Known gap for the live site: zellous still pins wireweave to fbcee88, so the mention ping and poll fixes in wireweave a85d0f9 and c131405 are not live until the pin is bumped (a separate step).
+    - Cleanup: page closed; relay and dev server stopped by PID.
