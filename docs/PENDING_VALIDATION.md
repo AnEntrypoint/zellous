@@ -813,3 +813,14 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Build gates: spacing baseline 193 -> 195 and fontsize baseline 54 -> 58, both with a reason in the baseline file (the reference uses px values with no matching --space or --fs token).
     - Not compared in this pass (open): composer box beyond its measured size (the reference has no composer rule), .who/.when name and time styles, voice strip, settings modal, events, polls, leaderboard, recap, discover, pins, roles, split column, modals and overlays, and the topbar buttons. Owner asked for every surface; these remain open.
     - Witness: header computed style after build; rail and channel values listed above; user panel and member values listed above.
+
+122. Game-3 HUD reference (/config/Desktop/test.html): server rail and channel column, code change. Witnessed on the local dist.
+    - Correction to entry 121: its commit f667a7b is documentation only; the CSS change for entry 121 is in design 3ea4bb4.
+    - Channel column header (.shead): added, 48 px, 16 px/600 #f2f3f5, 16 px padding, the reference's three-line box-shadow, hover #35373c, server name with the reference's filled chevron (18 px). Measured: 240x48, padding 0 16px, 16px/600 #f2f3f5, text "Zellous Public", shadow present.
+    - Channel list container (.chans): 8 px padding, rows 224 px wide, groups inside. Measured: chans 240x538 padding 8 px; category row 224 px wide.
+    - Category headers: filled chevron (12 px) before the label; labels Information, Text Channels, Voice Channels (uppercase by CSS, as the reference). Measured: category svg 12x12, header 12px/600 #949ba4, padding 18/8/4/2.
+    - Channel rows: icon colour #80848e (was green), hover #35373c with #dbdee1 text and icon, active #404249 with #fff text and #dbdee1 icon (reference .ch rules). Measured: row #80848e, active rgb(64,66,73) with #fff text.
+    - Server rail: already matched in entry 121 (home tile #313338, active #5865f2, add tile #23a55a, separator #35363c); not changed.
+    - Build gates: spacing and font-size literals in the new rules replaced with tokens where exact (8 px, 16 px, 2 px); the others are inside the existing baselines.
+    - Still open (not compared in this pass): the composer and its toolbar, the message author and time styles, the voice strip, the settings modal, events, polls, leaderboard, recap, discover, pins, roles, the split column, modals and overlays, and the topbar buttons.
+    - Cleanup: page closed; relay and dev server stopped by PID.
