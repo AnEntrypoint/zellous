@@ -1,6 +1,7 @@
 import { SOUNDS, playSoundboard } from '../soundboard.js';
 import { subscribeChannelEvents } from '../events-feed.js';
 import { leaderboardFor, levelFor } from '../xp.js';
+import { effect } from '@preact/signals';
 import { pollsFor } from '../polls.js';
 import { remindersFor } from '../reminders.js';
 import { pinsFor } from '../pins.js';
@@ -37,6 +38,15 @@ export function buildGame({ v, S, call, persistBool }) {
   const applySpoilers = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-spoilers', !!on); };
   applySpoilers(v('pref_spoilers', false));
   let stopEvents = null;
+  let stopRailEvents = null;
+  effect(() => {
+    const ch = S.currentChannel && S.currentChannel.value;
+    const sid = S.currentServerId && S.currentServerId.value;
+    if (stopRailEvents) stopRailEvents();
+    stopRailEvents = null;
+    if (!ch || !S.channelEvents) return;
+    subscribeChannelEvents(ch.id, sid, (list) => { S.channelEvents.value = list; }).then((stop) => { stopRailEvents = stop; });
+  });
   const startEvents = () => {
     if (stopEvents) stopEvents();
     stopEvents = null;
