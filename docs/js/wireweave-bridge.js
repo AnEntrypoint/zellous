@@ -42,10 +42,10 @@ window.__wireweaveReady = (async () => {
   forum.installForum(ww);
   media.installMedia(ww);
   voice.installVoice(ww);
-  pinsBridge.installPins(ww);
-  eventsBridge.installEvents(ww);
-  pollsBridge.installPolls(ww);
-  selfRolesBridge.installSelfRoles(ww);
+  if (ww.pins) pinsBridge.installPins(ww);
+  if (ww.events) eventsBridge.installEvents(ww);
+  if (ww.polls) pollsBridge.installPolls(ww);
+  if (ww.selfRoles) selfRolesBridge.installSelfRoles(ww);
 
   const inspect = () => ({
     relays: Object.fromEntries(state.nostrRelayStatus || []),
