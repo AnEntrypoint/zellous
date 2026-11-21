@@ -1,6 +1,6 @@
 import { SOUNDS, playSoundboard } from '../soundboard.js';
 import { subscribeChannelEvents } from '../events-feed.js';
-import { leaderboardFor } from '../xp.js';
+import { leaderboardFor, levelFor } from '../xp.js';
 import { pollsFor } from '../polls.js';
 import { remindersFor } from '../reminders.js';
 import { pinsFor } from '../pins.js';
@@ -136,6 +136,8 @@ export function buildGame({ v, S, call, persistBool }) {
         rulesStats: (() => { const m = v('roomMembers', []); return { online: m.filter((x) => x.online).length, members: m.length }; })(),
         selfRoles: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const mine = window.nostrSelfRoles && sid && me ? window.nostrSelfRoles.roles(sid, me) : []; return GAME_ROLES.map((r) => ({ ...r, on: mine.includes(r.id), online: window.nostrSelfRoles && sid ? window.nostrSelfRoles.holders(sid, r.id) : 0 })); })(),
         splitChannel: v('splitChannel', null),
+        eventCount: (v('channelEvents', []) || []).length,
+        myLevel: levelFor((window.state && window.state.chatMessages) || [], (window.state && window.state.nostrPubkey) || null).level,
         mutedChannel: (v('mutedChannels', []) || []).includes((v('currentChannel', null) || {}).id),
         splitOptions: (() => { const cur = v('currentChannel', null); return (v('channels', []) || []).filter((c) => c && (c.type === 'text' || c.type === 'announcement') && !(cur && c.id === cur.id)).map((c) => ({ id: c.id, name: c.name })); })(),
         splitMessages: (v('splitMessages', []) || []).slice().reverse().map((m) => ({ ...m, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !v('pref_h24', false) }), name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
