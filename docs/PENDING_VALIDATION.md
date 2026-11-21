@@ -873,3 +873,10 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - CSS cleanup: the duplicate radius declaration in the .ds-g3-mebtn rule is removed; the value is unchanged (4px).
     - Measured: panel 880x52, #232428, padding 0 8px, gap 2px; button 796x40, padding 4px 6px 4px 2px, radius 4px, gap 8px; avatar 32x32; status dot 16x16 at right -3px, bottom -3px, #232428 ring; name 14px/600 #f2f3f5, line height 18px; status "Online" 12px/400 #b5bac1, line height 13px; buttons Mute and User Settings 32x32, #b5bac1.
     - Cleanup: page closed; relay and dev server stopped by PID.
+
+129. Game-3 HUD reference (/config/Desktop/test.html): topbar. Blocked on an owner decision; no code changed.
+    - Reference topbar (.mhead, 48px): the channel name (16px/600 #f2f3f5), the topic after a 1px #3f4147 rule (14px #b5bac1), then icon buttons (.ibtn 32x32, #b5bac1: Pinned Messages, Member List, Inbox) and a search box (.srch 144x24, #1e1f22). It has no text buttons.
+    - zellous topbar now: the same 48px header with the channel name and topic (matched in entry 121), then text buttons (home, preferences, discover, pick roles, rules, announcements, pins, recap, polls, leaderboard, events, roles, split view, members) as the owner approved earlier.
+    - Conflict: an exact match removes the text buttons. Eleven of them open panels that have no other entry point in zellous (preferences, discover, pick roles, rules, recap, polls, leaderboard, events, roles; split view and announcements are reached through the split select and the channel list). Removing them would take those panels out of the app until another entry point exists.
+    - Options for the owner: (A) exact match: icon buttons for Pinned Messages and Member List (matching the reference), the search box, and a single menu for the other panels; or (B) keep the owner-approved text list as a documented zellous deviation, and match only the header row, the icon style and the open and close states.
+    - Not witnessed in this entry: no header changes were made.
