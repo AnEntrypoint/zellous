@@ -908,3 +908,12 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Remaining differences, with cause: the composer is 718 wide and test.html's is 676 wide because test.html reserves the 50px Spawn chrome inset on the right (excluded); the channel list starts with the reference's events, leaderboard and similar rows and zellous's list starts with the Information group (channel data differs; zellous channels are not game-3's); the voice strip is not measured (no voice join in the headless browser); topic, Inbox, search and Mute Channel differ as in entry 130.
     - Dev-server fix: scripts/dev-server.mjs now rewrites any design@<ref> CDN URL to the local design, so ?local=1 uses the working tree again after the pin to a fixed design commit (it had silently loaded the pinned jsdelivr copy).
     - Cleanup: the pages opened for the comparison are closed; the relay and dev server are stopped by PID.
+
+133. Live-page layout defects, fixed in code (design, local; the live page cannot show them until the design kit is published and zellous pins it).
+    - (1) Header: the game-3 header sits above the main column and the member list at x 312, 48px high (measured (312,0,968,48)); it no longer spans the full width.
+    - (2) User panel: at the bottom of the channel column (measured (72,748,240,52)), not in the main column.
+    - (3) Composer: width 726px, which is test.html's 676px plus the 50px Spawn inset (measured (312,732,726,68), box at 328).
+    - (4) Channel rows: Events and Leaderboard first (as test.html's first rows), then the Information, Text Channels and Voice Channels groups in zellous's own channel order. Measured: Events, Leaderboard, INFORMATION > announcements, TEXT CHANNELS > general, VOICE CHANNELS > General.
+    - Remaining, with cause: test.html's rows rules, pick-roles, gaming, memes and clips do not exist in this server's channel list (zellous's public room has announcements, general and one voice channel), so they cannot be rendered from data; the event count and leaderboard level in test.html's row labels are not rendered yet.
+    - Live re-compare and push: not done. The live page loads the kit pinned to 804ee2f, so these fixes reach the live site only after the design kit is pushed and zellous pins its SHA. The instruction authorised a zellous push only, which would not carry these fixes.
+    - Cleanup: pages closed; relay and dev server stopped by PID.
