@@ -841,3 +841,13 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Not changed, and not in scope: zellous keeps ds-g3- class prefixes and a head wrapper (ds-g3-col) where the reference has plain divs. The repo's class lint requires prefixed class names, so the names stay; the structure and values match.
     - Commits: design (game3-message.js, community-app.js, community-app.css). zellous: PENDING only.
     - Cleanup: page closed; relay and dev server stopped by PID.
+
+125. Game-3 HUD reference (/config/Desktop/test.html): composer, code change. Witnessed on the local dist.
+    - Upload button: title "Upload a picture" and the file picker accepts images only (accept image/*, single file), as the reference. Measured: title "Upload a picture", accept "image/*", multiple false. Paste and drop still accept any file, as before.
+    - Message box: autocomplete off, as the reference. Measured: autocomplete "off", maxlength 190.
+    - Placeholder: "Message #general" (capital M, no ellipsis), as the reference; DM placeholder "Message @<name>". Measured: "Message #general".
+    - Typing row: the typing indicator moved inside the composer, directly after the box, as the reference's .typ row, with its 24px height, 14px text, 2px padding and 6px gap. Measured: row 728x24, directly after the box, 14px/400 #dbdee1.
+    - Unchanged (already matched): composer padding 0 16px, box 728x44 #383a40 with radius 8px and padding 0 12px 0 16px, plus button 24x24, compact buttons 30x30 with 4px padding, textarea 16px/22px #dbdee1 with 11px vertical padding and 44px height.
+    - Still different, with cause: the stickers button reads "No sticker catalogue is available yet" and is greyed out, because zellous has no sticker catalogue; the reference button is always "Stickers". Blocker: no sticker data in zellous.
+    - Still different, minor: the character counter appears only when more than 150 characters are typed; the reference always has the empty counter element. Visually equivalent.
+    - Cleanup: page closed; relay and dev server stopped by PID.
