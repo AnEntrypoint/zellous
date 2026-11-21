@@ -16,7 +16,7 @@ export function buildRail({ v, S, call }) {
       const unreadCounts = f.unreadCounts;
       const withUnread = (list) => list.map((c) => ({ ...c, unreadCount: unreadCounts[c.id] || 0 }));
       return {
-        channels: f.dm ? [] : withUnread([...v('channels', []), ...pageChannels()]),
+        channels: f.dm ? [] : withUnread([...v('channels', []).filter((c) => c && ['text', 'announcement', 'page', 'voice'].includes(c.type)), ...pageChannels()]),
         categories: v('categories', []),
         servers: v('servers', []).map((sv) => ({ ...sv, unreadCount: sv.id === f.sid ? (v('channels', []) || []).reduce((n, c) => n + (unreadCounts[c.id] || 0), 0) : 0 })),
         currentChannel: f.curr,

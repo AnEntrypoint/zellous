@@ -925,3 +925,15 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Remaining differences, with causes: (a) the channel rows rules, pick-roles, gaming, memes and clips are absent because this server's channel list does not contain them; (b) the event count and leaderboard level labels in the file's rows are not rendered; (c) the voice strip is not measured live (no voice join in the headless browser); (d) topic line, Inbox, search and Mute Channel differ as in entry 130.
     - Push: zellous main pushed once (67e6b6d: the design pin). design main pushed once (0ab51c9, fast-forward from 804ee2f). The PENDING record (this entry) is committed locally after the push and is not pushed.
     - Cleanup: pages closed; no server was running in this turn.
+
+135. Owner decisions: recap removed; room kinds limited to game-3's; channel management through wireweave (witnessed in part).
+    - Recap removed (zellous): the recap adapter entry, its import and docs/js/recap.js are deleted. Witness on the local dist: no element text or button contains "recap" (recapText false, recapBtn false).
+    - Room kinds (zellous): the rail's channel list now carries only game-3's kinds: text, announcement, page and voice (adapter rail.js filter). Witness: the rail shows INFORMATION (announcements), TEXT CHANNELS (general) and VOICE CHANNELS (General); no forum or threaded row. Rows: Events, Leaderboard, announcements, general, General.
+    - Goto-general: the "take me to" action now goes to the first text channel instead of the fixed name "general" (adapter game.js).
+    - No page errors on load (pageerror list empty).
+    - Still open, with cause:
+      (a) Recap in the design kit (src/components/game3-recap.js, the recap branch and its import in community-app.js) still ships in the kit. Removing it changes the design repo, which this pass does not push; it is unreachable from the GUI.
+      (b) Forum and threaded room code (docs/js/threads.js and the forum modules) still exists; the rail hides those kinds, but the code paths are not removed. Removing them is a larger change across modules.
+      (c) The default current channel in state.js is still the name "general" until the server's channels load; the rename, reorder and delete flows of channels through wireweave were not witnessed in this pass.
+    - Push: zellous main once, after this witness.
+    - Cleanup: pages closed; relay and dev server stopped by PID.
