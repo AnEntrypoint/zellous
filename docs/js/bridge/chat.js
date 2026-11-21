@@ -41,7 +41,7 @@ export function installChat(ww) {
         if (shouldPing({
           text: m.content,
           fromSelf: m.userId === me,
-          soundOn: state.soundEnabled,
+          soundOn: state.soundEnabled && !(state.mutedChannels || []).includes(channel),
           mentionsOnly: state.pref_mentionsonly,
           name: chat.resolveProfile(me),
           alerts: String(state.pref_kw || '').split(',').map((w) => w.trim()).filter((w) => w.length > 1)

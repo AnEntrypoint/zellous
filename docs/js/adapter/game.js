@@ -136,6 +136,7 @@ export function buildGame({ v, S, call, persistBool }) {
         rulesStats: (() => { const m = v('roomMembers', []); return { online: m.filter((x) => x.online).length, members: m.length }; })(),
         selfRoles: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const mine = window.nostrSelfRoles && sid && me ? window.nostrSelfRoles.roles(sid, me) : []; return GAME_ROLES.map((r) => ({ ...r, on: mine.includes(r.id), online: window.nostrSelfRoles && sid ? window.nostrSelfRoles.holders(sid, r.id) : 0 })); })(),
         splitChannel: v('splitChannel', null),
+        mutedChannel: (v('mutedChannels', []) || []).includes((v('currentChannel', null) || {}).id),
         splitOptions: (() => { const cur = v('currentChannel', null); return (v('channels', []) || []).filter((c) => c && (c.type === 'text' || c.type === 'announcement') && !(cur && c.id === cur.id)).map((c) => ({ id: c.id, name: c.name })); })(),
         splitMessages: (v('splitMessages', []) || []).slice().reverse().map((m) => ({ ...m, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !v('pref_h24', false) }), name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
         discoverServers: v('servers', []).map((sv) => { const current = sv.id === v('currentServerId', null); const ownerPk = String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null; const members = v('roomMembers', []); return { id: sv.id, name: sv.name || 'server', current, owner: ownerPk ? ((window.chat && window.chat.resolveProfile && window.chat.resolveProfile(ownerPk)) || ownerPk.slice(0, 12)) : 'nobody (public room)', members: current ? members.length : null, online: current ? members.filter((m) => m.online).length : null, channels: current ? v('channels', []).filter((c) => c.type !== 'voice').map((c) => c.name) : null }; }),
@@ -178,6 +179,7 @@ export function buildGame({ v, S, call, persistBool }) {
       playSound: (id) => call(() => playSoundboard(id, () => !!v('pref_sbsounds', true))),
       setGamePrefTab: (t) => call(() => { if (S.gamePrefTab) S.gamePrefTab.value = t; }),
       splitTo: (id) => call(() => splitTo(id)),
+      toggleMuteChannel: () => call(() => { const cur = v('currentChannel', null); if (!cur || !S.mutedChannels) return; const list = S.mutedChannels.value || []; const next = list.includes(cur.id) ? list.filter((x) => x !== cur.id) : [...list, cur.id]; S.mutedChannels.value = next; localStorage.setItem('zellous-muted-channels', JSON.stringify(next)); }),
       splitMain: () => call(() => splitMain()),
       setGamePref: (key, val) => call(() => {
         if (key === 'kw') return storeText('pref_kw', 'zellous-pref-kw', String(val || '').slice(0, 200));
