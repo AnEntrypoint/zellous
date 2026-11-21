@@ -957,3 +957,9 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Witness (local dist, ?local=1 against http://127.0.0.1:5190): panel fixed at 0,0 1432x679; nav 300px wide, background rgb(43,45,49); pane at x=300 width 740; active tab background rgb(64,66,73); each tab's heading and toggles render; switches measure 40x24, on rgb(35,165,90), off rgb(128,132,142). Screenshot of the Notifications tab: scratchpad settings-notifications.png.
     - Zellous code: unchanged this turn; the settings surface is rendered by the SDK. Zellous commit: this PENDING record only.
     - Cleanup: page closed; dev server stopped by PID 1390182 (port 5190 free).
+
+138. Live video tile witness: BLOCKED
+    - Cause: the headless browser on this machine has no camera device, so getUserMedia({video}) rejects and wireweave's setCamera emits media-warning instead of publishing a track. No remote video track can be received without a camera on the other peer.
+    - Witnessed instead (local dist, seeded lounge channel, listen-only join): camera button present with aria-label "turn camera on"; click leaves it off (aria-pressed false), zero .ds-g3-vvideo elements, zero page errors.
+    - Not witnessed: a live stream in a video tile. Code path committed: wireweave ea0226d, design 9362ece, zellous a6bc450.
+    - Member list line-height pin added in this turn (see entry 139).
