@@ -148,6 +148,9 @@ export function buildGame({ v, S, call, persistBool }) {
         splitChannel: v('splitChannel', null),
         eventCount: (v('channelEvents', []) || []).length,
         myLevel: levelFor((window.state && window.state.chatMessages) || [], (window.state && window.state.nostrPubkey) || null).level,
+        chatSearch: v('chatSearch', ''),
+        inboxTab: v('inboxTab', 'mentions'),
+        mentions: (() => { const me = (window.state && window.state.nostrPubkey) || null; const name = me && window.chat ? window.chat.resolveProfile(me) : ''; if (!name) return []; const re = new RegExp('(^|\\s)@' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w.-])', 'i'); return ((window.state && window.state.chatMessages) || []).filter((m) => re.test(String(m.content || ''))).slice(-50).reverse().map((m) => ({ id: m.id, who: m.username || m.userId, text: m.content })); })(),
         mutedChannel: (v('mutedChannels', []) || []).includes((v('currentChannel', null) || {}).id),
         splitOptions: (() => { const cur = v('currentChannel', null); return (v('channels', []) || []).filter((c) => c && (c.type === 'text' || c.type === 'announcement') && !(cur && c.id === cur.id)).map((c) => ({ id: c.id, name: c.name })); })(),
         splitMessages: (v('splitMessages', []) || []).slice().reverse().map((m) => ({ ...m, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !v('pref_h24', false) }), name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
@@ -191,6 +194,8 @@ export function buildGame({ v, S, call, persistBool }) {
       playSound: (id) => call(() => playSoundboard(id, () => !!v('pref_sbsounds', true))),
       setGamePrefTab: (t) => call(() => { if (S.gamePrefTab) S.gamePrefTab.value = t; }),
       splitTo: (id) => call(() => splitTo(id)),
+      setChatSearch: (q) => call(() => { if (S.chatSearch) S.chatSearch.value = String(q || ''); }),
+      setInboxTab: (t) => call(() => { if (S.inboxTab) S.inboxTab.value = t; }),
       toggleMuteChannel: () => call(() => { const cur = v('currentChannel', null); if (!cur || !S.mutedChannels) return; const list = S.mutedChannels.value || []; const next = list.includes(cur.id) ? list.filter((x) => x !== cur.id) : [...list, cur.id]; S.mutedChannels.value = next; localStorage.setItem('zellous-muted-channels', JSON.stringify(next)); }),
       splitMain: () => call(() => splitMain()),
       setGamePref: (key, val) => call(() => {
