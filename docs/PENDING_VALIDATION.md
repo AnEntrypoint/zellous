@@ -880,3 +880,13 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Conflict: an exact match removes the text buttons. Eleven of them open panels that have no other entry point in zellous (preferences, discover, pick roles, rules, recap, polls, leaderboard, events, roles; split view and announcements are reached through the split select and the channel list). Removing them would take those panels out of the app until another entry point exists.
     - Options for the owner: (A) exact match: icon buttons for Pinned Messages and Member List (matching the reference), the search box, and a single menu for the other panels; or (B) keep the owner-approved text list as a documented zellous deviation, and match only the header row, the icon style and the open and close states.
     - Not witnessed in this entry: no header changes were made.
+
+130. Game-3 HUD reference (/config/Desktop/test.html): topbar, icon-only header (owner decision). Code change; witnessed on the local dist.
+    - Removed: the text buttons (home, preferences, discover, pick roles, rules, announcements, pins, recap, polls, leaderboard, events, roles, split view, members) and the Catch up button. The header now holds only the channel glyph, the channel name, the topic, the split select and two icon buttons.
+    - Icon buttons: Pinned Messages (the saved file's pin icon, 32x32, #b5bac1; opens the pins panel; .on while open) and Member List (the saved file's members icon; toggles the member list; .on while open).
+    - Measured: header 1432x48, padding 0 58px 0 16px; glyph 24px #80848e; name 16px/600 #f2f3f5; split select 13px #b5bac1 on #1e1f22, max-width 96px; icon buttons 32x32 #b5bac1 titles "Pinned Messages" and "Member List"; no text buttons left. Clicking Pinned Messages: surface "pins", button class "ds-g3-ibtn on".
+    - Not in the saved file's header and not built here: Inbox, the search box and Mute Channel. zellous has no inbox, search or channel-mute function to attach them to, so they are not rendered.
+    - Consequence: the panels removed from the topbar (preferences, discover, pick roles, rules, recap, polls, leaderboard, events, roles) have no entry point until a menu or the owner names one; their code remains.
+    - Data gap: the channel topic is empty for general, so the topic line is not rendered; the saved file shows "hang out, say hi".
+    - Not witnessed this turn: the Member List toggle (its click handler is unchanged; the probe had a syntax error).
+    - Cleanup: page closed; relay and dev server stopped by PID.
