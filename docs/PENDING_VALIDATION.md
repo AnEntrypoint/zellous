@@ -917,3 +917,11 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Remaining, with cause: test.html's rows rules, pick-roles, gaming, memes and clips do not exist in this server's channel list (zellous's public room has announcements, general and one voice channel), so they cannot be rendered from data; the event count and leaderboard level in test.html's row labels are not rendered yet.
     - Live re-compare and push: not done. The live page loads the kit pinned to 804ee2f, so these fixes reach the live site only after the design kit is pushed and zellous pins its SHA. The instruction authorised a zellous push only, which would not carry these fixes.
     - Cleanup: pages closed; relay and dev server stopped by PID.
+
+134. Layout pass, live witness after the Pages build (zellous 67e6b6d; Pages run 44880716498, success; design 0ab51c9 pushed to origin main and pinned by SHA).
+    - Live page at 1280x800 vs /config/Desktop/test.html (same viewport; Spawn inset excluded):
+      rail (0,0,72,800) = (0,0,72,800); channel column (72,0,240,800) = (72,0,240,800); channel header (72,0,240,48) = (72,0,240,48); header (312,0,968,48) = (312,0,968,48); user panel (72,748,240,52) = (72,748,240,52); member list (1040,48,240,752) = (988,48,292,752) with the 50px inset excluded; composer (312,732,726,68) = (312,732,676,68) with the 50px inset excluded; composer box (328,732,694,44) = (328,732,644,44) with the inset excluded.
+    - Fixes now live: header position, user panel at the channel column bottom, composer width, and the channel rows Events and Leaderboard first then the groups.
+    - Remaining differences, with causes: (a) the channel rows rules, pick-roles, gaming, memes and clips are absent because this server's channel list does not contain them; (b) the event count and leaderboard level labels in the file's rows are not rendered; (c) the voice strip is not measured live (no voice join in the headless browser); (d) topic line, Inbox, search and Mute Channel differ as in entry 130.
+    - Push: zellous main pushed once (67e6b6d: the design pin). design main pushed once (0ab51c9, fast-forward from 804ee2f). The PENDING record (this entry) is committed locally after the push and is not pushed.
+    - Cleanup: pages closed; no server was running in this turn.
