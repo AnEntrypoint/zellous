@@ -30,12 +30,18 @@ export function installVoice(ww) {
       if (state.outputDeviceId && el.setSinkId) el.setSinkId(state.outputDeviceId).catch(() => {});
     });
   };
+  const setVoiceVideo = (key, stream) => {
+    const next = { ...(state.voiceVideos || {}) };
+    if (stream) next[key] = stream; else delete next[key];
+    state.voiceVideos = next;
+    setTimeout(() => document.querySelectorAll('[data-video-peer]').forEach((el) => { const s = next[el.dataset.videoPeer]; if (s && el.srcObject !== s) el.srcObject = s; }), 0);
+  };
   const ensureVoice = () => {
     if (voice) { voice.serverId = state.currentServerId || ''; return voice; }
     voice = ww.ensureVoice({
       serverId: state.currentServerId || '',
       displayName: (a.pubkey ? chat.resolveProfile(a.pubkey) : 'Guest'),
-      onVideoTrack: ({ peerPubkey, stream }) => { state.voiceVideos = { ...(state.voiceVideos || {}), [peerPubkey]: stream }; },
+      onVideoTrack: ({ peerPubkey, stream }) => { setVoiceVideo('nostr-' + peerPubkey.slice(0, 12), stream); },
       onAudioTrack: ({ peer, stream, peerPubkey }) => {
         if (!peer.audioEl) {
           const el = new Audio();
@@ -138,7 +144,7 @@ export function installVoice(ww) {
     async disconnect() { if (voice) await voice.disconnect(); },
     toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; },
     setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; },
-    setCamera(on) { return ensureVoice().setCamera(!!on); },
+    setCamera(on) { const v = ensureVoice(); return v.setCamera(!!on).then(() => setVoiceVideo('local', v.cameraStream || null)); },
     requestTransmit() { const v = ensureVoice(); const live = v.requestTransmit(); state.micMuted = !!v.muted; return live; },
     releaseTransmit() { const v = ensureVoice(); v.releaseTransmit(); state.micMuted = !!v.muted; },
     anyRemoteSpeaking() { return voice ? voice.anyRemoteSpeaking() : false; },

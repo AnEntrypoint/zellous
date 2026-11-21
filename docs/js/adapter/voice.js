@@ -47,7 +47,8 @@ export function buildVoice({ v, S, call }) {
       voiceConnected: v('voiceConnected', false),
       voiceChannelName: v('voiceChannelName', ''),
       voiceConnectionState: v('voiceConnectionState', 'connected'),
-      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, speaking: !!p.isSpeaking, muted: !!p.isMuted, color: (window.getAvatarColor && window.getAvatarColor(p.isLocal ? (window.state.userId || window.state.nostrPubkey) : p.identity)) || 'var(--accent)' })),
+      cameraOn: v('voiceParticipants', []).some(p => p.isLocal && p.hasVideo),
+      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, videoKey: p.hasVideo && (v('voiceVideos', {}) || {})[p.key] ? p.key : null, speaking: !!p.isSpeaking, muted: !!p.isMuted, color: (window.getAvatarColor && window.getAvatarColor(p.isLocal ? (window.state.userId || window.state.nostrPubkey) : p.identity)) || 'var(--accent)' })),
       voiceListenOnly: v('voiceListenOnly', false),
       micMuted: v('micMuted', false),
       voiceDeafened: v('voiceDeafened', false),
@@ -71,6 +72,7 @@ export function buildVoice({ v, S, call }) {
       audioQueuePaused: v('audioQueuePaused', false),
     }),
     actions: {
+      toggleCamera: () => call(() => { const api = window.nostrVoice; if (!api) return; api.setCamera(!(v('voiceParticipants', []) || []).some(p => p.isLocal && p.hasVideo)); }),
       toggleMic: () => call(() => (window.lk && window.lk.toggleMic) ? window.lk.toggleMic() : (window.state.micMuted = !window.state.micMuted)),
       toggleDeafen: () => call(() => (window.lk && window.lk.toggleDeafen) ? window.lk.toggleDeafen() : (window.state.voiceDeafened = !window.state.voiceDeafened)),
       pttStart: () => call(() => window.__zellous && window.__zellous.pttGate && window.__zellous.pttGate.holdStart()),
