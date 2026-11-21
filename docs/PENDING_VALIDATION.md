@@ -937,3 +937,14 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
       (c) The default current channel in state.js is still the name "general" until the server's channels load; the rename, reorder and delete flows of channels through wireweave were not witnessed in this pass.
     - Push: zellous main once, after this witness.
     - Cleanup: pages closed; relay and dev server stopped by PID.
+
+136. Structure check against /config/Desktop/test.html (Spawn and savi parts excluded), live page after the Pages build for aafc2c5 (run completed, success).
+    - Measured at 1280x800: rail (0,0,72,800) = file; channel column (72,0,240,800) with header (72,0,240,48) = file; chat header (312,0,968,48) = file; member list (1040,48,240,752) = file with the inset excluded; composer (312,732,726,68) = file with the 50px inset excluded; user panel (72,748,240,52) = file (bottom-left, with the mute and settings controls); channel groups INFORMATION, TEXT CHANNELS, VOICE CHANNELS = the file's three groups; rows Events, Leaderboard first = the file's first rows.
+    - Recap text absent from the live page.
+    - Remaining differences, each with its cause:
+      (a) chat header topic: the channel has no topic in this server's data, so the topic line is not rendered (the file shows "hang out, say hi").
+      (b) channel rows: rules, pick-roles, gaming, memes, clips are absent because the server's channel list does not contain them.
+      (c) chat header search box, Inbox and Mute Channel: not built; zellous has no such features.
+      (d) voice controls in the user panel area: the voice strip (disconnect button) appears only when connected to a voice channel; not measured live because the headless browser has no microphone.
+    - No code change in this entry; the layout already matches the file.
+    - Cleanup: pages closed; no server running.
