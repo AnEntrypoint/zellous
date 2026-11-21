@@ -9,11 +9,12 @@ const uiMembers = {
 
     const online = members.filter(m => m.online !== false);
     const offline = members.filter(m => m.online === false);
+    const selfColor = (id) => { const sr = window.nostrSelfRoles; const ids = sr && sid ? sr.roles(sid, id) : []; return ids.length && sr.colorOf ? sr.colorOf(ids[0]) : null; };
     const toMember = (m) => ({
       identity: m.id,
       name: m.username,
       color: roleColor[getRole(m.id)] || (window.getAvatarColor ? window.getAvatarColor(m.id) : null),
-      nameColor: state.roleColorsEnabled !== false ? (roleColor[getRole(m.id)] || null) : null,
+      nameColor: state.roleColorsEnabled !== false ? (selfColor(m.id) || roleColor[getRole(m.id)] || null) : null,
       suffix: getRole(m.id) === 'owner' ? 'owner' : null,
       status: m.online !== false ? 'online' : 'offline',
       activity: m.id === state.nostrPubkey && state.voiceConnected && state.voiceChannelName ? '🔊 in ' + state.voiceChannelName : ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name ? 'Playing ' + ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name : '',

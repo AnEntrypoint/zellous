@@ -27,7 +27,7 @@ const PREFS = [
   { key: 'devmode', signal: 'pref_devmode', store: 'zellous-pref-devmode', def: false, label: 'Developer Mode', hint: 'adds Copy Message ID and Copy User ID' },
 ];
 
-const PREF_GROUP = { motion: 'access', ulinks: 'access', sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', embeds: 'media', jumbo: 'media', spoilers: 'media', h24: 'lang', devmode: 'adv' };
+const PREF_GROUP = { rolecolors: 'access', motion: 'access', ulinks: 'access', sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', embeds: 'media', jumbo: 'media', spoilers: 'media', h24: 'lang', devmode: 'adv' };
 
 export function buildGame({ v, S, call, persistBool }) {
   const storeText = (signal, key, text) => { if (S[signal]) S[signal].value = text; if (typeof localStorage !== 'undefined') localStorage.setItem(key, text); };

@@ -55,7 +55,7 @@ export function installChat(ww) {
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all();
   }, 60000);
-  chat.addEventListener('profile', () => { state.profilesVersion = (state.profilesVersion || 0) + 1; });
+  chat.addEventListener('profile', () => { state.profilesVersion = (state.profilesVersion || 0) + 1; _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all(); });
   chat.addEventListener('rate-limited', (e) => {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
     if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
