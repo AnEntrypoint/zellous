@@ -851,3 +851,10 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Still different, with cause: the stickers button reads "No sticker catalogue is available yet" and is greyed out, because zellous has no sticker catalogue; the reference button is always "Stickers". Blocker: no sticker data in zellous.
     - Still different, minor: the character counter appears only when more than 150 characters are typed; the reference always has the empty counter element. Visually equivalent.
     - Cleanup: page closed; relay and dev server stopped by PID.
+
+126. Game-3 HUD reference (/config/Desktop/test.html): member list, code change. Witnessed on the local dist.
+    - Status dot: now the reference's dot, 10px with a 3px ring in the row colour, offset -3px from the avatar corner (16px in total). Before it was 12px with a 3px ring and -2px offset (18px in total). Measured: 16x16, right -3px, bottom -3px, border 3px solid rgb(43,45,49).
+    - Row structure: the name and activity column is now a wrapper with min-width 0 around the name line, as the reference's member row. Measured: row children [avatar, body]; body 124x25.
+    - Unchanged (already matched): panel 240px wide, #2b2d31, padding 0 8px 16px (Spawn chrome inset excluded); category headers 12px/600 #949ba4, padding 24/8/4, uppercase, .02em, text "Label — count"; rows 224x42, 8px padding, 4px radius, 16px/500 #949ba4, 12px gap, hover #35373c; avatar 32px; offline rows opacity .3.
+    - Not changed, with cause: the reference's second line under each name (activity such as "in lounge" or a command hint) and the APP tag. zellous has no activity or app data for members, so no sub line is rendered. Blocker: no member activity data in zellous.
+    - Cleanup: page closed; relay and dev server stopped by PID.
