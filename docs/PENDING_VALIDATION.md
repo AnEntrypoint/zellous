@@ -866,3 +866,10 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Removed from the strip: the mic and deafen buttons. The reference's strip has no mic or deafen controls; the mic stays in the user panel. Deafen now has no control anywhere in zellous, so restoring it needs a decision; recorded as a blocker.
     - Participant tiles and mic-off marks: the reference's .vu rows under the channel (24px avatars, talk ring, red mic-off mark) are a channel-list element, not part of this strip, and zellous's channel list does not render voice participants as .vu rows. Not changed; recorded as a blocker with its cause (no list rows for voice participants in zellous's rail).
     - Cleanup: page closed; relay and dev server stopped by PID.
+
+128. Game-3 HUD reference (/config/Desktop/test.html): user panel and level bar. Code change; witnessed on the local dist.
+    - Status line: now "Online" under the name, as the reference's .s line (12px, #b5bac1, 13px line height). Before, the line was missing.
+    - Level bar: the saved file's user panel has no XP or level bar (its xpb rule is in the CSS but no markup uses it), so no level bar is rendered in the panel. Nothing was added.
+    - CSS cleanup: the duplicate radius declaration in the .ds-g3-mebtn rule is removed; the value is unchanged (4px).
+    - Measured: panel 880x52, #232428, padding 0 8px, gap 2px; button 796x40, padding 4px 6px 4px 2px, radius 4px, gap 8px; avatar 32x32; status dot 16x16 at right -3px, bottom -3px, #232428 ring; name 14px/600 #f2f3f5, line height 18px; status "Online" 12px/400 #b5bac1, line height 13px; buttons Mute and User Settings 32x32, #b5bac1.
+    - Cleanup: page closed; relay and dev server stopped by PID.
