@@ -16,6 +16,7 @@ const uiMembers = {
       nameColor: state.roleColorsEnabled !== false ? (roleColor[getRole(m.id)] || null) : null,
       suffix: getRole(m.id) === 'owner' ? 'owner' : null,
       status: m.online !== false ? 'online' : 'offline',
+      activity: m.id === state.nostrPubkey && state.voiceConnected && state.voiceChannelName ? '🔊 in ' + state.voiceChannelName : ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name ? 'Playing ' + ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name : '',
     });
 
     const byRole = {};

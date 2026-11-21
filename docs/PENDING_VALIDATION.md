@@ -967,3 +967,11 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
 140. Topbar Catch me up: absent by decision
     - Cause: Catch me up is an AI summary, the same class of feature as recap, which was removed from zellous. zellous has no model backend and the no-backend rule applies, so the button is not built.
     - Topbar name text box: line-height pinned to 24px, matching the reference box (y 12, height 24).
+
+141. Member list, settings, channel labels against game-3 and the reference
+    - Member list fixed: name block 42px at y94 (stretched), name line 24px, sub line 18px at y118 (sub text 'Playing <server>' or '🔊 in <voice channel>', game-3 rule). Witnessed: mbody 1100,94 123x42; nm 1100,94 123x24; msub 1100,118 123x18.
+    - Member list residual: name text and server name are seeded data (npub identity, 'game-3 local'); reference names are its own sample data. Role and status groups are real data.
+    - Settings fixed: all ten game-3 tabs and headings (User Settings: My Account, Profiles; App Settings: Appearance, Accessibility, Voice & Audio, Notifications, Chat & Media, Language & Time, Keybinds, Advanced). Witnessed heading per tab and switch labels; Voice & Audio begins with the mic switch as game-3 does.
+    - Settings residual, each unbuilt feature (no control is faked): My Account status radios and custom status (no status feature); saved and reminders stat boxes (no saved or reminders counts wired); Profiles pronouns and about-me (no profile fields); Appearance themes beyond Dark and Light (zellous has two themes); Chat Font Scaling and Text Size (no zoom feature); Accessibility Show role colours (no preference); Chat & Media Link previews (no preference); Notifications Do Not Disturb (no status feature); Language & Time Translate To (no translation feature).
+    - Channel labels fixed: Events count is server-wide over the last three hours (game-3 rule), LIVE badge when a started event is in that window (game-3 rule). Witnessed '5 Events' with no LIVE (seeded events start in the future). Leaderboard 'lv N' uses LEVEL = floor(sqrt(xp/40)), the same formula as game-3's lib/discord.js; witnessed 'lv 0'.
+    - Channel labels residual: xp counts the viewer's messages times 10 for the loaded history only; game-3 counts xp server-side.

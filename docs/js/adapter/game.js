@@ -27,7 +27,7 @@ const PREFS = [
   { key: 'devmode', signal: 'pref_devmode', store: 'zellous-pref-devmode', def: false, label: 'Developer Mode', hint: 'adds Copy Message ID and Copy User ID' },
 ];
 
-const PREF_GROUP = { sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', h24: 'lang', devmode: 'adv' };
+const PREF_GROUP = { motion: 'access', ulinks: 'access', sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', embeds: 'media', jumbo: 'media', spoilers: 'media', h24: 'lang', devmode: 'adv' };
 
 export function buildGame({ v, S, call, persistBool }) {
   const storeText = (signal, key, text) => { if (S[signal]) S[signal].value = text; if (typeof localStorage !== 'undefined') localStorage.setItem(key, text); };
@@ -38,14 +38,23 @@ export function buildGame({ v, S, call, persistBool }) {
   const applySpoilers = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-spoilers', !!on); };
   applySpoilers(v('pref_spoilers', false));
   let stopEvents = null;
-  let stopRailEvents = null;
+  let stopRailEvents = [];
   effect(() => {
-    const ch = S.currentChannel && S.currentChannel.value;
     const sid = S.currentServerId && S.currentServerId.value;
-    if (stopRailEvents) stopRailEvents();
-    stopRailEvents = null;
-    if (!ch || !S.channelEvents) return;
-    subscribeChannelEvents(ch.id, sid, (list) => { S.channelEvents.value = list; }).then((stop) => { stopRailEvents = stop; });
+    const chans = (S.channels && S.channels.value) || [];
+    stopRailEvents.forEach((stop) => stop && stop());
+    stopRailEvents = [];
+    if (!S.serverEvents) return;
+    const lists = new Map();
+    const flush = () => {
+      const now = Date.now();
+      const recent = [...lists.values()].flat().filter((e) => e.start * 1000 > now - 3 * 3600e3);
+      S.serverEvents.value = { count: recent.length, live: recent.some((e) => e.start * 1000 <= now) };
+    };
+    chans.filter((c) => c && c.id).forEach((c) => {
+      subscribeChannelEvents(c.id, sid, (list) => { lists.set(c.id, list); flush(); }).then((stop) => { stopRailEvents.push(stop); });
+    });
+    S.serverEvents.value = { count: 0, live: false };
   });
   const startEvents = () => {
     if (stopEvents) stopEvents();
@@ -135,7 +144,11 @@ export function buildGame({ v, S, call, persistBool }) {
         gamePrefToggles: PREFS.filter((p) => !p.radio && PREF_GROUP[p.key]).map((p) => ({ key: p.key, label: p.label, hint: p.hint, checked: !!v(p.signal, p.def), group: PREF_GROUP[p.key] })),
         gamePrefKeywords: v('pref_kw', ''),
         gamePrefBanner: v('pref_banner', ''),
-        gamePrefTab: v('gamePrefTab', 'appearance'),
+        gamePrefTab: v('gamePrefTab', 'account'),
+        gamePrefName: (window.state && window.state.nostrPubkey && window.chat) ? window.chat.resolveProfile(window.state.nostrPubkey) : 'You',
+        gamePrefServers: (v('servers', []) || []).length,
+        gamePrefMuted: (v('mutedChannels', []) || []).map((id) => ({ id, name: ((v('channels', []) || []).find((c) => c && c.id === id) || { name: id }).name })),
+        myXp: ((window.state && window.state.chatMessages) || []).filter((m) => m && window.state && m.userId === window.state.nostrPubkey).length * 10,
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : [],
         gameSurface: v('gameSurface', null),
@@ -146,7 +159,8 @@ export function buildGame({ v, S, call, persistBool }) {
         rulesStats: (() => { const m = v('roomMembers', []); return { online: m.filter((x) => x.online).length, members: m.length }; })(),
         selfRoles: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const mine = window.nostrSelfRoles && sid && me ? window.nostrSelfRoles.roles(sid, me) : []; return GAME_ROLES.map((r) => ({ ...r, on: mine.includes(r.id), online: window.nostrSelfRoles && sid ? window.nostrSelfRoles.holders(sid, r.id) : 0 })); })(),
         splitChannel: v('splitChannel', null),
-        eventCount: (v('channelEvents', []) || []).length,
+        eventCount: v('serverEvents', { count: 0 }).count,
+        eventLive: v('serverEvents', { live: false }).live,
         myLevel: levelFor((window.state && window.state.chatMessages) || [], (window.state && window.state.nostrPubkey) || null).level,
         chatSearch: v('chatSearch', ''),
         inboxTab: v('inboxTab', 'mentions'),
@@ -196,6 +210,7 @@ export function buildGame({ v, S, call, persistBool }) {
       splitTo: (id) => call(() => splitTo(id)),
       setChatSearch: (q) => call(() => { if (S.chatSearch) S.chatSearch.value = String(q || ''); }),
       setInboxTab: (t) => call(() => { if (S.inboxTab) S.inboxTab.value = t; }),
+      toggleMuteId: (id) => call(() => { const list = S.mutedChannels.value || []; const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id]; S.mutedChannels.value = next; localStorage.setItem('zellous-muted-channels', JSON.stringify(next)); }),
       toggleMuteChannel: () => call(() => { const cur = v('currentChannel', null); if (!cur || !S.mutedChannels) return; const list = S.mutedChannels.value || []; const next = list.includes(cur.id) ? list.filter((x) => x !== cur.id) : [...list, cur.id]; S.mutedChannels.value = next; localStorage.setItem('zellous-muted-channels', JSON.stringify(next)); }),
       splitMain: () => call(() => splitMain()),
       setGamePref: (key, val) => call(() => {
