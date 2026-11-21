@@ -963,3 +963,7 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Witnessed instead (local dist, seeded lounge channel, listen-only join): camera button present with aria-label "turn camera on"; click leaves it off (aria-pressed false), zero .ds-g3-vvideo elements, zero page errors.
     - Not witnessed: a live stream in a video tile. Code path committed: wireweave ea0226d, design 9362ece, zellous a6bc450.
     - Member list line-height pin added in this turn (see entry 139).
+
+140. Topbar Catch me up: absent by decision
+    - Cause: Catch me up is an AI summary, the same class of feature as recap, which was removed from zellous. zellous has no model backend and the no-backend rule applies, so the button is not built.
+    - Topbar name text box: line-height pinned to 24px, matching the reference box (y 12, height 24).
