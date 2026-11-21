@@ -13,7 +13,6 @@ import url from 'node:url';
 const ROOT = path.resolve(process.argv[2] ?? 'docs');
 const PORT = Number(process.env.PORT ?? process.argv[3] ?? 5175);
 
-const CDN_DESIGN = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/';
 const CDN_WIREWEAVE = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@fbcee886afc492f95eba5d6d6efd7dab914b3125/';
 
 const SIBLINGS = path.dirname(path.dirname(path.resolve('.')));
@@ -54,7 +53,7 @@ function mountFor(pathname) {
 }
 
 function localize(html) {
-  return html.split(CDN_DESIGN).join('/deps/design/').split(CDN_WIREWEAVE).join('/deps/wireweave/');
+  return html.replace(/https:\/\/cdn\.jsdelivr\.net\/gh\/AnEntrypoint\/design@[^/\s"']+\//g, '/deps/design/').split(CDN_WIREWEAVE).join('/deps/wireweave/');
 }
 
 function send(res, code, body, headers = {}) {
