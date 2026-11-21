@@ -178,6 +178,7 @@ const state = {
   gamePrefTab: signal('appearance'),
   chatSearch: signal(''),
   inboxTab: signal('mentions'),
+  voiceVideos: signal({}),
   mutedChannels: signal(typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem('zellous-muted-channels') || '[]') : []),
   pref_kw: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-kw') || '' : ''),
   pref_banner: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-banner') || '' : ''),

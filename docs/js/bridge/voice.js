@@ -35,6 +35,7 @@ export function installVoice(ww) {
     voice = ww.ensureVoice({
       serverId: state.currentServerId || '',
       displayName: (a.pubkey ? chat.resolveProfile(a.pubkey) : 'Guest'),
+      onVideoTrack: ({ peerPubkey, stream }) => { state.voiceVideos = { ...(state.voiceVideos || {}), [peerPubkey]: stream }; },
       onAudioTrack: ({ peer, stream, peerPubkey }) => {
         if (!peer.audioEl) {
           const el = new Audio();
@@ -137,6 +138,7 @@ export function installVoice(ww) {
     async disconnect() { if (voice) await voice.disconnect(); },
     toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; },
     setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; },
+    setCamera(on) { return ensureVoice().setCamera(!!on); },
     requestTransmit() { const v = ensureVoice(); const live = v.requestTransmit(); state.micMuted = !!v.muted; return live; },
     releaseTransmit() { const v = ensureVoice(); v.releaseTransmit(); state.micMuted = !!v.muted; },
     anyRemoteSpeaking() { return voice ? voice.anyRemoteSpeaking() : false; },
