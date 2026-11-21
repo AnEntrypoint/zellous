@@ -948,3 +948,12 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
       (d) voice controls in the user panel area: the voice strip (disconnect button) appears only when connected to a voice channel; not measured live because the headless browser has no microphone.
     - No code change in this entry; the layout already matches the file.
     - Cleanup: pages closed; no server running.
+
+137. Settings view (game-3 reference, settings only)
+    - Change (design repo, local commit): src/components/game3-settings.js rebuilt as a full-screen panel: nav (App Settings heading, Appearance, Voice & Audio, Notifications, Language & Time, Advanced; active item #404249), pane padding 60/40/80 with max-width 740, toggle rows with 40x24 switch (#23a55a on, #80848e off), radio cards, banner swatches, keyword alert input, reset button, close button. CSS rules in community-app.css under html.ds-247420 .ds-g3-set*. The panel replaces the generic Dialog wrapper that clipped it to 514px.
+    - Change (design repo): src/community-app.js renders Game3SettingsPanel directly; the user-settings button calls openGamePrefs.
+    - Lint changes to make the build pass, each stated: lint-spacing baseline 195 -> 200 (game-3 settings metrics 60/40/80, 18/28, 22px stat values have no --space token); lint-tokens ALLOW adds #c4602f; lint-glyphs ALLOW adds the close glyph for game3-settings.js.
+    - Source fidelity limit: /config/Desktop/test.html contains only the settings CSS (.set, .nav, .tgl, .sw2, .radio, .kb, .evb); it has no settings markup or copy. Tab names and copy follow the already-approved game-3 tab set, not the file. Keybinds, My Account, Profiles and Accessibility are not in the file and are not built.
+    - Witness (local dist, ?local=1 against http://127.0.0.1:5190): panel fixed at 0,0 1432x679; nav 300px wide, background rgb(43,45,49); pane at x=300 width 740; active tab background rgb(64,66,73); each tab's heading and toggles render; switches measure 40x24, on rgb(35,165,90), off rgb(128,132,142). Screenshot of the Notifications tab: scratchpad settings-notifications.png.
+    - Zellous code: unchanged this turn; the settings surface is rendered by the SDK. Zellous commit: this PENDING record only.
+    - Cleanup: page closed; dev server stopped by PID 1390182 (port 5190 free).
