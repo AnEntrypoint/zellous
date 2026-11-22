@@ -1,6 +1,30 @@
 import { composerLock, LOCK_DM, resolveAuthor } from './frame.js';
 import { pollsFor } from '../polls.js';
 
+const nameOf = (pk) => (window.chat && window.chat.resolveProfile(pk)) || String(pk || '').slice(0, 8);
+
+const lastJoinOf = (uid) => {
+  const mem = window.nostrMembership;
+  const list = (window.chat && window.chat.messages) || [];
+  for (let i = list.length - 1; i >= 0; i--) if (list[i].userId === uid && mem.parseJoin(list[i].content)) return list[i].id;
+  return null;
+};
+
+const membershipView = (m, base) => {
+  const mem = window.nostrMembership;
+  const st = window.state || {};
+  if (!mem) return null;
+  const join = mem.parseJoin(m.content);
+  if (join) return { ...base, type: 'system', sys: { name: nameOf(m.userId), text: join, userId: m.userId, canWave: m.userId !== st.nostrPubkey && lastJoinOf(m.userId) === m.id } };
+  const wave = mem.parseWave(m.content);
+  if (wave) return { ...base, content: '👋 waves at ' + nameOf(wave) };
+  const inv = mem.parseInvite(m.content);
+  if (!inv) return null;
+  const here = inv.serverId === st.currentServerId;
+  const members = here ? (st.roomMembers || []) : null;
+  return { ...base, invite: { name: inv.name, color: inv.color, valid: inv.valid, serverId: inv.serverId, joined: (st.servers || []).some((x) => x && x.id === inv.serverId), online: members ? members.filter((x) => x.online !== false).length : null, members: members ? members.length : null } };
+};
+
 export function buildChat({ v, S, call }) {
   return {
     snapshot(f) {
@@ -15,6 +39,8 @@ export function buildChat({ v, S, call }) {
         messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).filter((m) => !v('chatSearch', '') || String(m.content || '').toLowerCase().includes(String(v('chatSearch', '')).toLowerCase())).map((m) => {
           const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
           const base = rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;
+          const mv = membershipView(m, base);
+          if (mv) return mv;
           const p = pollsFor([m])[0];
           if (!p || !window.nostrPolls) return base;
           const t = window.nostrPolls.tally(p.id, p.options.length);

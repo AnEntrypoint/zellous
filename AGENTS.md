@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@f33beb7487e5de556382775905a880ad6bfe4f2a/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@eab4b129805bee7932cfdacfe6e196272af1378e/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
