@@ -1,7 +1,11 @@
 export const SIGNALS = ['pref_devtraffic', 'devTick', 'pref_devevents', 'pref_devinspect', 'devEventFilter', 'presenceVersion', 'typingVersion', 'serverEvents', 'voiceVideos', 'chatSearch', 'savedVersion', 'dmReadVersion', 'inboxTab', 'mutedChannels', 'pref_compact', 'pref_h24', 'pref_motion', 'pref_ulinks', 'pref_embeds', 'pref_jumbo', 'pref_spoilers', 'pref_vcsounds', 'pref_sbsounds', 'pref_mentionsonly', 'pref_devmode', 'channels', 'channelEvents', 'splitChannel', 'splitMessages', 'categories', 'servers', 'currentChannel', 'currentServerId', 'chatMessages', 'channelPins', 'pollVotesVersion', 'selfRolesVersion', 'gamePrefTab', 'pref_kw', 'pref_banner', 'messages', 'chatInputValue', 'currentUser', 'authVersion', 'isConnected', 'voiceConnected', 'voiceChannelName', 'voiceConnectionState', 'voiceParticipants', 'micMuted', 'voiceDeafened', 'micRawLevel', 'showAuthModal', 'authMode', 'authError', 'authBusy', 'settingsOpen', 'gamePrefOpen', 'gameServerCreateOpen', 'gameSurface', 'voiceSettingsOpen', 'vadEnabled', 'inputDeviceId', 'outputDeviceId', 'inputDevices', 'outputDevices', 'vadThreshold', 'rnnoiseEnabled', 'autoGainEnabled', 'forceTurnEnabled', 'voiceBitrate', 'masterVolume', 'replyTarget', 'threadPanelOpen', 'activeThreadId', 'threads', 'pagesVersion', 'mutesVersion', 'rolesVersion', 'forumVersion', 'relayGrace', 'reactionsVersion', 'profilesVersion', 'unreadVersion', 'voiceListenOnly', 'dmMessages', 'activeDmPeer', 'themePref', 'notificationsEnabled', 'messagePreviewEnabled', 'soundEnabled', 'mobileMenuOpen', 'memberListOpen', 'pttState', 'roomMembers', 'audioQueueItems', 'audioQueueCurrentId', 'audioQueuePaused'];
 
 export function createReaders(S) {
-  const v = (name, fallback) => (S[name] && 'value' in S[name]) ? S[name].value : fallback;
+  const v = (name, fallback) => {
+    const entry = S[name];
+    if (entry !== null && typeof entry === 'object' && 'value' in entry) return entry.value;
+    return entry === undefined || entry === null ? fallback : entry;
+  };
   const persistBool = (signalName, key, val) => {
     if (S[signalName]) S[signalName].value = !!val;
     try { localStorage.setItem(key, val ? '1' : '0'); } catch (_) {}

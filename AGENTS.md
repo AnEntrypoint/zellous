@@ -69,6 +69,15 @@ No hard-coded validations and no test files. Verify behaviour by running the rea
 
 Deploy runs on every push to `main` (`.github/workflows/gh-pages.yml`). It is the only workflow; there is no CI validation job.
 
+## Game-3 parity: where it stands (closing state, ledger entries 188 to 198)
+
+The interface is a port of game-3 (`/config/workspace/game-3/scripts/ui.js`) minus Spawn and savi. Every surface listed in entry 198 was compared at 1440x900 and 390x844; the ledger holds each witness. To continue:
+- Reference: `/config/Desktop/test.html` is a static capture of one channel state (no actions work); other surfaces are compared against `ui.js` markup and CSS, and `player.js` for behaviour.
+- Known and left on purpose: the Spawn 50 px chrome reservation, Spawn wording, Catch up and Catch me up, the language and zoom pickers, DM hover bars (extra over game-3), own-name colour #5865f2, the home-mode quick switcher listing only servers visited in the session.
+- Unwitnessed (needs hardware): iOS safe area, keyboard, notch, fling scroll, real long-press.
+- A harness that drives the live page lives only in scratchpads; the useful recipes: throwaway server via `window.__zellous.servers.create`, second identity via `servers.join`, DM via `window.dm.send(pubkey, text)`, touch via a `hasTouch` context plus CDP `Input.dispatchTouchEvent`, themes via localStorage `zellous-theme` (ink or light) and `zellous-g3-theme` (ash or onyx), bulk history via a signed-event publisher to a local relay.
+- Design changes need `node scripts/build.mjs` (its lints are the gate: tokens, radius, spacing baseline, glyphs; write new rules in the root `community-app.css` with the `html.ds-247420` prefix, never `.ds-247420.ds-247420`, which the bundler prefixes again).
+
 ## Things that look broken but aren't
 
 - **No `<script type="importmap">` in raw HTML.** It is injected at runtime by an early classic script in `docs/nostr-chat/index.html`. Static greps miss it; the importmap is real.
