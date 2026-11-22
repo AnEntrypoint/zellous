@@ -1234,3 +1234,9 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Seed used: local relay only. Unread counts come from messages received while subscribed (wireweave unread.js), so two fresh kind 42 messages were published to gaming and memes from a seeded user after the page subscribed. Nothing shipped or on Pages.
     - Code change: none needed; the existing rules already match. Commit records the witness.
     - Remaining classes from entry 171: chans, ibtn, jump, nm, splitsel, tx, and the structural gap decisions. Not done in this turn.
+
+173. Classes chans, jump, nm (zellous pins: design 28d8b0a, wireweave f33beb7)
+    - chans: reference .chans container background transparent, colour rgb(219,222,225), shadow none, outline 3px rgb(219,222,225) not drawn (outline-style none). Zellous channel container (class chans) matches on all four. Border colour differs only where the border width is 0, so it is not drawn. Match, no code change.
+    - jump: reference .jump background rgb(88,101,242), colour rgb(255,255,255), hidden. Zellous .chat-jump-latest background rgb(88,101,242), colour rgb(255,255,255), hidden (fixed in b06a9ae). Match.
+    - nm: reference name colours rgb(88,101,242) (bot), rgb(240,178,50) (role), rgb(148,155,164) (others); outline style none on all. Zellous showed all names grey because a rule added in 1c9f194 (.ds-g3-mrow .ds-g3-nm colour #949ba4) overrode the per-name colour variable. Removed in 28d8b0a. Witnessed on the production page: owner rgb(240,178,50), MustardBot rgb(88,101,242), others rgb(148,155,164). Match on the three tuples.
+    - Remaining sample-only difference: the reference's self-named row (lanmower) is blue because test.html's sample assigns that name a blue role; zellous assigns the owner gold.
