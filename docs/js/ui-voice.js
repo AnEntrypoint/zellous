@@ -14,7 +14,7 @@ const uiMembers = {
       nameColor: state.roleColorsEnabled !== false ? (selfColor(m.id) || roleColor[getRole(m.id)] || null) : null,
       suffix: getRole(m.id) === 'owner' ? 'owner' : null,
       status: (() => { const st = window.nostrPresence ? window.nostrPresence.statusOf(m.id).status : 'online'; return m.online === false || st === 'invisible' ? 'offline' : st; })(),
-      activity: m.id === state.nostrPubkey && state.voiceConnected && state.voiceChannelName ? '🔊 in ' + state.voiceChannelName : ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name ? 'Playing ' + ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name : '',
+      activity: (window.nostrPresence && window.nostrPresence.statusOf(m.id).custom) ? '💬 ' + window.nostrPresence.statusOf(m.id).custom : m.id === state.nostrPubkey && state.voiceConnected && state.voiceChannelName ? '🔊 in ' + state.voiceChannelName : ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name ? 'Playing ' + ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name : '',
     });
 
     const owners = online.filter(m => getRole(m.id) === 'owner');

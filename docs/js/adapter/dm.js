@@ -29,7 +29,7 @@ function peopleHere(v) {
         id: m.id,
         name: (window.chat && window.chat.resolveProfile(m.id)) || m.username || m.id.slice(0, 8),
         status: p.status,
-        activity: p.custom || 'Zellous',
+        activity: p.custom ? '💬 ' + p.custom : 'Playing ' + (((window.state && window.state.servers) || []).find((x) => x && x.id === (window.state && window.state.currentServerId)) || {}).name || 'Zellous',
       };
     })
     .filter((p) => p.status !== 'invisible');
