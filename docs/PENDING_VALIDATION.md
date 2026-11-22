@@ -1057,3 +1057,29 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
 154. Developer panel: reset local state (design 54ffa0a, pinned in 7eb56b6)
     - Button under the developer rows, press-again confirm; clears only keys prefixed zellous- (preferences, muted channels, role colours) and reloads. Identity and joined servers are kept.
     - Witness (production path): developer mode on; reset button present; test key zellous-witness-test set to 1, two presses, reload: key null, appReady true.
+
+155. Standing queue assessment (Step 1), status per item
+    - home (game-3 People here online list with message buttons, replacing the DM list): open, not built.
+    - composer and input block: matched by computed style in entries 144, 145, 147. Owner reports it still looks different: open, needs a fresh side-by-side measurement.
+    - voice view and strip: open. Headless blocker: the voice view appears only through the channel-selection path, which this session could not drive (connect and disconnect were witnessed; the view state was not reached).
+    - settings modal, approved tab set: matched on tab order and headings (entries 141, 149). Unbuilt features open (entry 141).
+    - account rows: matched except width residual (entry 152); status rows built (entry 152).
+    - keybinds: matched (entry 149).
+    - discover: open, not measured.
+    - pins: open, not measured.
+    - leaderboard: open, not measured (level label matched, entry 144 region rules).
+    - events: open, not measured (count and LIVE label matched, entry 143).
+    - polls: open, not measured.
+    - pick roles: open, not measured.
+    - rules: open, not measured.
+    - announcements: open, not measured.
+    - split column: open, not measured.
+    - modals and overlays: open, not measured (server create matched, entry 148; Inbox built, not measured).
+    - server creation dialog: matched (entry 148).
+    - member list: names and colour matched (entries 151-153 region); groups Builders and Apps open (no role concept in zellous).
+    - user panel: geometry matched (entry 144 region rules).
+    - rail: positions matched (entries 143, 146).
+    - message rows: computed style matched (entries 145, 147).
+    - topbar: matched except Catch me up (absent by decision, out of scope).
+    - developer mode: panel and reset-local-state built (entries 153, 154). Open: event log filter, channel and member inspector, relay message counters, each as its own toggle under Advanced.
+    - out of scope per owner: Catch me up, ArrowUp witness, signed-in live site, video tile witness.
