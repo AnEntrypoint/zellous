@@ -1041,3 +1041,10 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Server creation: finished (entry 148).
     - Keybinds: finished (149). Account: finished except the presence rows (150, open).
     - The rest of the design surfaces and the full developer mode are not started in this turn: they are large, and each needs its own measured pass.
+
+152. Presence (wireweave 86db66f, pushed) and the account status rows
+    - wireweave src/presence.js: one replaceable kind 30078 event per user (d = zellous-presence:status) with status (online, idle, dnd, invisible) and a custom status of up to 60 characters; subscribe(pubkeys) reads members' status; statusOf defaults to online. Registered in dtag namespaces, wireweave.js and index.js. Smoke-checked outside the repo (set, store, member read, rejects unknown status).
+    - zellous: bridge/presence.js (window.nostrPresence), guarded install in wireweave-bridge.js, presenceVersion signal, member subscription in the chat bridge, member dot from presence (invisible shows as offline), adapter presenceStatus, presenceCustom and setPresence.
+    - design a5374ac (pushed): account pane Status heading, four radios in game-3's order and colours (Online #23a55a, Idle #f0b232, Do Not Disturb #f23f43, Invisible #80848e), Custom Status input (maxlength 60, placeholder as game-3).
+    - Witness (production path, pinned wireweave 86db66f and design a5374ac, owner identity): selecting Do Not Disturb stores status dnd (radio on); entering 'in a meeting' stores custom status; relay holds zellous-presence:status events with status dnd and custom 'in a meeting'.
+    - Computed style against a game-3 reference page (ui.js account markup with test.html CSS): h6, radio, radio icon and input equal on display, font, weight, line height, padding, margin, gap, radius, background, alignment and height. Width 650px against 660px: the pane scrolls in this layout (taller than the viewport), which takes a 10px scrollbar; the reference page does not scroll. game-3's pane uses the same scrolling container.
