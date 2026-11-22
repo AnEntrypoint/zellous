@@ -1005,3 +1005,9 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
       .me and .ca-rail-channels font-size 15px vs reference 16px: container font-size, not colour; not changed in this pass.
       .chans .ch.unread and .vbar: not measured in this pass (depend on unread state and a live voice connection; their values were witnessed earlier).
     - Composer box background #383a40 and placeholder/typing colours equal the reference.
+
+145. Computed-style pass against test.html: composer, message area, type, avatars, member name, rail and user panel
+    - Fixed in design a2742bc: font stack from the reference (--ff-sans), line height 1.5 (--lh-base), rail and user panel 16px, message avatar 16px, message area gap normal, message head rendered inline (who and when), colours and padding from the earlier pass.
+    - Fixed in zellous 5c3c1f0: message avatar takes the author's self-role colour (the same nostrSelfRoles path as the member name); a member without a self-role keeps the name hue.
+    - Witness (local seeded relay, owner identity, Gamer self-role set through nostrSelfRoles.set): composer, box, plus, textarea, typing row, compbtn, message row, who, tx, when: equal on font-size, weight, line height, padding, colour, background and height. Owner row avatar rgb(88,101,242); first member name lanmower rgb(88,101,242); rail and user panel 16px.
+    - Residual, cause: the message area height (604 against 684) and the list of rows differ because the reference shows more messages than the seed; the seed has four general messages plus the owner message.
