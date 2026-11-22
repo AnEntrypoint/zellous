@@ -17,10 +17,30 @@ export function dmSnapshot(v) {
   };
 }
 
+function peopleHere(v) {
+  v('presenceVersion', 0);
+  v('profilesVersion', 0);
+  const st = window.state || {};
+  return (st.roomMembers || [])
+    .filter((m) => m.id !== st.nostrPubkey)
+    .map((m) => {
+      const p = window.nostrPresence ? window.nostrPresence.statusOf(m.id) : { status: 'online', custom: '' };
+      return {
+        id: m.id,
+        name: (window.chat && window.chat.resolveProfile(m.id)) || m.username || m.id.slice(0, 8),
+        color: (window.getAvatarColor && window.getAvatarColor(m.id)) || 'var(--accent)',
+        status: p.status,
+        activity: p.custom || 'Zellous',
+      };
+    })
+    .filter((p) => p.status !== 'invisible');
+}
+
 export function buildDmHome({ v, S, call }) {
   return {
     snapshot: (f) => ({
       dmConversations: f.dm ? f.dm.conversations : [],
+      peopleHere: peopleHere(v),
       activeDmPeer: f.dm ? v('activeDmPeer', null) : null,
     }),
     actions: {
