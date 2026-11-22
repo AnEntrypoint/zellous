@@ -1130,3 +1130,13 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Rules and Pick Roles: game-3 reaches them as text-channel rows named rules and pick-roles (ui.js line 43 CHI). The live room has channels general, general-voice and announcements only; channel creation needs an owner, and the public room has none. Blocker: the exact step that fails is the channel row lookup for rules and pick-roles.
     - Colour fix: right column text colour set to rgb(219,222,225) (c586648). Measured after reload: Events body, Events dialog and right column all rgb(219,222,225); Discover, Leaderboard, announcements, Pins and Inbox root rgb(219,222,225).
     - Limit: these probes read the first matching title, body and root in the right column, not each surface's own rows, so per-row metrics (such as the game-3 .ev h3 17px against the design 16px in Discover) are still unmeasured.
+
+162. Per-surface row status (zellous 38dba6c, design 3a7087c, production CDN pin)
+    - Discover (server rail button): rows measured. Fixed to game-3 .ev and .disc values: row background rgb(43,45,49), 12px gap, 14px padding, 10px bottom margin, 8px radius; icon 48px, 16px radius, 15px bold white; title 17px rgb(242,243,245) with 4px margins; body 14px rgb(181,186,193) with 6px bottom margin; row text rgb(219,222,225). Matches. Structural difference: game-3 shows Discover as a modal; the design shows it in the surface panel beside the chat.
+    - Leaderboard (rail): no rows in this seeded room (empty state only). Not measured per row. Cause: no XP recorded for the seeded messages.
+    - Pins (channel header button): empty state only; no pinned messages in the seeded channel. Not measured per row. Structural difference: game-3 shows a popover; the design shows the surface panel.
+    - Inbox (channel header button): empty state only; no mentions or saved messages. Not measured per row. Structural difference as above.
+    - Announcements (rail): no announcement rows in the seeded channel. Not measured per row.
+    - Polls: no game-3 surface; game-3 renders polls as chat cards. Not a surface difference.
+    - Pick Roles and Rules: game-3 reaches them as the text-channel rows rules and pick-roles. The live room has no such channels. Exact failing step: the lookup of a channel row named rules or pick-roles in the room; creating one needs an owner, and the public room has none.
+    - Apps and Builders member groups: left alone, per owner.
