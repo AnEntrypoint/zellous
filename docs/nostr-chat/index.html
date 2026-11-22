@@ -91,7 +91,10 @@ window.nostrFsm = null;
       var t0=performance.now(),events=[];
       function log(name,extra){events.push({t:+(performance.now()-t0).toFixed(1),name:name,extra:extra||null});}
       function setProgress(p,label){if(fill)fill.style.width=Math.max(0,Math.min(100,p))+'%';if(label&&phase)phase.textContent=label;log('progress',{p:p,label:label});}
-      var failedOnce=false;function fail(msg){if(failedOnce)return;failedOnce=true;if(box)box.classList.add('errored');if(err){err.textContent=msg;}if(phase)phase.textContent='boot failed';log('error',{msg:msg});console.error('[zellous boot]',msg,events);}
+      var failedOnce=false;function fail(msg){if(failedOnce)return;failedOnce=true;if(box)box.classList.add('errored');var retried=false;try{retried=sessionStorage.getItem('zellous-boot-retry')==='1';}catch(x){}
+        if(err){err.textContent=msg+(retried?'':' Retrying once automatically…');if(retried){var btn=document.createElement('button');btn.type='button';btn.textContent='Reload';btn.style.cssText='display:block;margin:12px auto 0;padding:8px 18px;border:0;border-radius:4px;background:#5865f2;color:#fff;font:inherit;font-weight:600;cursor:pointer';btn.onclick=function(){try{sessionStorage.removeItem('zellous-boot-retry');}catch(x){}location.reload();};err.appendChild(btn);}}
+        if(phase)phase.textContent='boot failed';log('error',{msg:msg});console.error('[zellous boot]',msg,events);
+        if(!retried){try{sessionStorage.setItem('zellous-boot-retry','1');}catch(x){}setTimeout(function(){location.reload();},2500);}}
       function done(){if(!box)return;box.classList.add('gone');setTimeout(function(){box&&box.parentNode&&box.parentNode.removeChild(box);},250);log('done');}
       window.__boot={ progress:setProgress, fail:fail, done:done, events:events, t0:t0 };
       window.__boot._watchdog=setTimeout(function(){if(!window.appReady)fail('Took longer than 25s — check console for module load failures.');},25000);
@@ -327,7 +330,7 @@ window.nostrFsm = null;
     window.addEventListener('online', () => { window.nostrNet?.reconnectAll?.(); });
     window.appReady = true;
     window.__boot?.progress(100, 'ready');
-    requestAnimationFrame(() => window.__boot?.done());
+    requestAnimationFrame(() => {try{sessionStorage.removeItem('zellous-boot-retry');}catch(x){}window.__boot?.done();});
     if (window.__boot?._watchdog) clearTimeout(window.__boot._watchdog);
   </script>
 <script>
