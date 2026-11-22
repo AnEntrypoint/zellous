@@ -141,6 +141,9 @@ const state = {
   pref_vcsounds: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-vcsounds') !== '0' : true),
   pref_sbsounds: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-sbsounds') !== '0' : true),
   pref_mentionsonly: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-mentionsonly') === '1' : false),
+  pref_devevents: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-devevents') === '1' : false),
+  pref_devinspect: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-devinspect') === '1' : false),
+  devEventFilter: signal(''),
   pref_devmode: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-devmode') === '1' : false),
 
   rnnoiseEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('rnnoise') !== '0' : true),
