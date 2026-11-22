@@ -5,7 +5,7 @@
 
   (function wireDrawerSwipe() {
     const EDGE_PX = 24, TRIGGER_PX = 60, MAX_DRIFT_PX = 45;
-    const narrow = () => window.matchMedia('(max-width: 900px)').matches;
+    const narrow = () => window.matchMedia('(max-width: 640px)').matches;
     const drawerOpen = () => !!(window.stateSignals && window.stateSignals.mobileMenuOpen.value);
     let start = null;
     document.addEventListener('touchstart', (e) => {
