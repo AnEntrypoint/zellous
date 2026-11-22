@@ -1088,3 +1088,20 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Replaces the home DM list in the main body: header (People here, everyone in <server> right now), Online count heading, rows with avatar, presence dot, name, activity and a round message button that opens the DM.
     - Witness (production path, local design build): home opens the People root; with only the owner online the empty state Only you for now. shows (room has one member). Injected sample row, computed style: row padding 10px 8px, gap 12px, border-top 1px rgb(63,65,71), radius 8px, avatar 32px circle, name 600 rgb(242,243,245) 16px, heading 12px uppercase rgb(181,186,193), body padding 16px 24px all match test.html .prow/.home; message button 40px before the fix, 36px after (test.html .msg 36px #2b2d31).
     - Remaining difference: the message glyph is the design forum icon (no chat-bubble icon in the kit); activity text uses the custom status or Zellous, game-3 uses its activity() helper.
+
+157. Composer and input block (design 9db2203)
+    - Measured against game-3 (.comp, .box, textarea, .compbtn, .typ): comp padding 0 16px; box bg rgb(56,58,64) 8px radius, padding 0 12px 0 16px, min-height 44px, centred; textarea 16px font, 22px line height, 11px 0 padding, no resize, 220px max height; typing row 24px; button colour rgb(181,186,193). All match.
+    - Fixed: emoji glyph 22px to 20px (game-3 I.smile is 20px). Stickers glyph 22px already matches.
+    - Remaining: owner reported a visible difference that this measurement does not reproduce; needs the owner screenshot to target it.
+
+158. Voice view (design 64f33fa) reached by the rail voice row (aria General under Voice Channels), connected state shows disconnect from voice.
+    - Fixed: tile width min(360px,44
+157. Composer and input block (design 9db2203)
+    - Measured against game-3 (.comp, .box, textarea, .compbtn, .typ): comp padding 0 16px; box bg rgb(56,58,64), 8px radius, padding 0 12px 0 16px, min-height 44px, centred; textarea 16px font, 22px line height, 11px 0 padding, no resize, 220px max height; typing row 24px; button colour rgb(181,186,193). All match.
+    - Fixed: emoji glyph 22px to 20px (game-3 I.smile is 20px). Stickers glyph 22px already matches.
+    - Remaining: the owner reported a visible difference that this measurement does not reproduce; needs the owner's screenshot to target it.
+
+158. Voice view (design 64f33fa) reached through the rail voice row (aria General under Voice Channels); connected state shows disconnect from voice.
+    - Fixed: tile width min(360px, 44%) (measured 301px at a 684px container, the game-3 formula); voice container padding 0 and radius 0 as game-3 .voice.
+    - Matched: tiles padding 16px and gap 8px; control row padding 12px 16px and gap 16px; 56px round buttons on rgb(43,45,49); chat pill padding 12px 18px, radius 24px, 14px font; soundboard padding 0 16px 4px and gap 8px.
+    - Remaining: the .vtip hint is not rendered (its game-3 text names Spawn, excluded); the 50px right padding is the Spawn chrome reservation, excluded.
