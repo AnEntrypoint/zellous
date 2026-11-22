@@ -118,7 +118,7 @@ When wiring any adapter boolean the SDK's own render logic branches on (e.g. `mo
 
 **Off-canvas surfaces take `inert`, not `aria-hidden`.** The rail and the member list take `inert` while closed. webjsx assigns `el[key] = null` as an expando for keys not `in el`, so a nulled `aria-hidden` attribute stays in the DOM.
 
-**The 900px breakpoint is tracked in JS.** `docs/js/ui-shell.js` uses `matchMedia`, because crossing the breakpoint changes no signal and so triggers no re-render on its own.
+**The 640px drawer breakpoint is tracked in JS.** `docs/js/ui-shell.js` uses `matchMedia`, because crossing the breakpoint changes no signal and so triggers no re-render on its own.
 
 **Untrusted Nostr text is escaped before `innerHTML`.** Server names and colours (kind:34550 tags) and channel type labels are attacker-controlled. Route them through `escHtml()` in `nostr-servers-ui.js` and `nostr-channels-ui.js`. Pages HTML goes through the SDK's DOMPurify-backed `sanitizeHtml()`; chat message text is inserted as text nodes.
 
