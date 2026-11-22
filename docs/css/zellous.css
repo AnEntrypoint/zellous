@@ -97,22 +97,22 @@ html.ds-247420 .rail-empty {
 
 .modal-overlay {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6); z-index: 9990;
+  background: rgba(0,0,0,0.667); z-index: 9990;
   align-items: center; justify-content: center;
   padding: var(--space-4);
 }
 .modal-overlay.open { display: flex; }
 .modal-box {
-  background: var(--bg-2);
-  border-radius: var(--r-3, 12px);
-  padding: 24px;
+  background: #313338;
+  border-radius: 8px;
+  padding: 16px;
   width: 100%; min-width: min(320px, 100%); max-width: 420px;
   max-height: 90vh; overflow-y: auto;
-  border: 1px solid var(--rule);
-  box-shadow: var(--shadow-2, 0 12px 40px rgba(0,0,0,.35));
+  border: 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,.667);
   display: flex; flex-direction: column; gap: 14px;
 }
-.modal-title { font-weight: 600; font-size: var(--fs-lg); color: var(--fg); }
+html.ds-247420 .modal-title { margin: 0; font-weight: 400; font-size: 18px; line-height: 27px; color: #f2f3f5; }
 .modal-subtitle { font-size: var(--fs-sm); color: var(--fg-3); margin-top: -8px; }
 .modal-field { display: flex; flex-direction: column; gap: 6px; margin: 0; }
 .modal-label {
@@ -140,16 +140,16 @@ html.ds-247420 select.modal-input { cursor: pointer; height: 42px; line-height: 
 .modal-actions, .modal-box form > .modal-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 html.ds-247420 button.modal-btn {
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--accent); color: var(--accent-fg);
-  border: 0; border-radius: var(--r-1, 8px);
-  padding: 10px 18px; min-height: 40px;
-  font-size: var(--fs-sm); font-weight: 600; font-family: var(--ff-ui);
+  background: #5865f2; color: #fff;
+  border: 0; border-radius: 4px;
+  padding: 8px 18px; min-height: 0;
+  font-size: 14px; font-weight: 500; font-family: var(--ff-ui);
   cursor: pointer; margin: 0;
   transition: background 0.1s;
 }
-html.ds-247420 button.modal-btn:hover { background: var(--accent-bright); }
-html.ds-247420 button.modal-btn.secondary { background: var(--bg-3); color: var(--fg); }
-html.ds-247420 button.modal-btn.secondary:hover { background: var(--bg-4); }
+html.ds-247420 button.modal-btn:hover { background: #4752c4; }
+html.ds-247420 button.modal-btn.secondary { background: #4e5058; color: #fff; }
+html.ds-247420 button.modal-btn.secondary:hover { background: #6d6f78; }
 html.ds-247420 button.modal-btn.danger { background: var(--warn); color: var(--warn-fg); }
 html.ds-247420 button.modal-btn.danger:hover { background: color-mix(in oklab, var(--warn) 85%, black); }
 html.ds-247420 button.modal-btn.block { width: 100%; }
