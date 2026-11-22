@@ -55,7 +55,7 @@ tradeoffs, disclosed here rather than left implicit:
   UI and publishes directly against the relay's own event-rate limits.
 - **The protocol layer and UI kit are loaded live from jsdelivr's GitHub CDN,
   with no vendored copy and no submodule.** wireweave is pinned to commit
-  `a784f26f2c6994a151438c01842e4d6f1de6324d` (`cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@<sha>`),
+  `4ff7a9d76de1b02fdcb3f3b353b82cf49b82b486` (`cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@<sha>`),
   so a wireweave push does not change this app until the pin is bumped. The UI kit
   (`cdn.jsdelivr.net/gh/AnEntrypoint/design@main`) tracks its `main` branch, so a
   design push changes this app on its next page load. The UI kit's own runtime code
@@ -96,7 +96,7 @@ Static site — `docs/` directory served via GitHub Pages. Full details (includi
 - `docs/nostr-chat/index.html` — app entry point
 - `docs/js/` — first-party client modules: feature logic (chat, voice, auth, files, queue, ...) plus `wireweave-bridge.js`, which wires the protocol layer to `window.*` globals, and `nostr-adapter.js`, which adapts app state to the UI layer
 - `docs/js/state.js` — shared Preact-signals state module
-- The real Nostr/voice protocol implementation (events, relay pool, auth, channels, roles, voice signaling) lives in the `wireweave` package, loaded live from `https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@a784f26f2c6994a151438c01842e4d6f1de6324d/src/index.js` (a pinned commit; see `AGENTS.md`) — no local vendored copy
+- The real Nostr/voice protocol implementation (events, relay pool, auth, channels, roles, voice signaling) lives in the `wireweave` package, loaded live from `https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@4ff7a9d76de1b02fdcb3f3b353b82cf49b82b486/src/index.js` (a pinned commit; see `AGENTS.md`) — no local vendored copy
 - The entire chat/community UI (`mountCommunityApp`) is owned by the `anentrypoint-design` SDK and loaded live from jsdelivr's GitHub `@main` build (`https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.{js,css}`) — there is no local vendored copy or bespoke UI code in this repo
 
 Voice uses native WebRTC with Nostr kind 30078 events as the signaling channel. No server, no STUN/TURN required for LAN; uses default browser STUN for WAN. Hub election, RTT scoring, and SFU forwarding live in `wireweave`'s `voice.js`.

@@ -69,6 +69,8 @@ export function installChat(ww) {
       ? 'Only admins can post in announcement channels'
       : e.detail?.reason === 'no-channel'
         ? 'Channels are still loading, try again in a moment'
+        : e.detail?.reason === 'not-signed-in'
+          ? 'Still signing in, try again in a moment'
         : 'You cannot send messages in this server';
     if (window.ui?.showToast) ui.showToast(msg, 3000, 'error');
   });

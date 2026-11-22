@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@a784f26f2c6994a151438c01842e4d6f1de6324d/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@4ff7a9d76de1b02fdcb3f3b353b82cf49b82b486/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -103,6 +103,8 @@ Deploy runs on every push to `main` (`.github/workflows/gh-pages.yml`). It is th
 **Enforcement points.** Bans, timeouts and personal mutes are enforced in wireweave's `chat.js` (send and both subscriptions) and `mutes.js` (NIP-51 kind:10000). A personal mute filters only the viewer's own view; an admin ban is server-wide. Chat deletions (NIP-09 kind:5) are honoured only for the original author or an owner, admin or moderator.
 
 **Voice-state signals must be seeded on `'connected'`.** A reactive signal derived from wireweave CustomEvents must be seeded in the `'connected'` handler, not only on `'participants'`: a self-only join never fires the change event. `docs/js/bridge/voice.js` seeds `state.voiceParticipants` for this reason; `docs/js/adapter/voice.js` derives the SDK's `speaking`/`color` fields from wireweave's raw `isSpeaking` shape.
+
+**The relay pool schedules REQs, honours CLOSED and does NIP-42.** wireweave `src/relay-pool.js` keeps per-relay REQ slots (cap 40 until a relay answers too many, then its own limit), parks lower-priority REQs behind chat and DM, backs off a relay that answers `rate-limited` and re-REQs after `auth-required` once it has signed the AUTH challenge. Filter only on single-letter tags (`#e`, `#p`, `#d`, `#s`): relays refuse the rest. Never open a REQ per channel or per author; batch. `chat.send` returns a message with `send: {state, ok, failed, total, failures}` from the relays' OK acks.
 
 **Voice joins listen-only when there is no microphone.** `connect()` in wireweave `src/voice.js` catches the `getUserMedia()` failure and joins with a `recvonly` transceiver; the `media-warning` event becomes a toast in `docs/js/bridge/voice.js`.
 
