@@ -1199,3 +1199,13 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Before this turn's fixes: 18 paired keys, 18 with colour mismatches on bg, color, border or outline (border mismatches are not real when the border width is 0; widths were not captured).
     - After: the final pass returned 0 paired keys, because the zellous page had no channel open after reload (25 text elements). The count is not established.
     - Blocked: element pairing by role and position. Exact failing step: pairing by own text covers only the sample-data names; the test.html legacy classes (modal-box, modal-input, settings-popover, ctrl-row, toggle-switch, video-playback, context menus) have no game-3 element to map to in the zellous DOM, so no pair exists to diff.
+
+169. Paired audit on the final tree (zellous 1cb3f68, design 9744062, production CDN pins; seeded server game-3 local, general open with 8 messages and 1 poll card)
+    - Render break found and fixed: the flat message avatar, and the user-panel avatar, still called avatarColor after its definition was removed (1c9f194), so the whole app failed to mount (body empty) between 738feb9 and 1cb3f68. Fixed in 60c0529 and 9744062.
+    - Elements: test.html 324 text-bearing elements; zellous 161 text-bearing elements. Pairing by tag and own text paired 18 keys.
+    - Mismatch keys: 5 of 18 (before the render fix there were 18 with the looser comparison; the stricter comparison counts border colour only when a border is drawn, and outline only when an outline is drawn).
+      1. SPAN general colour: ref rgb(242,243,245), ours rgb(250,250,250). Open: the element is not yet identified on the zellous page; the pair is by text only.
+      2. DIV L and DIV S avatar hue: ref uses names from test.html sample data; the pairing matched a different name. Not a real mismatch.
+      3. DIV lanmower colour: pairing matched the user-panel name (ours #f2f3f5) to the member-row name (ref #949ba4). Pairing artefact.
+      4. SPAN lanmower colour: ref message author in #5865f2; ours message author #f2f3f5. Open: game-3 rule for the author colour of the self message is not in test.html; no value to copy.
+    - Not covered: pairing by role and position for the 306 reference elements without a text match; the legacy test.html classes (modal-box, modal-input, settings-popover, ctrl-row, toggle-switch, video-playback, context menus) have no game-3 element in the zellous DOM to map to.
