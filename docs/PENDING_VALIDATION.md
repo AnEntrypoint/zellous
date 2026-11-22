@@ -1105,3 +1105,18 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Fixed: tile width min(360px, 44%) (measured 301px at a 684px container, the game-3 formula); voice container padding 0 and radius 0 as game-3 .voice.
     - Matched: tiles padding 16px and gap 8px; control row padding 12px 16px and gap 16px; 56px round buttons on rgb(43,45,49); chat pill padding 12px 18px, radius 24px, 14px font; soundboard padding 0 16px 4px and gap 8px.
     - Remaining: the .vtip hint is not rendered (its game-3 text names Spawn, excluded); the 50px right padding is the Spawn chrome reservation, excluded.
+
+159. Final witness of this turn (zellous 1561023, design c6cd1c5, wireweave 63dd3ea, production CDN pins)
+    - Boot: appReady true; design stylesheet served at c6cd1c5.
+    - Advanced: Developer Mode, Event log, Channel and member inspector and Relay message counters all listed and on (were missing from the pane until c6cd1c5: the adv group listed only devmode).
+    - Relay counters: each relay row reads in N and out 0 (wireweave relayTraffic, counted on message receive and on send).
+    - Members row reads 1 (was printing [object Object] before c6cd1c5).
+    - Account pane: clientWidth 740 equals offsetWidth 740, so the scrollbar that took 10px is hidden (e3579df).
+    - Voice (entry 158 fixes): container padding 0 and radius 0; tile 300.95px at a 684px container (min(360px, 44%)).
+    - Modal text colour: the .ds-g3-evm colour is set to rgb(219,222,225) (f5c9d6e); the Events dialog was measured earlier at rgb(250,250,250) before the change, the after-value was not re-read.
+
+160. Blockers recorded this turn
+    - Member list Apps group: game-3 lists a fixed bot (MustardBot, check APP) that is hard-coded in game-3; zellous has no bot identity and the rules forbid fixtures, so the group is not added. Exact step: game-3 scripts/ui.js line 552.
+    - Member list Builders group: game-3 derives it from an editor flag (ui.js line 542, p.isEditor); zellous's public room has no owner or editor concept (zero-key room), so there is no source to group by. Exact step: the Builders filter needs a role source that zellous does not have.
+    - Discover, Pins, Polls, Pick Roles, Rules: not reachable as rail controls in the live app (only Events, Leaderboard and announcements open the split view). Exact step: the rail lists no control with those labels; their entry point is not yet located.
+    - Inbox and modals other than Events: not measured.
