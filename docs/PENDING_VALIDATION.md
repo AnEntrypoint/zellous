@@ -1011,3 +1011,7 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Fixed in zellous 5c3c1f0: message avatar takes the author's self-role colour (the same nostrSelfRoles path as the member name); a member without a self-role keeps the name hue.
     - Witness (local seeded relay, owner identity, Gamer self-role set through nostrSelfRoles.set): composer, box, plus, textarea, typing row, compbtn, message row, who, tx, when: equal on font-size, weight, line height, padding, colour, background and height. Owner row avatar rgb(88,101,242); first member name lanmower rgb(88,101,242); rail and user panel 16px.
     - Residual, cause: the message area height (604 against 684) and the list of rows differ because the reference shows more messages than the seed; the seed has four general messages plus the owner message.
+
+146. Production gap for the self-role name and avatar colour
+    - The production page (no ?local=1) loads the pinned wireweave fbcee88, which has no selfRoles module, so window.nostrSelfRoles is undefined and the bridge skips the self-role install. Name and avatar colours therefore fall back to the name hue on production, and the reference's #5865f2 appears only in the local witness (local wireweave).
+    - Fix path: push wireweave with selfroles (local commits c131405 and 6d3fe76 and later) and bump the wireweave pin in docs/nostr-chat/index.html and scripts/dev-server.mjs. Not done: wireweave push needs authorisation.
