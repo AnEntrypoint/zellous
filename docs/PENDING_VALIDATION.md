@@ -1028,3 +1028,16 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Computed-style comparison against the test.html CSS rendered with game-3's sModal markup (ref-create.html built from test.html styles): scrim, evm, evh, title, close mark, evl, sub, lbl, icons, icon, input, Create and Discover: equal on display, flex direction and alignment, font size, weight, line height, letter spacing, case, padding, margin, gap, border width, radius, background, shadow, max width, overflow, width, height, x and y. Inherited font family and text colour are excluded because the constructed reference page has no body styles.
     - Create action: wireweave serverManager.create via createServer. Witness: 'Test Guild' and 'Second Guild' created from the dialog appear in the rail after Create; the dialog closes.
     - Spacing lint baseline 201 with the reason recorded (game-3 input padding 9px 10px and Create margin 18px 0 0 have no token). Glyph lint allows the close mark and the compass glyph for game3-server-create.js (as game-3 uses them).
+
+149. Keybinds view against game-3 (ui.js keybinds rows) and test.html CSS
+    - Design 76c041b: heading weight 400, line height 30px, no letter-spacing; rows flex, space-between, 10px vertical padding, 1px divider, 14px; labels block; key caps block, #1e1f22, 2px by 8px padding, 14px, 2px #111 shadow.
+    - Witness (local dist against a reference page built from game-3's keybinds rows and the test.html CSS): heading, row, label and key cap equal on display, font size, weight, line height, padding, gap, border width, radius, background, shadow, width and height. Nav and nav item equal.
+150. Account view against game-3 (ui.js PANES.account) and test.html CSS
+    - Design 7c9a5e0 (pushed): account card background and radius, banner 100px, row with -38px overlap, 80px avatar with 6px border and 2px ring, avatar background from the viewer's self-role colour (#5865f2 for the Gamer role, through nostrSelfRoles.colorOf), name 16px weight 400 with 8px bottom margin, note, five stat boxes (level, xp, servers, saved, reminders) in a grid with 12px margin.
+    - Witness (same reference method): card, banner, row, avatar (background rgb(88,101,242)), note, stat grid, stat box, stat number and label equal; heading equal. Name width 74px against 76px: the reference page inherits no app font, so text width measures differently; the font stack is the same as the approved one.
+    - Residual, open: Status radios (online, idle, Do Not Disturb, invisible) and Custom Status are not rendered: zellous has no presence feature. Build it on wireweave before matching.
+    - Saved and reminders show 0: zellous has no saved-message or reminder counts wired to this pane.
+151. Queue status for this turn
+    - Server creation: finished (entry 148).
+    - Keybinds: finished (149). Account: finished except the presence rows (150, open).
+    - The rest of the design surfaces and the full developer mode are not started in this turn: they are large, and each needs its own measured pass.
