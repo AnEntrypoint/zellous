@@ -1209,3 +1209,11 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
       3. DIV lanmower colour: pairing matched the user-panel name (ours #f2f3f5) to the member-row name (ref #949ba4). Pairing artefact.
       4. SPAN lanmower colour: ref message author in #5865f2; ours message author #f2f3f5. Open: game-3 rule for the author colour of the self message is not in test.html; no value to copy.
     - Not covered: pairing by role and position for the 306 reference elements without a text match; the legacy test.html classes (modal-box, modal-input, settings-popover, ctrl-row, toggle-switch, video-playback, context menus) have no game-3 element in the zellous DOM to map to.
+
+170. Region mapping and paired diff (final tree: zellous ba4835f, design 5c55ff3, wireweave f33beb7; production CDN pins; seeded server game-3 local, general open with 8 messages)
+    - Region mapping (test.html class to zellous selector): shead to .ds-g3-header (top bar); rail to .ca-rail-servers (server column); side to .ca-rail-channels (channel column); main to .app-main (chat); mem to .ds-g3-mem (member list); me to .ds-g3-me (user panel); comp to .ds-g3-comp (composer).
+    - Pairing rule: within each region, elements with own text are paired by DOM path from the region root (tag chain) plus own text. Diff: background-color, color, border-color (when a border is drawn), box-shadow, outline-color (when an outline is drawn).
+    - Counts: test.html text elements 340 across the 7 regions; zellous 136. Paired 17. Unpaired reference 323; unpaired zellous 119.
+    - Mismatches: before this pass 3 (own message author colour, member avatar ring shadow, member avatar L hue). After: 1 (member avatar L hue). The L hue is a pairing artefact: test.html's sample name is not the seeded name, so the pair is not the same person.
+    - Fixed this pass: own message author colour #5865f2 (5c55ff3); member avatar ring shadow removed (5c55ff3).
+    - Structural gaps: 323 reference text elements have no paired zellous element. Cause: test.html is a static saved page with sample data (message bodies, member names, channel rows) and a different markup tree; zellous renders different element paths and content for the same regions, so role and path do not line up beyond the chrome.
