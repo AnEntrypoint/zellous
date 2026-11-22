@@ -1,8 +1,6 @@
 const uiMembers = {
   categories() {
     const members = state.roomMembers || [];
-    const roleOrder = ['owner', 'admin', 'moderator', 'member'];
-    const roleLabel = { owner: 'Server Owner', admin: 'Admin', moderator: 'Moderator', member: 'Online' };
     const roleColor = window.ROLE_COLOR || {};
     const sid = state.currentServerId;
     const getRole = (id) => (window.serverRoles && sid ? window.serverRoles.getRole(sid, id) : null) || 'member';
@@ -20,16 +18,13 @@ const uiMembers = {
       activity: m.id === state.nostrPubkey && state.voiceConnected && state.voiceChannelName ? '🔊 in ' + state.voiceChannelName : ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name ? 'Playing ' + ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name : '',
     });
 
-    const byRole = {};
-    online.forEach(m => { const r = getRole(m.id); (byRole[r] = byRole[r] || []).push(m); });
-
+    const owners = online.filter(m => getRole(m.id) === 'owner');
+    const builders = online.filter(m => getRole(m.id) === 'editor');
+    const rest = online.filter(m => getRole(m.id) !== 'owner' && getRole(m.id) !== 'editor');
     const cats = [];
-    roleOrder.forEach(role => {
-      if (!byRole[role] || !byRole[role].length) return;
-      cats.push({ label: roleLabel[role] || role, members: byRole[role].map(toMember) });
-    });
-    const nonStd = online.filter(m => !roleOrder.includes(getRole(m.id)));
-    if (nonStd.length) cats.push({ label: 'Online', members: nonStd.map(toMember) });
+    if (owners.length) cats.push({ label: 'Owner', members: owners.map(toMember) });
+    if (builders.length) cats.push({ label: 'Builders', members: builders.map(toMember) });
+    if (rest.length) cats.push({ label: 'Online', members: rest.map(toMember) });
     if (offline.length) cats.push({ label: 'Offline', members: offline.map(toMember) });
     return cats;
   }
