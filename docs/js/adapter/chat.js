@@ -36,6 +36,7 @@ export function buildChat({ v, S, call }) {
           : '',
         pageUpdatedAt: pageData ? pageData.updatedAt : 0,
         composerLockedReason: lock ? lock.reason : '',
+        newAt: curr && window.nostrUnread ? window.nostrUnread.boundaryFor(curr.id) : null,
         messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).filter((m) => !v('chatSearch', '') || String(m.content || '').toLowerCase().includes(String(v('chatSearch', '')).toLowerCase())).map((m) => {
           const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
           const base = rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;

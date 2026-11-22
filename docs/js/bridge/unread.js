@@ -4,6 +4,7 @@ export function installUnread(ww) {
   window.nostrUnread = {
     countsFor: () => unread.countsFor(),
     countFor: (id) => unread.countFor(id),
-    markRead: (id) => unread.markRead(id)
+    markRead: (id) => unread.markRead(id),
+    boundaryFor: (id) => unread.boundaryFor(id)
   };
 }
