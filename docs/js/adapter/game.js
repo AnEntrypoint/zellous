@@ -178,7 +178,7 @@ export function buildGame({ v, S, call, persistBool }) {
         announcements: announcementsFor(v('chatMessages', []), window.state && window.state.nostrPubkey).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         pins: pinsFor(v('chatMessages', []), window.state && window.state.nostrPubkey, v('channelPins', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         polls: pollsFor(v('chatMessages', [])).map((p) => { const t = window.nostrPolls ? window.nostrPolls.tally(p.id, p.options.length) : { counts: p.options.map(() => 0), total: 0, mine: -1 }; v('pollVotesVersion', 0); return { ...p, ...t, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : '') }; }),
-        leaderboard: leaderboardFor(v('chatMessages', [])).map((r) => ({ ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.id)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.id) : r.id.slice(0, 8)) })),
+        leaderboard: leaderboardFor(v('chatMessages', [])).map((r) => ({ color: (window.getAvatarColor && window.getAvatarColor(r.id)) || null, ...r, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(r.id)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(r.id) : r.id.slice(0, 8)) })),
       };
     },
     actions: {
