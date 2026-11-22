@@ -1,12 +1,14 @@
 import { dmSnapshot } from './dm.js';
 
 const LOCK_ANNOUNCEMENT = { reason: 'Only admins can post here', toast: 'Only admins can post in announcement channels' };
+const LOCK_LOADING = { reason: 'Loading channels', toast: 'Channels are still loading, try again in a moment' };
 export const LOCK_DM = { reason: 'Pick or start a conversation', toast: 'Start a conversation with the + button next to "direct messages".' };
 
 export function composerLock(v) {
   if (!!(window.state && window.state.homeMode) && !v('activeDmPeer', null)) return LOCK_DM;
   const curr = v('currentChannel', null);
   const sid = v('currentServerId', null);
+  if (!(window.state && window.state.homeMode) && window.chat && window.chat.hasChannel && !window.chat.hasChannel()) return LOCK_LOADING;
   if (curr && curr.type === 'announcement' && !(window.serverRoles && sid && window.serverRoles.isAdmin(sid))) return LOCK_ANNOUNCEMENT;
   return null;
 }

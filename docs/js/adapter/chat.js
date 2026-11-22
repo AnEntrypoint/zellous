@@ -74,6 +74,7 @@ export function buildChat({ v, S, call }) {
           return;
         }
         return Promise.resolve(window.chat.send(text, opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
+      retrySend: (id) => call(() => window.chat.retrySend(id)),
       toggleSave: (item) => call(() => toggleSaved(item)),
       remindMe: (minutes, item) => call(() => { addReminder(minutes, item); window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (minutes >= 1440 ? '1 day' : minutes >= 60 ? (minutes / 60) + ' hour' + (minutes > 60 ? 's' : '') : minutes + ' minutes')); }),
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },

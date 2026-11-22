@@ -2,9 +2,8 @@ export function installChannels(ww) {
   const a = ww.auth;
   const ch = ww.channels;
   const refreshCurrentChannel = (channels) => {
-    if (!state.currentChannel) return;
-    const cur = channels.find(c => c.id === state.currentChannel.id);
-    if (cur) state.currentChannel = cur;
+    const cur = (state.currentChannel && channels.find(c => c.id === state.currentChannel.id)) || channels.find(c => c.id === ww.currentChannelId);
+    if (cur && cur !== state.currentChannel) state.currentChannel = cur;
   };
   ch.addEventListener('updated', (e) => {
     state.channels = e.detail.channels; state.categories = e.detail.categories;

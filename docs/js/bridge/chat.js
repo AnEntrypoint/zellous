@@ -60,10 +60,16 @@ export function installChat(ww) {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
     if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
   });
+  chat.addEventListener('channel', (e) => {
+    const next = (state.channels || []).find((c) => c.id === e.detail.channelId);
+    if (next && (!state.currentChannel || state.currentChannel.id !== next.id)) { state.currentChannel = next; state.currentChannelId = next.id; }
+  });
   chat.addEventListener('send-blocked', (e) => {
     const msg = e.detail?.reason === 'announcement-admin-only'
       ? 'Only admins can post in announcement channels'
-      : 'You cannot send messages in this server';
+      : e.detail?.reason === 'no-channel'
+        ? 'Channels are still loading, try again in a moment'
+        : 'You cannot send messages in this server';
     if (window.ui?.showToast) ui.showToast(msg, 3000, 'error');
   });
   const ONLINE_WINDOW_MS = 5 * 60 * 1000;
@@ -86,6 +92,8 @@ export function installChat(ww) {
     get messages() { return state.chatMessages || []; },
     set messages(v) { state.chatMessages = v; },
     send: (c, opts) => chat.send(c, opts),
+    hasChannel: () => chat.hasChannel(),
+    retrySend: (id) => chat.retrySend(id),
     sendAnnouncement: (t) => chat.send(t, { announcement: true }),
     sendImage(file) {
       return window.nostrMedia.sendMedia(file).catch((e) => { window.ui?.showToast?.('Upload failed: ' + (e && e.message || 'unknown error'), 4000, 'error'); });
