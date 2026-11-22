@@ -40,6 +40,7 @@ export function buildChat({ v, S, call }) {
           : '',
         pageUpdatedAt: pageData ? pageData.updatedAt : 0,
         composerLockedReason: lock ? lock.reason : '',
+        composerLockedNope: !!(lock && lock.permission),
         stickerBase: new URL('../assets/stickers/', location.href).href,
         newAt: curr && window.nostrUnread ? window.nostrUnread.boundaryFor(curr.id) : null,
         messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).filter((m) => !v('chatSearch', '') || String(m.content || '').toLowerCase().includes(String(v('chatSearch', '')).toLowerCase())).map((m) => {
