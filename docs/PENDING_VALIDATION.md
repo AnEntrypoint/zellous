@@ -987,3 +987,21 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Replaced the pinned design SHA in docs/nostr-chat/index.html at both sites (importmap injector and stylesheet). Grep confirmed no other pinned reference; the older SHA remains only in run logs and historical PENDING notes.
     - Witness on the production CDN path (no ?local=1): design stylesheet loaded from design@1ee6821; window.appReady true; window.__sdk present; zero page errors; rail rows at Events 57, Leaderboard 92, separator 134, Information 135 (40px), rules 176, pick-roles 211, announcements 246, Text Channels 281 (40px), general 322, gaming 357, memes 392, clips 427, Voice Channels 462 (40px), lounge 503, squad 538, late-night 573 (matching test.html).
     - Relay used for the witness is the local seeded relay (ws://127.0.0.1:7447) via the page's WebSocket redirect; no public relay was contacted.
+
+144. Colour and composer pass against test.html (computed styles)
+    - Method: getComputedStyle on the same regions in test.html and in the zellous page at 1280x800, witnessed on local dist (?local=1) and on the production CDN path with design 039e3da.
+    - Fixed (design 039e3da, pinned in zellous f1c1300):
+      .comp / .ds-g3-comp color #fafafa -> #dbdee1 (reference #dbdee1)
+      .comp .box / .ds-g3-box color #fafafa -> #dbdee1
+      .comp textarea / .ds-g3-comp textarea border-radius 8px -> 0
+      .rail, .side / .ca-rail-servers, .ca-rail-channels color #fafafa -> #dbdee1
+      .mhead / .ds-g3-header color #fafafa -> #dbdee1
+      .main / .app-main background transparent -> #313338; color #fafafa -> #dbdee1
+      .mem / .ds-g3-mem color #fafafa -> #dbdee1
+      .me / .ds-g3-me color #fafafa -> #dbdee1
+    - Witness after fix: composer #dbdee1, rail #dbdee1, message area #313338, production CDN appReady true.
+    - Open, with cause:
+      .mrow .nm first member: reference #5865f2 (Gamer self-role); zellous #ffd86b in this witness, because the page identity is the seed owner (owner role colour). Identity-dependent, not CSS.
+      .me and .ca-rail-channels font-size 15px vs reference 16px: container font-size, not colour; not changed in this pass.
+      .chans .ch.unread and .vbar: not measured in this pass (depend on unread state and a live voice connection; their values were witnessed earlier).
+    - Composer box background #383a40 and placeholder/typing colours equal the reference.
