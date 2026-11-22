@@ -1053,3 +1053,7 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Shown while Developer Mode is on: connection summary (relays connected of total), each relay with its status, presence, member count, channels with type and id, and the latest 20 events of the current channel from the events feed.
     - Witness (production path, design d3a1170): appReady true; dev rows 10 with Developer Mode on (first row: 4 of 4 relays connected); the relay URLs listed are the configured public relays, because the headless page reaches the local relay through its WebSocket redirect.
     - Code: adapter game.js devInfo snapshot; design game3-settings.js devRows and Advanced pane; community-app.js passes devInfo; no comments added.
+
+154. Developer panel: reset local state (design 54ffa0a, pinned in 7eb56b6)
+    - Button under the developer rows, press-again confirm; clears only keys prefixed zellous- (preferences, muted channels, role colours) and reloads. Identity and joined servers are kept.
+    - Witness (production path): developer mode on; reset button present; test key zellous-witness-test set to 1, two presses, reload: key null, appReady true.
