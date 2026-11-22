@@ -26,10 +26,11 @@ const PREFS = [
   { key: 'mentionsonly', signal: 'pref_mentionsonly', store: 'zellous-pref-mentionsonly', def: false, label: 'Only ping for mentions', hint: 'stay quiet unless someone @s you or says an alert word' },
   { key: 'devmode', signal: 'pref_devmode', store: 'zellous-pref-devmode', def: false, label: 'Developer Mode', hint: 'adds Copy Message ID and Copy User ID' },
   { key: 'devevents', signal: 'pref_devevents', store: 'zellous-pref-devevents', def: false, label: 'Event log', hint: 'the events in this channel, with a title filter' },
+  { key: 'devtraffic', signal: 'pref_devtraffic', store: 'zellous-pref-devtraffic', def: false, label: 'Relay message counters', hint: 'messages received and sent per relay' },
   { key: 'devinspect', signal: 'pref_devinspect', store: 'zellous-pref-devinspect', def: false, label: 'Channel and member inspector', hint: 'channel and member ids with their status' },
 ];
 
-const PREF_GROUP = { rolecolors: 'access', motion: 'access', ulinks: 'access', sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', embeds: 'media', jumbo: 'media', spoilers: 'media', h24: 'lang', devmode: 'adv', devevents: 'adv', devinspect: 'adv' };
+const PREF_GROUP = { rolecolors: 'access', motion: 'access', ulinks: 'access', sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', embeds: 'media', jumbo: 'media', spoilers: 'media', h24: 'lang', devmode: 'adv', devevents: 'adv', devinspect: 'adv', devtraffic: 'adv' };
 
 export function buildGame({ v, S, call, persistBool }) {
   const storeText = (signal, key, text) => { if (S[signal]) S[signal].value = text; if (typeof localStorage !== 'undefined') localStorage.setItem(key, text); };
@@ -147,7 +148,7 @@ export function buildGame({ v, S, call, persistBool }) {
         gamePrefKeywords: v('pref_kw', ''),
         gamePrefBanner: v('pref_banner', ''),
         gamePrefTab: v('gamePrefTab', 'account'),
-        devInfo: (() => { const st = window.state || {}; const q = String(v('devEventFilter', '') || '').toLowerCase(); const map = new Map(st.nostrRelayStatus || []); const relays = (st.nostrRelays || Array.from(map.keys())).map((u) => ({ url: u, status: String(map.get(u) || 'unknown') })); const open = relays.filter((r) => r.status === 'connected' || r.status === 'open').length; return { connection: relays.length ? open + ' of ' + relays.length + ' relays connected' : 'no relays configured', relays, presence: window.nostrPresence && st.nostrPubkey ? window.nostrPresence.statusOf(st.nostrPubkey).status : 'unknown', members: (st.roomMembers || []).length, channels: (v('channels', []) || []).filter(Boolean).map((c) => ({ id: c.id, name: c.name, type: c.type })), events: (v('channelEvents', []) || []).filter((e) => !q || String(e.title || '').toLowerCase().includes(q)).slice(0, 20).map((e) => ({ title: e.title, start: e.start })), filter: q, members: (st.roomMembers || []).map((m) => ({ id: m.id, name: m.username, status: m.online === false ? 'offline' : (window.nostrPresence ? window.nostrPresence.statusOf(m.id).status : 'online') })) }; })(),
+        devInfo: (() => { const st = window.state || {}; const tick = v('devTick', 0); const traffic = tick >= 0 && window.__zellous && window.__zellous.inspect ? window.__zellous.inspect().relayTraffic || [] : []; const q = String(v('devEventFilter', '') || '').toLowerCase(); const map = new Map(st.nostrRelayStatus || []); const relays = (st.nostrRelays || Array.from(map.keys())).map((u) => ({ url: u, status: String(map.get(u) || 'unknown') })); const open = relays.filter((r) => r.status === 'connected' || r.status === 'open').length; return { connection: relays.length ? open + ' of ' + relays.length + ' relays connected' : 'no relays configured', relays, traffic, presence: window.nostrPresence && st.nostrPubkey ? window.nostrPresence.statusOf(st.nostrPubkey).status : 'unknown', members: (st.roomMembers || []).length, channels: (v('channels', []) || []).filter(Boolean).map((c) => ({ id: c.id, name: c.name, type: c.type })), events: (v('channelEvents', []) || []).filter((e) => !q || String(e.title || '').toLowerCase().includes(q)).slice(0, 20).map((e) => ({ title: e.title, start: e.start })), filter: q, members: (st.roomMembers || []).map((m) => ({ id: m.id, name: m.username, status: m.online === false ? 'offline' : (window.nostrPresence ? window.nostrPresence.statusOf(m.id).status : 'online') })) }; })(),
         presenceStatus: (v('presenceVersion', 0), window.nostrPresence && window.state && window.state.nostrPubkey ? window.nostrPresence.statusOf(window.state.nostrPubkey).status : 'online'),
         presenceCustom: (v('presenceVersion', 0), window.nostrPresence && window.state && window.state.nostrPubkey ? window.nostrPresence.statusOf(window.state.nostrPubkey).custom : ''),
         gamePrefColor: (() => { v('selfRolesVersion', 0); const sid = v('currentServerId', null); const me = (window.state && window.state.nostrPubkey) || null; const sr = window.nostrSelfRoles; const ids = sr && sid && me ? sr.roles(sid, me) : []; return ids.length && sr.colorOf ? (sr.colorOf(ids[0]) || '') : ''; })(),
@@ -216,6 +217,7 @@ export function buildGame({ v, S, call, persistBool }) {
       splitTo: (id) => call(() => splitTo(id)),
       setChatSearch: (q) => call(() => { if (S.chatSearch) S.chatSearch.value = String(q || ''); }),
       setInboxTab: (t) => call(() => { if (S.inboxTab) S.inboxTab.value = t; }),
+      refreshDev: () => call(() => { if (S.devTick) S.devTick.value += 1; }),
       setDevFilter: (q) => call(() => { if (S.devEventFilter) S.devEventFilter.value = String(q || ''); }),
       resetLocalState: () => call(() => { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && k.startsWith('zellous-')) localStorage.removeItem(k); } location.reload(); }),
       setPresence: (status, custom) => call(() => window.nostrPresence && window.nostrPresence.set(status, custom)),

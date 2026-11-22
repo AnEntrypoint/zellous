@@ -51,6 +51,7 @@ window.__wireweaveReady = (async () => {
 
   const inspect = () => ({
     relays: Object.fromEntries(state.nostrRelayStatus || []),
+    relayTraffic: ww.pool && ww.pool.relayTraffic ? ww.pool.relayTraffic() : [],
     voiceParticipants: (state.voiceParticipants || []).map((p) => ({
       identity: p.identity,
       isLocal: !!p.isLocal,
