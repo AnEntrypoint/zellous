@@ -207,6 +207,9 @@ Two `design` CI gates apply before pushing an SDK change. The RTL lint (`scripts
 
 ## Working discipline
 
+- **Never post to the public room from a witness.** `ZELLOUS_PUBLIC_SERVER_ID` is a real shared room that strangers read. Witnesses that send messages, polls, reactions, joins or typing use a throwaway server (`window.__zellous.servers.create(name)` in a fresh context, a second identity joins with `servers.join(serverId,{name})`), or the local relay: `scripts/dev-server.mjs` plus a wireweave `EphemeralRelay` with a page init script that rewrites every `wss://` WebSocket to `ws://127.0.0.1:<port>` (an https page cannot reach a local ws relay, so serve `docs/` over http for that). Reading the public room (screenshots, computed styles) is fine; a DM between two throwaway keys is fine. Two earlier witnesses (a poll, its vote and a reaction) did post there and cannot be unposted.
+- **Seeding history:** `chat.send` is limited to 5 per 10 s in the client, so seed long threads by signing kind 42 events (tag `['e', sha256(serverId+':'+channelId), '', 'root']`) and publishing them over one websocket to the local relay; history loads the newest 50 on open and the rest arrives by subscription.
+
 - Never write `docs/PENDING_VALIDATION.md` from a paged read (gm `read_file` returns one page of a long file; writing it back truncated the ledger once). Append with a shell `cat >>`. The unversioned `.git/hooks/pre-push` refuses a push where that file shrinks by more than 5 lines against the remote; recreate it if `.git/hooks` is missing.
 
 - Under concurrent pushes to `design` or `zellous`, fetch, check the diff for disjoint changes and re-apply; don't force-push. Don't trust a `prd-resolve` success response alone under concurrent load; spot-check `.gm/prd.yml`.
