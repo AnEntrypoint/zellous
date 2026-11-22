@@ -80,6 +80,7 @@ export function buildChat({ v, S, call }) {
         return unfurlText(text).then((previews) => window.chat.send(text, previews.length ? { ...opts, previews } : opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
       retrySend: (id) => call(() => (window.state.homeMode ? window.dm.retry(id) : window.chat.retrySend(id))),
       toggleSave: (item) => call(() => toggleSaved(item)),
+      markChannelRead: () => call(() => window.nostrUnread.markRead(window.state.currentChannel.id)),
       markUnread: (id) => call(() => {
         const list = (window.chat && window.chat.messages) || [];
         const i = list.findIndex((m) => m.id === id);
