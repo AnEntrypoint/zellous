@@ -28,7 +28,6 @@ function peopleHere(v) {
       return {
         id: m.id,
         name: (window.chat && window.chat.resolveProfile(m.id)) || m.username || m.id.slice(0, 8),
-        color: (window.getAvatarColor && window.getAvatarColor(m.id)) || 'var(--accent)',
         status: p.status,
         activity: p.custom || 'Zellous',
       };
