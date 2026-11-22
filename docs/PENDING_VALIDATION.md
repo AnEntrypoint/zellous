@@ -1170,3 +1170,14 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - (3) Popovers: Pinned Messages is absolutely positioned inside the chat column (main.app-main): position absolute, width 440px, top 4px, right edge 26px from the column edge. Game-3 uses right 16px. The 10px difference is the column's scrollbar gutter (residual, not offset). Dialogs keep their full-viewport scrim, as game-3 does for the events and discover modals.
     - (4) Re-verification of entries 145 to 159 used the same CSS, which has not changed for these components this turn, except the global right-column colour and app-main position. Not re-measured in this turn: home People here rows, composer, voice tile, developer toggles, settings pane width (last measured at 740px with no scrollbar). Exact cause for not re-measuring: no separate witness pass for each item in this turn.
     - Residuals: avatar hue (game-3 hue from name, zellous uses the adapter colour); popover right gutter (10px, scrollbar); activity text on the People list.
+
+166. Witness on the final tree (zellous 4bf0da9, design f9af38d, wireweave f33beb7; production CDN pins; seeded server game-3 local)
+    - (a) avatars: game-3 name hue ported (design game3-hue.js: HUES 264,145,25,330,200,85; hash 31*h + charCode over the display name; background oklch(.62 .16 hue); font round(size*.42)). Measured: members Llanmowerowner oklch(0.62 0.16 145) 13px; Zzellous_build oklch(0.62 0.16 264); MustardBot oklch(0.62 0.16 330); Llanmower's Savi oklch(0.62 0.16 25). The adapter avatar colour is removed (877479c, 7a065f6).
+    - (a) People list and leaderboard use the same function (leaderboard font 15px, People 13px).
+    - (b) popover: visible edge 16px from the chat column edge (f9af38d; measured popRightFromColumn 16, width 440, top 4). Dialogs keep the viewport scrim.
+    - Activity text: game-3 activity(): custom status as "💬 text", voice as "🔊 in <channel>", otherwise "Playing <server>". Measured member sub-lines: "Playing game-3 local" and "/help · @MustardBot" (5807ef1).
+    - Account pane: clientWidth 740 equals offsetWidth 740. Game-3 .pane max-width 740px, padding 60px 40px 80px (ui.js). The earlier 660 reference was an error in my reference page; the residual is closed.
+    - Developer additions as toggles under Advanced: Developer Mode, Event log, Channel and member inspector, Relay message counters all on; 27 developer rows: 4 relay counter rows, 20 inspector rows, the event filter present.
+    - Composer and voice tile: not re-measured in this pass; last measured values in entries 157 and 158 (unchanged CSS since).
+    - Home People here rows: row metrics measured in entry 156; the avatar and activity changes above apply to them.
+    - Remaining differences: none measured in this pass. Relay message counters count received and sent messages per relay; game-3 has no counterpart, so there is no game-3 value to match.
