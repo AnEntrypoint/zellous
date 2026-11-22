@@ -1,4 +1,5 @@
 const PAGE_CHANNEL_POSITION_BASE = 1000;
+const knownChannels = {};
 
 export function buildRail({ v, S, call }) {
   const pageChannels = () => {
@@ -14,9 +15,12 @@ export function buildRail({ v, S, call }) {
   return {
     snapshot(f) {
       const unreadCounts = f.unreadCounts;
+      const live = v('channels', []) || [];
+      if (f.sid && live.length) knownChannels[f.sid] = live.filter((c) => c && ['text', 'announcement', 'page', 'voice'].includes(c.type));
       const withUnread = (list) => list.map((c) => ({ ...c, unreadCount: unreadCounts[c.id] || 0 }));
       return {
         channels: f.dm ? [] : withUnread([...v('channels', []).filter((c) => c && ['text', 'announcement', 'page', 'voice'].includes(c.type)), ...pageChannels()]),
+        knownChannels: Object.entries(knownChannels).flatMap(([serverId, list]) => list.map((c) => ({ ...c, serverId }))),
         categories: v('categories', []),
         servers: v('servers', []).map((sv) => ({ ...sv, unreadCount: sv.id === f.sid ? (v('channels', []) || []).reduce((n, c) => n + (unreadCounts[c.id] || 0), 0) : 0 })),
         currentChannel: f.curr,
