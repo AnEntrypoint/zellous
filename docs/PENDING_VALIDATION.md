@@ -1240,3 +1240,7 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - jump: reference .jump background rgb(88,101,242), colour rgb(255,255,255), hidden. Zellous .chat-jump-latest background rgb(88,101,242), colour rgb(255,255,255), hidden (fixed in b06a9ae). Match.
     - nm: reference name colours rgb(88,101,242) (bot), rgb(240,178,50) (role), rgb(148,155,164) (others); outline style none on all. Zellous showed all names grey because a rule added in 1c9f194 (.ds-g3-mrow .ds-g3-nm colour #949ba4) overrode the per-name colour variable. Removed in 28d8b0a. Witnessed on the production page: owner rgb(240,178,50), MustardBot rgb(88,101,242), others rgb(148,155,164). Match on the three tuples.
     - Remaining sample-only difference: the reference's self-named row (lanmower) is blue because test.html's sample assigns that name a blue role; zellous assigns the owner gold.
+
+174. Class splitsel (zellous pins: design f5b6820, wireweave f33beb7)
+    - Reference .splitsel (select): background rgb(30,31,34), colour rgb(181,186,193), border width 0, shadow none, font 13px, padding 3px 4px, height 26px.
+    - Zellous .ds-g3-splitsel: the same background, colour, border, font, padding and height. Its box-shadow was two inset shadows from the kit's select styling; set to none in f5b6820. Witnessed on the production page: background rgb(30,31,34), colour rgb(181,186,193), shadow none. Match.
