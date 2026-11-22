@@ -1120,3 +1120,13 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Member list Builders group: game-3 derives it from an editor flag (ui.js line 542, p.isEditor); zellous's public room has no owner or editor concept (zero-key room), so there is no source to group by. Exact step: the Builders filter needs a role source that zellous does not have.
     - Discover, Pins, Polls, Pick Roles, Rules: not reachable as rail controls in the live app (only Events, Leaderboard and announcements open the split view). Exact step: the rail lists no control with those labels; their entry point is not yet located.
     - Inbox and modals other than Events: not measured.
+
+161. Surfaces: entry points and measurements (design c586648)
+    - Discover: reachable from the server rail (ca-rail-server-explore). Game-3 shows Discover as a modal (ui.js line 729, sModal with ev disc rows); the design shows it in the right column. Difference: structure. Cause: the design renders every surface through surfaceBody in the right column; only Events uses its own modal shell.
+    - Pins: reachable from the channel header (Pinned Messages). Game-3 shows a popover (ui.js line 641, pop). Design shows the right column. Difference: structure, same cause.
+    - Inbox: reachable from the channel header (Inbox). Not measured by element; right-column structure.
+    - Leaderboard and announcements: reachable from the rail. Not measured by element.
+    - Polls: no game-3 surface. Game-3 renders polls as chat cards (pollCard). The design polls surface has no entry point in game-3 terms. Not a difference to fix; record only.
+    - Rules and Pick Roles: game-3 reaches them as text-channel rows named rules and pick-roles (ui.js line 43 CHI). The live room has channels general, general-voice and announcements only; channel creation needs an owner, and the public room has none. Blocker: the exact step that fails is the channel row lookup for rules and pick-roles.
+    - Colour fix: right column text colour set to rgb(219,222,225) (c586648). Measured after reload: Events body, Events dialog and right column all rgb(219,222,225); Discover, Leaderboard, announcements, Pins and Inbox root rgb(219,222,225).
+    - Limit: these probes read the first matching title, body and root in the right column, not each surface's own rows, so per-row metrics (such as the game-3 .ev h3 17px against the design 16px in Discover) are still unmeasured.
