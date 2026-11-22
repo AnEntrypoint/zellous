@@ -207,6 +207,8 @@ Two `design` CI gates apply before pushing an SDK change. The RTL lint (`scripts
 
 ## Working discipline
 
+- Never write `docs/PENDING_VALIDATION.md` from a paged read (gm `read_file` returns one page of a long file; writing it back truncated the ledger once). Append with a shell `cat >>`. The unversioned `.git/hooks/pre-push` refuses a push where that file shrinks by more than 5 lines against the remote; recreate it if `.git/hooks` is missing.
+
 - Under concurrent pushes to `design` or `zellous`, fetch, check the diff for disjoint changes and re-apply; don't force-push. Don't trust a `prd-resolve` success response alone under concurrent load; spot-check `.gm/prd.yml`.
 - A fix round is evidence of progress, not convergence. Re-verify fixes with a reviewer that reads only the diffs.
 - A "surely fine" mechanical deletion (a script tag and its module) still needs the live boot witness, not just a parse-check.
