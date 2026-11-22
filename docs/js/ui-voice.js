@@ -1,7 +1,7 @@
+const OWNER_OFFLINE_COLOR = '#f0b232';
 const uiMembers = {
   categories() {
     const members = state.roomMembers || [];
-    const roleColor = window.ROLE_COLOR || {};
     const sid = state.currentServerId;
     const getRole = (id) => (window.serverRoles && sid ? window.serverRoles.getRole(sid, id) : null) || 'member';
 
@@ -11,7 +11,7 @@ const uiMembers = {
     const toMember = (m) => ({
       identity: m.id,
       name: m.username,
-      nameColor: state.roleColorsEnabled !== false ? (selfColor(m.id) || roleColor[getRole(m.id)] || null) : null,
+      nameColor: state.roleColorsEnabled !== false ? (selfColor(m.id) || (m.online === false && getRole(m.id) === 'owner' ? OWNER_OFFLINE_COLOR : null)) : null,
       suffix: getRole(m.id) === 'owner' ? 'owner' : null,
       status: (() => { const st = window.nostrPresence ? window.nostrPresence.statusOf(m.id).status : 'online'; return m.online === false || st === 'invisible' ? 'offline' : st; })(),
       activity: (window.nostrPresence && window.nostrPresence.statusOf(m.id).custom) ? '💬 ' + window.nostrPresence.statusOf(m.id).custom : m.id === state.nostrPubkey && state.voiceConnected && state.voiceChannelName ? '🔊 in ' + state.voiceChannelName : ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name ? 'Playing ' + ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name : '',
