@@ -5,6 +5,7 @@ export function installUnread(ww) {
     countsFor: () => unread.countsFor(),
     countFor: (id) => unread.countFor(id),
     markRead: (id) => unread.markRead(id),
+    markUnread: (id, atSec) => unread.markUnread(id, atSec),
     boundaryFor: (id) => unread.boundaryFor(id)
   };
 }

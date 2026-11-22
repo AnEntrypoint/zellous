@@ -80,6 +80,12 @@ export function buildChat({ v, S, call }) {
         return unfurlText(text).then((previews) => window.chat.send(text, previews.length ? { ...opts, previews } : opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
       retrySend: (id) => call(() => (window.state.homeMode ? window.dm.retry(id) : window.chat.retrySend(id))),
       toggleSave: (item) => call(() => toggleSaved(item)),
+      markUnread: (id) => call(() => {
+        const list = (window.chat && window.chat.messages) || [];
+        const i = list.findIndex((m) => m.id === id);
+        const prev = i > 0 ? list[i - 1] : null;
+        window.nostrUnread.markUnread(window.state.currentChannel.id, prev ? Math.floor(prev.timestamp / 1000) : 0);
+      }),
       remindMe: (minutes, item) => call(() => { addReminder(minutes, item); window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (minutes >= 1440 ? '1 day' : minutes >= 60 ? (minutes / 60) + ' hour' + (minutes > 60 ? 's' : '') : minutes + ' minutes')); }),
       setInput: (val) => { if (val && window.chat && window.chat.sendTyping) window.chat.sendTyping(); if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
