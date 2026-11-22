@@ -214,6 +214,7 @@ export function buildGame({ v, S, call, persistBool }) {
       splitTo: (id) => call(() => splitTo(id)),
       setChatSearch: (q) => call(() => { if (S.chatSearch) S.chatSearch.value = String(q || ''); }),
       setInboxTab: (t) => call(() => { if (S.inboxTab) S.inboxTab.value = t; }),
+      resetLocalState: () => call(() => { for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && k.startsWith('zellous-')) localStorage.removeItem(k); } location.reload(); }),
       setPresence: (status, custom) => call(() => window.nostrPresence && window.nostrPresence.set(status, custom)),
       toggleMuteId: (id) => call(() => { const list = S.mutedChannels.value || []; const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id]; S.mutedChannels.value = next; localStorage.setItem('zellous-muted-channels', JSON.stringify(next)); }),
       toggleMuteChannel: () => call(() => { const cur = v('currentChannel', null); if (!cur || !S.mutedChannels) return; const list = S.mutedChannels.value || []; const next = list.includes(cur.id) ? list.filter((x) => x !== cur.id) : [...list, cur.id]; S.mutedChannels.value = next; localStorage.setItem('zellous-muted-channels', JSON.stringify(next)); }),
