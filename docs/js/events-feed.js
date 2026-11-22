@@ -71,3 +71,19 @@ export async function subscribeChannelEvents(channelId, serverId, onList) {
     () => emit());
   return () => { net.unsubscribe(evSub); net.unsubscribe(rsvpSub); net.unsubscribe(delSub); };
 }
+
+export async function subscribeServerEvents(channelIds, serverId, onList) {
+  const net = window.nostrNet;
+  if (!net || !channelIds.length) { onList([]); return () => {}; }
+  const tags = await Promise.all(channelIds.map((id) => channelTag(id, serverId)));
+  const events = new Map();
+  const subId = 'events-server-' + String(serverId || 'default').slice(0, 24);
+  net.subscribe(subId, [{ kinds: [EVENT_KIND], '#e': tags, limit: 200 }], (ev) => {
+    const start = Number(tagValue(ev, 'start'));
+    if (!start) return;
+    events.set(ev.id, { id: ev.id, start: start * 1000 });
+    onList([...events.values()]);
+  });
+  return () => net.unsubscribe(subId);
+}
+

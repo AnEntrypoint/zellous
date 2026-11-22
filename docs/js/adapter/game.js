@@ -1,5 +1,5 @@
 import { SOUNDS, playSoundboard } from '../soundboard.js';
-import { subscribeChannelEvents } from '../events-feed.js';
+import { subscribeChannelEvents, subscribeServerEvents } from '../events-feed.js';
 import { leaderboardFor, levelFor } from '../xp.js';
 import { effect } from '@preact/signals';
 import { pollsFor } from '../polls.js';
@@ -42,23 +42,25 @@ export function buildGame({ v, S, call, persistBool }) {
   const applySpoilers = (on) => { if (typeof document !== 'undefined') document.documentElement.classList.toggle('zellous-spoilers', !!on); };
   applySpoilers(v('pref_spoilers', false));
   let stopEvents = null;
-  let stopRailEvents = [];
+  let stopRailEvents = null;
+  let railEventsKey = '';
   effect(() => {
     const sid = S.currentServerId && S.currentServerId.value;
-    const chans = (S.channels && S.channels.value) || [];
-    stopRailEvents.forEach((stop) => stop && stop());
-    stopRailEvents = [];
+    const ids = ((S.channels && S.channels.value) || []).filter((c) => c && c.id).map((c) => c.id);
+    const key = (sid || '') + '|' + ids.join(',');
+    if (key === railEventsKey) return;
+    railEventsKey = key;
+    if (stopRailEvents) stopRailEvents();
+    let cancelled = false;
+    let stop = null;
+    stopRailEvents = () => { cancelled = true; if (stop) stop(); };
     if (!S.serverEvents) return;
-    const lists = new Map();
-    const flush = () => {
-      const now = Date.now();
-      const recent = [...lists.values()].flat().filter((e) => e.start * 1000 > now - 3 * 3600e3);
-      S.serverEvents.value = { count: recent.length, live: recent.some((e) => e.start * 1000 <= now) };
-    };
-    chans.filter((c) => c && c.id).forEach((c) => {
-      subscribeChannelEvents(c.id, sid, (list) => { lists.set(c.id, list); flush(); }).then((stop) => { stopRailEvents.push(stop); });
-    });
     S.serverEvents.value = { count: 0, live: false };
+    subscribeServerEvents(ids, sid, (list) => {
+      const now = Date.now();
+      const recent = list.filter((e) => e.start > now - 3 * 3600e3);
+      S.serverEvents.value = { count: recent.length, live: recent.some((e) => e.start <= now) };
+    }).then((s) => { stop = s; if (cancelled) s(); });
   });
   const startEvents = () => {
     if (stopEvents) stopEvents();
