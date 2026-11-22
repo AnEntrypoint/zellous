@@ -9,6 +9,7 @@ import { rulesFor } from '../rules.js';
 import { subscribeSplitMessages } from '../split-feed.js';
 import { announcementsFor } from '../announcements.js';
 import { GAME_ROLES } from '../selfroles.js';
+import { savedList } from '../saved.js';
 
 const PREFS = [
   { key: 'compact', signal: 'pref_compact', store: 'zellous-pref-compact', def: false, radio: true },
@@ -169,6 +170,8 @@ export function buildGame({ v, S, call, persistBool }) {
         eventLive: v('serverEvents', { live: false }).live,
         myLevel: levelFor((window.state && window.state.chatMessages) || [], (window.state && window.state.nostrPubkey) || null).level,
         chatSearch: v('chatSearch', ''),
+        savedMessages: (v('savedVersion', 0), savedList()),
+        savedIds: savedList().map((x) => x.id),
         inboxTab: v('inboxTab', 'mentions'),
         mentions: (() => { const me = (window.state && window.state.nostrPubkey) || null; const name = me && window.chat ? window.chat.resolveProfile(me) : ''; if (!name) return []; const re = new RegExp('(^|\\s)@' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w.-])', 'i'); return ((window.state && window.state.chatMessages) || []).filter((m) => re.test(String(m.content || ''))).slice(-50).reverse().map((m) => ({ id: m.id, who: m.username || m.userId, text: m.content })); })(),
         mutedChannel: (v('mutedChannels', []) || []).includes((v('currentChannel', null) || {}).id),

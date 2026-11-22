@@ -1,5 +1,8 @@
 import { composerLock, LOCK_DM, resolveAuthor } from './frame.js';
 import { pollsFor } from '../polls.js';
+import { runCommand } from '../commands.js';
+import { toggleSaved } from '../saved.js';
+import { addReminder } from '../reminders.js';
 
 const nameOf = (pk) => (window.chat && window.chat.resolveProfile(pk)) || String(pk || '').slice(0, 8);
 
@@ -60,7 +63,10 @@ export function buildChat({ v, S, call }) {
       };
     },
     actions: {
-      send: (text, opts) => call(() => {
+      send: (raw, opts) => call(() => {
+        const cmd = runCommand(raw, nameOf(window.state.nostrPubkey));
+        if (cmd.notice) { window.ui.showToast(cmd.notice, 5000, 'info'); if (S.chatInputValue) S.chatInputValue.value = ''; return; }
+        const text = cmd.text;
         if (window.state.homeMode) {
           const peer = v('activeDmPeer', null);
           if (!peer) { window.ui.showToast(LOCK_DM.toast, 3500, 'error'); return; }
@@ -68,6 +74,8 @@ export function buildChat({ v, S, call }) {
           return;
         }
         return Promise.resolve(window.chat.send(text, opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
+      toggleSave: (item) => call(() => toggleSaved(item)),
+      remindMe: (minutes, item) => call(() => { addReminder(minutes, item); window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (minutes >= 1440 ? '1 day' : minutes >= 60 ? (minutes / 60) + ' hour' + (minutes > 60 ? 's' : '') : minutes + ' minutes')); }),
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),

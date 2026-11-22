@@ -111,23 +111,23 @@ ui.showFirstRunKeyNotice = function() {
   setTimeout(function() { var b = modal.querySelector('#frBackup'); if (b) b.focus(); }, 0);
 };
 
-const showInlineToast = (msg, duration) => {
+ui.showToast = function(msg, duration, tone, sub) {
   document.getElementById('uiToast')?.remove();
   const el = document.createElement('div');
   el.id = 'uiToast';
-  el.textContent = msg;
-  el.style.cssText = 'position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:var(--bg-2);color:var(--fg);padding:8px 18px;border-radius:6px;z-index:9999;font-size:14px;pointer-events:none;opacity:1;transition:opacity 0.3s';
-  document.body.appendChild(el);
-  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 350); }, duration || 2000);
-};
-
-ui.showToast = function(msg, duration, tone) {
-  const sdkToast = window.__sdk?.C?.toast;
-  if (typeof sdkToast === 'function') {
-    sdkToast({ message: String(msg), kind: tone || 'info', duration: duration || 3000 });
-    return;
+  el.className = 'ds-g3-toast' + (tone === 'error' ? ' error' : '');
+  el.setAttribute('role', tone === 'error' ? 'alert' : 'status');
+  const title = document.createElement('b');
+  title.textContent = String(msg);
+  el.appendChild(title);
+  if (sub) {
+    const line = document.createElement('span');
+    line.textContent = String(sub);
+    el.appendChild(line);
   }
-  showInlineToast(msg, duration);
+  el.addEventListener('click', () => el.remove());
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), duration || 3000);
 };
 
 window.__zellous.ui = ui;
