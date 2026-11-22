@@ -98,7 +98,6 @@ export function buildGame({ v, S, call, persistBool }) {
     if (!ev || !window.nostrEvents) return;
     return window.nostrEvents.delete(ev).catch((e) => { if (window.ui && window.ui.showToast) window.ui.showToast('Cancel failed: ' + ((e && e.message) || 'unknown'), 3000, 'error'); });
   };
-  const startPolls = () => { for (const p of pollsFor(v('chatMessages', []))) { if (window.nostrPolls) window.nostrPolls.subscribe(p.id); } };
   const votePoll = (id, i) => {
     const p = pollsFor(v('chatMessages', [])).find((x) => x.id === id);
     if (!p || !window.nostrPolls) return;
@@ -194,7 +193,7 @@ export function buildGame({ v, S, call, persistBool }) {
       openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
       closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
       explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
-      openSurface: (name) => call(() => { if (name === 'announcements') return goToChannel('announcements'); if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'pins') startPins(); if (name === 'polls') startPolls(); if (name === 'pick-roles') startSelfRoles(); }),
+      openSurface: (name) => call(() => { if (name === 'announcements') return goToChannel('announcements'); if (S.gameSurface) S.gameSurface.value = name; if (name === 'events') startEvents(); if (name === 'pins') startPins();  if (name === 'pick-roles') startSelfRoles(); }),
       pinMessage: (id) => call(() => pinMessage(id)),
       toggleSelfRole: (id) => call(() => toggleSelfRole(id)),
       goToGeneral: () => call(() => goToGeneral()),

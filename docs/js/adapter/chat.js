@@ -1,4 +1,5 @@
 import { composerLock, LOCK_DM, resolveAuthor } from './frame.js';
+import { pollsFor } from '../polls.js';
 
 export function buildChat({ v, S, call }) {
   return {
@@ -13,7 +14,12 @@ export function buildChat({ v, S, call }) {
         composerLockedReason: lock ? lock.reason : '',
         messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).filter((m) => !v('chatSearch', '') || String(m.content || '').toLowerCase().includes(String(v('chatSearch', '')).toLowerCase())).map((m) => {
           const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
-          return rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;
+          const base = rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;
+          const p = pollsFor([m])[0];
+          if (!p || !window.nostrPolls) return base;
+          const t = window.nostrPolls.tally(p.id, p.options.length);
+          window.nostrPolls.subscribe(p.id);
+          return { ...base, poll: { id: p.id, question: p.question, options: p.options, counts: t.counts, total: t.total, mine: t.mine } };
         }),
         chatInputValue: v('chatInputValue', ''),
         replyTarget: v('replyTarget', null),
