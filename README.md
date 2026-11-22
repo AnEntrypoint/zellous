@@ -55,7 +55,7 @@ tradeoffs, disclosed here rather than left implicit:
   UI and publishes directly against the relay's own event-rate limits.
 - **The protocol layer and UI kit are loaded live from jsdelivr's GitHub CDN,
   with no vendored copy and no submodule.** wireweave is pinned to commit
-  `63dd3ea954d5b68217e654b115f362800ba709d0` (`cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@<sha>`),
+  `4f03e8e9975fa37143f7f40bb9f645d487f770a8` (`cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@<sha>`),
   so a wireweave push does not change this app until the pin is bumped. The UI kit
   (`cdn.jsdelivr.net/gh/AnEntrypoint/design@main`) tracks its `main` branch, so a
   design push changes this app on its next page load. The UI kit's own runtime code
