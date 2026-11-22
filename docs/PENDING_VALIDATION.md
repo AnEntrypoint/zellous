@@ -1181,3 +1181,13 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - Composer and voice tile: not re-measured in this pass; last measured values in entries 157 and 158 (unchanged CSS since).
     - Home People here rows: row metrics measured in entry 156; the avatar and activity changes above apply to them.
     - Remaining differences: none measured in this pass. Relay message counters count received and sent messages per relay; game-3 has no counterpart, so there is no game-3 value to match.
+
+167. Colour audit against test.html (zellous 39a96c8 plus the re-pin below, design a414167)
+    - Before the fixes: 4 mismatches among the 10 region pairs (topbar, rail, side, main, mem, box, mrow, me, comp, ch) on background, text colour and shadow.
+      1. Top bar text colour: ref rgb(242,243,245), ours rgb(219,222,225). Fixed.
+      2. Top bar shadow: ref layers #1f2023, #232428, #26272b; ours #26272b, #2b2d31, #2f3136. Fixed.
+      3. Server rail background: ref rgb(30,31,34), ours rgb(23,23,23). Fixed.
+      4. Server rail text colour: ref rgb(219,222,225), ours rgb(250,250,250). Fixed.
+    - After the fixes: 0 mismatches among the 10 region pairs, and 0 among 35 more game-3 regions (ca-rail-servers, ca-rail-home, ca-rail-sep, ca-rail-channels, group, ds-g3-me, ds-g3-mebtn, ds-g3-mentext, ds-g3-ibtn, ds-g3-rail-lv, ds-g3-sep2, ds-g3-splitsel, ds-g3-srch, ca-right-body, app-main, ds-chat-title, sub, ds-g3-msg, ds-g3-who, ds-g3-when, ds-g3-tx, ds-g3-comp, ds-g3-box, ds-g3-plus, ds-g3-file, ds-g3-compbtn, ds-g3-typ, ds-g3-mem, ds-g3-mcat, ds-g3-mrow, ds-g3-mdot, ds-g3-mbody, ds-g3-msuffix, ds-g3-msub, ds-g3-mav). Compared: background and text colour.
+    - Not covered: border colour and box-shadow for these 35 except the top bar; test.html's legacy zellous classes (modal-box, modal-input, settings-popover, ctrl-row, toggle-switch, video-playback, context menus) have no game-3 counterpart in the design and were not compared; game-3 avatar and name colours in test.html are sample data (ds-g3-av, ds-g3-meav, ds-g3-nm gold) and differ by design.
+    - Remaining mismatch count with full coverage: not established. The audit is 45 region pairs, not every element.
