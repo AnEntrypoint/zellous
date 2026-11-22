@@ -199,6 +199,7 @@ export default {
     '../docs/vendor': 'vendor',
     '../docs/css': 'css',
     '../docs/js': 'js',
+    '../docs/assets': 'assets',
     '../docs/msgpackr.min.js': 'msgpackr.min.js',
   },
   render: async (ctx) => {

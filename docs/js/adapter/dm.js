@@ -1,19 +1,38 @@
+const READ_KEY = 'zellous-dm-read';
+
+const readMap = () => { try { return JSON.parse(localStorage.getItem(READ_KEY) || '{}'); } catch (_) { return {}; } };
+
+const markRead = (peer, bump) => {
+  if (!peer) return;
+  const map = readMap();
+  map[peer] = Date.now();
+  try { localStorage.setItem(READ_KEY, JSON.stringify(map)); } catch (_) {}
+  bump();
+};
+
 export function dmSnapshot(v) {
   const peerName = (pk) => (window.chat && window.chat.resolveProfile(pk)) || pk.slice(0, 8);
   const all = v('dmMessages', []);
   const byPeer = new Map();
   for (const m of all) {
     const e = byPeer.get(m.peer);
-    if (!e || m.timestamp > e.timestamp) byPeer.set(m.peer, { peer: m.peer, timestamp: m.timestamp, preview: m.text });
+    if (!e || m.timestamp > e.timestamp) byPeer.set(m.peer, { peer: m.peer, timestamp: m.timestamp, preview: m.text, unread: 0 });
+  }
+  v('dmReadVersion', 0);
+  const readAt = readMap();
+  const active0 = v('activeDmPeer', null);
+  for (const m of all) {
+    const e = byPeer.get(m.peer);
+    if (e && !m.mine && m.peer !== active0 && m.timestamp > (readAt[m.peer] || 0)) e.unread += 1;
   }
   const active = v('activeDmPeer', null);
   if (active && !byPeer.has(active)) byPeer.set(active, { peer: active, timestamp: Date.now(), preview: '' });
   const conversations = [...byPeer.values()].sort((a, b) => b.timestamp - a.timestamp)
-    .map((c) => ({ id: c.peer, name: peerName(c.peer), preview: c.preview, color: (window.getAvatarColor && window.getAvatarColor(c.peer)) || 'var(--accent)' }));
+    .map((c) => ({ id: c.peer, name: peerName(c.peer), preview: c.preview, unread: c.unread || 0, status: window.nostrPresence ? window.nostrPresence.statusOf(c.peer).status : 'online', color: (window.getAvatarColor && window.getAvatarColor(c.peer)) || 'var(--accent)' }));
   return {
     conversations,
     currentChannel: { id: 'dm:' + (active || ''), name: active ? peerName(active) : 'Direct messages', type: 'text', topic: active ? '' : 'Pick a conversation or start a new one' },
-    messages: active ? all.filter((m) => m.peer === active).map((m) => ({ id: m.id, userId: m.from, timestamp: m.timestamp, content: m.text, type: 'text' })) : [],
+    messages: active ? all.filter((m) => m.peer === active).map((m) => ({ id: m.id, userId: m.from, timestamp: m.timestamp, content: m.text, type: 'text', ...(m.send ? { send: m.send } : {}) })) : [],
   };
 }
 
@@ -44,7 +63,12 @@ export function buildDmHome({ v, S, call }) {
     }),
     actions: {
       newDm: () => call(() => window.channelManager.showNewDmModal()),
-      selectDm: (peer) => call(() => { if (S.activeDmPeer) S.activeDmPeer.value = peer; }),
+      selectDm: (peer) => call(() => {
+        const bump = () => { if (S.dmReadVersion) S.dmReadVersion.value += 1; };
+        markRead(v('activeDmPeer', null), () => {});
+        markRead(peer, bump);
+        if (S.activeDmPeer) S.activeDmPeer.value = peer;
+      }),
     },
   };
 }

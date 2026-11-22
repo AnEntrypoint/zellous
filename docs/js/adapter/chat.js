@@ -1,6 +1,7 @@
 import { composerLock, LOCK_DM, resolveAuthor } from './frame.js';
 import { pollsFor } from '../polls.js';
 import { runCommand } from '../commands.js';
+import { unfurlText } from '../unfurl.js';
 import { toggleSaved } from '../saved.js';
 import { addReminder } from '../reminders.js';
 
@@ -39,6 +40,7 @@ export function buildChat({ v, S, call }) {
           : '',
         pageUpdatedAt: pageData ? pageData.updatedAt : 0,
         composerLockedReason: lock ? lock.reason : '',
+        stickerBase: new URL('../assets/stickers/', location.href).href,
         newAt: curr && window.nostrUnread ? window.nostrUnread.boundaryFor(curr.id) : null,
         messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).filter((m) => !v('chatSearch', '') || String(m.content || '').toLowerCase().includes(String(v('chatSearch', '')).toLowerCase())).map((m) => {
           const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
@@ -73,8 +75,8 @@ export function buildChat({ v, S, call }) {
           window.dm.send(peer, text).then(() => { if (S.chatInputValue) S.chatInputValue.value = ''; }, (e) => window.ui.showToast('Could not send: ' + (e && e.message || 'unknown'), 4000, 'error'));
           return;
         }
-        return Promise.resolve(window.chat.send(text, opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
-      retrySend: (id) => call(() => window.chat.retrySend(id)),
+        return unfurlText(text).then((previews) => window.chat.send(text, previews.length ? { ...opts, previews } : opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
+      retrySend: (id) => call(() => (window.state.homeMode ? window.dm.retry(id) : window.chat.retrySend(id))),
       toggleSave: (item) => call(() => toggleSaved(item)),
       remindMe: (minutes, item) => call(() => { addReminder(minutes, item); window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (minutes >= 1440 ? '1 day' : minutes >= 60 ? (minutes / 60) + ' hour' + (minutes > 60 ? 's' : '') : minutes + ' minutes')); }),
       setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },

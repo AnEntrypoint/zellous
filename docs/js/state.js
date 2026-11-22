@@ -126,7 +126,7 @@ const state = {
   splitMessages: signal([]),
   settingsAnchor: signal({ x: 0, y: 0 }),
 
-  themePref: signal(typeof localStorage !== 'undefined' && localStorage.getItem('zellous-theme') === 'light' ? 'light' : 'ink'),
+  themePref: signal(typeof localStorage === 'undefined' ? 'ink' : localStorage.getItem('zellous-theme') === 'light' ? 'light' : (localStorage.getItem('zellous-g3-theme') || 'ink')),
   notificationsEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-notifications') !== '0' : true),
   roleColorsEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-role-colors') !== '0' : true),
   messagePreviewEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-message-preview') !== '0' : true),
@@ -192,6 +192,7 @@ const state = {
   forumVersion: signal(0),
   reactionsVersion: signal(0),
   savedVersion: signal(0),
+  dmReadVersion: signal(0),
   unreadVersion: signal(0),
   profilesVersion: signal(0),
   voiceListenOnly: signal(false),

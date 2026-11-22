@@ -6,7 +6,7 @@ export function buildSettings({ v, S, call, applyTheme, persistBool }) {
       settingsSections: [{
         title: 'Preferences',
         rows: [
-          { label: 'Theme', kind: 'select', value: v('themePref', 'ink'), options: [{ value: 'ink', label: 'Dark' }, { value: 'light', label: 'Light' }], onChange: applyTheme },
+          { label: 'Theme', kind: 'select', value: v('themePref', 'ink'), options: [{ value: 'ink', label: 'Dark' }, { value: 'ash', label: 'Ash' }, { value: 'onyx', label: 'Onyx' }, { value: 'light', label: 'Light' }], onChange: applyTheme },
           { label: 'Notifications', kind: 'toggle', value: v('notificationsEnabled', true), onChange: (val) => persistBool('notificationsEnabled', 'zellous-notifications', val) },
           { label: 'Message preview', kind: 'toggle', value: v('messagePreviewEnabled', true), onChange: (val) => persistBool('messagePreviewEnabled', 'zellous-message-preview', val) },
           { label: 'Sound', kind: 'toggle', value: v('soundEnabled', true), onChange: (val) => persistBool('soundEnabled', 'zellous-sound', val) },
@@ -29,6 +29,7 @@ export function buildSettings({ v, S, call, applyTheme, persistBool }) {
       }],
     }),
     actions: {
+      setTheme: (t) => call(() => applyTheme(t)),
       openSettings: () => call(() => {
         const gear = document.querySelector('.cm-user-controls .cm-user-btn[aria-label="Settings"]');
         if (gear && S.settingsAnchor) {

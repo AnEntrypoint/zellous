@@ -172,6 +172,7 @@ export function buildGame({ v, S, call, persistBool }) {
         eventLive: v('serverEvents', { live: false }).live,
         myLevel: levelFor((window.state && window.state.chatMessages) || [], (window.state && window.state.nostrPubkey) || null).level,
         chatSearch: v('chatSearch', ''),
+        themePref: v('themePref', 'ink'),
         savedMessages: (v('savedVersion', 0), savedList()),
         savedIds: savedList().map((x) => x.id),
         inboxTab: v('inboxTab', 'mentions'),
