@@ -177,6 +177,7 @@ const state = {
   selfRolesVersion: signal(0),
   gamePrefTab: signal('account'),
   serverEvents: signal({ count: 0, live: false }),
+  presenceVersion: signal(0),
   chatSearch: signal(''),
   inboxTab: signal('mentions'),
   voiceVideos: signal({}),

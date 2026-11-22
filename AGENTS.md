@@ -4,7 +4,7 @@ For the architecture reference read `CLAUDE.md` first; this file adds operationa
 
 ## Repo shape
 
-Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded from the `AnEntrypoint/wireweave` GitHub repo through jsdelivr's `/gh/` CDN and the injected importmap, **pinned to commit `5246ea8e5c93ac8b0dbe9e276499bbf38bdb03a7`**. No vendored copy, no submodule, no npm/unpkg dependency. Window globals are published by `docs/js/bridge/*.js`, run in order by `docs/js/wireweave-bridge.js`. No backend and no build for the app; `flatspace.config.mjs` and `site/` only build the marketing landing into `dist/`.
+Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded from the `AnEntrypoint/wireweave` GitHub repo through jsdelivr's `/gh/` CDN and the injected importmap, **pinned to commit `86db66fb50b7cc31ea879c87ced22c74b99a51d8`**. No vendored copy, no submodule, no npm/unpkg dependency. Window globals are published by `docs/js/bridge/*.js`, run in order by `docs/js/wireweave-bridge.js`. No backend and no build for the app; `flatspace.config.mjs` and `site/` only build the marketing landing into `dist/`.
 
 ## What to edit
 
@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@5246ea8e5c93ac8b0dbe9e276499bbf38bdb03a7/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@86db66fb50b7cc31ea879c87ced22c74b99a51d8/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 

@@ -79,6 +79,7 @@ export function installChat(ww) {
     state.roomMembers = Array.from(lastSeen.entries()).map(([id, ts]) => ({
       id, username: chat.resolveProfile(id), online: (now - ts) <= ONLINE_WINDOW_MS
     }));
+    if (window.nostrPresence) window.nostrPresence.subscribe(state.roomMembers.map((m) => m.id));
   }
   window.chat = {
     get activeChannelId() { return chat.activeChannelId; },

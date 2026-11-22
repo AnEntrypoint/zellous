@@ -16,7 +16,7 @@ const uiMembers = {
       color: roleColor[getRole(m.id)] || (window.getAvatarColor ? window.getAvatarColor(m.id) : null),
       nameColor: state.roleColorsEnabled !== false ? (selfColor(m.id) || roleColor[getRole(m.id)] || null) : null,
       suffix: getRole(m.id) === 'owner' ? 'owner' : null,
-      status: m.online !== false ? 'online' : 'offline',
+      status: (() => { const st = window.nostrPresence ? window.nostrPresence.statusOf(m.id).status : 'online'; return m.online === false || st === 'invisible' ? 'offline' : st; })(),
       activity: m.id === state.nostrPubkey && state.voiceConnected && state.voiceChannelName ? '🔊 in ' + state.voiceChannelName : ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name ? 'Playing ' + ((state.servers || []).find((x) => x && x.id === state.currentServerId) || {}).name : '',
     });
 
