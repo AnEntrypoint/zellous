@@ -41,6 +41,7 @@ export function buildChat({ v, S, call }) {
         pageUpdatedAt: pageData ? pageData.updatedAt : 0,
         composerLockedReason: lock ? lock.reason : '',
         composerLockedNope: !!(lock && lock.permission),
+        typingUsers: (window.chat && window.chat.typingPubkeys ? window.chat.typingPubkeys() : []).map((pk) => nameOf(pk)),
         stickerBase: new URL('../assets/stickers/', location.href).href,
         newAt: curr && window.nostrUnread ? window.nostrUnread.boundaryFor(curr.id) : null,
         messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).filter((m) => !v('chatSearch', '') || String(m.content || '').toLowerCase().includes(String(v('chatSearch', '')).toLowerCase())).map((m) => {
@@ -80,7 +81,7 @@ export function buildChat({ v, S, call }) {
       retrySend: (id) => call(() => (window.state.homeMode ? window.dm.retry(id) : window.chat.retrySend(id))),
       toggleSave: (item) => call(() => toggleSaved(item)),
       remindMe: (minutes, item) => call(() => { addReminder(minutes, item); window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (minutes >= 1440 ? '1 day' : minutes >= 60 ? (minutes / 60) + ' hour' + (minutes > 60 ? 's' : '') : minutes + ' minutes')); }),
-      setInput: (val) => { if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
+      setInput: (val) => { if (val && window.chat && window.chat.sendTyping) window.chat.sendTyping(); if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
       deleteMessage: (id) => call(async () => {

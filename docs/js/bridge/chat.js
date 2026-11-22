@@ -55,6 +55,7 @@ export function installChat(ww) {
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
     _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all();
   }, 60000);
+  chat.addEventListener('typing', () => { state.typingVersion = (state.typingVersion || 0) + 1; });
   chat.addEventListener('profile', () => { state.profilesVersion = (state.profilesVersion || 0) + 1; _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all(); });
   chat.addEventListener('rate-limited', (e) => {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
@@ -104,6 +105,8 @@ export function installChat(ww) {
     deleteMessage: (id) => chat.deleteMessage(id),
     editMessage() { if (window.ui?.showToast) ui.showToast('Nostr messages cannot be edited'); },
     resolveProfile: (pk) => chat.resolveProfile(pk),
+    typingPubkeys: () => chat.typingPubkeys(),
+    sendTyping: () => chat.sendTyping(),
     updateProfile: (pk, p) => chat.updateProfile(pk, p),
     handleTextMessage(m) { chat._addMessage(m); },
     handleImageMessage() {}, handleFileShared() {}

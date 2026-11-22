@@ -191,6 +191,7 @@ const state = {
   pref_banner: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('zellous-pref-banner') || '' : ''),
   forumVersion: signal(0),
   reactionsVersion: signal(0),
+  typingVersion: signal(0),
   savedVersion: signal(0),
   dmReadVersion: signal(0),
   unreadVersion: signal(0),
