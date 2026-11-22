@@ -10,7 +10,7 @@
     paper:  '#EFE9DD',
   };
   const ROLE_COLOR = {
-    owner:     PALETTE.sun,
+    owner:     '#f0b232',
     admin:     PALETTE.sky,
     moderator: PALETTE.green,
   };
