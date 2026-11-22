@@ -1083,3 +1083,8 @@ The live game-3 HUD cannot be reached by any automated tool: the game refuses an
     - topbar: matched except Catch me up (absent by decision, out of scope).
     - developer mode: panel and reset-local-state built (entries 153, 154). Open: event log filter, channel and member inspector, relay message counters, each as its own toggle under Advanced.
     - out of scope per owner: Catch me up, ArrowUp witness, signed-in live site, video tile witness.
+
+156. Home: People here list (design 4a7486c, 54943c6)
+    - Replaces the home DM list in the main body: header (People here, everyone in <server> right now), Online count heading, rows with avatar, presence dot, name, activity and a round message button that opens the DM.
+    - Witness (production path, local design build): home opens the People root; with only the owner online the empty state Only you for now. shows (room has one member). Injected sample row, computed style: row padding 10px 8px, gap 12px, border-top 1px rgb(63,65,71), radius 8px, avatar 32px circle, name 600 rgb(242,243,245) 16px, heading 12px uppercase rgb(181,186,193), body padding 16px 24px all match test.html .prow/.home; message button 40px before the fix, 36px after (test.html .msg 36px #2b2d31).
+    - Remaining difference: the message glyph is the design forum icon (no chat-bubble icon in the kit); activity text uses the custom status or Zellous, game-3 uses its activity() helper.
