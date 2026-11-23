@@ -17,3 +17,15 @@ export const leaderboardFor = (messages) => {
   (messages || []).forEach((m) => { if (m && m.userId) counts.set(m.userId, (counts.get(m.userId) || 0) + 1); });
   return Array.from(counts, ([id, n]) => ({ id, ...progressFor(n * XP_PER_MESSAGE) })).sort((a, b) => b.xp - a.xp);
 };
+
+export const statsFor = (messages) => {
+  const stats = {};
+  (messages || []).forEach((m) => {
+    if (!m || !m.userId) return;
+    const row = stats[m.userId] || (stats[m.userId] = { count: 0, firstSeen: 0 });
+    row.count += 1;
+    if (m.timestamp && (!row.firstSeen || m.timestamp < row.firstSeen)) row.firstSeen = m.timestamp;
+  });
+  Object.values(stats).forEach((row) => { row.level = progressFor(row.count * XP_PER_MESSAGE).level; row.xp = row.count * XP_PER_MESSAGE; });
+  return stats;
+};

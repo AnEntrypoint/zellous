@@ -31,6 +31,13 @@ const membershipView = (m, base) => {
 };
 
 export function buildChat({ v, S, call }) {
+  const drafts = new Map();
+  const draftKey = () => (window.state.homeMode ? 'dm:' + (v('activeDmPeer', null) || '') : 'ch:' + ((v('currentChannel', null) || {}).id || ''));
+  const setDraft = (key, val) => { if (val) drafts.set(key, val); else drafts.delete(key); if (key === draftKey() && S.chatInputValue) S.chatInputValue.value = val; };
+  const reminderOrigin = () => {
+    const ch = window.state.homeMode ? null : v('currentChannel', null);
+    return ch && ch.id ? { channelId: ch.id, channelName: ch.name, serverId: window.state.currentServerId } : {};
+  };
   return {
     snapshot(f) {
       const { dm, curr, pageData, lock } = f;
@@ -42,12 +49,18 @@ export function buildChat({ v, S, call }) {
         pageUpdatedAt: pageData ? pageData.updatedAt : 0,
         composerLockedReason: lock ? lock.reason : '',
         composerLockedNope: !!(lock && lock.permission),
-        typingUsers: (window.chat && window.chat.typingPubkeys ? window.chat.typingPubkeys() : []).map((pk) => nameOf(pk)),
+        typingUsers: dm ? [] : (window.chat && window.chat.typingPubkeys ? window.chat.typingPubkeys() : []).map((pk) => nameOf(pk)),
         stickerBase: new URL('../assets/stickers/', location.href).href,
         newAt: curr && window.nostrUnread ? window.nostrUnread.boundaryFor(curr.id) : null,
+        recap: (() => {
+          const since = curr && window.nostrUnread ? window.nostrUnread.boundaryFor(curr.id) : null;
+          if (!since || dm) return [];
+          const me = window.state && window.state.nostrPubkey;
+          return ((window.chat && window.chat.messages) || []).filter((m) => m.type !== 'system' && m.userId !== me && m.timestamp / 1000 > since).slice(-20).map((m) => ({ id: m.id, name: nameOf(m.userId), content: m.content }));
+        })(),
         messages: (dm ? dm.messages : ((window.chat && window.chat.messages) || v('chatMessages', []))).filter((m) => !v('chatSearch', '') || String(m.content || '').toLowerCase().includes(String(v('chatSearch', '')).toLowerCase())).map((m) => {
           const rx = window.nostrReactions && m.id ? window.nostrReactions.getFor(m.id) : [];
-          const base = rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine })) } : m;
+          const base = rx.length ? { ...m, reactions: rx.map((r) => ({ emoji: r.content, count: r.count, you: r.mine, users: r.users })) } : m;
           const mv = membershipView(m, base);
           if (mv) return mv;
           const p = pollsFor([m])[0];
@@ -56,7 +69,7 @@ export function buildChat({ v, S, call }) {
           window.nostrPolls.subscribe(p.id);
           return { ...base, poll: { id: p.id, question: p.question, options: p.options, counts: t.counts, total: t.total, mine: t.mine } };
         }),
-        chatInputValue: v('chatInputValue', ''),
+        chatInputValue: (v('chatInputValue', ''), drafts.get(draftKey()) || ''),
         replyTarget: v('replyTarget', null),
         threadPanelOpen: v('threadPanelOpen', false),
         activeThreadId: v('activeThreadId', null),
@@ -66,27 +79,43 @@ export function buildChat({ v, S, call }) {
     },
     actions: {
       send: (raw, opts) => call(() => {
-        const cmd = runCommand(raw, nameOf(window.state.nostrPubkey));
-        if (cmd.notice) { window.ui.showToast(cmd.notice, 5000, 'info'); if (S.chatInputValue) S.chatInputValue.value = ''; return; }
+        const key = draftKey();
+        const st = window.state;
+        const cmd = runCommand(raw, nameOf(st.nostrPubkey), {
+          messages: window.chat ? window.chat.messages : [],
+          pubkey: st.nostrPubkey,
+          nameOf,
+          servers: st.servers || [],
+          currentServerId: st.currentServerId,
+          inviteContent: (sv) => window.nostrMembership.inviteContent(sv.id, sv.name, sv.iconColor),
+        });
+        if (cmd.notice) { window.ui.showToast(cmd.notice, 5000, 'info'); setDraft(key, ''); return; }
+        if (cmd.remind) {
+          addReminder(cmd.remind.minutes, { text: cmd.remind.text, ...reminderOrigin() });
+          const mins = cmd.remind.minutes;
+          window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (mins >= 60 ? Math.round(mins / 60) + ' h' : mins >= 1 ? Math.round(mins) + ' min' : Math.round(mins * 60) + ' s'));
+          setDraft(key, '');
+          return;
+        }
         const text = cmd.text;
         if (window.state.homeMode) {
           const peer = v('activeDmPeer', null);
           if (!peer) { window.ui.showToast(LOCK_DM.toast, 3500, 'error'); return; }
-          window.dm.send(peer, text).then(() => { if (S.chatInputValue) S.chatInputValue.value = ''; }, (e) => window.ui.showToast('Could not send: ' + (e && e.message || 'unknown'), 4000, 'error'));
+          window.dm.send(peer, text).then(() => setDraft(key, ''), (e) => window.ui.showToast('Could not send: ' + (e && e.message || 'unknown'), 4000, 'error'));
           return;
         }
-        return unfurlText(text).then((previews) => window.chat.send(text, previews.length ? { ...opts, previews } : opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; if (S.chatInputValue) S.chatInputValue.value = ''; else if (window.state) window.state.chatInputValue = ''; }); }),
+        return unfurlText(text).then((previews) => window.chat.send(text, previews.length ? { ...opts, previews } : opts)).then(() => { if (S.replyTarget) S.replyTarget.value = null; setDraft(key, ''); }); }),
       retrySend: (id) => call(() => (window.state.homeMode ? window.dm.retry(id) : window.chat.retrySend(id))),
       toggleSave: (item) => call(() => toggleSaved(item)),
-      markChannelRead: () => call(() => window.nostrUnread.markRead(window.state.currentChannel.id)),
+      markChannelRead: () => call(() => { const cur = window.state.currentChannel; if (cur) window.nostrUnread.markRead(cur.id); }),
       markUnread: (id) => call(() => {
         const list = (window.chat && window.chat.messages) || [];
         const i = list.findIndex((m) => m.id === id);
         const prev = i > 0 ? list[i - 1] : null;
         window.nostrUnread.markUnread(window.state.currentChannel.id, prev ? Math.floor(prev.timestamp / 1000) : 0);
       }),
-      remindMe: (minutes, item) => call(() => { addReminder(minutes, item); window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (minutes >= 1440 ? '1 day' : minutes >= 60 ? (minutes / 60) + ' hour' + (minutes > 60 ? 's' : '') : minutes + ' minutes')); }),
-      setInput: (val) => { if (val && window.chat && window.chat.sendTyping) window.chat.sendTyping(); if (S.chatInputValue) S.chatInputValue.value = val; else if (window.state) window.state.chatInputValue = val; },
+      remindMe: (minutes, item) => call(() => { addReminder(minutes, { ...reminderOrigin(), ...item }); window.ui.showToast('Reminder set', 3000, 'info', 'in ' + (minutes >= 1440 ? '1 day' : minutes >= 60 ? (minutes / 60) + ' hour' + (minutes > 60 ? 's' : '') : minutes + ' minutes')); }),
+      setInput: (val) => { if (val && !window.state.homeMode && window.chat && window.chat.sendTyping) window.chat.sendTyping(); setDraft(draftKey(), val); },
       startReply: (msg) => call(() => { if (S.replyTarget) S.replyTarget.value = msg; }),
       cancelReply: () => call(() => { if (S.replyTarget) S.replyTarget.value = null; }),
       deleteMessage: (id) => call(async () => {
@@ -106,9 +135,7 @@ export function buildChat({ v, S, call }) {
         const lock = composerLock(v);
         if (lock) { window.ui.showToast(lock.toast, 3000, 'error'); return; }
         if (window.state.homeMode) { window.ui.showToast('Attachments are not supported in direct messages yet', 3500, 'error'); return; }
-        for (const file of files) {
-          window.chat.sendImage(file);
-        }
+        return Promise.all(Array.from(files).map((file) => window.chat.sendImage(file)));
       }),
       openThread: (id) => call(() => window.__zellous.threads && window.__zellous.threads.select(id)),
       selectThread: (id) => call(() => window.__zellous.threads && window.__zellous.threads.select(id)),

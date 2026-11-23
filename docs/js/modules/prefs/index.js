@@ -20,7 +20,7 @@ const PREFS = [
   { key: 'devinspect', signal: 'pref_devinspect', store: 'zellous-pref-devinspect', def: false, label: 'Channel and member inspector', hint: 'channel and member ids with their status' },
 ];
 
-const PREF_GROUP = { rolecolors: 'access', motion: 'access', ulinks: 'access', sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', embeds: 'media', jumbo: 'media', spoilers: 'media', h24: 'lang', devmode: 'adv', devevents: 'adv', devinspect: 'adv', devtraffic: 'adv' };
+const PREF_GROUP = { rolecolors: 'access', motion: 'access', ulinks: 'access', sound: 'notif', mentionsonly: 'notif', vcsounds: 'voice', sbsounds: 'voice', previews: 'media', embeds: 'media', jumbo: 'media', spoilers: 'media', h24: 'lang', devmode: 'adv', devevents: 'adv', devinspect: 'adv', devtraffic: 'adv' };
 
 const ROOT_CLASS = { motion: 'zellous-motion-reduced', ulinks: 'zellous-ulinks', spoilers: 'zellous-spoilers' };
 const rootClassPrefs = PREFS.filter((p) => ROOT_CLASS[p.key]);

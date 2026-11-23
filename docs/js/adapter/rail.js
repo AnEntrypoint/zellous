@@ -18,7 +18,9 @@ export function buildRail({ v, S, call }) {
       const unreadCounts = f.unreadCounts;
       const live = v('channels', []) || [];
       if (f.sid && live.length) knownChannels[f.sid] = live.filter((c) => c && trait(c.type, 'inRail'));
-      const withUnread = (list) => list.map((c) => ({ ...c, unreadCount: unreadCounts[c.id] || 0 }));
+      const pingCounts = (window.nostrUnread && window.nostrUnread.pingsFor) ? window.nostrUnread.pingsFor() : {};
+      const muted = v('mutedChannels', []) || [];
+      const withUnread = (list) => list.map((c) => ({ ...c, unreadCount: unreadCounts[c.id] || 0, pingCount: pingCounts[c.id] || 0, muted: muted.includes(c.id) }));
       return {
         channels: f.dm ? [] : withUnread([...v('channels', []).filter((c) => c && trait(c.type, 'inRail')), ...pageChannels()]),
         knownChannels: Object.entries(knownChannels).flatMap(([serverId, list]) => list.map((c) => ({ ...c, serverId }))),

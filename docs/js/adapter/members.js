@@ -1,5 +1,5 @@
 import { trait } from '../modules/registry.js';
-import { levelFor } from '../xp.js';
+import { levelFor, statsFor } from '../xp.js';
 
 export function buildMembers({ v, call }) {
   return {
@@ -7,6 +7,7 @@ export function buildMembers({ v, call }) {
       memberCategories: (window.__zellous.uiMembers && window.__zellous.uiMembers.categories && window.__zellous.uiMembers.categories()) || [],
       memberApps: [{ identity: 'mustardbot', name: 'MustardBot', color: '#5865f2', activity: '/help · @MustardBot' }],
       memberListOpen: v('memberListOpen', false) && !v('homeMode', false) && trait((v('currentChannel', {}) || {}).type, 'members') !== false,
+      memberStats: statsFor(v('chatMessages', [])),
       ...levelFor(v('chatMessages', []), window.state && window.state.nostrPubkey),
     }),
     actions: {

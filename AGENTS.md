@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@39ec9b781beedd464cb1188b914508592fa06f2a/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@314df867dd25cc34972a252e76d86743732e4228/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -100,7 +100,7 @@ Manifest: `{ id, kind, <kind>: {...}, setup(ctx) -> { snapshot, actions } }`. Id
 
 Registered modules, zellous (25, from `window.zModules.moduleList()`):
 - channelType: `type-text`, `type-announcement`, `type-voice`, `type-threaded`, `type-forum`, `type-page` (the built-in channel kinds); `hello-room` (documented toy, copy it to start).
-- service: `prefs` (settings toggles, mute), `devpanel` (developer info, local reset), `presence` (own status), `soundboard`, `xp` (level, leaderboard), `surfaces` (open and close surfaces), `events`, `split`, `pins` (pins and announcements), `polls`, `selfroles` (rules and roles), `inbox` (unread, saved, mentions, search), `servers` (create, discover, invites, leave), `servers-discovery` (Discovery settings pane data, promote, remove, listings), `sharesies` (live terminal sessions), `voice-thread`, `voice-room` (voice rooms and push to talk), `share-web` (page and screen sharing).
+- service: `prefs` (settings toggles, mute), `devpanel` (developer info, local reset), `presence` (own status), `soundboard`, `xp` (level, leaderboard), `surfaces` (open and close surfaces), `events`, `split`, `pins` (pins and announcements), `polls`, `selfroles` (rules and roles), `inbox` (unread, saved, mentions, search), `servers` (create, discover, invites, leave), `servers-discovery` (Discovery settings pane data, promote, remove, listings), `sharesies` (live terminal sessions), `voice-thread`, `voice-room` (voice rooms and push to talk), `voice-rooms` (rail occupants, shared soundboard plays and the synthesised lofi radio over wireweave `voice-rooms`: one batched `#d` REQ per server, kind 30078 d `zellous-voice|sound|radio:<roomId>`; talking rings and the mic-off icon reach outsiders only as the explicit mute flag in presence), `share-web` (page and screen sharing).
 
 Registered modules, design (from `src/modules/index.js`):
 - channelType: `type-*` x6 (builtin), `hello-room`, `voice-thread`.
@@ -258,6 +258,8 @@ The voice-thread clip filter lives in wireweave `src/vad/`: rnnoise voice score,
 Acceptance bar (owner, redefined): hot-mic classes (fan, breathing, keyboard, mouse click, silence and room tone) at most 2% kept, reported per class and pooled; speech at least 95% kept including short and noisy speech, scored on a split never scored before; cough passes as human sound and music is out of scope for a microphone (owner decision 2026-11-23): their numbers are reported, with no ceiling.
 
 Committed constants: start 0.6, stop 0.4, voiced frame score 0.95, hangover 1000 ms, pre-roll 200 ms, minimum voiced 300 ms, minimum voiced ratio 0.5, minimum mean voiced energy -42 dB (denoised), minimum energy std 7 dB, at least 2.5 energy peaks per second, periodic ratio between 0.45 and 0.99, pitch std at most 9 semitones, no pitch-step rule, live minimum voiced 250 ms. `constants.js` sha256 `014cbc44f965c8373a3eef5cac0ac69dd2be367c5c4b152047830858599b66a9`.
+
+Sensitivity profiles (wireweave `src/vad/constants.js`: `VAD_PROFILES`, `VAD_PROFILE_MEASURED`, `DEFAULT_VAD_PROFILE`; `createVoiceDetector({ profile })`). The voice-thread module stores the choice in localStorage `zellous-vad-profile` (default balanced) and a thread uses the profile in force when it was joined; the control is `design/src/components/voice/vad-profile.js` in the thread panel and the voice settings modal. Measured through `harness.mjs` cached features, tuning data (manifest to fresh5) with fresh6 as a descriptive look only (spent): strict (pitch std 8, floor -38 dB, voiced ratio 0.55) speech 91.2%, hot-mic 1.1% (fresh6 95.0 and 1.4); balanced (the constants below) 96.2 and 2.3 (95.0 and 2.9); lenient (pitch std 10, voiced ratio 0.4, 2 energy peaks per second) 97.5 and 3.2 (97.5 and 3.4). Hot-mic pools fan, breathing, keyboard, mouse click, silence, engine, wind and sneeze, excluding cough and music. Update the numbers in `VAD_PROFILE_MEASURED` whenever a profile moves.
 
 Corpora (48 kHz mono, public datasets plus labelled synthetic classes; no speech synthesiser exists on this host, so all speech is real recorded read speech from LibriSpeech test-clean and dev-clean):
 - `manifest.json` (422 clips) and `manifest-fresh1.json` to `manifest-fresh3.json` were used for tuning once scored. Constants were frozen before `manifest-fresh4.json` was built.

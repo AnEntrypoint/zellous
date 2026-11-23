@@ -41,7 +41,7 @@ export function installChat(ww) {
         if (shouldPing({
           text: m.content,
           fromSelf: m.userId === me,
-          soundOn: state.soundEnabled && !(state.mutedChannels || []).includes(channel),
+          soundOn: state.soundEnabled && !(state.mutedChannels || []).includes(channel) && !(window.nostrPresence && window.nostrPresence.statusOf(me).status === 'dnd'),
           mentionsOnly: state.pref_mentionsonly,
           name: chat.resolveProfile(me),
           everyone: !!(window.nostrAccount && window.nostrAccount.everyonePings()),
@@ -60,7 +60,7 @@ export function installChat(ww) {
   chat.addEventListener('profile', () => { state.profilesVersion = (state.profilesVersion || 0) + 1; _updateChatMembers(state.chatMessages || []); if (window.ui) ui.render.all(); });
   chat.addEventListener('rate-limited', (e) => {
     const secs = Math.ceil((e.detail?.retryAfterMs || 0) / 1000);
-    if (window.ui?.showToast) ui.showToast(`Sending too fast — try again in ${secs}s`, 2500, 'error');
+    if (window.ui?.showToast) ui.showToast(secs > 0 ? `Sending too fast — your message is queued and goes out in ${secs}s` : 'Sending too fast — your message is queued', 2500, 'info');
   });
   chat.addEventListener('channel', (e) => {
     const next = (state.channels || []).find((c) => c.id === e.detail.channelId);

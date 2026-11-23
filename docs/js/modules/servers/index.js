@@ -3,7 +3,7 @@ import { registerModule } from '../registry.js';
 registerModule({
   id: 'servers', kind: 'service',
   setup(ctx) {
-    const { S, v, call, state } = ctx;
+    const { S, v, call, state, ww } = ctx;
 
     const ownerOf = (sv) => (String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null);
     const ownerName = (pubkey) => (pubkey ? ((ctx.chat && ctx.chat.resolveProfile && ctx.chat.resolveProfile(pubkey)) || pubkey.slice(0, 12)) : 'nobody (public room)');
@@ -19,8 +19,22 @@ registerModule({
       };
     };
 
+    const serverSettings = () => {
+      const sid = v('currentServerId', null);
+      const sv = (v('servers', []) || []).find((x) => x && x.id === sid);
+      if (!sv || !ww.auth.pubkey || !String(sid).startsWith(ww.auth.pubkey + ':')) return null;
+      const channels = (v('channels', []) || []).filter((c) => c && c.id);
+      const pick = (voice) => channels.filter((c) => !!ctx.trait(c.type, 'voice') === voice).map((c) => ({ id: c.id, name: c.name }));
+      return {
+        id: sid, name: sv.name || '', color: sv.iconColor || '', colors: ctx.avatarColors,
+        textChannels: pick(false), voiceChannels: pick(true),
+        members: (v('roomMembers', []) || []).map((m) => m.username || String(m.id || '').slice(0, 8)),
+      };
+    };
+
     return {
       snapshot: () => ({
+        serverSettings: serverSettings(),
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: ctx.avatarColors,
         discoverServers: v('servers', []).map(discover),
@@ -44,10 +58,17 @@ registerModule({
           if (sv && ctx.membership) return ctx.membership.invite(sv.id, sv.name, sv.iconColor);
         }),
         joinInvite: (serverId, name, color) => call(async () => {
-          const known = (state.servers || []).some((x) => x && x.id === serverId);
           await ctx.servers.join(serverId, { name, iconColor: color });
-          if (!known && ctx.membership) await ctx.membership.announceWhenReady(serverId);
         }),
+        saveServerSettings: (patch) => call(() => {
+          const cur = serverSettings();
+          if (!cur) return;
+          const name = String((patch && patch.name) != null ? patch.name : cur.name).trim().slice(0, 32) || cur.name;
+          return ww.servers.rename(cur.id, name, (patch && patch.color) || cur.color || undefined);
+        }, 'Server settings'),
+        renameServerChannel: (id, name) => call(() => ww.channels.rename(id, String(name || '').trim()), 'Rename channel'),
+        deleteServerChannel: (id) => call(() => ww.channels.remove(id), 'Delete channel'),
+        deleteServer: () => call(() => { const cur = serverSettings(); if (cur) return ww.servers.delete(cur.id); }, 'Delete server'),
         leaveServer: () => call(() => ctx.servers.leave(state.currentServerId)),
       },
     };

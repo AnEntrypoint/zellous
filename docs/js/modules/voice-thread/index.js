@@ -3,11 +3,17 @@ import { registerModule } from '../registry.js';
 const SETTINGS_KEY = 'zellous-vt-settings';
 const RNNOISE_URL = new URL('../../../vendor/rnnoise/dist/generated/rnnoise-sync.js', import.meta.url).href;
 
-const readSettings = () => {
-  try { const v = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); return { sensitivity: typeof v.sensitivity === 'number' ? v.sensitivity : 0.5, keep: !!v.keep }; } catch { return { sensitivity: 0.5, keep: false }; }
+const PROFILE_KEY = 'zellous-vad-profile';
+const PROFILE_IDS = ['strict', 'balanced', 'lenient'];
+const PROFILE_LABELS = { strict: 'Strict', balanced: 'Balanced', lenient: 'Lenient' };
+
+const readKeep = () => {
+  try { return !!JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}').keep; } catch { return false; }
 };
 
-const thresholdsFor = (sensitivity) => { const start = 0.85 - 0.4 * sensitivity; return { startThreshold: start, stopThreshold: Math.max(0.1, start - 0.2) }; };
+const readProfile = () => {
+  try { const id = localStorage.getItem(PROFILE_KEY); return PROFILE_IDS.includes(id) ? id : 'balanced'; } catch { return 'balanced'; }
+};
 
 registerModule({
   id: 'voice-thread',
@@ -17,7 +23,10 @@ registerModule({
     const proto = ctx.ww.modules.protocolFor('voice-thread');
     const vad = ctx.ww.modules.vad;
     const view = ctx.signal('view', null);
-    const settings = ctx.signal('settings', readSettings());
+    const settings = ctx.signal('settings', { keep: readKeep() });
+    const profile = ctx.signal('vadProfile', readProfile());
+    const profiles = PROFILE_IDS.map((id) => ({ id, label: PROFILE_LABELS[id], ...vad.VAD_PROFILE_MEASURED[id] }));
+    let joinedProfile = profile.value;
     const status = ctx.signal('status', { joined: false, joining: false, filtered: 0, level: 0, voiced: false, speaking: [] });
     const overrideServers = (() => { try { const v = JSON.parse(localStorage.getItem('zellous-blossom-servers') || 'null'); return Array.isArray(v) ? v.filter((u) => /^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)/.test(String(u))) : []; } catch { return []; } })();
     if (overrideServers.length) ctx.ww.media.servers = overrideServers;
@@ -28,7 +37,7 @@ registerModule({
     const patch = (p) => { status.value = { ...status.value, ...p }; };
     const refresh = () => { view.value = bound ? bound.thread.snapshot() : null; };
 
-    const factory = () => ({ sampleRate }) => vad.createVoiceDetector({ loader: vad.createRnnoiseLoader(() => import(RNNOISE_URL)), sampleRate, config: thresholdsFor(settings.value.sensitivity) });
+    const factory = () => ({ sampleRate }) => vad.createVoiceDetector({ loader: vad.createRnnoiseLoader(() => import(RNNOISE_URL)), sampleRate, profile: joinedProfile });
 
     const leave = async () => {
       listeners.splice(0).forEach((off) => off());
@@ -44,6 +53,7 @@ registerModule({
       if (!current || current.type !== 'voice-thread') throw new Error('Open a voice thread first');
       if (bound) return;
       patch({ joining: true });
+      joinedProfile = profile.value;
       const session = ctx.voice.session();
       session.createClipVad = factory();
       session.setPttMode(false);
@@ -90,7 +100,7 @@ registerModule({
         const lanes = snap ? snap.lanes.map((l) => ({ id: l.speaker, name: l.name || String(l.speaker).slice(0, 8), speaking: st.speaking.includes(l.speaker), clips: [...snap.history.filter((c) => c.speaker === l.speaker).map((c) => ({ seq: c.seq, seconds: seconds(c), state: c.expired ? 'expired' : 'played' })), ...snap.expired.filter((c) => c.speaker === l.speaker).map((c) => ({ seq: c.seq, seconds: seconds(c), state: 'expired' })), ...(snap.current && snap.current.speaker === l.speaker ? [{ seq: snap.current.seq, seconds: seconds(snap.current), state: 'playing' }] : []), ...l.clips.map((c) => ({ seq: c.seq, seconds: seconds(c), state: 'queued' }))] })) : [];
         const stack = snap ? [...(snap.current ? [{ seq: snap.current.seq, name: snap.current.name, seconds: seconds(snap.current), state: 'playing' }] : []), ...snap.lanes.flatMap((l) => l.clips.map((c) => ({ seq: c.seq, name: c.name || l.name, seconds: seconds(c), state: 'queued' })))] : [];
         const ch = ctx.state.currentChannel;
-        return { voiceThread: { connected: st.joined && !!channel && ch && ch.id === channel.id, joining: st.joining, ownTalk: !!(snap && snap.localTalking), paused: !!(snap && snap.userPaused), videos: Object.keys(ctx.state.voiceVideos || {}), liveSpeakers: st.speaking.map((id) => ({ id, name: String(id).slice(0, 8) })), lanes, stack, vad: { level: st.level, voiced: st.voiced }, filtered: st.filtered, settings: settings.value } };
+        return { vadProfile: profile.value, vadProfiles: profiles, voiceThread: { connected: st.joined && !!channel && ch && ch.id === channel.id, joining: st.joining, ownTalk: !!(snap && snap.localTalking), paused: !!(snap && snap.userPaused), videos: Object.keys(ctx.state.voiceVideos || {}), liveSpeakers: st.speaking.map((id) => ({ id, name: String(id).slice(0, 8) })), lanes, stack, vad: { level: st.level, voiced: st.voiced }, filtered: st.filtered, settings: settings.value, vadProfile: profile.value, vadProfiles: profiles } };
       },
       actions: {
         voiceThreadJoin: () => ctx.guard(join),
@@ -99,7 +109,7 @@ registerModule({
         voiceThreadReplay: (seq) => { if (bound) { const c = clipById(seq); if (c) bound.thread.replay(c.id); } },
         voiceThreadSkip: () => { if (bound) bound.thread.skip(); },
         voiceThreadPause: () => { if (bound) bound.thread.pause(); },
-        voiceThreadSensitivity: (value) => { settings.value = { ...settings.value, sensitivity: value }; localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings.value)); },
+        voiceThreadVadProfile: (id) => { if (!PROFILE_IDS.includes(id)) return; profile.value = id; try { localStorage.setItem(PROFILE_KEY, id); } catch { } },
         voiceThreadKeep: (on) => { settings.value = { ...settings.value, keep: !!on }; localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings.value)); if (bound) bound.setKeepClips(!!on); },
       },
     };

@@ -17,6 +17,7 @@ import './hello-room/index.js';
 import './sharesies/index.js';
 import './voice-thread/index.js';
 import './voice-room/index.js';
+import './voice-rooms/index.js';
 import './share-web/index.js';
 
 export * from './registry.js';

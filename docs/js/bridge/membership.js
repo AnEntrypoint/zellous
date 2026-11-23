@@ -13,6 +13,7 @@ export function installMembership(ww) {
     parseWave: m.parseWave,
     parseInvite: m.parseInvite,
     wave: (pubkey) => chat.send(m.waveContent(pubkey)),
+    inviteContent: (serverId, name, color) => m.inviteContent({ serverId, name, color }),
     invite: (serverId, name, color) => chat.send(m.inviteContent({ serverId, name, color })),
     announceWhenReady,
   };
