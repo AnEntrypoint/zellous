@@ -20,6 +20,8 @@
 
   function modeKey(channelId) { return 'zn_voice_mode_' + (channelId || 'default'); }
   function getChannelMode(channelId) {
+    var chType = ((window.state && window.state.channels) || []).find(function(c) { return c.id === channelId; });
+    if (chType && window.zModules && window.zModules.trait(chType.type, 'micMode')) return window.zModules.trait(chType.type, 'micMode');
     if (window.state?.vadEnabled) return 'vad';
     var chs = (window.state && window.state.channels) || [];
     for (var i = 0; i < chs.length; i++) {

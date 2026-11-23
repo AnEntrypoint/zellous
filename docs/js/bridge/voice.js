@@ -121,6 +121,7 @@ export function installVoice(ww) {
     get _peers() { return ensureVoice().peers; },
     get _roomId() { return ensureVoice().roomId; },
     get _channelName() { return ensureVoice().channelName; },
+    session: () => ensureVoice(),
     async connect(ch) {
       const v = ensureVoice();
       v.serverId = state.currentServerId || '';

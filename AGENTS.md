@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@64faa6a49ac1b76651dd0216342f2267bd5b77b9/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@ca1742fc1f4b1e06cefcadf2bdfe0dc42ce38e6a/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -92,6 +92,7 @@ Manifest: `{ id, kind: 'channelType'|'serverType'|'settingsPane'|'surface'|'mess
 - design `channelType`: `{ type, label, icon, railGroup: 'text' | { id, label, order, voice, createType, always }, headerSub, searchGlyph, railIcon, welcomeGlyph, traits, body(ctx) }`. `body` gets `{ s, A, ch, views }`; leave it out for the chat view. A `surface` is `{ id, channelName, channelType, icon, body(ctx) }` (the rules and pick-roles pages and the announcements icon are surfaces bound to a channel name).
 - zellous `channelType`: `{ type, label, searchGlyph, createOption: { label, order }, traits, onOpen(channel, ctx) }`. Traits in use: `inRail` (listed in the rail), `history` (load chat on open), `composer` ('standard' or 'admin'), `split`, `defaultOpen`, `members` (false hides the member list), `voice`, `threadParent`, `forumPosts`, `pageData`. Modules reach the app only through `ctx` (state, chat, forum, voice, toast), built in `bridge/modules.js`; classic scripts use `window.zModules`.
 - Rules: nothing outside the registry modules switches on a channel kind (the check is `grep -rn "type === '\(text\|voice\|forum\|threaded\|announcement\|page\)'"` over design `src` and zellous `docs/js`, minus the modules directories: it must print nothing); a module keeps its state in its own signals and its CSS with it; no new `window.X`. design `package.json` lists `./src/modules/**/*.js` in `sideEffects`, because registration happens on import and the bundler would drop it otherwise.
+- Service, popover, messageKind and railSection modules: a zellous module may pass `setup(ctx)` which returns `{ snapshot, actions }` and may create its own signals through `ctx.signal(name, initial)`; the adapter merges them and subscribes to them. design modules register `messageKind` (`match(message)`, `mount(ctx)`), `popover` (`mount(ctx)` returns a vnode or null) and `railSection` (`mount(ctx)` returns rows). Voice thread (`voice-thread`) and Sharesies (`sharesies`) are built this way; entries 204 to 206 say what is and is not witnessed.
 - `hello-room` is the documented toy: channel type `hello-room`, shown under Hello Rooms with the smile icon, created from the create-channel picker. Copy it to start a module.
 
 ## Things that look broken but aren't
