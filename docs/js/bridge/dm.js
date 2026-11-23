@@ -39,6 +39,7 @@ export function installDm(ww) {
         const id = rumor.id || event.id;
         if (dmMessages.find(m => m.id === id)) return;
         const mine = rumor.pubkey === a.pubkey;
+        if (!mine && window.nostrAccount && !window.nostrAccount.allowsDm(peer, new Set(dmMessages.filter((m) => m.mine).map((m) => m.peer)))) return;
         const pending = mine ? dmMessages.find((m) => m.pending && m.peer === peer && m.text === plaintext) : null;
         if (mine) dmMessages = dmMessages.filter((m) => m !== pending);
         dmMessages.push({ id, peer, from: rumor.pubkey, text: plaintext, timestamp: rumor.created_at * 1000, mine, ...(pending ? { wrapId: pending.wrapId, send: pending.send } : {}) });

@@ -9,9 +9,11 @@ export const mentionsName = (text, name) => {
 
 export const alertHit = (text, words) => (words || []).some((w) => new RegExp('(^|\\W)' + escapeRe(w) + '(?!\\w)', 'i').test(String(text || '')));
 
-export const shouldPing = ({ text, fromSelf, soundOn, mentionsOnly, name, alerts }) => {
+export const mentionsEveryone = (text) => /(^|\s)@(everyone|here)(?![\w.-])/i.test(String(text || ''));
+
+export const shouldPing = ({ text, fromSelf, soundOn, mentionsOnly, name, alerts, everyone = false }) => {
     if (fromSelf || !soundOn) return false;
-    return !mentionsOnly || mentionsName(text, name) || alertHit(text, alerts);
+    return !mentionsOnly || mentionsName(text, name) || (everyone && mentionsEveryone(text)) || alertHit(text, alerts);
 };
 
 export const playPing = () => {

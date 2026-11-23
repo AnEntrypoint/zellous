@@ -183,6 +183,8 @@ const state = {
   gamePrefTab: signal('account'),
   serverEvents: signal({ count: 0, live: false }),
   presenceVersion: signal(0),
+  accountVersion: signal(0),
+  accountNote: signal(null),
   chatSearch: signal(''),
   inboxTab: signal('mentions'),
   voiceVideos: signal({}),

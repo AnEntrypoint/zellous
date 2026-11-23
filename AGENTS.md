@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@795c83bd4f4cc71eae2f67a4a064516e9f1d08e2/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@075b6a7fe4ce8786ee0bb183cb573a64b2e8a15b/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -77,6 +77,10 @@ The interface is a port of game-3 (`/config/workspace/game-3/scripts/ui.js`) min
 - Unwitnessed (needs hardware): iOS safe area, keyboard, notch, fling scroll, real long-press.
 - A harness that drives the live page lives only in scratchpads; the useful recipes: throwaway server via `window.__zellous.servers.create`, second identity via `servers.join`, DM via `window.dm.send(pubkey, text)`, touch via a `hasTouch` context plus CDP `Input.dispatchTouchEvent`, themes via localStorage `zellous-theme` (ink or light) and `zellous-g3-theme` (ash or onyx), bulk history via a signed-event publisher to a local relay.
 - Design changes need `node scripts/build.mjs` (its lints are the gate: tokens, radius, spacing baseline, glyphs; write new rules in the root `community-app.css` with the `html.ds-247420` prefix, never `.ds-247420.ds-247420`, which the bundler prefixes again).
+
+## Account configuration (ledger entry 199)
+
+The settings panes My Account, Profiles, Key & Security, Relays, Privacy, Data and Sync are `design/src/components/game3-account.js`, fed by `docs/js/adapter/account.js` (snapshot `account`, `avatars`, `profileMeta`; actions `account*`) over `docs/js/bridge/account.js` (`window.nostrAccount`, image resize, generated avatar, preference sync IO) over wireweave `src/account.js` (`ww.account`). Public fields go to kind 0, private ones to a NIP-44 self-encrypted kind 30078 (d `zellous-account:self`), relays to kind 10002. Avatars reach every surface through the registry in `game3-hue.js` (`game3SetAvatars`, set at the top of each render): pass the pubkey as the second argument of `game3AvatarBg` and `game3AvInitial`. Not built: NIP-46, read receipts (stored only), a nickname impersonation guard. When witnessing, use the local relay: a call to `account.resetRelays()` in node reaches real public relays.
 
 ## Things that look broken but aren't
 

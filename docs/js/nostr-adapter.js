@@ -8,7 +8,7 @@
     const root = document.getElementById('app');
     if (!root) return;
 
-    const [signals, callMod, themeMod, frame, rail, chat, dm, members, voice, settings, overlays, session, game] = await Promise.all([
+    const [signals, callMod, themeMod, frame, rail, chat, dm, members, voice, settings, overlays, session, game, account] = await Promise.all([
       import('./adapter/signals.js'),
       import('./adapter/call.js'),
       import('./adapter/theme.js'),
@@ -22,12 +22,20 @@
       import('./adapter/overlays.js'),
       import('./adapter/session.js'),
       import('./adapter/game.js'),
+      import('./adapter/account.js'),
     ]);
 
     const S = window.stateSignals;
     const { v, persistBool } = signals.createReaders(S);
     const applyTheme = themeMod.makeApplyTheme(sdk, S);
     applyTheme(v('themePref', 'ink'));
+
+    document.addEventListener('zellous:prefs-synced', () => {
+      S.themePref.value = localStorage.getItem('zellous-theme') === 'light' ? 'light' : (localStorage.getItem('zellous-g3-theme') || 'ink');
+      applyTheme(S.themePref.value);
+      for (const [k, sig] of Object.entries({ 'zellous-pref-kw': 'pref_kw', 'zellous-pref-banner': 'pref_banner' })) if (S[sig]) S[sig].value = localStorage.getItem(k) || '';
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); const m = /^zellous-pref-(.+)$/.exec(k || ''); if (m && S['pref_' + m[1]] && typeof S['pref_' + m[1]].value === 'boolean') S['pref_' + m[1]].value = localStorage.getItem(k) === '1'; }
+    });
 
     const deps = { v, S, call: callMod.call, applyTheme, persistBool };
     const builders = [
@@ -40,6 +48,7 @@
       overlays.buildOverlays(deps),
       session.buildSession(deps),
       game.buildGame(deps),
+      account.buildAccount(deps),
     ];
 
     const get = () => {

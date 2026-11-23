@@ -1,5 +1,5 @@
 window.__wireweaveReady = (async () => {
-  const [bootStatus, network, auth, chat, unread, dm, channels, servers, governance, forum, media, voice, pinsBridge, eventsBridge, pollsBridge, selfRolesBridge, presenceBridge, membershipBridge] = await Promise.all([
+  const [bootStatus, network, auth, chat, unread, dm, channels, servers, governance, forum, media, voice, pinsBridge, eventsBridge, pollsBridge, selfRolesBridge, presenceBridge, membershipBridge, accountBridge] = await Promise.all([
     import('./bridge/boot-status.js'),
     import('./bridge/network.js'),
     import('./bridge/auth.js'),
@@ -17,7 +17,8 @@ window.__wireweaveReady = (async () => {
     import('./bridge/polls.js'),
     import('./bridge/selfroles.js'),
     import('./bridge/presence.js'),
-    import('./bridge/membership.js')
+    import('./bridge/membership.js'),
+    import('./bridge/account.js')
   ]);
   const mod = await bootStatus.loadProtocol();
   const NT = window.NostrTools;
@@ -28,6 +29,7 @@ window.__wireweaveReady = (async () => {
     xstate: XS,
     storage: localStorage,
     extension: window.nostr,
+    prefsIO: accountBridge.makePrefsIO(),
     relays: state.nostrRelays || ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nos.lol', 'wss://relay.snort.social']
   });
 
@@ -50,6 +52,7 @@ window.__wireweaveReady = (async () => {
   if (ww.selfRoles) selfRolesBridge.installSelfRoles(ww);
   if (ww.presence) presenceBridge.installPresence(ww);
   if (ww.membership) membershipBridge.installMembership(ww);
+  if (ww.account) accountBridge.installAccount(ww);
 
   const inspect = () => ({
     relays: Object.fromEntries(state.nostrRelayStatus || []),
