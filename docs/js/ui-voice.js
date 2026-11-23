@@ -30,4 +30,3 @@ const uiMembers = {
 };
 
 window.__zellous.uiMembers = uiMembers;
-window.uiMembers = uiMembers;

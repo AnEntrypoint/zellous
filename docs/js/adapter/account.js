@@ -23,7 +23,7 @@ export function buildAccount({ v, S, call }) {
     const set = new Set();
     const self = me(); if (self) set.add(self);
     for (const m of (v('chatMessages', []) || [])) if (m && m.userId) set.add(m.userId);
-    for (const cat of ((window.uiMembers && window.uiMembers.categories && window.uiMembers.categories()) || [])) for (const m of (cat.members || [])) if (m.identity) set.add(m.identity);
+    for (const cat of ((window.__zellous.uiMembers && window.__zellous.uiMembers.categories && window.__zellous.uiMembers.categories()) || [])) for (const m of (cat.members || [])) if (m.identity) set.add(m.identity);
     for (const m of (v('dmMessages', []) || [])) if (m && m.peer) set.add(m.peer);
     const linked = v('profileLink', ''); if (linked) set.add(linked);
     return [...set];

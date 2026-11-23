@@ -25,4 +25,3 @@ const fileTransfer = {
 };
 
 window.__zellous.files = fileTransfer;
-window.fileTransfer = fileTransfer;

@@ -106,4 +106,3 @@ const threadManager = {
 };
 
 window.__zellous.threads = threadManager;
-window.threadManager = threadManager;

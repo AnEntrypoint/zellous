@@ -110,14 +110,14 @@ export function buildChat({ v, S, call }) {
           window.chat.sendImage(file);
         }
       }),
-      openThread: (id) => call(() => window.threadManager && window.threadManager.select(id)),
-      selectThread: (id) => call(() => window.threadManager && window.threadManager.select(id)),
+      openThread: (id) => call(() => window.__zellous.threads && window.__zellous.threads.select(id)),
+      selectThread: (id) => call(() => window.__zellous.threads && window.__zellous.threads.select(id)),
       createThread: () => call(() => {
         const parentId = v('currentChannel', null)?.id;
-        return window.threadManager && window.threadManager.create(parentId);
+        return window.__zellous.threads && window.__zellous.threads.create(parentId);
       }),
-      closeThreadPanel: () => call(() => window.threadManager && window.threadManager.closePanel()),
-      replyToThread: (text) => call(() => window.threadManager && window.threadManager.replyToForumPost(text)),
+      closeThreadPanel: () => call(() => window.__zellous.threads && window.__zellous.threads.closePanel()),
+      replyToThread: (text) => call(() => window.__zellous.threads && window.__zellous.threads.replyToForumPost(text)),
       newForumPost: () => call(() => window.channelManager && window.channelManager.showNewForumPostModal()),
       editPage: () => call(() => {
         const ch = v('currentChannel', null);

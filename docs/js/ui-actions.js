@@ -120,10 +120,10 @@ document.addEventListener('dragover', (e) => {
 });
 document.addEventListener('drop', (e) => {
   if (!e.dataTransfer?.files?.length) return;
-  fileTransfer.handleDrop(e);
+  window.__zellous.files.handleDrop(e);
 });
 document.addEventListener('paste', (e) => {
   const items = e.clipboardData?.items;
   if (!items || !Array.from(items).some((item) => item.kind === 'file')) return;
-  fileTransfer.uploadFromClipboard(e);
+  window.__zellous.files.uploadFromClipboard(e);
 });

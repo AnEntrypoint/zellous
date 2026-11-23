@@ -44,7 +44,7 @@ channelManager.showNewForumPostModal = function() {
     errEl.style.display = 'none';
     if (!title) { errEl.textContent = 'Post title is required'; errEl.style.display = 'block'; return; }
     submitBtn.disabled = true; submitBtn.textContent = 'Posting...';
-    try { await window.threadManager.newForumPost(title, body); modal.remove(); }
+    try { await window.__zellous.threads.newForumPost(title, body); modal.remove(); }
     catch (e) { errEl.textContent = e.message || 'Failed'; errEl.style.display = 'block'; submitBtn.disabled = false; submitBtn.textContent = 'Post'; }
   });
   modal.querySelector('#fpCancel').addEventListener('click', function() { modal.remove(); });
