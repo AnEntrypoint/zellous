@@ -68,7 +68,14 @@ registerModule({
         }, 'Server settings'),
         renameServerChannel: (id, name) => call(() => ww.channels.rename(id, String(name || '').trim()), 'Rename channel'),
         deleteServerChannel: (id) => call(() => ww.channels.remove(id), 'Delete channel'),
-        deleteServer: () => call(() => { const cur = serverSettings(); if (cur) return ww.servers.delete(cur.id); }, 'Delete server'),
+        deleteServer: () => call(async () => {
+          const cur = serverSettings();
+          if (!cur) return;
+          await ww.servers.delete(cur.id);
+          if (S.gamePrefOpen) S.gamePrefOpen.value = false;
+          const next = (v('servers', []) || [])[0];
+          if (next) await ctx.servers.switchTo(next.id);
+        }, 'Delete server'),
         leaveServer: () => call(() => ctx.servers.leave(state.currentServerId)),
       },
     };
