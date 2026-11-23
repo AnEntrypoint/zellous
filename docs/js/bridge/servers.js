@@ -14,7 +14,7 @@ export function installServers(ww) {
     kickFromVoice: (pk) => bans.kickFromVoice(state.currentServerId, pk),
     banUserNostr: (sid, pk) => bans.ban(sid, pk),
     timeoutUserNostr: (sid, pk, min) => bans.timeout(sid, pk, min),
-    join: (sid) => srv.join(sid),
+    join: (sid, opts) => srv.join(sid, opts),
     delete: (sid) => srv.delete(sid),
     leave: (sid) => srv.leave(sid),
     switchTo: async (sid) => {

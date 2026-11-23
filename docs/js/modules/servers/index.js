@@ -28,7 +28,7 @@ registerModule({
       actions: {
         openServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = true; }),
         closeServerCreate: () => call(() => { if (S.gameServerCreateOpen) S.gameServerCreateOpen.value = false; }),
-        explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; }),
+        explore: () => call(() => { if (S.gameSurface) S.gameSurface.value = 'discover'; ctx.hooks.emit('surface:open:discover'); }),
         createServer: (name, color) => call(async () => {
           if (!ctx.servers || !ctx.servers.create) return;
           try {

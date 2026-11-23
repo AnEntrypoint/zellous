@@ -31,9 +31,27 @@ ui.render = {
   authStatus() {}
 };
 
+ui.focusRef = function(el) {
+  if (!el || el === document.body) return null;
+  const cls = String(el.className || '').split(/\s+/).filter(Boolean);
+  const label = el.getAttribute && el.getAttribute('aria-label');
+  const sel = el.tagName.toLowerCase() + cls.map((c) => '.' + CSS.escape(c)).join('') + (label ? '[aria-label="' + CSS.escape(label) + '"]' : '');
+  return { el, sel, text: (el.textContent || '').trim().slice(0, 60), index: Math.max(0, [...document.querySelectorAll(sel)].indexOf(el)) };
+};
+
+ui.refocus = function(ref) {
+  if (!ref) return;
+  let t = ref.el;
+  if (!t.isConnected) {
+    const same = [...document.querySelectorAll(ref.sel)].filter((e) => e.getClientRects().length);
+    t = same.find((e) => (e.textContent || '').trim().slice(0, 60) === ref.text) || same[ref.index] || same[0] || null;
+  }
+  if (t && typeof t.focus === 'function') t.focus({ preventScroll: true });
+};
+
 ui.confirm = function({ title, message, confirmLabel = 'Confirm', danger = false }) {
   return new Promise((resolve) => {
-    const opener = document.activeElement;
+    const opener = ui.focusRef(document.activeElement);
     const modal = document.createElement('div');
     modal.className = 'modal-overlay open';
     modal.setAttribute('role', 'alertdialog');
@@ -68,7 +86,7 @@ ui.confirm = function({ title, message, confirmLabel = 'Confirm', danger = false
     const done = (value) => {
       modal.remove();
       document.removeEventListener('keydown', onKey, true);
-      if (opener && opener.focus) opener.focus();
+      ui.refocus(opener);
       resolve(value);
     };
     const onKey = (e) => {
@@ -102,7 +120,16 @@ ui.showFirstRunKeyNotice = function() {
     '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="frSkip">Continue without a backup</button><button type="button" class="modal-btn" id="frBackup">Back up key</button></div></div>';
   document.body.appendChild(modal);
   try { localStorage.setItem(flag, '1'); } catch (_) {}
-  var dismiss = function() { modal.remove(); setTimeout(function() { if (ui.showSetupToast) ui.showSetupToast(); }, 400); };
+  var opener = ui.focusRef(document.activeElement);
+  var onEscape = function(e) { if (e.key === 'Escape') { e.preventDefault(); dismiss(); } };
+  var dismiss = function() {
+    document.removeEventListener('keydown', onEscape, true);
+    modal.remove();
+    ui.refocus(opener);
+    setTimeout(function() { if (ui.showSetupToast) ui.showSetupToast(); }, 400);
+  };
+  document.addEventListener('keydown', onEscape, true);
+  modal.addEventListener('click', function(e) { if (e.target === modal) dismiss(); });
   modal.querySelector('#frSkip').addEventListener('click', dismiss);
   modal.querySelector('#frBackup').addEventListener('click', function() {
     dismiss();

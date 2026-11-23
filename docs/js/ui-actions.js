@@ -107,7 +107,7 @@ ui.actions = {
 };
 
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'Escape') return;
+  if (e.key !== 'Escape' || e.defaultPrevented) return;
   if (ui.videoPlayback && ui.videoPlayback.style.display !== 'none') { ui.actions.closeVideoPlayback(); return; }
   if (sig('settingsOpen')?.value) { ui.actions.closeSettings(); return; }
   if (sig('mobileMenuOpen')?.value) { ui.actions.closeMobileMenu(); return; }

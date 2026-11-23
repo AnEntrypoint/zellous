@@ -1,10 +1,8 @@
 function _a11yModal(modal) {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  var trigger = document.activeElement;
-  var restoreFocus = function() {
-    if (trigger && document.body.contains(trigger) && typeof trigger.focus === 'function') trigger.focus();
-  };
+  var trigger = ui.focusRef(document.activeElement);
+  var restoreFocus = function() { ui.refocus(trigger); };
   var origRemove = modal.remove.bind(modal);
   modal.remove = function() { origRemove(); restoreFocus(); };
   var FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -27,11 +25,9 @@ function _a11yModal(modal) {
 function _a11yPersistentModal(modal, onClose) {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-modal', 'true');
-  var trigger = document.activeElement;
+  var trigger = ui.focusRef(document.activeElement);
   var FOCUSABLE = 'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
-  var restoreFocus = function() {
-    if (trigger && document.body.contains(trigger) && typeof trigger.focus === 'function') trigger.focus();
-  };
+  var restoreFocus = function() { ui.refocus(trigger); };
   if (!modal._a11yPersistentWired) {
     modal._a11yPersistentWired = true;
     modal.addEventListener('keydown', function(e) {

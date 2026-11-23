@@ -12,6 +12,7 @@ import './polls/index.js';
 import './selfroles/index.js';
 import './inbox/index.js';
 import './servers/index.js';
+import './servers-discovery/index.js';
 import './hello-room/index.js';
 import './sharesies/index.js';
 import './voice-thread/index.js';

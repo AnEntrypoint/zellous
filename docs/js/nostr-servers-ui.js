@@ -133,14 +133,14 @@ serverManager.showEditModal = function(serverId) {
       [8000,16000,24000,48000,96000].map(function(b) {
         return '<option value="' + b + '"' + (b === curBitrate ? ' selected' : '') + '>' + (b/1000) + ' kbps</option>';
       }).join('') + '</select>';
-    modal.querySelector('#editServerForm').insertBefore(bitrateField, modal.querySelector('[type="submit"]'));
+    modal.querySelector('#editServerForm').insertBefore(bitrateField, modal.querySelector('.modal-actions'));
     var allowlistField = document.createElement('div');
     allowlistField.className = 'modal-field';
     var curAllowlist = serverSettings.getEmbedAllowlist(serverId).join(', ');
     allowlistField.innerHTML = '<label class="modal-label">Embedding Allow List</label>' +
       '<textarea class="modal-input" id="editServerAllowlist" placeholder="example.com, *.example.com, localhost:3000" style="resize:vertical;min-height:60px">' + escHtml(curAllowlist) + '</textarea>' +
       '<div style="font-size:11px;color:var(--fg-3);margin-top:4px">Comma-separated list of domains allowed to embed this server. Leave empty to allow all.</div>';
-    modal.querySelector('#editServerForm').insertBefore(allowlistField, modal.querySelector('[type="submit"]'));
+    modal.querySelector('#editServerForm').insertBefore(allowlistField, modal.querySelector('.modal-actions'));
   }
   modal.querySelector('#editServerForm').addEventListener('submit', async function() {
     var nameEl = document.getElementById('editServerName');
