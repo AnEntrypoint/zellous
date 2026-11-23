@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@3ff887ca2629ebd8b9c16f132c59d5b147f66529/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@b62c3081f0c80b2128fb9eaac5743ec78ed85c56/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -81,6 +81,8 @@ The interface is a port of game-3 (`/config/workspace/game-3/scripts/ui.js`) min
 ## Account configuration (ledger entry 199)
 
 The settings panes My Account, Profiles, Key & Security, Relays, Privacy, Data and Sync are `design/src/components/game3-account.js`, fed by `docs/js/adapter/account.js` (snapshot `account`, `avatars`, `profileMeta`; actions `account*`) over `docs/js/bridge/account.js` (`window.nostrAccount`, image resize, generated avatar, preference sync IO) over wireweave `src/account.js` (`ww.account`). Public fields go to kind 0, private ones to a NIP-44 self-encrypted kind 30078 (d `zellous-account:self`), relays to kind 10002. Avatars reach every surface through the registry in `game3-hue.js` (`game3SetAvatars`, set at the top of each render): pass the pubkey as the second argument of `game3AvatarBg` and `game3AvInitial`. NIP-46 (wireweave `src/remote-signer.js`, session in `zn_bunker`, vendored `nostr-tools/nip46` and `qrcode-generator`), DM read receipts (kind 7 rumor tagged zellous-read, off by default) and the nickname look-alike warning are built (entry 200); a nickname look-alike is warned about, not blocked. When witnessing, use the local relay: a call to `account.resetRelays()` in node reaches real public relays.
+
+The bottom-left user panel (`design/src/components/game3-user.js`, `game3-usermenus.js`, wiring in `userPanel(s)` of `community-app.js`) holds the avatar menu, inline rename, status menu with expiry presets, the account menu and the Set up your profile modal (entry 201). Stored identities live in `zn_identities`, setup state in `zellous-setup`. Tap targets: a clickable element directly above a small one steals touch taps, so every small control needs its own handler.
 
 ## Things that look broken but aren't
 

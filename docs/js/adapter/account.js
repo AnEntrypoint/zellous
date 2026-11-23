@@ -25,6 +25,7 @@ export function buildAccount({ v, S, call }) {
     for (const m of (v('chatMessages', []) || [])) if (m && m.userId) set.add(m.userId);
     for (const cat of ((window.uiMembers && window.uiMembers.categories && window.uiMembers.categories()) || [])) for (const m of (cat.members || [])) if (m.identity) set.add(m.identity);
     for (const m of (v('dmMessages', []) || [])) if (m && m.peer) set.add(m.peer);
+    const linked = v('profileLink', ''); if (linked) set.add(linked);
     return [...set];
   };
 
@@ -66,6 +67,9 @@ export function buildAccount({ v, S, call }) {
         blocked: c.blocked().map((b) => ({ pubkey: b, name: window.chat ? window.chat.resolveProfile(b) : b.slice(0, 8) })),
         sync: { at: c.privAt, canEncrypt: !!(c.auth.privkey || (c.auth.getExtension() && c.auth.getExtension().nip44)) },
         note: v('accountNote', null),
+        identities: c.identities(),
+        setup: (() => { v('setupVersion', 0); const st = window.nostrSetup ? window.nostrSetup.get() : {}; return { open: !!v('setupOpen', false), focus: v('setupFocus', ''), dismissed: !!st.dismissed, backedUp: !!st.backedUp }; })(),
+        profileLink: (() => { const pk = v('profileLink', ''); return pk ? { identity: pk, name: window.chat ? window.chat.resolveProfile(pk) : pk.slice(0, 8), status: 'online', ...metaFor(c, pk), accountName: '' } : null; })(),
         rotated,
         signer: { remote: c.auth.getExtension() && window.nostrRemote ? window.nostrRemote.describe() : null, flow: signerFlow, supported: !!window.nostrRemote },
         bannerCss: bannerCss(pub.zbanner),
@@ -119,6 +123,18 @@ export function buildAccount({ v, S, call }) {
       accountCancelQr: () => call(() => { window.nostrRemote.cancelQr(); signerFlow = null; bumpFlow(); }),
       accountDisconnectSigner: () => call(() => window.ui.confirm({ title: 'Disconnect the remote signer?', message: 'This browser forgets the signer and signs out. Your key stays with the signer app.', confirmLabel: 'Disconnect', danger: true }).then((yes) => { if (yes) { window.auth.logout(); reload(); } })),
       accountExtensionLogin: () => call(() => run('key', async () => { if (!window.nostr) throw new Error('No Nostr browser extension found'); await window.auth.loginWithExtension(); window.auth._afterLogin(); return true; }, 'Signed in with your extension')),
+      accountCopyText: (text, note) => call(() => navigator.clipboard.writeText(String(text)).then(() => window.nostrAccount.note('copy', true, note || 'Copied'), () => window.nostrAccount.note('copy', false, 'Copy failed'))),
+      accountProfileLink: () => (core() ? location.origin + location.pathname + '?profile=' + core().auth.npubEncode(me()) : ''),
+      accountRename: (name) => call(() => run('rename', () => core().setPublic({ name }), 'Name saved')),
+      accountSwitchIdentity: (pk) => call(() => run('identity', async () => { core().switchTo(pk); reload(); return true; }, 'Switching identity. Reloading')),
+      accountForgetIdentity: (pk) => call(() => run('identity', async () => { core().forgetIdentity(pk); return true; }, 'Forgot that identity')),
+      accountImportNew: (input) => call(() => run('identity', async () => { core().importAsNew(input); reload(); return true; }, 'Key imported. Reloading')),
+      accountNewThrowaway: () => call(() => run('identity', async () => { core().newThrowaway(); reload(); return true; }, 'New identity created. Reloading')),
+      setupOpen: (focus) => call(() => window.nostrSetup && window.nostrSetup.open(focus)),
+      setupClose: () => call(() => { if (S.setupOpen) S.setupOpen.value = false; }),
+      setupDismissForever: () => call(() => { window.nostrSetup.set({ dismissed: true }); if (S.setupOpen) S.setupOpen.value = false; }),
+      setupMarkBackedUp: () => call(() => window.nostrSetup.set({ backedUp: true })),
+      clearProfileLink: () => call(() => { if (S.profileLink) S.profileLink.value = ''; }),
       accountSignOut: () => call(() => window.ui.confirm({ title: 'Sign out?', message: 'This removes your key from this browser. If you have not backed it up, you cannot get this identity back.', confirmLabel: 'Sign out', danger: true }).then((yes) => { if (yes) { window.auth.logout(); reload(); } })),
     },
   };

@@ -1,4 +1,4 @@
-const PREF_KEY = /^(zellous-pref-[a-z0-9_-]+|zellous-theme|zellous-g3-theme|zellous-muted-channels|zellous-notifications|zellous-message-preview|zellous-sound)$/;
+const PREF_KEY = /^(zellous-pref-[a-z0-9_-]+|zellous-setup|zellous-theme|zellous-g3-theme|zellous-muted-channels|zellous-notifications|zellous-message-preview|zellous-sound)$/;
 
 export function makePrefsIO() {
   return {
@@ -95,6 +95,15 @@ export function installAccount(ww) {
       return undefined;
     }
   };
+  const SETUP_KEY = 'zellous-setup';
+  const readSetup = () => { try { const v = JSON.parse(localStorage.getItem(SETUP_KEY) || '{}'); return v && typeof v === 'object' ? v : {}; } catch { return {}; } };
+  const writeSetup = (patch) => { localStorage.setItem(SETUP_KEY, JSON.stringify({ ...readSetup(), ...patch })); state.setupVersion = (state.setupVersion || 0) + 1; };
+  window.nostrSetup = { get: readSetup, set: writeSetup, open: (focus) => { state.setupFocus = focus || ''; state.setupOpen = true; } };
+  const linked = new URLSearchParams(location.search).get('profile');
+  if (linked) {
+    try { const d = ww.auth.NT.nip19.decode(linked.trim()); if (d.type === 'npub') state.profileLink = d.data; } catch {}
+    if (/^[0-9a-f]{64}$/i.test(linked.trim())) state.profileLink = linked.trim().toLowerCase();
+  }
   if (ww.remote) window.nostrRemote = ww.remote;
   window.nostrAccount = {
     core: acct,

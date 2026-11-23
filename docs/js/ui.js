@@ -102,7 +102,7 @@ ui.showFirstRunKeyNotice = function() {
     '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="frSkip">Continue without a backup</button><button type="button" class="modal-btn" id="frBackup">Back up key</button></div></div>';
   document.body.appendChild(modal);
   try { localStorage.setItem(flag, '1'); } catch (_) {}
-  var dismiss = function() { modal.remove(); };
+  var dismiss = function() { modal.remove(); setTimeout(function() { if (ui.showSetupToast) ui.showSetupToast(); }, 400); };
   modal.querySelector('#frSkip').addEventListener('click', dismiss);
   modal.querySelector('#frBackup').addEventListener('click', function() {
     dismiss();
@@ -111,7 +111,16 @@ ui.showFirstRunKeyNotice = function() {
   setTimeout(function() { var b = modal.querySelector('#frBackup'); if (b) b.focus(); }, 0);
 };
 
-ui.showToast = function(msg, duration, tone, sub) {
+ui.showSetupToast = function() {
+  var setup = window.nostrSetup;
+  if (!setup) return;
+  var st = setup.get();
+  if (st.toastShown || st.dismissed) return;
+  setup.set({ toastShown: true });
+  ui.showToast('Set up your profile', 12000, null, 'Add a name, a picture and back up your key. Takes a minute.', { label: 'Set up', onClick: function() { setup.open(''); } });
+};
+
+ui.showToast = function(msg, duration, tone, sub, action) {
   document.getElementById('uiToast')?.remove();
   const el = document.createElement('div');
   el.id = 'uiToast';
@@ -124,6 +133,14 @@ ui.showToast = function(msg, duration, tone, sub) {
     const line = document.createElement('span');
     line.textContent = String(sub);
     el.appendChild(line);
+  }
+  if (action && action.label) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ds-g3-toast-act';
+    btn.textContent = action.label;
+    btn.addEventListener('click', (e) => { e.stopPropagation(); el.remove(); action.onClick && action.onClick(); });
+    el.appendChild(btn);
   }
   el.addEventListener('click', () => el.remove());
   document.body.appendChild(el);
