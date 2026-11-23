@@ -8,11 +8,11 @@ export function installChannels(ww) {
   ch.addEventListener('updated', (e) => {
     state.channels = e.detail.channels; state.categories = e.detail.categories;
     if (window.ui) ui.render.all();
-    if (state.voiceConnected && state.currentChannel && window.__zellous?.voiceMode) {
+    if (state.voiceConnected && state.currentChannel) {
       const cur = (e.detail.channels || []).find(c => c.id === state.currentChannel.id);
       if (cur) {
         state.currentChannel = cur;
-        window.__zellous.voiceMode.apply();
+        document.dispatchEvent(new CustomEvent('zellous:voice-mode'));
       }
     }
     refreshCurrentChannel(e.detail.channels || []);

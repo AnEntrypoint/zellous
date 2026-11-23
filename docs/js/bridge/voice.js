@@ -41,7 +41,6 @@ export function installVoice(ww) {
     voice = ww.ensureVoice({
       serverId: state.currentServerId || '',
       displayName: (a.pubkey ? chat.resolveProfile(a.pubkey) : 'Guest'),
-      onVideoTrack: ({ peerPubkey, stream }) => { setVoiceVideo('nostr-' + peerPubkey.slice(0, 12), stream); },
       onAudioTrack: ({ peer, stream, peerPubkey }) => {
         if (!peer.audioEl) {
           const el = new Audio();
@@ -64,21 +63,7 @@ export function installVoice(ww) {
         });
         tryPlay();
       },
-      onVideoTrack: ({ peerPubkey, stream }) => {
-        const key = 'nostr-' + peerPubkey.slice(0, 12);
-        const p = voice.participants.get(key);
-        if (p) { p.hasVideo = true; p._videoStream = stream; }
-        const elId = 'vtile-video-' + peerPubkey.slice(0, 8);
-        let el = document.getElementById(elId);
-        if (!el) {
-          el = document.createElement('video'); el.id = elId; el.autoplay = true; el.playsinline = true;
-          el.dataset.voicePeer = peerPubkey;
-          el.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px';
-          const wrap = document.getElementById('vtile-wrap-' + peerPubkey.slice(0, 8));
-          if (wrap) wrap.appendChild(el);
-        }
-        el.srcObject = stream;
-      }
+      onVideoTrack: ({ peerPubkey, stream }) => { setVoiceVideo('nostr-' + peerPubkey.slice(0, 12), stream); },
     });
     const pruneVoiceMedia = (liveIds) => {
       document.querySelectorAll('[data-voice-peer]').forEach((el) => {
@@ -98,7 +83,9 @@ export function installVoice(ww) {
         if (nowIds.some((id) => !prevIds.has(id))) playBloop(true);
         else if ([...prevIds].some((id) => !nowIds.includes(id))) playBloop(false);
       }
-      pruneVoiceMedia(new Set((e.detail.list || []).map((p) => p.identity)));
+      pruneVoiceMedia(new Set([...voice.peers.keys(), ...(e.detail.list || []).flatMap((p) => [p.identity, p.key])]));
+      const sharing = new Set((e.detail.list || []).filter((p) => p.hasVideo).map((p) => p.key));
+      for (const key of Object.keys(state.voiceVideos || {})) if (key !== 'local' && !sharing.has(key)) setVoiceVideo(key, null);
     });
     voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.ui?.showToast?.('Voice connected', 2000); });
     voice.addEventListener('media-warning', (e) => { state.voiceListenOnly = true; window.ui?.showToast?.('Joined listen-only: no microphone available', 4500, 'error'); });
@@ -145,6 +132,7 @@ export function installVoice(ww) {
     async disconnect() { if (voice) await voice.disconnect(); },
     toggleMic() { const v = ensureVoice(); v.toggleMic(); state.micMuted = !!v.muted; },
     setMuted(want) { const v = ensureVoice(); v.setMuted(!!want); state.micMuted = !!v.muted; },
+    setScreen(on) { const v = ensureVoice(); return v.setScreen(!!on).then(() => setVoiceVideo('local', v.cameraStream || null)); },
     setCamera(on) { const v = ensureVoice(); return v.setCamera(!!on).then(() => setVoiceVideo('local', v.cameraStream || null)); },
     requestTransmit() { const v = ensureVoice(); const live = v.requestTransmit(); state.micMuted = !!v.muted; return live; },
     releaseTransmit() { const v = ensureVoice(); v.releaseTransmit(); state.micMuted = !!v.muted; },

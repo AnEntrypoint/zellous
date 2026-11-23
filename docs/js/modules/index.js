@@ -1,6 +1,21 @@
 import './channel-types/index.js';
+import './prefs/index.js';
+import './devpanel/index.js';
+import './presence/index.js';
+import './soundboard/index.js';
+import './xp/index.js';
+import './surfaces/index.js';
+import './events/index.js';
+import './split/index.js';
+import './pins/index.js';
+import './polls/index.js';
+import './selfroles/index.js';
+import './inbox/index.js';
+import './servers/index.js';
 import './hello-room/index.js';
 import './sharesies/index.js';
 import './voice-thread/index.js';
+import './voice-room/index.js';
+import './share-web/index.js';
 
 export * from './registry.js';

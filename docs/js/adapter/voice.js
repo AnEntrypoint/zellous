@@ -76,8 +76,6 @@ export function buildVoice({ v, S, call }) {
       toggleCamera: () => call(() => { const api = window.nostrVoice; if (!api) return; api.setCamera(!(v('voiceParticipants', []) || []).some(p => p.isLocal && p.hasVideo)); }),
       toggleMic: () => call(() => (window.lk && window.lk.toggleMic) ? window.lk.toggleMic() : (window.state.micMuted = !window.state.micMuted)),
       toggleDeafen: () => call(() => (window.lk && window.lk.toggleDeafen) ? window.lk.toggleDeafen() : (window.state.voiceDeafened = !window.state.voiceDeafened)),
-      pttStart: () => call(() => window.__zellous && window.__zellous.pttGate && window.__zellous.pttGate.holdStart()),
-      pttStop: () => call(() => window.__zellous && window.__zellous.pttGate && window.__zellous.pttGate.holdEnd()),
       leaveVoice: () => call(() => (window.lk && window.lk.disconnect) ? window.lk.disconnect() : (window.voice && window.voice.leave && window.voice.leave())),
       returnToVoice: () => call(() => {
         const name = v('voiceChannelName', '');
@@ -106,10 +104,6 @@ export function buildVoice({ v, S, call }) {
         if (snapshot) applyVoicePatch(snapshot);
         if (S.voiceSettingsOpen) S.voiceSettingsOpen.value = false;
       }),
-      replaySegment: (id) => call(() => window.__zellous?.pttGate?.replaySegment(id)),
-      skipSegment: () => call(() => window.__zellous?.pttGate?.skipQueue()),
-      pauseQueue: () => call(() => window.__zellous?.pttGate?.pauseQueue()),
-      resumeQueue: () => call(() => window.__zellous?.pttGate?.resumeQueue()),
     },
   };
 }

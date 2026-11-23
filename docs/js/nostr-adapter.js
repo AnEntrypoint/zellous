@@ -10,7 +10,7 @@
     const root = document.getElementById('app');
     if (!root) return;
 
-    const [signals, callMod, themeMod, frame, rail, chat, dm, members, voice, settings, overlays, session, game, account, modules] = await Promise.all([
+    const [signals, callMod, themeMod, frame, rail, chat, dm, members, voice, settings, overlays, session, account, modules] = await Promise.all([
       import('./adapter/signals.js'),
       import('./adapter/call.js'),
       import('./adapter/theme.js'),
@@ -23,7 +23,6 @@
       import('./adapter/settings.js'),
       import('./adapter/overlays.js'),
       import('./adapter/session.js'),
-      import('./adapter/game.js'),
       import('./adapter/account.js'),
       import('./modules/registry.js'),
     ]);
@@ -50,7 +49,6 @@
       settings.buildSettings(deps),
       overlays.buildOverlays(deps),
       session.buildSession(deps),
-      game.buildGame(deps),
       account.buildAccount(deps),
       ...modules.moduleBuilders(deps),
     ];
