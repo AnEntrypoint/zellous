@@ -5,6 +5,8 @@
     const mount = sdk && sdk.C && sdk.C.mountCommunityApp;
     if (!sdk || !effect || !mount || !window.stateSignals) { setTimeout(init, 30); return; }
 
+    await window.__wireweaveReady;
+
     const root = document.getElementById('app');
     if (!root) return;
 
@@ -58,7 +60,7 @@
       return Object.assign({}, ...builders.map((b) => b.snapshot(f)));
     };
     const actions = Object.assign({}, ...builders.map((b) => b.actions));
-    const adapter = { get, subscribe: signals.makeSubscribe(S, effect), actions, helpers: frame.helpers, brandName: 'zellous' };
+    const adapter = { get, subscribe: signals.makeSubscribe(S, effect, modules.moduleSignalList), actions, helpers: frame.helpers, brandName: 'zellous' };
 
     const app = mount(root, adapter);
 

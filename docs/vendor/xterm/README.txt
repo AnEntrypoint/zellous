@@ -1,0 +1,3 @@
+xterm-6.0.0.mjs, xterm-6.0.0.css: @xterm/xterm@6.0.0, from https://registry.npmjs.org/@xterm/xterm/-/xterm-6.0.0.tgz (lib/xterm.mjs and css/xterm.css; MIT, see LICENSE; trailing sourceMappingURL line removed). Exports Terminal. Self-contained ES module, no imports.
+addon-fit-0.11.0.mjs: @xterm/addon-fit@0.11.0, from https://registry.npmjs.org/@xterm/addon-fit/-/addon-fit-0.11.0.tgz (lib/addon-fit.mjs; MIT, see LICENSE-addon-fit; trailing sourceMappingURL line removed). Exports FitAddon. Self-contained ES module.
+Same versions as the AnEntrypoint/sharesies web client. Vendored so the terminal view loads with no CDN at runtime. Verify with: sha256sum -c SHA256SUMS

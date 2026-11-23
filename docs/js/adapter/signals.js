@@ -13,6 +13,6 @@ export function createReaders(S) {
   return { v, persistBool };
 }
 
-export function makeSubscribe(S, effect) {
-  return (cb) => effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } cb(); });
+export function makeSubscribe(S, effect, extra = () => []) {
+  return (cb) => effect(() => { for (const n of SIGNALS) { if (S[n]) void S[n].value; } for (const sig of extra()) void sig.value; cb(); });
 }

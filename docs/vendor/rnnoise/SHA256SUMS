@@ -1,0 +1,14 @@
+df0adf7e1977174686a904834b6869952c68b334dd624169b39f2f0123bcd5b3  ./dist/generated/rnnoise-sync.d.ts
+56edcc035b47d067de15da0bdad399708cbc3d95ff4f7e1df94975a22b8c8959  ./dist/generated/rnnoise-sync.js
+22e779d6780a5d38ac03e1432a6a49b3858c1b3d81ad5ed1df8757a042dfc6a7  ./dist/index.d.ts
+9b4b9e82e0f9c522bb989ae791c90f27452d3e59338ab8434604918a0458dd5c  ./dist/index.js
+eeba178167bcf3f8808e6d202018285e3dde2e5059e1aa0f2025ab82c20d052b  ./dist/math.d.ts
+37d74af18db846dc26537a650221c95482dadb9456e6e6ea3997b6dc39e1b18a  ./dist/math.js
+c7b705e1e4e2bd04e8c93aad1c7baba8dcf931f2fec408ee7ac8af1e45337fa6  ./dist/NoiseSuppressorWorklet.d.ts
+83b4ac06e74c61069d0be6cc67fda4ad4bbf5df8159f1ab1e9d94986d618f4f9  ./dist/NoiseSuppressorWorklet.js
+fd751bb672d91281be5cdcc8f0e235f91e754d6f3ea88aab63043e29d8140b9c  ./dist/polyfills.d.ts
+df07954c778b1429d5b28769eb4f3171b9b70db1cbcf62860482cd9e707cc8d3  ./dist/polyfills.js
+0d8515a7f7b248147a9d4d96fcac3b6d08572947133729346db968719b4a88ff  ./dist/RnnoiseProcessor.d.ts
+de92046419e6984d068b805d5710b8b97dd87e704c7dae36f73fd2e0b8365731  ./dist/RnnoiseProcessor.js
+4646d0ab74a05730f8b3b12b6376ddccb7f0905ee5b69265b3d873b97ace3e94  ./LICENSE
+bcc71b6876e688edcd18fd7b2bf578b557dc127b81e8a72fdca968f5c8b1cf97  ./README.txt

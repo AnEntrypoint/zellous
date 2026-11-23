@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@84da6897ccb1fe6c6e6189fc98331017a499230b/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@64faa6a49ac1b76651dd0216342f2267bd5b77b9/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -242,5 +242,15 @@ Two `design` CI gates apply before pushing an SDK change. The RTL lint (`scripts
 - A "surely fine" mechanical deletion (a script tag and its module) still needs the live boot witness, not just a parse-check.
 
 Dated audit narratives, fixed-bug notes and the learning-audit log are in `docs/notes/agents-history.md`.
+
+## Voice thread VAD harness
+
+The voice-thread clip filter lives in wireweave `src/vad/` (rnnoise score, 3-frame mean, hysteresis, hangover and pre-roll, clip filter) with named constants in `src/vad/constants.js`. The wasm is vendored at `docs/vendor/rnnoise/` (see its README.txt). The tuning corpus and harness live in the session scratchpad, not in a repo: `/config/tmp/claude-1000/-config-workspace-zellous/cca08832-1d92-43c1-a632-bec4782bec92/scratchpad/vad-harness/` (`S` below) and `.../scratchpad/verify/`.
+
+- Corpus: 60 speech clips (LibriSpeech test-clean, 2 to 6 s), 30 short speech fragments (0.7 to 1.2 s), 30 speech with vacuum or synthetic fan noise at 5/10/15 dB SNR, 40 breathing, 40 keyboard, 40 mouse click, 40 cough (ESC-50), 70 fan (40 ESC-50 vacuum cleaner standing in for a fan, 30 synthetic band-limited noise with blade-pass harmonics), 32 music (12 windows of one Kevin MacLeod track, 20 synthetic note sequences), 40 silence (digital and room tone). No speech synthesiser exists on this host (no espeak-ng, ffmpeg, sox), so the speech is real recorded read speech, not synthesis. The corpus is public datasets plus a few synthetic classes, not recordings from real hot mics. Half of each class is the `tune` split and half `heldout`.
+- Rebuild: `sh S/fetch_raw.sh` then `S/../venv/bin/python S/build_corpus.py` (venv needs numpy, scipy, soundfile). Output goes to `S/corpus/` and `S/manifest.json`.
+- Score and report: `node S/harness.mjs --rescore` runs every file through the real rnnoise wasm and caches raw scores and denoised frame energy; `node S/harness.mjs [--misses] [--config='{"minVoicedMs":600}']` re-applies the pipeline from the cache and prints keep rates per class. `node S/tune.mjs '<json grid>' [top]` grid-searches constants on the tune split and prints the held-out result for the best.
+- Scratch checks: `node scratchpad/verify/redcheck.mjs energy-gate` fails (hot-mic noise registers as speech and is sent); `redcheck.mjs rnnoise` passes. `node scratchpad/verify/scheduler.mjs` covers the playback scheduler with a fake clock.
+- Recorded result at the committed constants: clean speech 100%, noisy speech 100%, short fragments 80%, all speech 95.0%; non-voice 2.6% kept (cough 7.5%, music 6.3%, breathing 5%, mouse click 2.5%, fan, keyboard and silence 0%). Acceptance (95% speech, 2% non-voice) is met for speech and missed by 0.6 points for non-voice: rnnoise scores coughs and pitched music as voice, and constants alone trade one for the other.
 
 @.gm/next-step.md
