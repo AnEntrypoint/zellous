@@ -79,6 +79,14 @@ The settings panes My Account, Profiles, Key & Security, Relays, Privacy, Data a
 
 The bottom-left user panel (`design/src/components/game3-user.js`, `game3-usermenus.js`, wiring in `design/src/community-app/user-panel.js`) holds the avatar menu, inline rename, status menu with expiry presets, the account menu and the Set up your profile modal (entry 201). Stored identities live in `zn_identities`, setup state in `zellous-setup`. Tap targets: a clickable element directly above a small one steals touch taps, so every small control needs its own handler.
 
+## Ship gate (`scripts/ship/`)
+
+Tooling, not tests: `sh scripts/ship/ship.sh "<message>"` is the only way to push a design and zellous change together.
+- `lint.sh`: copies design `src`, zellous `modules`, `bridge`, `adapter`, `nostr-adapter.js` and wireweave `src` into a temp directory and runs eslint 9 with only `no-undef` (`eslint.config.mjs`; classic globals `state`, `ui`, `chat`, `config`, `_a11yPersistentModal` are declared there). A name the page does not have fails the ship; a missing eslint report fails it too. Sibling repos are `../design` and `../wireweave`, or `DESIGN_DIR` and `WIREWEAVE_DIR`.
+- `kinds.mjs`: serves `docs/` locally against a wireweave `EphemeralRelay`, creates a throwaway server and posts a plain message, sticker, poll, link, Sharesies invite and server invite; every kind must render and the page must raise no error. It never touches a public relay. `CHROME_EXE` overrides the browser.
+- `ship.sh`: lint, kinds, push design, wait for jsdelivr to serve the design and wireweave SHAs, bump the design pin in `docs/nostr-chat/index.html`, push zellous, poll the deployed page for the new SHA (one workflow re-dispatch), then `live.mjs` boots the deployed page and requires `appReady`, a module list and no page error.
+- Red check, witnessed in entry 215: a module containing `notDefinedAnywhere` makes `lint.sh` exit 1 naming the file and line; removing it returns `LINT_OK`.
+
 ## Modules (registry and contract)
 
 A module is one named unit that may have three halves sharing an id: wireweave `src/modules/<id>.js` (protocol, `registerProtocol`), zellous `docs/js/modules/<id>/index.js` (behaviour, state, actions, `registerModule`) and design `src/modules/<id>/index.js` (components, design `registerModule`). Each repo has one `modules/index.js` listing its modules; adding one is its own directory plus one import line per repo.
@@ -234,7 +242,7 @@ Two `design` CI gates apply before pushing an SDK change. The RTL lint (`scripts
 - **Never post to the public room from a witness.** `ZELLOUS_PUBLIC_SERVER_ID` is a real shared room that strangers read. Witnesses that send messages, polls, reactions, joins or typing use a throwaway server (`window.__zellous.servers.create(name)` in a fresh context, a second identity joins with `servers.join(serverId,{name})`), or the local relay: `scripts/dev-server.mjs` plus a wireweave `EphemeralRelay` with a page init script that rewrites every `wss://` WebSocket to `ws://127.0.0.1:<port>` (an https page cannot reach a local ws relay, so serve `docs/` over http for that). Reading the public room (screenshots, computed styles) is fine; a DM between two throwaway keys is fine. Two earlier witnesses (a poll, its vote and a reaction) did post there and cannot be unposted.
 - **Seeding history:** `chat.send` is limited to 5 per 10 s in the client, so seed long threads by signing kind 42 events (tag `['e', sha256(serverId+':'+channelId), '', 'root']`) and publishing them over one websocket to the local relay; history loads the newest 50 on open and the rest arrives by subscription.
 
-- Never write `docs/PENDING_VALIDATION.md` from a paged read (gm `read_file` returns one page of a long file; writing it back truncated the ledger once). Append with a shell `cat >>`. The unversioned `.git/hooks/pre-push` refuses a push where that file shrinks by more than 5 lines against the remote; recreate it if `.git/hooks` is missing.
+- Never write `docs/PENDING_VALIDATION.md` from a paged read (gm `read_file` returns one page of a long file; writing it back truncated the ledger once). Append with a shell `cat >>`. `scripts/ship/prepush.sh` is the pre-push hook (install with `sh scripts/ship/install-hooks.sh`): it refuses a push where that file has fewer lines than the remote, and a push whose commit messages cite `ledger N` for an N with no `N. ` entry in the file.
 
 - Under concurrent pushes to `design` or `zellous`, fetch, check the diff for disjoint changes and re-apply; don't force-push. Don't trust a `prd-resolve` success response alone under concurrent load; spot-check `.gm/prd.yml`.
 - A fix round is evidence of progress, not convergence. Re-verify fixes with a reviewer that reads only the diffs.
