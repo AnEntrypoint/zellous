@@ -1,5 +1,5 @@
 window.__wireweaveReady = (async () => {
-  const [bootStatus, network, auth, chat, unread, dm, channels, servers, governance, forum, media, voice, pinsBridge, eventsBridge, pollsBridge, selfRolesBridge, presenceBridge, membershipBridge, accountBridge] = await Promise.all([
+  const [bootStatus, network, auth, chat, unread, dm, channels, servers, governance, forum, media, voice, pinsBridge, eventsBridge, pollsBridge, selfRolesBridge, presenceBridge, membershipBridge, accountBridge, modulesBridge] = await Promise.all([
     import('./bridge/boot-status.js'),
     import('./bridge/network.js'),
     import('./bridge/auth.js'),
@@ -18,7 +18,8 @@ window.__wireweaveReady = (async () => {
     import('./bridge/selfroles.js'),
     import('./bridge/presence.js'),
     import('./bridge/membership.js'),
-    import('./bridge/account.js')
+    import('./bridge/account.js'),
+    import('./bridge/modules.js')
   ]);
   const mod = await bootStatus.loadProtocol();
   const NT = window.NostrTools;
@@ -37,6 +38,7 @@ window.__wireweaveReady = (async () => {
   window.nostrFsm = { voiceMachine: ww.fsm.voiceMachine, peerMachine: ww.fsm.peerMachine, cameraMachine: ww.fsm.cameraMachine };
 
   if (ww.remote) await ww.remote.restore().catch(() => {});
+  modulesBridge.installModules(ww);
   network.installNetwork(ww);
   const { generateKeyWithConfirm } = auth.installAuth(ww);
   chat.installChat(ww);

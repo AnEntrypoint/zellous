@@ -120,7 +120,7 @@ channelManager.showCreateModal = function(type, categoryId) {
   modal.id = 'channelCreateModal'; modal.className = 'modal-overlay open';
   modal.innerHTML = '<div class="modal-box" style="max-width:400px"><div class="modal-title">Create Channel</div>' +
     '<div class="modal-error" id="ccErr" style="display:none"></div><form id="ccForm" onsubmit="return false">' +
-    '<div class="modal-field"><label class="modal-label">Channel Type</label><select class="modal-input" id="ccType"><option value="text">Text</option><option value="voice">Voice</option><option value="threaded">Threaded</option><option value="announcement">Announcement</option></select></div>' +
+    '<div class="modal-field"><label class="modal-label">Channel Type</label><select class="modal-input" id="ccType">' + window.zModules.createOptions().map(function(o) { return '<option value="' + escHtml(o.value) + '">' + escHtml(o.label) + '</option>'; }).join('') + '</select></div>' +
     '<div class="modal-field"><label class="modal-label">Channel Name</label><input type="text" class="modal-input" id="ccName" placeholder="new-channel" maxlength="40" autofocus></div>' +
     '<div class="modal-field"><label class="modal-label">Category</label><select class="modal-input" id="ccCat"><option value="">No Category</option>' + catOpts + '</select></div>' +
     '<div class="modal-actions"><button type="button" class="modal-btn secondary" id="ccCancel">Cancel</button><button type="submit" class="modal-btn" id="ccSubmit">Create Channel</button></div></form></div>';
@@ -287,13 +287,12 @@ channelManager.showSettingsModal = function(channelId) {
 
   var isOwner = window.serverRoles && state.currentServerId &&
     (serverRoles.isOwner(state.currentServerId) || serverRoles.isAdmin(state.currentServerId));
-  var typeNames = { text: 'Text', voice: 'Voice', announcement: 'Announcement', threaded: 'Threaded', forum: 'Forum' };
-  var typeLabel = Object.prototype.hasOwnProperty.call(typeNames, ch.type) ? typeNames[ch.type] : escHtml(ch.type);
+  var typeLabel = escHtml(window.zModules.typeLabel(ch.type));
   var modeNow = ch.voiceMode || 'ptt';
   var topicNow = ch.topic || '';
 
   var voiceSection = '';
-  if (ch.type === 'voice') {
+  if (window.zModules.trait(ch.type, 'voice')) {
     voiceSection =
       '<div class="modal-field"><label class="modal-label">Channel Mode</label>' +
         '<div style="display:flex;gap:8px">' +
@@ -336,7 +335,7 @@ channelManager.showSettingsModal = function(channelId) {
       var newTopic = (modal.querySelector('#csTopic').value || '').trim();
       if (newName && newName !== ch.name) patch.name = newName;
       if (newTopic !== topicNow) patch.topic = newTopic;
-      if (ch.type === 'voice') {
+      if (window.zModules.trait(ch.type, 'voice')) {
         var modeEl = modal.querySelector('input[name="csMode"]:checked');
         if (modeEl && modeEl.value !== modeNow) patch.voiceMode = modeEl.value;
       }

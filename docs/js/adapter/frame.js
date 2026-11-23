@@ -1,3 +1,5 @@
+import { composerAdminOnly, trait } from '../modules/registry.js';
+
 import { dmSnapshot } from './dm.js';
 
 const LOCK_ANNOUNCEMENT = { permission: true, reason: 'Only admins can post here', toast: 'Only admins can post in announcement channels' };
@@ -9,7 +11,7 @@ export function composerLock(v) {
   const curr = v('currentChannel', null);
   const sid = v('currentServerId', null);
   if (!(window.state && window.state.homeMode) && window.chat && window.chat.hasChannel && !window.chat.hasChannel()) return LOCK_LOADING;
-  if (curr && curr.type === 'announcement' && !(window.serverRoles && sid && window.serverRoles.isAdmin(sid))) return LOCK_ANNOUNCEMENT;
+  if (curr && composerAdminOnly(curr.type) && !(window.serverRoles && sid && window.serverRoles.isAdmin(sid))) return LOCK_ANNOUNCEMENT;
   return null;
 }
 
@@ -25,7 +27,7 @@ export function deriveFrame(v) {
   const dm = homeMode ? dmSnapshot(v) : null;
   const curr = dm ? dm.currentChannel : v('currentChannel', null);
   const sid = v('currentServerId', null);
-  const isPage = curr && curr.type === 'page';
+  const isPage = curr && trait(curr.type, 'pageData');
   const pageData = isPage && window.serverPages
     ? (window.serverPages.getPages(curr._serverId || sid) || []).find(p => p.slug === curr._slug)
     : null;

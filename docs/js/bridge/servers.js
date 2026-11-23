@@ -1,3 +1,4 @@
+import { trait } from '../modules/registry.js';
 const ZELLOUS_PUBLIC_SERVER_ID = '0000000000000000000000000000000000000000000000000000000000000000:public';
 
 export function installServers(ww) {
@@ -20,7 +21,7 @@ export function installServers(ww) {
       state.homeMode = false;
       document.getElementById('homeServer')?.classList.remove('active');
       await srv.switchTo(sid);
-      const firstText = state.channels?.find(c => c.type === 'text');
+      const firstText = state.channels?.find(c => trait(c.type, 'defaultOpen'));
       if (firstText && state.currentChannelId !== firstText.id) {
         state.currentChannelId = firstText.id; state.currentChannel = firstText;
         window.chat.loadHistory(firstText.id);

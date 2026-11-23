@@ -37,7 +37,7 @@ const threadManager = {
 
   updateFromChannels() {
     const channels = state.channels || [];
-    const threads = channels.filter(c => c.type === 'threaded' && c.parentChannelId);
+    const threads = channels.filter(c => window.zModules.trait(c.type, 'threadParent') && c.parentChannelId);
     threads.forEach(t => {
       const parentId = t.parentChannelId;
       const existing = this._threads.get(parentId) || [];
@@ -64,7 +64,7 @@ const threadManager = {
   },
 
   select(threadId) {
-    if (state.currentChannel?.type === 'forum') return this.selectForumPost(threadId);
+    if (window.zModules.trait(state.currentChannel?.type, 'forumPosts')) return this.selectForumPost(threadId);
     const parentId = state.currentChannel?.id;
     const list = this.listFor(parentId);
     const thread = list.find(t => t.id === threadId);
@@ -88,7 +88,7 @@ const threadManager = {
   },
 
   async newForumPost(title, content) {
-    if (!window.nostrForum || state.currentChannel?.type !== 'forum') return null;
+    if (!window.nostrForum || !window.zModules.trait(state.currentChannel?.type, 'forumPosts')) return null;
     return window.nostrForum.createPost(state.currentChannel.id, state.currentServerId || '', title, content);
   },
 

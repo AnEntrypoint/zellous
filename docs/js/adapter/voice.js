@@ -1,3 +1,4 @@
+import { trait } from '../modules/registry.js';
 const LEVEL_METER_CEILING = 0.35;
 
 export function buildVoice({ v, S, call }) {
@@ -80,7 +81,7 @@ export function buildVoice({ v, S, call }) {
       leaveVoice: () => call(() => (window.lk && window.lk.disconnect) ? window.lk.disconnect() : (window.voice && window.voice.leave && window.voice.leave())),
       returnToVoice: () => call(() => {
         const name = v('voiceChannelName', '');
-        const ch = (window.state.channels || []).find(c => c.type === 'voice' && c.name === name);
+        const ch = (window.state.channels || []).find(c => trait(c.type, 'voice') && c.name === name);
         if (ch) window.ui.actions.switchChannel(ch);
       }),
       openVoiceSettings: () => call(() => {

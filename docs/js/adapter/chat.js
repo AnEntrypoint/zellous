@@ -1,3 +1,4 @@
+import { trait } from '../modules/registry.js';
 import { composerLock, LOCK_DM, resolveAuthor } from './frame.js';
 import { pollsFor } from '../polls.js';
 import { runCommand } from '../commands.js';
@@ -60,9 +61,6 @@ export function buildChat({ v, S, call }) {
         threadPanelOpen: v('threadPanelOpen', false),
         activeThreadId: v('activeThreadId', null),
         threads: v('threads', []),
-        forumPosts: (curr && curr.type === 'forum' && window.nostrForum)
-          ? window.nostrForum.listFor(curr.id).map((p) => ({ ...p, author: resolveAuthor(p.author) }))
-          : [],
         resolveAuthor,
       };
     },
@@ -123,7 +121,7 @@ export function buildChat({ v, S, call }) {
       newForumPost: () => call(() => window.channelManager && window.channelManager.showNewForumPostModal()),
       editPage: () => call(() => {
         const ch = v('currentChannel', null);
-        if (!ch || ch.type !== 'page' || !window.serverPages || !window.serverManager) return;
+        if (!ch || !trait(ch.type, 'pageData') || !window.serverPages || !window.serverManager) return;
         const existing = (window.serverPages.getPages(ch._serverId) || []).find(p => p.slug === ch._slug);
         window.serverManager.showEditPageModal(ch._serverId, ch._slug, existing ? existing.title : ch.name, existing ? existing.html : '');
       }),

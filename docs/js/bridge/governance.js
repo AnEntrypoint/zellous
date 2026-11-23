@@ -1,3 +1,4 @@
+import { trait } from '../modules/registry.js';
 export function installGovernance(ww) {
   const roles = ww.roles;
   roles.addEventListener('updated', () => { state.rolesVersion = (state.rolesVersion || 0) + 1; });
@@ -26,7 +27,7 @@ export function installGovernance(ww) {
   mutes.addEventListener('updated', () => {
     state.mutesVersion = (state.mutesVersion || 0) + 1;
     const ch = state.currentChannel;
-    if (ch && (ch.type === 'text' || ch.type === 'announcement') && window.chat?.loadHistory) window.chat.loadHistory(ch.id);
+    if (ch && trait(ch.type, 'history') && window.chat?.loadHistory) window.chat.loadHistory(ch.id);
   });
   window.nostrMutes = {
     isMuted: (pk) => mutes.isMuted(pk),

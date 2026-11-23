@@ -1,3 +1,4 @@
+import { trait } from '../modules/registry.js';
 import { SOUNDS, playSoundboard } from '../soundboard.js';
 import { subscribeChannelEvents, subscribeServerEvents } from '../events-feed.js';
 import { leaderboardFor, levelFor } from '../xp.js';
@@ -128,10 +129,10 @@ export function buildGame({ v, S, call, persistBool }) {
   };
   const goToChannel = (name) => {
     S.gameSurface.value = null;
-    const ch = v('channels', []).find((c) => c.name === name && c.type !== 'voice');
+    const ch = v('channels', []).find((c) => c.name === name && !trait(c.type, 'voice'));
     if (ch && window.ui && window.ui.actions) window.ui.actions.switchChannel(ch);
   };
-  const goToGeneral = () => { const first = (v('channels', []) || []).find((c) => c && c.type === 'text'); goToChannel(first ? first.name : 'general'); };
+  const goToGeneral = () => { const first = (v('channels', []) || []).find((c) => c && trait(c.type, 'defaultOpen')); goToChannel(first ? first.name : 'general'); };
   return {
     snapshot: () => {
       const counts = (window.nostrUnread && window.nostrUnread.countsFor) ? window.nostrUnread.countsFor() : {};
@@ -178,9 +179,9 @@ export function buildGame({ v, S, call, persistBool }) {
         inboxTab: v('inboxTab', 'mentions'),
         mentions: (() => { const me = (window.state && window.state.nostrPubkey) || null; const name = me && window.chat ? window.chat.resolveProfile(me) : ''; if (!name) return []; const re = new RegExp('(^|\\s)@' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\w.-])', 'i'); const everyoneRe = window.nostrAccount && window.nostrAccount.everyonePings() ? /(^|\s)@(everyone|here)(?![\w.-])/i : null; return ((window.state && window.state.chatMessages) || []).filter((m) => re.test(String(m.content || '')) || (everyoneRe && everyoneRe.test(String(m.content || '')))).slice(-50).reverse().map((m) => ({ id: m.id, who: m.username || m.userId, text: m.content })); })(),
         mutedChannel: (v('mutedChannels', []) || []).includes((v('currentChannel', null) || {}).id),
-        splitOptions: (() => { const cur = v('currentChannel', null); return (v('channels', []) || []).filter((c) => c && (c.type === 'text' || c.type === 'announcement') && !(cur && c.id === cur.id)).map((c) => ({ id: c.id, name: c.name })); })(),
+        splitOptions: (() => { const cur = v('currentChannel', null); return (v('channels', []) || []).filter((c) => c && trait(c.type, 'split') && !(cur && c.id === cur.id)).map((c) => ({ id: c.id, name: c.name })); })(),
         splitMessages: (v('splitMessages', []) || []).slice().reverse().map((m) => ({ ...m, time: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: !v('pref_h24', false) }), name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(m.userId)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(m.userId) : m.userId.slice(0, 8)) })),
-        discoverServers: v('servers', []).map((sv) => { const current = sv.id === v('currentServerId', null); const ownerPk = String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null; const members = v('roomMembers', []); return { id: sv.id, name: sv.name || 'server', current, owner: ownerPk ? ((window.chat && window.chat.resolveProfile && window.chat.resolveProfile(ownerPk)) || ownerPk.slice(0, 12)) : 'nobody (public room)', members: current ? members.length : null, online: current ? members.filter((m) => m.online).length : null, channels: current ? v('channels', []).filter((c) => c.type !== 'voice').map((c) => c.name) : null }; }),
+        discoverServers: v('servers', []).map((sv) => { const current = sv.id === v('currentServerId', null); const ownerPk = String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null; const members = v('roomMembers', []); return { id: sv.id, name: sv.name || 'server', current, owner: ownerPk ? ((window.chat && window.chat.resolveProfile && window.chat.resolveProfile(ownerPk)) || ownerPk.slice(0, 12)) : 'nobody (public room)', members: current ? members.length : null, online: current ? members.filter((m) => m.online).length : null, channels: current ? v('channels', []).filter((c) => !trait(c.type, 'voice')).map((c) => c.name) : null }; }),
         announcements: announcementsFor(v('chatMessages', []), window.state && window.state.nostrPubkey).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         pins: pinsFor(v('chatMessages', []), window.state && window.state.nostrPubkey, v('channelPins', [])).map((p) => ({ ...p, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : p.author.slice(0, 8)) })),
         polls: pollsFor(v('chatMessages', [])).map((p) => { const t = window.nostrPolls ? window.nostrPolls.tally(p.id, p.options.length) : { counts: p.options.map(() => 0), total: 0, mine: -1 }; v('pollVotesVersion', 0); return { ...p, ...t, name: (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(p.author)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(p.author) : '') }; }),

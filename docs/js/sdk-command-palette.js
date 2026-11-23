@@ -10,7 +10,7 @@
       }
       const channels = (S.channels && S.channels.value) || [];
       for (const c of channels) {
-        out.push({ id: 'channel:' + c.id, label: (c.type === 'voice' ? 'voice ' : '# ') + (c.name || c.id), kind: 'channel', onSelect: () => window.ui && window.ui.actions && window.ui.actions.switchChannel && window.ui.actions.switchChannel(c) });
+        out.push({ id: 'channel:' + c.id, label: (window.zModules.searchGlyph(c.type) === 'voice' ? 'voice ' : '# ') + (c.name || c.id), kind: 'channel', onSelect: () => window.ui && window.ui.actions && window.ui.actions.switchChannel && window.ui.actions.switchChannel(c) });
       }
       out.push({
         id: 'mute', label: '/mute — toggle microphone mute', kind: 'action',

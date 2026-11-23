@@ -1,3 +1,4 @@
+import { trait } from '../modules/registry.js';
 import { levelFor } from '../xp.js';
 
 export function buildMembers({ v, call }) {
@@ -5,7 +6,7 @@ export function buildMembers({ v, call }) {
     snapshot: () => ({
       memberCategories: (window.uiMembers && window.uiMembers.categories && window.uiMembers.categories()) || [],
       memberApps: [{ identity: 'mustardbot', name: 'MustardBot', color: '#5865f2', activity: '/help · @MustardBot' }],
-      memberListOpen: v('memberListOpen', false) && !v('homeMode', false) && (v('currentChannel', {}) || {}).type !== 'voice',
+      memberListOpen: v('memberListOpen', false) && !v('homeMode', false) && trait((v('currentChannel', {}) || {}).type, 'members') !== false,
       ...levelFor(v('chatMessages', []), window.state && window.state.nostrPubkey),
     }),
     actions: {

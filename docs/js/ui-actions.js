@@ -5,21 +5,7 @@ ui.actions = {
     state.currentChannel = channel;
     state.currentChannelId = channel.id;
     state.messages = [];
-    if (channel.type === 'text' || channel.type === 'announcement') {
-      state.chatMessages = [];
-      if (window.chat?.loadHistory) chat.loadHistory(channel.id);
-    }
-    if (channel.type === 'forum' && window.nostrForum) {
-      window.nostrForum.loadChannel(channel.id, state.currentServerId || '');
-    }
-    if (channel.type === 'voice' && window.lk) {
-      if (state.voiceConnected && state.voiceChannelName === channel.name) {
-        lk.disconnect();
-      } else if (!state.voiceConnected) {
-        lk.connect(channel.name)
-          .catch((e) => { if (window.ui?.showToast) ui.showToast('Voice connect failed: ' + (e?.message || 'unknown error'), 3000, 'error'); });
-      }
-    }
+    window.zModules.openChannel(channel);
     const menu = sig('mobileMenuOpen');
     if (menu) menu.value = false;
     ui._replyTarget = null;
@@ -69,7 +55,7 @@ ui.actions = {
   sendFiles(files) {
     const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
     const ch = state.currentChannel;
-    if (ch && ch.type === 'announcement' && !(window.serverRoles && window.serverRoles.isAdmin(state.currentServerId))) {
+    if (ch && window.zModules.composerAdminOnly(ch.type) && !(window.serverRoles && window.serverRoles.isAdmin(state.currentServerId))) {
       ui.showToast('Only admins can post in announcement channels', 3000, 'error');
       return;
     }

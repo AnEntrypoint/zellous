@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@b62c3081f0c80b2128fb9eaac5743ec78ed85c56/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@84da6897ccb1fe6c6e6189fc98331017a499230b/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -83,6 +83,16 @@ The interface is a port of game-3 (`/config/workspace/game-3/scripts/ui.js`) min
 The settings panes My Account, Profiles, Key & Security, Relays, Privacy, Data and Sync are `design/src/components/game3-account.js`, fed by `docs/js/adapter/account.js` (snapshot `account`, `avatars`, `profileMeta`; actions `account*`) over `docs/js/bridge/account.js` (`window.nostrAccount`, image resize, generated avatar, preference sync IO) over wireweave `src/account.js` (`ww.account`). Public fields go to kind 0, private ones to a NIP-44 self-encrypted kind 30078 (d `zellous-account:self`), relays to kind 10002. Avatars reach every surface through the registry in `game3-hue.js` (`game3SetAvatars`, set at the top of each render): pass the pubkey as the second argument of `game3AvatarBg` and `game3AvInitial`. NIP-46 (wireweave `src/remote-signer.js`, session in `zn_bunker`, vendored `nostr-tools/nip46` and `qrcode-generator`), DM read receipts (kind 7 rumor tagged zellous-read, off by default) and the nickname look-alike warning are built (entry 200); a nickname look-alike is warned about, not blocked. When witnessing, use the local relay: a call to `account.resetRelays()` in node reaches real public relays.
 
 The bottom-left user panel (`design/src/components/game3-user.js`, `game3-usermenus.js`, wiring in `userPanel(s)` of `community-app.js`) holds the avatar menu, inline rename, status menu with expiry presets, the account menu and the Set up your profile modal (entry 201). Stored identities live in `zn_identities`, setup state in `zellous-setup`. Tap targets: a clickable element directly above a small one steals touch taps, so every small control needs its own handler.
+
+## Modules (registry and contract)
+
+A module is one named unit with three halves that share an id: wireweave `src/modules/<id>.js` (protocol: event kinds, parse and build, registered with `registerProtocol`), zellous `docs/js/modules/<id>/index.js` (behaviour, state, actions, registered with `registerModule`), design `src/modules/<id>/index.js` (components and CSS, registered with the design `registerModule`). Each repo has one index file that lists its modules; adding a module is its own directories plus one import line per repo, and nothing else.
+
+Manifest: `{ id, kind: 'channelType'|'serverType'|'settingsPane'|'surface'|'messageKind'|'popover', channelType: {...} | surface: {...} | settingsPane: {...}, snapshot(deps, frame), actions(deps) }`. Ids are lowercase letters, digits and dashes and unique; the registry throws a message naming the module on a bad or duplicate manifest.
+- design `channelType`: `{ type, label, icon, railGroup: 'text' | { id, label, order, voice, createType, always }, headerSub, searchGlyph, railIcon, welcomeGlyph, traits, body(ctx) }`. `body` gets `{ s, A, ch, views }`; leave it out for the chat view. A `surface` is `{ id, channelName, channelType, icon, body(ctx) }` (the rules and pick-roles pages and the announcements icon are surfaces bound to a channel name).
+- zellous `channelType`: `{ type, label, searchGlyph, createOption: { label, order }, traits, onOpen(channel, ctx) }`. Traits in use: `inRail` (listed in the rail), `history` (load chat on open), `composer` ('standard' or 'admin'), `split`, `defaultOpen`, `members` (false hides the member list), `voice`, `threadParent`, `forumPosts`, `pageData`. Modules reach the app only through `ctx` (state, chat, forum, voice, toast), built in `bridge/modules.js`; classic scripts use `window.zModules`.
+- Rules: nothing outside the registry modules switches on a channel kind (the check is `grep -rn "type === '\(text\|voice\|forum\|threaded\|announcement\|page\)'"` over design `src` and zellous `docs/js`, minus the modules directories: it must print nothing); a module keeps its state in its own signals and its CSS with it; no new `window.X`. design `package.json` lists `./src/modules/**/*.js` in `sideEffects`, because registration happens on import and the bundler would drop it otherwise.
+- `hello-room` is the documented toy: channel type `hello-room`, shown under Hello Rooms with the smile icon, created from the create-channel picker. Copy it to start a module.
 
 ## Things that look broken but aren't
 
