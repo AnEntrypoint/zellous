@@ -30,11 +30,13 @@ window.__wireweaveReady = (async () => {
     storage: localStorage,
     extension: window.nostr,
     prefsIO: accountBridge.makePrefsIO(),
+    nip46: window.NostrNip46,
     relays: state.nostrRelays || ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nos.lol', 'wss://relay.snort.social']
   });
 
   window.nostrFsm = { voiceMachine: ww.fsm.voiceMachine, peerMachine: ww.fsm.peerMachine, cameraMachine: ww.fsm.cameraMachine };
 
+  if (ww.remote) await ww.remote.restore().catch(() => {});
   network.installNetwork(ww);
   const { generateKeyWithConfirm } = auth.installAuth(ww);
   chat.installChat(ww);

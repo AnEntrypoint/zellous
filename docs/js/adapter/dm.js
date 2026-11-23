@@ -32,8 +32,16 @@ export function dmSnapshot(v) {
   return {
     conversations,
     currentChannel: { id: 'dm:' + (active || ''), name: active ? peerName(active) : 'Direct messages', type: 'text', topic: active ? '' : 'Pick a conversation or start a new one' },
-    messages: active ? all.filter((m) => m.peer === active).map((m) => ({ id: m.id, userId: m.from, timestamp: m.timestamp, content: m.text, type: 'text', ...(m.send ? { send: m.send } : {}) })) : [],
+    messages: active ? markSeen(all.filter((m) => m.peer === active).map((m) => ({ id: m.id, userId: m.from, timestamp: m.timestamp, content: m.text, type: 'text', mine: !!m.mine, ...(m.send ? { send: m.send } : {}) })), active) : [],
   };
+}
+
+function markSeen(list, peer) {
+  if (!window.nostrAccount || !window.nostrAccount.receiptsOn() || !window.dm) return list;
+  const upTo = window.dm.seenUpTo(peer);
+  let last = -1;
+  list.forEach((m, i) => { if (m.mine && m.timestamp <= upTo) last = i; });
+  return last < 0 ? list : list.map((m, i) => (i === last ? { ...m, seen: true } : m));
 }
 
 function peopleHere(v) {
@@ -68,6 +76,7 @@ export function buildDmHome({ v, S, call }) {
         markRead(v('activeDmPeer', null), () => {});
         markRead(peer, bump);
         if (S.activeDmPeer) S.activeDmPeer.value = peer;
+        setTimeout(() => window.dm && window.dm.maybeSendReceipt(), 300);
       }),
     },
   };

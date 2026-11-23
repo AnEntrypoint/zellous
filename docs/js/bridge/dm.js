@@ -11,7 +11,20 @@ export function installDm(ww) {
     dmMessages[i] = { ...dmMessages[i], send };
     publish();
   });
+  const seenByPeer = {};
+  const sentUpTo = {};
+  const maybeSendReceipt = () => {
+    const peer = state.activeDmPeer;
+    if (!peer || document.visibilityState === 'hidden' || !window.nostrAccount || !window.nostrAccount.receiptsOn()) return;
+    const latest = dmMessages.filter((m) => !m.mine && m.peer === peer).reduce((t, m) => Math.max(t, m.timestamp), 0);
+    if (!latest || latest <= (sentUpTo[peer] || 0)) return;
+    sentUpTo[peer] = latest;
+    ww.ensureDM().sendReceipt(peer, latest / 1000).catch(() => { sentUpTo[peer] = 0; });
+  };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') maybeSendReceipt(); });
   window.dm = {
+    seenUpTo: (peer) => seenByPeer[peer] || 0,
+    maybeSendReceipt,
     get messages() { return dmMessages.slice(); },
     async send(peerPubkey, text) {
       if (!peerPubkey || !text?.trim()) return null;
@@ -36,6 +49,11 @@ export function installDm(ww) {
     subscribeAll() {
       if (dmSubId || !a.pubkey) return dmSubId;
       dmSubId = ww.ensureDM().subscribe(({ event, rumor, plaintext, peer }) => {
+        if (rumor.kind === 7 && (rumor.tags || []).some((t) => t[0] === 't' && t[1] === 'zellous-read')) {
+          const seen = Number(((rumor.tags || []).find((t) => t[0] === 'seen') || [])[1]) || 0;
+          if (rumor.pubkey !== a.pubkey && seen * 1000 > (seenByPeer[rumor.pubkey] || 0)) { seenByPeer[rumor.pubkey] = seen * 1000; if (state.dmReadVersion !== undefined) state.dmReadVersion = (state.dmReadVersion || 0) + 1; }
+          return;
+        }
         const id = rumor.id || event.id;
         if (dmMessages.find(m => m.id === id)) return;
         const mine = rumor.pubkey === a.pubkey;
@@ -44,6 +62,7 @@ export function installDm(ww) {
         if (mine) dmMessages = dmMessages.filter((m) => m !== pending);
         dmMessages.push({ id, peer, from: rumor.pubkey, text: plaintext, timestamp: rumor.created_at * 1000, mine, ...(pending ? { wrapId: pending.wrapId, send: pending.send } : {}) });
         dmMessages.sort((x, y) => x.timestamp - y.timestamp);
+        setTimeout(maybeSendReceipt, 400);
         if (dmMessages.length > DM_MESSAGES_CAP) dmMessages = dmMessages.slice(dmMessages.length - DM_MESSAGES_CAP);
         publish();
       });

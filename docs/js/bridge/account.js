@@ -95,6 +95,7 @@ export function installAccount(ww) {
       return undefined;
     }
   };
+  if (ww.remote) window.nostrRemote = ww.remote;
   window.nostrAccount = {
     core: acct,
     note,
@@ -103,7 +104,8 @@ export function installAccount(ww) {
     generateAvatar,
     avatarOf: (pk, sid) => acct.avatarOf(pk, sid),
     allowsDm: (peer, known) => acct.allowsDm(peer, { knownPeers: known }),
-    everyonePings: () => acct.everyonePings()
+    everyonePings: () => acct.everyonePings(),
+    receiptsOn: () => acct.receiptsOn()
   };
   if (ww.auth.pubkey) acct.load();
 }

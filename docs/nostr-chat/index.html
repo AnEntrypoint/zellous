@@ -23,9 +23,11 @@ document.currentScript.before(Object.assign(document.createElement('script'), {
       '@preact/signals': '../vendor/preact-signals.mjs',
       '@preact/signals-core': '../vendor/signals-core.mjs',
       'nostr-tools': '../vendor/nostr-tools/2.25.2.bundle.mjs',
+      'nostr-tools/nip46': '../vendor/nostr-tools/2.25.2.nip46.bundle.mjs',
+      'qrcode-generator': '../vendor/nostr-tools/qrcode-generator-1.4.4.mjs',
       xstate: '../vendor/xstate.mjs',
-      wireweave: 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@075b6a7fe4ce8786ee0bb183cb573a64b2e8a15b/src/index.js',
-      'anentrypoint-design': 'https://cdn.jsdelivr.net/gh/AnEntrypoint/design@c05124d91d5c19bdea2d91f474958fc8fba6525e/dist/247420.js'
+      wireweave: 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@3ff887ca2629ebd8b9c16f132c59d5b147f66529/src/index.js',
+      'anentrypoint-design': 'https://cdn.jsdelivr.net/gh/AnEntrypoint/design@6fc7d8f63db5d4afcffc2ef496497f4164842550/dist/247420.js'
     }
   })
 }));
@@ -56,7 +58,7 @@ window.uiMembers = null;
 window.moderation = null;
 window.nostrFsm = null;
 </script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AnEntrypoint/design@c05124d91d5c19bdea2d91f474958fc8fba6525e/dist/247420.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/AnEntrypoint/design@6fc7d8f63db5d4afcffc2ef496497f4164842550/dist/247420.css">
   <link rel="stylesheet" href="../css/zellous.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -210,6 +212,8 @@ window.nostrFsm = null;
 
     import * as NostrTools from 'nostr-tools';
     window.NostrTools = NostrTools;
+    window.NostrNip46 = await import('nostr-tools/nip46');
+    window.QrCode = (await import('qrcode-generator')).default;
 
     import { createMachine, createActor } from 'xstate';
     window.XState = { createMachine, createActor };

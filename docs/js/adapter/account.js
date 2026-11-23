@@ -6,6 +6,10 @@ export function buildAccount({ v, S, call }) {
   const sid = () => v('currentServerId', null);
   const serverName = () => { const s = (v('servers', []) || []).find((x) => x && x.id === sid()); return s ? s.name : ''; };
   let rotated = null;
+  let signerFlow = null;
+  const memberKeys = () => peopleKeys().filter((k) => k !== me());
+  const bumpFlow = () => { if (S.accountVersion) S.accountVersion.value += 1; };
+  const qrSvg = (text) => { const q = window.QrCode(0, 'M'); q.addData(text); q.make(); return q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); };
 
   const bannerCss = (b, name) => {
     if (!b || b.mode === 'auto') return '';
@@ -41,13 +45,13 @@ export function buildAccount({ v, S, call }) {
     const pk = me();
     if (!c || !pk) return { account: { signedIn: false }, avatars: {}, profileMeta: {} };
     const keys = peopleKeys();
-    const avatars = {}; const profileMeta = {};
-    for (const k of keys) { const a = c.avatarOf(k, sid()); if (a) avatars[k] = a; const m = metaFor(c, k); if (m.pronouns || m.about || m.location || m.website || m.links.length || m.banner || m.accent || m.birthday || m.nip05 || m.moved) profileMeta[k] = m; }
+    const avatars = {}; const profileMeta = {}; const accountNames = {};
+    for (const k of keys) { const a = c.avatarOf(k, sid()); if (a) avatars[k] = a; const an = c.accountNameOf(k); if (an && c.nickFor(k, sid()) && c.nickFor(k, sid()) !== an) accountNames[k] = an; const m = metaFor(c, k); if (m.pronouns || m.about || m.location || m.website || m.links.length || m.banner || m.accent || m.birthday || m.nip05 || m.moved) profileMeta[k] = m; }
     const pub = c.publicProfile();
     const st = window.nostrPresence ? window.nostrPresence.statusOf(pk) : { status: 'online' };
     const server = sid() ? { id: sid(), name: serverName(), ...(c.priv.perServer[sid()] || { nick: '', avatar: '' }) } : null;
     return {
-      avatars, profileMeta,
+      avatars, profileMeta, accountNames,
       account: {
         signedIn: true, pubkey: pk, npub: c.auth.npubEncode(pk),
         hasPrivkey: !!(window.auth && window.auth.nsecEncode && window.auth.nsecEncode()),
@@ -63,6 +67,7 @@ export function buildAccount({ v, S, call }) {
         sync: { at: c.privAt, canEncrypt: !!(c.auth.privkey || (c.auth.getExtension() && c.auth.getExtension().nip44)) },
         note: v('accountNote', null),
         rotated,
+        signer: { remote: c.auth.getExtension() && window.nostrRemote ? window.nostrRemote.describe() : null, flow: signerFlow, supported: !!window.nostrRemote },
         bannerCss: bannerCss(pub.zbanner),
         meta: metaFor(c, pk)
       }
@@ -88,9 +93,10 @@ export function buildAccount({ v, S, call }) {
       accountUploadBanner: (file) => call(() => run('banner', async () => core().setPublic({ banner: { mode: 'image', url: await window.nostrAccount.resizeImageFile(file, { size: 640, maxChars: 52000, cover: false }) } }), 'Banner updated')),
       accountVerifyNip05: (id) => call(() => run('nip05', async () => { await core().setPublic({ nip05: id }); if (!String(id || '').trim()) { await core().setPrivate({ nip05: { id: '', ok: false, at: 0, reason: '' } }); return { ok: true, cleared: true }; } return core().verifyNip05(id); }, (r) => (r && r.cleared ? 'NIP-05 removed' : r && r.ok ? 'Verified: ' + r.id : 'Saved, but not verified: ' + (r && r.reason)))),
       accountSetStatus: (p) => call(() => run('status', () => core().setStatus(p), 'Status updated')),
-      accountSetPrivacy: (patch) => call(() => run('privacy', () => core().setPrivate({ privacy: patch }), 'Privacy saved').then(() => core()._applyPresence())),
+      accountSetPrivacy: (patch) => call(() => run('privacy', () => core().setPrivate({ privacy: patch }), 'Privacy saved').then(() => { core()._applyPresence(); if (window.dm) window.dm.maybeSendReceipt(); })),
       accountSetBirthday: (p) => call(() => run('birthday', () => core().setBirthday(p), 'Birthday saved')),
-      accountSetServerProfile: (p) => call(() => run('server', () => core().setServerProfile(sid(), p), 'Saved for ' + (serverName() || 'this server'))),
+      accountCheckNick: (text) => (core() ? core().checkNick(sid(), text, memberKeys()) : []),
+      accountSetServerProfile: (p) => call(() => run('server', async () => { const r = await core().setServerProfile(sid(), p); const clash = r.nick ? core().checkNick(sid(), r.nick, memberKeys()) : []; if (clash.length) throw new Error('Saved, but "' + r.nick + '" ' + (clash[0].kind === 'exact' ? 'is the same as' : 'looks a lot like') + ' ' + clash[0].name + (clash.length > 1 ? ' and ' + (clash.length - 1) + ' more' : '') + ' in this server. People may mistake you for them, and everyone can hover your name to see your real account name.'); return r; }, 'Saved for ' + (serverName() || 'this server'))),
       accountUploadServerAvatar: (file) => call(() => run('server', async () => { const cur = (core().priv.perServer[sid()] || {}); return core().setServerProfile(sid(), { nick: cur.nick || '', avatar: await window.nostrAccount.resizeImageFile(file, { size: 160, maxChars: 30000 }) }); }, 'Server picture saved')),
       accountAddRelay: (url) => call(() => run('relays', () => core().addRelay(url), (r) => 'Added ' + r.url + (r.published ? '' : ' (not yet confirmed by a relay)'))),
       accountRemoveRelay: (url) => call(() => run('relays', () => core().removeRelay(url), 'Removed')),
@@ -108,6 +114,10 @@ export function buildAccount({ v, S, call }) {
       accountImportKey: (input) => call(() => run('key', async () => { if (!window.auth.importKey(input)) throw new Error('That is not a valid nsec or 64-character hex key'); window.auth._afterLogin(); reload(); return true; }, 'Key imported. Reloading')),
       accountRotateKey: () => call(() => run('key', async () => { const r = await core().rotateKey(); rotated = { oldNsec: r.oldNsec, oldNpub: r.oldNpub, newNpub: r.newNpub }; window.state.authVersion = (window.state.authVersion || 0) + 1; return r; }, 'Rotated. Save your old key below, then reload')),
       accountDismissRotation: () => call(() => { rotated = null; reload(); }),
+      accountConnectBunker: (input) => call(() => run('signer', async () => { signerFlow = { mode: 'bunker', status: 'connecting' }; bumpFlow(); try { await window.nostrRemote.connectBunker(input); } catch (e) { signerFlow = null; bumpFlow(); throw e; } reload(); return true; }, 'Connected. Reloading')),
+      accountStartQr: () => call(() => { const relays = core().pool.relayList().slice(0, 2); let flow; try { flow = window.nostrRemote.startQr({ relays, name: 'Zellous', url: location.origin + location.pathname }); } catch (e) { return run('signer', async () => { throw e; }); } signerFlow = { mode: 'qr', status: 'waiting', uri: flow.uri, svg: qrSvg(flow.uri) }; bumpFlow(); return run('signer', async () => { try { await flow.promise; } catch (e) { signerFlow = null; bumpFlow(); if (e.message === 'cancelled') return false; throw e; } reload(); return true; }, 'Connected. Reloading'); }),
+      accountCancelQr: () => call(() => { window.nostrRemote.cancelQr(); signerFlow = null; bumpFlow(); }),
+      accountDisconnectSigner: () => call(() => window.ui.confirm({ title: 'Disconnect the remote signer?', message: 'This browser forgets the signer and signs out. Your key stays with the signer app.', confirmLabel: 'Disconnect', danger: true }).then((yes) => { if (yes) { window.auth.logout(); reload(); } })),
       accountExtensionLogin: () => call(() => run('key', async () => { if (!window.nostr) throw new Error('No Nostr browser extension found'); await window.auth.loginWithExtension(); window.auth._afterLogin(); return true; }, 'Signed in with your extension')),
       accountSignOut: () => call(() => window.ui.confirm({ title: 'Sign out?', message: 'This removes your key from this browser. If you have not backed it up, you cannot get this identity back.', confirmLabel: 'Sign out', danger: true }).then((yes) => { if (yes) { window.auth.logout(); reload(); } })),
     },
