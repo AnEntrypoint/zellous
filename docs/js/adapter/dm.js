@@ -28,7 +28,7 @@ export function dmSnapshot(v) {
   const active = v('activeDmPeer', null);
   if (active && !byPeer.has(active)) byPeer.set(active, { peer: active, timestamp: Date.now(), preview: '' });
   const conversations = [...byPeer.values()].sort((a, b) => b.timestamp - a.timestamp)
-    .map((c) => ({ id: c.peer, name: peerName(c.peer), preview: c.preview, unread: c.unread || 0, status: window.nostrPresence ? window.nostrPresence.statusOf(c.peer).status : 'online', color: (window.getAvatarColor && window.getAvatarColor(c.peer)) || 'var(--accent)' }));
+    .map((c) => ({ id: c.peer, name: peerName(c.peer), preview: c.preview, unread: c.unread || 0, status: window.nostrPresence ? window.nostrPresence.statusOf(c.peer).status : 'online', color: (window.__zellous.helpers.getAvatarColor && window.__zellous.helpers.getAvatarColor(c.peer)) || 'var(--accent)' }));
   return {
     conversations,
     currentChannel: { id: 'dm:' + (active || ''), name: active ? peerName(active) : 'Direct messages', type: 'text', topic: active ? '' : 'Pick a conversation or start a new one' },

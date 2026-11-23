@@ -1,6 +1,6 @@
 (function () {
   function init() {
-    if (!window.__commandPalette || !window.stateSignals) { setTimeout(init, 30); return; }
+    if (!(window.__zellous.overlays && window.__zellous.overlays.commandPalette) || !window.stateSignals) { setTimeout(init, 30); return; }
     const commands = () => {
       const out = [];
       const S = window.stateSignals;
@@ -54,7 +54,7 @@
       return out;
     };
 
-    const open = () => { window.__commandPalette.show(commands(), (item) => { try { item && item.onSelect && item.onSelect(); } catch (e) { console.error('command palette run', e); } }); };
+    const open = () => { window.__zellous.overlays.commandPalette.show(commands(), (item) => { try { item && item.onSelect && item.onSelect(); } catch (e) { console.error('command palette run', e); } }); };
 
     document.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {

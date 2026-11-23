@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  window.__shell = {};
+  const shell = {};
 
   (function wireDrawerSwipe() {
     const EDGE_PX = 24, TRIGGER_PX = 60, MAX_DRIFT_PX = 45;
@@ -33,7 +33,7 @@
       configurable: true,
       get() {
         const base = prev.get.call(window) || {};
-        return Object.assign({}, base, { shell: window.__shell });
+        return Object.assign({}, base, { shell });
       },
     });
     return true;

@@ -11,7 +11,7 @@ const ui = {
 
 const getInitial = (name) => (name || '?')[0].toUpperCase();
 const getAvatarColor = (id) => {
-  const colors = window.AVATAR_COLORS;
+  const colors = window.__zellous.helpers.AVATAR_COLORS;
   const h = Math.abs(typeof id === 'number' ? id : [...(id||'')].reduce((a,c)=>a+c.charCodeAt(0),0));
   return colors[h % colors.length];
 };
@@ -149,7 +149,5 @@ ui.showToast = function(msg, duration, tone, sub, action) {
 
 window.__zellous.ui = ui;
 window.ui = ui;
-window.getInitial = getInitial;
-window.getAvatarColor = getAvatarColor;
+Object.assign(window.__zellous.helpers, { getInitial, getAvatarColor, formatTime });
 window.escHtml = escHtml;
-window.formatTime = formatTime;

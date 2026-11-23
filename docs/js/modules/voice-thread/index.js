@@ -19,6 +19,8 @@ registerModule({
     const view = ctx.signal('view', null);
     const settings = ctx.signal('settings', readSettings());
     const status = ctx.signal('status', { joined: false, joining: false, filtered: 0, level: 0, voiced: false, speaking: [] });
+    const overrideServers = (() => { try { const v = JSON.parse(localStorage.getItem('zellous-blossom-servers') || 'null'); return Array.isArray(v) ? v.filter((u) => /^https:\/\/|^http:\/\/(127\.0\.0\.1|localhost)/.test(String(u))) : []; } catch { return []; } })();
+    if (overrideServers.length) ctx.ww.media.servers = overrideServers;
     let bound = null;
     let channel = null;
     const listeners = [];
@@ -62,6 +64,15 @@ registerModule({
       on(session, 'disconnected', () => { if (bound) { leave(); } });
       patch({ joined: true, joining: false });
       refresh();
+      loadHistory(current).catch(() => {});
+    };
+
+    const loadHistory = async (current) => {
+      const channelHex = await proto.hexChannelId(current.id, ctx.state.currentServerId || '');
+      const clips = await proto.verifyKeptClips(await proto.fetchKeptClips({ relayPool: ctx.ww.pool, channelHex }));
+      if (!bound || channel !== current) return;
+      for (const clip of clips) bound.thread.addHistory({ ...clip, name: ctx.chat && ctx.chat.resolveProfile ? ctx.chat.resolveProfile(clip.speaker) : String(clip.speaker).slice(0, 8) });
+      refresh();
     };
 
     const clipById = (seq) => {
@@ -76,7 +87,7 @@ registerModule({
         const snap = view.value;
         const st = status.value;
         const seconds = (c) => Math.round((c.durationMs || 0) / 100) / 10;
-        const lanes = snap ? snap.lanes.map((l) => ({ id: l.speaker, name: l.name || String(l.speaker).slice(0, 8), speaking: st.speaking.includes(l.speaker), clips: [...snap.history.filter((c) => c.speaker === l.speaker).map((c) => ({ seq: c.seq, seconds: seconds(c), state: c.expired ? 'expired' : 'played' })), ...(snap.current && snap.current.speaker === l.speaker ? [{ seq: snap.current.seq, seconds: seconds(snap.current), state: 'playing' }] : []), ...l.clips.map((c) => ({ seq: c.seq, seconds: seconds(c), state: 'queued' }))] })) : [];
+        const lanes = snap ? snap.lanes.map((l) => ({ id: l.speaker, name: l.name || String(l.speaker).slice(0, 8), speaking: st.speaking.includes(l.speaker), clips: [...snap.history.filter((c) => c.speaker === l.speaker).map((c) => ({ seq: c.seq, seconds: seconds(c), state: c.expired ? 'expired' : 'played' })), ...snap.expired.filter((c) => c.speaker === l.speaker).map((c) => ({ seq: c.seq, seconds: seconds(c), state: 'expired' })), ...(snap.current && snap.current.speaker === l.speaker ? [{ seq: snap.current.seq, seconds: seconds(snap.current), state: 'playing' }] : []), ...l.clips.map((c) => ({ seq: c.seq, seconds: seconds(c), state: 'queued' }))] })) : [];
         const stack = snap ? [...(snap.current ? [{ seq: snap.current.seq, name: snap.current.name, seconds: seconds(snap.current), state: 'playing' }] : []), ...snap.lanes.flatMap((l) => l.clips.map((c) => ({ seq: c.seq, name: c.name || l.name, seconds: seconds(c), state: 'queued' })))] : [];
         const ch = ctx.state.currentChannel;
         return { voiceThread: { connected: st.joined && !!channel && ch && ch.id === channel.id, joining: st.joining, ownTalk: !!(snap && snap.localTalking), paused: !!(snap && snap.userPaused), videos: Object.keys(ctx.state.voiceVideos || {}), liveSpeakers: st.speaking.map((id) => ({ id, name: String(id).slice(0, 8) })), lanes, stack, vad: { level: st.level, voiced: st.voiced }, filtered: st.filtered, settings: settings.value } };

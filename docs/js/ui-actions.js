@@ -28,7 +28,7 @@ ui.actions = {
     document.getElementById('authModalSubtitle').textContent = logged ? '' : 'Log in to continue to Zellous';
     if (logged) {
       const name = auth.user.displayName || auth.user.username;
-      document.getElementById('profileAvatar').textContent = getInitial(name);
+      document.getElementById('profileAvatar').textContent = window.__zellous.helpers.getInitial(name);
       document.getElementById('profileName').textContent = name;
       document.getElementById('profileTag').textContent = '@' + auth.user.username;
     } else {

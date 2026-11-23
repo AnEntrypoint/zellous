@@ -9,6 +9,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read
 
 concurrency:
   group: pages
@@ -32,6 +33,17 @@ jobs:
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: ./dist
+      - name: Wait for the pages artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for attempt in $(seq 1 30); do
+            found=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '[.artifacts[] | select(.name == "github-pages")] | length')
+            if [ "${found:-0}" -ge 1 ]; then exit 0; fi
+            sleep 5
+          done
+          echo "github-pages artifact did not appear"
+          exit 1
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
         timeout-minutes: 15

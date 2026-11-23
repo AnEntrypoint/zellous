@@ -18,6 +18,5 @@
     PALETTE.green, PALETTE.sky, PALETTE.sun,
     PALETTE.flame, PALETTE.purple, PALETTE.mascot,
   ];
-  window.ROLE_COLOR = ROLE_COLOR;
-  window.AVATAR_COLORS = AVATAR_COLORS;
+  window.__zellous.helpers = Object.assign(window.__zellous.helpers || {}, { ROLE_COLOR, AVATAR_COLORS });
 })();

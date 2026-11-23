@@ -38,7 +38,7 @@ export function deriveFrame(v) {
 }
 
 export const helpers = {
-  avatarColor: (id) => { const sid = window.state && window.state.currentServerId; const sr = window.nostrSelfRoles; const ids = sr && sid ? sr.roles(sid, id) : []; const rc = ids.length && sr.colorOf ? sr.colorOf(ids[0]) : null; return rc || (window.getAvatarColor && window.getAvatarColor(id)) || 'var(--accent)'; },
-  initial: (n) => (window.getInitial ? window.getInitial(n) : String(n || '?').slice(0, 1).toUpperCase()),
-  formatTime: (t) => (window.formatTime ? window.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
+  avatarColor: (id) => { const sid = window.state && window.state.currentServerId; const sr = window.nostrSelfRoles; const ids = sr && sid ? sr.roles(sid, id) : []; const rc = ids.length && sr.colorOf ? sr.colorOf(ids[0]) : null; return rc || (window.__zellous.helpers.getAvatarColor && window.__zellous.helpers.getAvatarColor(id)) || 'var(--accent)'; },
+  initial: (n) => (window.__zellous.helpers.getInitial ? window.__zellous.helpers.getInitial(n) : String(n || '?').slice(0, 1).toUpperCase()),
+  formatTime: (t) => (window.__zellous.helpers.formatTime ? window.__zellous.helpers.formatTime(t) : new Date(t || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })),
 };

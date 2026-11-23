@@ -4,7 +4,7 @@ For the architecture reference read `CLAUDE.md` first; this file adds operationa
 
 ## Repo shape
 
-Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded from the `AnEntrypoint/wireweave` GitHub repo through jsdelivr's `/gh/` CDN and the injected importmap, **pinned to commit `63dd3ea954d5b68217e654b115f362800ba709d0`**. No vendored copy, no submodule, no npm/unpkg dependency. Window globals are published by `docs/js/bridge/*.js`, run in order by `docs/js/wireweave-bridge.js`. No backend and no build for the app; `flatspace.config.mjs` and `site/` only build the marketing landing into `dist/`.
+Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded from the `AnEntrypoint/wireweave` GitHub repo through jsdelivr's `/gh/` CDN and the injected importmap, **pinned to a commit SHA** (`docs/nostr-chat/index.html`). No vendored copy, no submodule, no npm/unpkg dependency. Window globals are published by `docs/js/bridge/*.js`, run in order by `docs/js/wireweave-bridge.js`. No backend and no build for the app; `flatspace.config.mjs` and `site/` only build the marketing landing into `dist/`.
 
 ## What to edit
 
@@ -23,7 +23,7 @@ Static GH-Pages app under `docs/`. Protocol logic is **`wireweave`**, loaded fro
 
 The inline importmap injector in `docs/nostr-chat/index.html` maps the bare specifier `wireweave` to
 
-`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@2e879a0cf02f8edf39f8cd083132ebb87e7e6c7c/src/index.js`
+`https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@adfb5bd911aec226ed9b8535fd4106a22c3e7476/src/index.js`
 
 `docs/js/bridge/boot-status.js` does `await import('wireweave')` (its `loadProtocol()`, called from `docs/js/wireweave-bridge.js`), and the bridge calls `mod.createWireweave({...})`. `package.json` carries no `wireweave` entry.
 
@@ -62,7 +62,6 @@ No hard-coded validations and no test files. Verify behaviour by running the rea
 - Live browser checks use the gm `crawl` verb with `engine=cdp`. The body is plain text: first line `engine=cdp`, then `url=<absolute URL>`, `wait=<ms>` (about 6000 for the app to boot), and `eval=<js>` (the value is returned). Example: `engine=cdp\nurl=https://anentrypoint.github.io/zellous/nostr-chat/\nwait=6000\neval=JSON.stringify({appReady: window.appReady})`.
 - Parse-check a file with `node --check <file>`.
 - Report what you observed, with the command and its output. Do not summarise a result you did not see.
-- A fresh `@main` SDK push needs a browser session with an empty HTTP cache (`agent-browser --session <new>`); a reused profile keeps serving the previous `247420.js` for hours.
 - The legacy hidden auth modal in `docs/nostr-chat/index.html` still has a `.modal-btn.danger` "Logout" button (`#nostrLogoutBtn`), so selectors for the `ui.confirm` dialog must be scoped to `[role=alertdialog]`.
 - Chat history loads with `limit: 50` and no `since`; the live subscription starts at `since: now`. A message published with a back-dated `created_at` is visible only after a reload, so account for that when probing anything time-based.
 - Not witnessed by any agent; needs a human on real hardware: iOS Safari safe-area and zoom, the on-screen keyboard, landscape on a notched iPhone, fling-scroll, long-press and swipe on message actions, and the left-edge drawer swipe. Say so in any report about mobile behaviour.
@@ -72,31 +71,34 @@ Deploy runs on every push to `main` (`.github/workflows/gh-pages.yml`). It is th
 ## Game-3 parity: where it stands (closing state, ledger entries 188 to 198)
 
 The interface is a port of game-3 (`/config/workspace/game-3/scripts/ui.js`) minus Spawn and savi. Every surface listed in entry 198 was compared at 1440x900 and 390x844; the ledger holds each witness. To continue:
-- Reference: `/config/Desktop/test.html` is a static capture of one channel state (no actions work); other surfaces are compared against `ui.js` markup and CSS, and `player.js` for behaviour.
 - Known and left on purpose: the Spawn 50 px chrome reservation, Spawn wording, Catch up and Catch me up, the language and zoom pickers, DM hover bars (extra over game-3), own-name colour #5865f2, the home-mode quick switcher listing only servers visited in the session.
-- Unwitnessed (needs hardware): iOS safe area, keyboard, notch, fling scroll, real long-press.
-- A harness that drives the live page lives only in scratchpads; the useful recipes: throwaway server via `window.__zellous.servers.create`, second identity via `servers.join`, DM via `window.dm.send(pubkey, text)`, touch via a `hasTouch` context plus CDP `Input.dispatchTouchEvent`, themes via localStorage `zellous-theme` (ink or light) and `zellous-g3-theme` (ash or onyx), bulk history via a signed-event publisher to a local relay.
-- Design changes need `node scripts/build.mjs` (its lints are the gate: tokens, radius, spacing baseline, glyphs; write new rules in the root `community-app.css` with the `html.ds-247420` prefix, never `.ds-247420.ds-247420`, which the bundler prefixes again).
 
 ## Account configuration (ledger entry 199)
 
 The settings panes My Account, Profiles, Key & Security, Relays, Privacy, Data and Sync are `design/src/components/game3-account.js`, fed by `docs/js/adapter/account.js` (snapshot `account`, `avatars`, `profileMeta`; actions `account*`) over `docs/js/bridge/account.js` (`window.nostrAccount`, image resize, generated avatar, preference sync IO) over wireweave `src/account.js` (`ww.account`). Public fields go to kind 0, private ones to a NIP-44 self-encrypted kind 30078 (d `zellous-account:self`), relays to kind 10002. Avatars reach every surface through the registry in `game3-hue.js` (`game3SetAvatars`, set at the top of each render): pass the pubkey as the second argument of `game3AvatarBg` and `game3AvInitial`. NIP-46 (wireweave `src/remote-signer.js`, session in `zn_bunker`, vendored `nostr-tools/nip46` and `qrcode-generator`), DM read receipts (kind 7 rumor tagged zellous-read, off by default) and the nickname look-alike warning are built (entry 200); a nickname look-alike is warned about, not blocked. When witnessing, use the local relay: a call to `account.resetRelays()` in node reaches real public relays.
 
-The bottom-left user panel (`design/src/components/game3-user.js`, `game3-usermenus.js`, wiring in `userPanel(s)` of `community-app.js`) holds the avatar menu, inline rename, status menu with expiry presets, the account menu and the Set up your profile modal (entry 201). Stored identities live in `zn_identities`, setup state in `zellous-setup`. Tap targets: a clickable element directly above a small one steals touch taps, so every small control needs its own handler.
+The bottom-left user panel (`design/src/components/game3-user.js`, `game3-usermenus.js`, wiring in `design/src/community-app/user-panel.js`) holds the avatar menu, inline rename, status menu with expiry presets, the account menu and the Set up your profile modal (entry 201). Stored identities live in `zn_identities`, setup state in `zellous-setup`. Tap targets: a clickable element directly above a small one steals touch taps, so every small control needs its own handler.
 
 ## Modules (registry and contract)
 
-A module is one named unit with three halves that share an id: wireweave `src/modules/<id>.js` (protocol: event kinds, parse and build, registered with `registerProtocol`), zellous `docs/js/modules/<id>/index.js` (behaviour, state, actions, registered with `registerModule`), design `src/modules/<id>/index.js` (components and CSS, registered with the design `registerModule`). Each repo has one index file that lists its modules; adding a module is its own directories plus one import line per repo, and nothing else.
+A module is one named unit that may have three halves sharing an id: wireweave `src/modules/<id>.js` (protocol, `registerProtocol`), zellous `docs/js/modules/<id>/index.js` (behaviour, state, actions, `registerModule`) and design `src/modules/<id>/index.js` (components, design `registerModule`). Each repo has one `modules/index.js` listing its modules; adding one is its own directory plus one import line per repo.
 
-Manifest: `{ id, kind: 'channelType'|'serverType'|'settingsPane'|'surface'|'messageKind'|'popover', channelType: {...} | surface: {...} | settingsPane: {...}, snapshot(deps, frame), actions(deps) }`. Ids are lowercase letters, digits and dashes and unique; the registry throws a message naming the module on a bad or duplicate manifest.
-- design `channelType`: `{ type, label, icon, railGroup: 'text' | { id, label, order, voice, createType, always }, headerSub, searchGlyph, railIcon, welcomeGlyph, traits, body(ctx) }`. `body` gets `{ s, A, ch, views }`; leave it out for the chat view. A `surface` is `{ id, channelName, channelType, icon, body(ctx) }` (the rules and pick-roles pages and the announcements icon are surfaces bound to a channel name).
-- zellous `channelType`: `{ type, label, searchGlyph, createOption: { label, order }, traits, onOpen(channel, ctx) }`. Traits in use: `inRail` (listed in the rail), `history` (load chat on open), `composer` ('standard' or 'admin'), `split`, `defaultOpen`, `members` (false hides the member list), `voice`, `threadParent`, `forumPosts`, `pageData`. Modules reach the app only through `ctx` (state, chat, forum, voice, toast), built in `bridge/modules.js`; classic scripts use `window.zModules`.
-- Rules: nothing outside the registry modules switches on a channel kind (the check is `grep -rn "type === '\(text\|voice\|forum\|threaded\|announcement\|page\)'"` over design `src` and zellous `docs/js`, minus the modules directories: it must print nothing); a module keeps its state in its own signals and its CSS with it; no new `window.X`. design `package.json` lists `./src/modules/**/*.js` in `sideEffects`, because registration happens on import and the bundler would drop it otherwise.
-- Service, popover, messageKind and railSection modules: a zellous module may pass `setup(ctx)` which returns `{ snapshot, actions }` and may create its own signals through `ctx.signal(name, initial)`; the adapter merges them and subscribes to them. design modules register `messageKind` (`match(message)`, `mount(ctx)`), `popover` (`mount(ctx)` returns a vnode or null) and `railSection` (`mount(ctx)` returns rows). Voice thread (`voice-thread`) and Sharesies (`sharesies`) are built this way; entries 204 to 206 say what is and is not witnessed.
-- design `src/community-app.js` is the composer only (`mountCommunityApp`); its pieces live in `src/community-app/`: `state.js` (the shared `app` object: root, get, A, helpers, `render`, `api`, and `st`, the one place for every mutable UI local, plus the narrow-viewport watcher), `rail.js`, `messages.js` (message mapping, rows, day and new dividers, the More menu), `chat-view.js`, `voice-view.js`, `header.js`, `user-panel.js`, `surfaces.js` (surface body and popover host, read from the registry), `overlays.js` (all overlay views, quick switcher items, the drop overlay), `overlay-state.js` (`closeOverlays` and the `contextMenu`/`emojiPicker`/`commandPalette` api) and `keys.js` (global keys and the root drag, drop and click handlers). Each is a factory `createX(app, ...)`; no file is over 400 lines and none has import-time side effects, so `sideEffects` is unchanged.
-- design surfaces, settings panes and message kinds are modules, looked up through the registry: `events`, `leaderboard`, `discover`, `roles`, `inbox`, `pins`, `recap`, `announcements` (surfaces: `{ id, placement: 'modal' | 'popover', title, head(ctx), rail: { order, row(ctx) }, body(ctx) }`), `settings-account` and `settings-app` (one `settingsPane` per tab: `{ id, label, group, order, mount(ctx) }`; `Game3SettingsPanel` only hosts the nav and the active pane and takes `panes` as a prop) and `message-kinds` (poll, invite, sticker and unfurl; a `messageKind` with `props({ m, s, A })` instead of `mount` adds Game3Message props for every match, while `mount` still replaces the row for the first match).
-- zellous's former `docs/js/adapter/game.js` is split into service modules, one directory each: `prefs`, `devpanel`, `presence`, `soundboard`, `xp`, `surfaces`, `events`, `split`, `pins` (pins and announcements), `polls`, `selfroles` (rules, roles, self roles), `inbox` (unread, reminders, saved, mentions, search) and `servers` (create, discover, invites, leave, wave). Their `ctx` (built in `bridge/modules.js`) adds `S`, `v`, `call`, `persistBool`, `hooks` (`on`/`emit`, used for `surface:open:<name>` and `surface:close` so a surface starts and stops its own feed), `ready`, lazy getters for the wireweave managers (`unread`, `pins`, `events`, `polls`, `selfRoles`, `presence`, `membership`, `account`, `servers`), `nameOf`, `currentChannel`, `goToChannel`, `avatarColors` and `inspect`; migrated modules read no `window.X`.
-- `hello-room` is the documented toy: channel type `hello-room`, shown under Hello Rooms with the smile icon, created from the create-channel picker. Copy it to start a module.
+Manifest: `{ id, kind, <kind>: {...}, setup(ctx) -> { snapshot, actions } }`. Ids are lowercase letters, digits and dashes and unique; a bad or duplicate manifest throws naming the module. design `package.json` lists `./src/modules/**/*.js` in `sideEffects` because registration happens on import.
+- design `channelType`: `{ type, label, icon, railGroup, headerSub, searchGlyph, railIcon, welcomeGlyph, traits, body({ s, A, ch, views }) }`; omit `body` for the chat view. `surface`: `{ id, channelName, channelType, icon, placement: 'modal' | 'popover', title, head(ctx), rail: { order, row(ctx) }, body(ctx) }`; `placement` is what makes `openSurface(id)` render. `settingsPane`: `{ id, label, group, order, mount(ctx) }`. `messageKind`: `match(m)` plus `mount(ctx)` (replaces the row, first match) or `props(ctx)` (adds Game3Message props, every match). `popover` and `railSection`: `mount(ctx)`.
+- zellous `channelType`: `{ type, label, searchGlyph, createOption, traits, onOpen(channel, ctx) }`; traits: `inRail`, `history`, `composer`, `split`, `defaultOpen`, `members`, `voice`, `threadParent`, `forumPosts`, `pageData`. A `service` module's `setup(ctx)` may create signals with `ctx.signal(name, initial)`; the adapter merges its `{ snapshot, actions }`.
+- `ctx` is built in `docs/js/bridge/modules.js`: `ww`, `state`, `S`, `v`, `call`, `persistBool`, `trait`, `guard`, `toast(message, ms)`, `hooks.on/emit` (`surface:open:<name>`, `surface:close`), `ready`, `nameOf`, `currentChannel`, `goToChannel`, `avatarColors`, `inspect` and lazy getters for `chat`, `dm`, `forum`, `voice`, `unread`, `pins`, `events`, `polls`, `selfRoles`, `presence`, `membership`, `account`, `servers`. Modules read no `window.X`; classic scripts use `window.zModules`.
+- Rules: nothing outside the registry modules switches on a channel kind (`grep -rn "type === '\(text\|voice\|forum\|threaded\|announcement\|page\)'"` over design `src` and zellous `docs/js`, minus the modules directories, must print nothing); a module keeps its state in its own signals and its CSS with it.
+
+Registered modules, zellous (24, from `window.zModules.moduleList()`):
+- channelType: `type-text`, `type-announcement`, `type-voice`, `type-threaded`, `type-forum`, `type-page` (the built-in channel kinds); `hello-room` (documented toy, copy it to start).
+- service: `prefs` (settings toggles, mute), `devpanel` (developer info, local reset), `presence` (own status), `soundboard`, `xp` (level, leaderboard), `surfaces` (open and close surfaces), `events`, `split`, `pins` (pins and announcements), `polls`, `selfroles` (rules and roles), `inbox` (unread, saved, mentions, search), `servers` (create, discover, invites, leave), `sharesies` (live terminal sessions), `voice-thread`, `voice-room` (voice rooms and push to talk), `share-web` (page and screen sharing).
+
+Registered modules, design (from `src/modules/index.js`):
+- channelType: `type-*` x6 (builtin), `hello-room`, `voice-thread`.
+- surface: `surface-events`, `surface-leaderboard`, `surface-discover`, `surface-roles`, `surface-inbox`, `surface-pins`, `surface-recap`, `surface-announcements` (modal or popover bodies), `surface-rules`, `surface-pick-roles`, `surface-announcements-icon` (bound to channel names).
+- settingsPane: `settings-account` (account, profile, security, relays, privacy, data, sync) and `settings-app` (appearance, access, voice, notif, media, lang, keys, adv), one pane per tab.
+- messageKind: `message-poll`, `message-invite`, `message-sticker`, `message-unfurl`, `sharesies-card`.
+- popover: `sharesies-panel`, `sharesies-share`, `share-web-panel`; railSection: `sharesies-rail`, `share-web-rail`.
 
 ## Things that look broken but aren't
 
@@ -110,11 +112,10 @@ Manifest: `{ id, kind: 'channelType'|'serverType'|'settingsPane'|'surface'|'mess
 ## Rules
 
 - **No backend.** Don't introduce a Node server, an Express route, a database, or anything that needs a process running. Voice and chat go through public Nostr relays. Storage is `localStorage` plus relay-side events.
-- **No new `window.X` outside the bridge.** Add a manager via wireweave, expose it through `docs/js/bridge/*.js`, mirror under `window.__zellous`. Don't sprinkle `window.foo = ...` in random modules.
+- **No new `window.X`.** Add a manager via wireweave, expose it through `docs/js/bridge/*.js`, mirror under `window.__zellous`; shared helpers go on `window.__zellous.helpers`, the overlay api on `window.__zellous.overlays`. Don't sprinkle `window.foo = ...` in random modules.
 - **No comments unless a future reader genuinely needs the *why*.** Don't narrate what the code already says.
 - **No fallback / demo / mock modes.** If a probe needs real Nostr, run real Nostr.
 - **No test files, anywhere.** Verification is live execution against the real page, never a test suite.
-- **CRLF awareness.** When string-replacing in HTML files via `exec:nodejs`, use `\r?\n` in regexes — Git on Windows stores some HTML with CRLF.
 - **Importmap edits must update *the inline injector script*** in `docs/nostr-chat/index.html`, not a literal `<script type="importmap">` (there isn't one).
 
 ## Non-obvious technical caveats
@@ -124,10 +125,6 @@ Manifest: `{ id, kind: 'channelType'|'serverType'|'settingsPane'|'surface'|'mess
 **gm's `browser` verb: if it CDP-times-out silently, read the launch log first.** The launch code is `AnEntrypoint/agentplug`'s `crates/agentplug-host/src/browser.rs` (not in this checkout), compiled into `~/.gm-tools/agentplug-runner`. `launch_chrome()` captures Chrome's output to `browser-chrome-profile-<session>/chrome-launch.log` and retries once with `--no-sandbox` on a sandbox denial. To reproduce from source, clone `AnEntrypoint/gm` (its `agentplug` submodule is the real source), `cargo build --release -p agentplug-runner`, and dispatch `browser` directly.
 
 **The `browser` verb takes a `viewport=WxH\n` prefix** for device-viewport checks (a real CDP device-metrics override with touch emulation). Stack the prefixes in this order: `timeout=`, then `viewport=`, then `url=`, then the script body; out of order corrupts the parse. `@scale` (`375x667@2`) sets the device scale factor; a trailing `!desktop` disables mobile and touch emulation. The script body must `return` its value from inside an `(async()=>{...})()` wrapper.
-
-**Playwright viewport API.** Under `exec:browser`, use `page.setViewportSize({width, height})`, not puppeteer's `page.setViewport()`.
-
-**Windows path traversal checks** (dev servers): normalise with `path.resolve(ROOT)` and `path.resolve(path.join(ROOT, p))`; a raw `startsWith()` on mixed slashes fails.
 
 **Enforcement points.** Bans, timeouts and personal mutes are enforced in wireweave's `chat.js` (send and both subscriptions) and `mutes.js` (NIP-51 kind:10000). A personal mute filters only the viewer's own view; an admin ban is server-wide. Chat deletions (NIP-09 kind:5) are honoured only for the original author or an owner, admin or moderator.
 
@@ -194,9 +191,10 @@ docs/
     state.js                         ←  ESM, signals, window.state/config
     nostr-adapter.js                 ←  entry: builds the adapter from adapter/*.js, calls mountCommunityApp
     adapter/                         ←  one builder per SDK surface (rail, chat, dm, members, voice, ...)
+    modules/                         ←  zellous modules, one directory each, listed in modules/index.js
     bridge/                          ←  install* modules that publish window globals (boot-status, chat, voice, ...)
     ui*.js                           ←  render
-    *.js                             ←  feature modules (files, webcam, queue, moderation, …)
+    *.js                             ←  feature scripts (files, webcam, moderation, threads, …)
   vendor/
     {preact,xstate,nostr-tools,…}    third-party
                                      (wireweave is NOT here -- pinned jsdelivr /gh/ URL in docs/nostr-chat/index.html)
@@ -214,7 +212,7 @@ scripts/dev-server.mjs               static dev server; dev:local repoints deps 
 
 ## Kit consumption (SDK JS + CSS, live from jsdelivr)
 
-There is no local SDK copy and no vendored kit CSS; do not reintroduce one. Both pages link the bundled stylesheet `https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.css`, and the importmap maps `anentrypoint-design` to `https://cdn.jsdelivr.net/gh/AnEntrypoint/design@main/dist/247420.js`.
+There is no local SDK copy and no vendored kit CSS; do not reintroduce one. Both pages link the bundled stylesheet `https://cdn.jsdelivr.net/gh/AnEntrypoint/design@<sha>/dist/247420.css`, and the importmap maps `anentrypoint-design` to the same `@<sha>/dist/247420.js`; both are pinned to a design commit in `docs/nostr-chat/index.html`, so a design push reaches zellous only when that SHA is bumped.
 
 - The GitHub repo is `AnEntrypoint/design`; its npm package is `anentrypoint-design`. Don't confuse the two when building URLs.
 - The bundle holds colors_and_type, app-shell, community, editor-primitives and community-app, all scoped under `.ds-247420`, which `<html class="ds-247420">` matches. Only `247420.css` is linked; the source cssParts are bundle inputs. A class missing from the bundle renders unstyled with no error, so confirm it is in `dist/247420.css` after an SDK change.
@@ -222,8 +220,6 @@ There is no local SDK copy and no vendored kit CSS; do not reintroduce one. Both
 - Tradeoff: boot depends on `cdn.jsdelivr.net`. The SDK import is in try/catch: on failure it sets `window.__sdk = null`, calls `window.__boot?.fail(...)` and rethrows, so the boot screen shows a message.
 - `package.json` declares no `anentrypoint-design` entry. Only `site/theme.mjs` (the build-time landing) imports the SDK in Node; the app pages load it in the browser.
 - `gmsniff` (vendors a kit subset, makes zero external-origin runtime fetches, must run air-gapped) and `agentgui` (vendors the built kit for offline operation) stay excluded from CDN loads. Do not convert either.
-- A floating `@main` load means a design push can change zellous's UI with no zellous commit. That is intended for the SDK; wireweave is pinned because it is not.
-- jsdelivr `/gh/@main` purge is rate-limited per path: verify a fresh SDK push against a `@<sha>` URL instead of polling `@main`.
 
 Two `design` CI gates apply before pushing an SDK change. The RTL lint (`scripts/lint-rtl-physical-properties.mjs`, run from `scripts/lint-css.mjs`) compares the physical-declaration count with the frozen baseline in `scripts/lint-rtl.baseline.json` (321): write logical properties (`inset-inline-*`, `margin-inline-start`, `text-align: end`), not `left`/`right`; `env(safe-area-inset-left)` names stay physical. Adding or renaming a component prop makes `docs/component-props.md` stale: run `node scripts/generate-component-docs.mjs` (plus `generate-component-types.mjs`, `generate-component-manifest.mjs`, `gen-exports.mjs`) and commit the result with the change.
 
@@ -248,20 +244,22 @@ Dated audit narratives, fixed-bug notes and the learning-audit log are in `docs/
 
 ## Voice thread VAD harness
 
-The voice-thread clip filter lives in wireweave `src/vad/`: rnnoise voice score, 3-frame mean, hysteresis, hangover and pre-roll, a pitch tracker (`pitch.js`) and a clip filter (`clip-filter.js`), with every constant named in `src/vad/constants.js`. The wasm is vendored at `docs/vendor/rnnoise/` (see its README.txt). The corpora and harness live in the session scratchpad, not in a repo: `S=/config/tmp/claude-1000/-config-workspace-zellous/cca08832-1d92-43c1-a632-bec4782bec92/scratchpad/vad-harness` and `V=/config/tmp/claude-1000/-config-workspace-zellous/cca08832-1d92-43c1-a632-bec4782bec92/scratchpad/verify`.
+The voice-thread clip filter lives in wireweave `src/vad/`: rnnoise voice score, 3-frame mean, hysteresis, hangover and pre-roll, a pitch tracker (`pitch.js`) and a clip filter (`clip-filter.js`), with every constant named in `src/vad/constants.js`. The wasm is vendored at `docs/vendor/rnnoise/` (see its README.txt). The corpora and harness live in the session scratchpad, not in a repo: `S=/config/tmp/claude-1000/-config-workspace-zellous/cca08832-1d92-43c1-a632-bec4782bec92/scratchpad/vad-harness`, `V=/config/tmp/claude-1000/-config-workspace-zellous/cca08832-1d92-43c1-a632-bec4782bec92/scratchpad/verify`, `B=/config/tmp/claude-1000/-config-workspace-zellous/cca08832-1d92-43c1-a632-bec4782bec92/scratchpad/blossom`.
 
-Committed constants: start 0.6, stop 0.4, voiced frame score 0.95, hangover 1000 ms, pre-roll 200 ms, minimum voiced 400 ms, minimum voiced ratio 0.5, minimum energy std 7 dB, periodic ratio between 0.5 and 0.97, at least 8 pitch steps, pitch step median at most 0.5 semitones, pitch std at most 9 semitones, live minimum voiced 250 ms.
+Acceptance bar (owner, redefined): hot-mic classes (fan, breathing, keyboard, mouse click, silence and room tone) at most 2% kept, reported per class and pooled; speech at least 95% kept including short and noisy speech, scored on a split never scored before; cough and music are best effort with a ceiling of 10% kept, reported, not a hard fail.
 
-Corpora (all 48 kHz mono, built from public datasets plus labelled synthetic classes; no speech synthesiser exists on this host, so all speech is real recorded read speech from LibriSpeech):
-- `manifest.json`, 422 clips, used for tuning: 60 speech, 30 short speech, 30 noisy speech, 40 each of breathing, keyboard, mouse-click, cough (ESC-50), 70 fan (ESC-50 vacuum cleaner plus synthetic), 32 music (one Kevin MacLeod track plus synthetic), 40 silence.
-- `manifest-fresh1.json` (368 clips) and `manifest-fresh2.json` (about 360) were scored once each and then folded into tuning.
-- `manifest-fresh3.json`, 333 clips, never used for tuning: 50 speech, 25 short speech, 25 noisy speech (LibriSpeech test-clean and dev-clean, utterances unused before), 48 cough (CoughVid), 40 breathing (Coswara breathing recordings), 40 synthetic keyboard, 40 synthetic mouse-click, 60 fan (real ESC-50 washing machine, engine, airplane plus synthetic), 70 music (Free Music Archive instrumental tracks, two 5 s windows each, plus synthetic), 40 silence. ESC-50 has only 40 clips per class and all were already used, so fresh keyboard and mouse-click are synthetic.
-- Fresh3 result at the committed constants: speech 98% (49/50), short speech 80% (20/25), noisy speech 84% (21/25), all speech 90.0%; non-voice 3.3% (cough 4.2%, breathing 0%, keyboard 0%, mouse-click 0%, fan 1.7%, music 11.4%, silence 0%). Acceptance (95% speech, 2% non-voice) is not met on fresh data. Music and coughs that rnnoise scores as voice are the main leak; the pitch and energy filters trade short and noisy speech for them.
+Committed constants: start 0.6, stop 0.4, voiced frame score 0.95, hangover 1000 ms, pre-roll 200 ms, minimum voiced 300 ms, minimum voiced ratio 0.5, minimum energy std 7 dB, at least 2.5 energy peaks per second, periodic ratio between 0.45 and 0.99, pitch std at most 10 semitones, no pitch-step or minimum-step rule, live minimum voiced 250 ms.
+
+Corpora (48 kHz mono, public datasets plus labelled synthetic classes; no speech synthesiser exists on this host, so all speech is real recorded read speech from LibriSpeech test-clean and dev-clean):
+- `manifest.json` (422 clips) and `manifest-fresh1.json` to `manifest-fresh3.json` were used for tuning once scored. Constants were frozen before `manifest-fresh4.json` was built.
+- `manifest-fresh4.json`, 460 clips, scored once: 50 speech, 25 short speech (0.7 to 1.2 s fragments), 25 noisy speech (5, 10 or 15 dB SNR over real ESC-50 noise or synthetic fan); 48 cough (CoughVid, user-labelled, unverified); 40 breathing (Coswara breathing recordings, label assumed); 40 keyboard and 40 mouse click (synthetic click bursts, because every ESC-50 clip of those classes was already used); 60 fan (40 real ESC-50 train, helicopter, chainsaw and wind clips as fan stand-ins, 20 synthetic); 92 music (40 Free Music Archive instrumental tracks with two 5 s windows each, plus 12 synthetic); 40 silence (20 digital, 20 synthetic room tone).
+- Fresh4 result, the final scored numbers: speech 100% (50/50), short speech 96% (24/25), noisy speech 96% (24/25), pooled speech 98.0% (98/100). Hot-mic: fan 3.3% (2/60), breathing 0% (0/40), keyboard 0% (0/40), mouse click 0% (0/40), silence and room tone 0% (0/40), pooled 0.9% (2/220). Best effort: cough 25.0% (12/48), music 32.6% (30/92), both above the 10% ceiling. Fan alone misses 2% by 1.3 points (2 clips). Earlier fresh splits under the previous stricter pitch rules scored speech 97.0, 85.0, 90.0% and non-voice 5.4, 3.9, 3.3%.
 
 Commands (`node`, run anywhere):
-- `node $S/harness.mjs --manifest=manifest-fresh3.json [--misses] [--config='{"minVoicedMs":600}']` prints keep rates per class from the cached features. Add `--rescore` to recompute features through the real rnnoise wasm (a few minutes).
-- `MANIFESTS=manifest.json,manifest-fresh1.json node $S/tune2.mjs '<json grid>' [top]` grid-searches filter constants over the listed manifests; `SEG='{"hangoverMs":1500}'` changes segmentation constants.
-- Rebuild corpora: `sh $S/fetch_raw.sh`, `python $S/fetch_fresh.py`, `python $S/fetch_fresh2.py`, `python $S/fetch_fresh3.py` (the last needs the dev-clean tarball range fetched to `rawfresh3/ls`), then `$S/../venv/bin/python $S/build_corpus.py` and `... build_fresh.py <1|2|3>`. The venv needs numpy, scipy and soundfile.
-- Scratch checks: `node $V/redcheck.mjs energy-gate` fails and `node $V/redcheck.mjs rnnoise` passes (hot-mic noise sent as clips: 100% before, 1.1% after); `node $V/scheduler.mjs` (33 checks, fake clock); `node $V/keepclips.mjs` (19 checks: kept-clip event, size cap, late-joiner helper).
+- `node $S/harness.mjs --manifest=manifest-fresh4.json [--misses] [--config='{"minVoicedMs":400}']` prints keep rates per class from cached features; `--rescore` recomputes them through the real rnnoise wasm (minutes).
+- `MANIFESTS=manifest.json,manifest-fresh1.json node $S/tune2.mjs '<json grid>' [top]` grid-searches filter constants and ranks by the acceptance bar; `SEG='{"hangoverMs":1500}'` changes segmentation constants.
+- Rebuild corpora: `sh $S/fetch_raw.sh`, `python $S/fetch_fresh.py`, `fetch_fresh2.py`, `fetch_fresh3.py`, `fetch_fresh4.py` (dev-clean tarball range into `rawfresh3/ls` first), then `$S/../venv/bin/python $S/build_corpus.py` and `build_fresh.py <1|2|3|4>`. The venv needs numpy, scipy and soundfile.
+- Scratch checks: `node $V/redcheck.mjs energy-gate` fails and `node $V/redcheck.mjs rnnoise` passes (hot-mic recordings sent as clips: 100% before, 1.1% after); `node $V/scheduler.mjs` (33 checks); `node $V/keepclips.mjs` (19 checks).
+- Local Blossom round trip: `node $B/roundtrip.mjs` starts `$B/blossom-server.mjs` (BUD-02 PUT /upload with a verified kind 24242 auth, GET and HEAD by sha256, CORS and preflight, 20 MB cap, signed DELETE) and an EphemeralRelay on local ports, runs `sendAudioClip` through `Media({servers:[url]})`, reads the event back with a second client, and checks bytes, sha256 and the expired cases (19 checks). The server starts alone with `node $B/blossom-server.mjs`.
 
 @.gm/next-step.md

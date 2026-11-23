@@ -63,11 +63,8 @@
     const app = mount(root, adapter);
 
     if (app && app.api) {
-      window.__contextMenu = app.api.contextMenu;
-      window.__emojiPicker = app.api.emojiPicker;
-      window.__commandPalette = app.api.commandPalette;
+      window.__zellous.overlays = app.api;
     }
-    window.__communityAppMounted = true;
   }
   init().catch((e) => {
     window.__boot?.fail?.('Could not start the chat surface: ' + (e?.message || e));

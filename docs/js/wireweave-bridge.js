@@ -35,7 +35,7 @@ window.__wireweaveReady = (async () => {
     relays: state.nostrRelays || ['wss://relay.damus.io', 'wss://relay.primal.net', 'wss://nos.lol', 'wss://relay.snort.social']
   });
 
-  window.nostrFsm = { voiceMachine: ww.fsm.voiceMachine, peerMachine: ww.fsm.peerMachine, cameraMachine: ww.fsm.cameraMachine };
+  const fsm = { voiceMachine: ww.fsm.voiceMachine, peerMachine: ww.fsm.peerMachine, cameraMachine: ww.fsm.cameraMachine };
 
   if (ww.remote) await ww.remote.restore().catch(() => {});
   modulesBridge.installModules(ww);
@@ -75,7 +75,7 @@ window.__wireweaveReady = (async () => {
   });
   window.__zellous = window.__zellous || {};
   window.__zellous.generateKeyWithConfirm = generateKeyWithConfirm;
-  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm: window.nostrFsm, reactions: window.nostrReactions, unread: window.nostrUnread, wireweave: ww, inspect });
+  Object.assign(window.__zellous, { net: window.nostrNet, auth: window.auth, chat: window.chat, dm: window.dm, channels: window.channelManager, servers: window.serverManager, voice: window.nostrVoice, message: window.message, roles: window.serverRoles, bans: window.nostrBans, mutes: window.nostrMutes, settings: window.serverSettings, pages: window.serverPages, forum: window.nostrForum, media: window.nostrMedia, fsm, reactions: window.nostrReactions, unread: window.nostrUnread, wireweave: ww, inspect });
 
   document.addEventListener('nostr:login', () => { window.nostrNet.connect(); window.dm.subscribeAll(); });
   if (ww.auth.pubkey) window.dm.subscribeAll();

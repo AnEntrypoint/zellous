@@ -37,11 +37,11 @@ const moderation = {
     }
 
     if (!items.length) return;
-    if (window.__contextMenu) window.__contextMenu.show(items, x, y);
+    if (window.__zellous.overlays) window.__zellous.overlays.contextMenu.show(items, x, y);
   },
 
   roleLabel(role) { return { owner: 'Owner', admin: 'Admin', moderator: 'Mod', member: '' }[role] || ''; },
-  roleBadgeColor(role) { return (window.ROLE_COLOR || {})[role] || null; }
+  roleBadgeColor(role) { return (window.__zellous.helpers.ROLE_COLOR || {})[role] || null; }
 };
 
 window.__zellous.moderation = moderation;

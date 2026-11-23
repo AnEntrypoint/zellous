@@ -39,7 +39,7 @@ export function installModules(ww) {
     get membership() { return window.nostrMembership; },
     get account() { return window.nostrAccount; },
     get servers() { return window.serverManager; },
-    get avatarColors() { return Array.isArray(window.AVATAR_COLORS) ? window.AVATAR_COLORS : []; },
+    get avatarColors() { const colors = window.__zellous.helpers.AVATAR_COLORS; return Array.isArray(colors) ? colors : []; },
     get inspect() { return window.__zellous && window.__zellous.inspect; },
     nameOf: (id, fallback) => (window.chat && window.chat.resolveProfile && window.chat.resolveProfile(id)) || (window.auth && window.auth.npubShort ? window.auth.npubShort(id) : (fallback === undefined ? String(id).slice(0, 8) : fallback)),
     currentChannel: () => { const ch = v('currentChannel', null); return ch && ch.id ? ch : null; },

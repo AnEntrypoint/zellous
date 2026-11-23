@@ -14,7 +14,7 @@ registerModule({
       snapshot: () => ({ gameSurface: v('gameSurface', null) }),
       actions: {
         openSurface: (name) => call(() => {
-          if (name === 'announcements') return ctx.goToChannel('announcements');
+          if (name === 'announcements' && (v('channels', []) || []).some((c) => c && c.name === 'announcements')) return ctx.goToChannel('announcements');
           if (S.gameSurface) S.gameSurface.value = name;
           hooks.emit('surface:open:' + name);
         }),
