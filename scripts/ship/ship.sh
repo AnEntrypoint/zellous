@@ -20,7 +20,7 @@ echo GUARD_OK
 OLD=$(grep -o 'design@[0-9a-f]\{40\}' docs/nostr-chat/index.html | sort -u | head -1 | cut -d@ -f2)
 sed -i "s/design@$OLD/design@$FULL/g" docs/nostr-chat/index.html
 git add -A .
-$G commit -q -m "$MSG"
+if ! git diff --cached --quiet; then $G commit -q -m "$MSG"; fi
 git push origin main 2>&1 | tail -1
 git ls-remote origin main | cut -c1-12
 deployed() { V=$(curl -s "https://anentrypoint.github.io/zellous/nostr-chat/?cb=$(date +%s%N)" | grep -o 'design@[0-9a-f]\{40\}' | head -1 | cut -d@ -f2); [ "$V" = "$FULL" ]; }
