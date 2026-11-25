@@ -3,13 +3,14 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { align, features, toRate16k, HOP_MS } from './thread-catchup-align.mjs';
+import { align, features, toRate16k, unionCoverage, HOP_MS } from './thread-catchup-align.mjs';
 
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const { chromium } = require('playwright');
 const wireweaveDir = process.env.WIREWEAVE_DIR || new URL('../../../wireweave', import.meta.url).pathname;
 const { WebSocketServer } = await import(wireweaveDir + '/node_modules/ws/wrapper.mjs');
 const { EphemeralRelay } = await import(wireweaveDir + '/src/ephemeral-relay.js');
+const { generateSecretKey, getPublicKey } = await import(wireweaveDir + '/node_modules/nostr-tools/lib/esm/pure.js');
 
 const SPEECH_DIR = process.env.SPEECH_DIR;
 if (!SPEECH_DIR) { console.log('FAIL setup: SPEECH_DIR must name a directory of 48 kHz mono 16-bit wav speech clips'); process.exit(1); }
@@ -18,6 +19,8 @@ const PORT = Number(process.env.PORT || 5230);
 const RELAY_PORT = Number(process.env.RELAY_PORT || 7530);
 const RATE = 48000;
 const LEAD_S = 7;
+const REPEAT_WINDOW_MS = 1600;
+const MISSING_VOICED_LIMIT_MS = 40;
 const launchOptions = (mic) => ({
   headless: true,
   args: ['--no-sandbox', '--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', ...(mic ? ['--use-file-for-fake-audio-capture=' + mic + '%noloop'] : [])],
@@ -94,6 +97,11 @@ const captureInit = () => {
       Object.defineProperty(port, 'onmessage', { configurable: true, get: () => descriptor.get.call(port), set: (fn) => descriptor.set.call(port, fn && ((e) => { let sum = 0; const d = e.data; for (let i = 0; i < d.length; i++) sum += d[i] * d[i]; window.__tapLog.push([nodeId, performance.now(), d.length, sum]); return fn(e); })) });
     }
   };
+  const lockedRate = window.__lockedRate;
+  if (lockedRate) {
+    const desc = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate');
+    Object.defineProperty(HTMLMediaElement.prototype, 'playbackRate', { configurable: true, get() { return desc.get.call(this); }, set(v) { desc.set.call(this, v > 1 ? lockedRate : v); } });
+  }
   const play = HTMLMediaElement.prototype.play;
   HTMLMediaElement.prototype.play = function () { try { hook(this); } catch {} return play.apply(this, arguments); };
   window.__capHook = hook;
@@ -124,9 +132,39 @@ const pollerInit = (every) => {
     const own = document.querySelector('.ds-g3-vtstate');
     const lanes = [...document.querySelectorAll('.ds-g3-vtlane')].map((l) => ({ name: l.querySelector('.ds-g3-vtname')?.textContent, lag: l.querySelector('.ds-g3-vtlag')?.textContent || '', drop: l.querySelector('.ds-g3-vtdrop')?.textContent || '' }));
     let gate = null;
-    try { gate = window.lk.session().livePlaybackOpen; for (const [key, p] of window.lk.session().peers) if (p.audioEl) { p.audioEl.__peerKey = key; if (window.__capHook) window.__capHook(p.audioEl); } } catch {}
+    try { gate = window.lk.session().livePlaybackOpen; for (const [key, p] of [...window.lk.session().peers, ...window.lk.session().relayed]) if (p.audioEl) { p.audioEl.__peerKey = key; if (window.__capHook) window.__capHook(p.audioEl); } } catch {}
     timeline.push({ at: performance.now(), status: own ? own.textContent : '', ownTalk: !!own && own.classList.contains('own'), gate, lanes });
   }, every);
+};
+
+const eventLogInit = () => {
+  const events = [];
+  window.__voiceEvents = events;
+  const names = ['mic', 'transmit', 'segment-start', 'segment-finalized', 'segment-dropped', 'segment-received', 'speaker', 'live-playback', 'hub-changed', 'remote-stream'];
+  const timer = setInterval(() => {
+    let session = null;
+    try { session = window.lk.session(); } catch {}
+    if (!session || session.__logged) return;
+    session.__logged = true;
+    clearInterval(timer);
+    const profile = async (segment, type) => {
+      try {
+        const ctx = new OfflineAudioContext(1, 48000, 48000);
+        const buf = await ctx.decodeAudioData(segment.bytes.buffer.slice(segment.bytes.byteOffset, segment.bytes.byteOffset + segment.bytes.byteLength));
+        const data = buf.getChannelData(0);
+        const step = Math.round(buf.sampleRate * 0.1);
+        const levels = [];
+        for (let i = 0; i < data.length; i += step) { let sum = 0; const end = Math.min(data.length, i + step); for (let k = i; k < end; k++) sum += data[k] * data[k]; levels.push(Math.round(10 * Math.log10(sum / (end - i) + 1e-12))); }
+        events.push({ at: Math.round(performance.timeOrigin + performance.now()), type: 'clip-levels-' + type, detail: JSON.stringify({ seq: segment.seq, durationMs: Math.round(buf.duration * 1000), levelsDb100ms: levels }) });
+      } catch (err) { events.push({ at: Math.round(performance.timeOrigin + performance.now()), type: 'clip-levels-error', detail: err.message }); }
+    };
+    for (const name of names) session.addEventListener(name, (e) => {
+      const d = e.detail || {};
+      const seg = d.segment;
+      if (seg && seg.bytes && (name === 'segment-received' || name === 'segment-finalized' || name === 'segment-dropped')) profile(seg, name);
+      events.push({ at: Math.round(performance.timeOrigin + performance.now()), type: name, detail: JSON.stringify({ muted: d.muted, mode: d.mode, key: d.key, speaking: d.speaking, open: d.open, hub: d.hub && d.hub.slice(0, 8), peer: d.peerPubkey && d.peerPubkey.slice(0, 8), from: d.from && d.from.slice(0, 8), kind: d.kind, ts: seg && seg.ts, dur: seg && seg.dur, seq: seg && seg.seq, verdict: d.verdict && { keep: d.verdict.keep, reason: d.verdict.reason, voicedMs: Math.round(d.verdict.voicedMs), spanMs: Math.round(d.verdict.spanMs), frames: d.verdict.frames } }) });
+    });
+  }, 50);
 };
 
 let relay = null;
@@ -142,12 +180,15 @@ const startRig = async () => {
 
 const stopRig = () => { try { dev?.kill(); } catch {} try { relay?.close?.(); } catch {} };
 
-const boot = async (browser, { capture = false, poll = 0 } = {}) => {
+const boot = async (browser, { capture = false, poll = 0, key = null, role = '' } = {}) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['microphone'] });
   const page = await context.newPage();
   page.on('pageerror', (e) => console.log('      pageerror', e.message, (e.stack || '').split('\n').slice(1, 4).join(' | ')));
   await page.addInitScript(wsInit, RELAY_PORT);
   await page.addInitScript(rawAudioInit);
+  await page.addInitScript(eventLogInit);
+  if (key) await page.addInitScript((k) => { try { if (!localStorage.getItem('zn_sk')) localStorage.setItem('zn_sk', k); } catch {} }, key);
+  if (process.env.LOCK_RATE) await page.addInitScript((r) => { window.__lockedRate = r; }, Number(process.env.LOCK_RATE));
   if (capture) await page.addInitScript(captureInit);
   if (poll) await page.addInitScript(pollerInit, poll);
   await page.goto('http://127.0.0.1:' + PORT + '/nostr-chat/?local=1&cb=' + Date.now());
@@ -224,7 +265,7 @@ const receivedStream = ({ elements, streams }) => {
   return trimSilence(join(...parts.map((b) => b.data)));
 };
 
-const audibleSegments = ({ elements, streams }) => {
+const audibleSegments = ({ elements, streams }, minSeconds = 0.8) => {
   const segments = [];
   for (const [id, blocks] of streams) {
     let current = null;
@@ -239,7 +280,7 @@ const audibleSegments = ({ elements, streams }) => {
       } else current = null;
     }
   }
-  return segments.map((s) => ({ ...s, samples: trimSilence(join(...s.parts)) })).filter((s) => s.samples.length >= 16000 * 0.8).sort((a, b) => a.start - b.start);
+  return segments.map((s) => ({ ...s, samples: trimSilence(join(...s.parts)) })).filter((s) => s.samples.length >= 16000 * minSeconds).sort((a, b) => a.start - b.start);
 };
 
 const lagSeconds = (text) => { const m = /(?:(\d+):)?([\d.]+)\s*s?\s*behind/.exec(text || ''); return m ? (m[1] ? Number(m[1]) * 60 : 0) + Number(m[2]) : null; };
@@ -278,7 +319,7 @@ const screenshots = async (page, name, seen) => {
   }
 };
 
-const runPair = async ({ name, mics, pollMs = 50, extraWaitS = 0, shots = false }) => {
+const runPair = async ({ name, mics, pollMs = 50, extraWaitS = 0, shots = false, keys = {} }) => {
   console.log('--- scenario ' + name);
   if (process.env.REANALYSE) {
     const dir = process.env.REANALYSE;
@@ -289,7 +330,7 @@ const runPair = async ({ name, mics, pollMs = 50, extraWaitS = 0, shots = false 
   for (const k of Object.keys(mics)) browsers[k] = await chromium.launch(launchOptions(files[k]));
   try {
     const pages = {};
-    for (const k of Object.keys(mics)) pages[k] = await boot(browsers[k], k === 'R' ? { capture: true, poll: pollMs } : {});
+    for (const k of Object.keys(mics)) pages[k] = await boot(browsers[k], { ...(k === 'R' ? { capture: true, poll: pollMs } : {}), key: keys[k] || null, role: k });
     const identities = {};
     for (const k of Object.keys(mics)) identities[k] = await pages[k].evaluate(() => ({ pubkey: window.state.nostrPubkey, short: window.auth.npubShort() }));
     fs.writeFileSync(path.join(WORK, name + '-identities.json'), JSON.stringify(identities));
@@ -303,6 +344,7 @@ const runPair = async ({ name, mics, pollMs = 50, extraWaitS = 0, shots = false 
     while (Date.now() < until) { if (shots) await screenshots(pages.R, name, seen); await wait(shots ? 300 : 1000); }
     const timeline = await pages.R.evaluate(() => window.__timeline);
     fs.writeFileSync(path.join(WORK, name + '-timeline.json'), JSON.stringify(timeline));
+    for (const k of Object.keys(mics)) fs.writeFileSync(path.join(WORK, name + '-events-' + k + '.json'), JSON.stringify(await pages[k].evaluate(() => window.__voiceEvents || [])));
     const tapLog = await pages.R.evaluate(() => window.__tapLog || []);
     fs.writeFileSync(path.join(WORK, name + '-taplog.json'), JSON.stringify(tapLog));
     const dump = await fetchCapture(pages.R);
@@ -462,6 +504,28 @@ const runInPage = async ({ sources, rate, own, endSpeakMs, minRunMs, maxRunMs, p
   } finally { await browser.close().catch(() => {}); }
 };
 
+
+const withoutRepeats = (segments, source) => {
+  const parts = [];
+  let previousEnd = null;
+  for (const seg of segments) {
+    if (previousEnd === null) {
+      const first = align(seg.samples, source);
+      parts.push(seg.samples);
+      previousEnd = Math.round(first.endMs / HOP_MS);
+      continue;
+    }
+    const lo = Math.max(0, previousEnd - Math.round(REPEAT_WINDOW_MS / HOP_MS));
+    const region = source.subarray(lo * 320, Math.min(source.length, (lo + Math.round((seg.samples.length / 320) * 2.2) + 100) * 320));
+    const r = align(seg.samples, region);
+    const firstNew = r.path.find(([, j]) => lo + j >= previousEnd);
+    const cut = firstNew ? firstNew[0] * 320 : 0;
+    parts.push(seg.samples.subarray(cut));
+    previousEnd = Math.max(previousEnd, lo + Math.round(r.endMs / HOP_MS));
+  }
+  return join(...parts);
+};
+
 const summariseRun = (result, keys, label) => {
   for (const m of result.marks) console.log('      ' + m.type + ' at ' + Math.round(m.at) + ' ms lanes ' + m.lanes.map((l) => l.speaker + ' ' + l.state + ' ' + Math.round(l.lagMs || 0) + 'ms').join(', '));
   if (result.warnings.length) console.log('      warnings ' + JSON.stringify(result.warnings));
@@ -482,18 +546,26 @@ const summariseRun = (result, keys, label) => {
 };
 
 const scenarios = {
-  async interrupt() {
+  async interrupt(runName = 'interrupt', quiet = false) {
     const a = speech(20, 0, 0);
     const b = speech(5, 30);
-    const run = await runPair({ name: 'interrupt', shots: true, mics: { A: join(silence(LEAD_S), a, silence(8)), R: join(silence(LEAD_S + 7), b, silence(14)) } });
+    const run = await runPair({ name: runName, shots: !quiet, mics: { A: join(silence(LEAD_S), a, silence(8)), R: join(silence(LEAD_S + 7), b, silence(14)) } });
     const tl = analyseTimeline(run.timeline);
-    const segments = audibleSegments(run.capture);
+    const segments = audibleSegments(run.capture, Number(process.env.MIN_SEG_S || 0.25));
     const source = toRate16k(a, RATE);
-    const r = align(join(...segments.map((seg) => seg.samples)), source);
+    const r = align(withoutRepeats(segments, source), source);
     printHeard(segments, r, run.timeline[0].at);
+    if (process.env.DEBUG_SEGS) for (const seg of segments) { const one = align(seg.samples, source); console.log('      seg ' + (seg.live ? 'live' : 'clip') + ' dur ' + frameMs(seg.samples.length) + ' aligned source ' + Math.round(one.startMs) + '..' + Math.round(one.endMs) + ' cost ' + one.meanVoicedCost.toFixed(2)); }
     for (const bd of boundaries(segments, r)) console.log('      boundary ' + bd.from + '->' + bd.to + ' source ' + bd.sourceBeforeMs + ' -> ' + bd.sourceAfterMs + ' ms');
     timelineReport('interrupt', tl);
     const received = align(receivedStream(run.capture), source);
+    const planted = Number(process.env.PLANT_CUT_MS || 0);
+    const heardSegments = segments.map((seg, i) => (planted && i === 2 ? join(seg.samples.subarray(0, Number(process.env.PLANT_AT_MS || 2000) * 16), seg.samples.subarray(Number(process.env.PLANT_AT_MS || 2000) * 16 + Math.round(planted * 16))) : seg.samples));
+    const union = unionCoverage(heardSegments, source);
+    const metrics = { run: runName, playedMissingVoicedMs: union.missingVoicedMs, playedLongestMissingMs: r.longestMissingRunMs, receivedMissingVoicedMs: received.missingVoicedMs, receivedLongestMissingMs: received.longestMissingRunMs };
+    console.log('      RUN_METRICS ' + JSON.stringify(metrics));
+    if (process.env.DEBUG_COST) for (const [a, b] of r.missingRuns) console.log('      cost ' + a + '..' + b + ': ' + Array.from(r.costAt.slice(Math.round(a / HOP_MS) - 4, Math.round(b / HOP_MS) + 4)).map((c) => c.toFixed(0)).join(' '));
+    console.log('      MISSING_RUNS played ' + JSON.stringify(union.missingRuns) + ' (sequential ' + JSON.stringify(r.missingRuns) + ') received ' + JSON.stringify(received.missingRuns));
     console.log('      the stream as received (muted or not) aligned to source ' + Math.round(received.startMs) + '..' + Math.round(received.endMs) + ' ms, cost ' + received.meanVoicedCost.toFixed(2) + ', windows damaged before our code saw them: [' + received.gapWindows.join(',') + '] and cost>6 at [' + received.windows.filter((w) => w.cost !== null && w.cost > 6).map((w) => w.second).join(',') + ']');
     const damaged = new Set(received.windows.filter((w) => w.voiced >= 10 && (w.cost === null || w.cost > 6)).map((w) => w.second));
     const ours = r.gapWindows.filter((w) => !damaged.has(w));
@@ -502,6 +574,116 @@ const scenarios = {
     report(r.endMs - r.startMs > 15000, 'interrupt: the played audio spans ' + Math.round((r.endMs - r.startMs) / 1000) + ' s of the 20 s source');
     const control = align(join(...segments.filter((seg) => seg.live).map((seg) => seg.samples)), source);
     report(control.endMs - control.startMs < 12000, 'interrupt: control, without the catch-up segments the heard audio spans only ' + Math.round((control.endMs - control.startMs) / 1000) + ' s of the 20 s source');
+    report(union.missingVoicedMs <= MISSING_VOICED_LIMIT_MS, 'interrupt: ' + runName + ' missing voiced audio ' + union.missingVoicedMs + ' ms (longest run ' + r.longestMissingRunMs + ' ms, limit ' + MISSING_VOICED_LIMIT_MS + '; the received stream itself misses ' + received.missingVoicedMs + ' ms)');
+    return metrics;
+  },
+
+  async interrupt10() {
+    process.env.LOCK_RATE ||= '1';
+    const table = [];
+    for (let n = 1; n <= 10; n++) table.push(await scenarios.interrupt('interrupt-' + n, true));
+    console.log('      RUN_TABLE run played_missing_ms played_longest_ms received_missing_ms');
+    for (const m of table) console.log('      RUN_TABLE ' + m.run + ' ' + m.playedMissingVoicedMs + ' ' + m.playedLongestMissingMs + ' ' + m.receivedMissingVoicedMs);
+    report(table.length === 10 && table.every((m) => m.playedMissingVoicedMs <= MISSING_VOICED_LIMIT_MS), 'interrupt10: every run missed at most ' + MISSING_VOICED_LIMIT_MS + ' ms of voiced audio (worst ' + Math.max(...table.map((m) => m.playedMissingVoicedMs)) + ' ms)');
+  },
+
+  async metric() {
+    console.log('--- scenario metric');
+    const source = toRate16k(speech(26, 7, 350), RATE);
+    const at = (s) => Math.round(s * 16000);
+    const noisy = (x) => Float32Array.from(x, (v, i) => v * 0.9 + 0.0002 * Math.sin(i * 0.37));
+    const cut = (from, to) => noisy(source.subarray(at(from), at(to)));
+    const gaps = [[9.2, 12.4], [17.0, 19.0]];
+    const heard = [cut(12.4, 17.0), cut(0, 6.0), cut(19.0, 24.0), cut(4.4, 9.2)];
+    const sf = features(source);
+    const expected = gaps.map(([a, b]) => { let n = 0; for (let j = Math.ceil(a * 50) + 1; j < Math.floor(b * 50) - 1; j++) if (sf.countable[j]) n++; return n * 20; });
+    const r = unionCoverage(heard, source);
+    console.log('      planted gaps ' + JSON.stringify(gaps) + ' voiced ms inside ' + JSON.stringify(expected) + ' reported runs ' + JSON.stringify(r.missingRuns));
+    const inside = gaps.map(([a, b]) => r.missingRuns.filter(([x, y]) => x >= a * 1000 - 60 && y <= b * 1000 + 60).reduce((n, [x, y]) => n + (y - x), 0));
+    const outside = r.missingRuns.filter(([x, y]) => !gaps.some(([a, b]) => x >= a * 1000 - 60 && y <= b * 1000 + 60));
+    gaps.forEach((g, i) => report(Math.abs(inside[i] - expected[i]) <= 80, 'metric: planted gap ' + g[0] + '-' + g[1] + ' s holds ' + expected[i] + ' voiced ms, reported ' + inside[i] + ' ms'));
+    report(outside.length === 0, 'metric: no missing run outside the planted gaps (' + JSON.stringify(outside) + ')');
+    const clean = unionCoverage([cut(0, 9), cut(8, 17), cut(16.5, 24)], source);
+    report(clean.missingVoicedMs === 0, 'metric: three overlapping reordered pieces with no gap report ' + clean.missingVoicedMs + ' ms missing ' + JSON.stringify(clean.missingRuns));
+    const voicedAfter = (from, frames) => { for (let j = Math.floor(from * 50); j < sf.count - frames - 8; j++) { let ok = true; for (let k = 0; k < frames + 8; k++) if (!sf.countable[j + k]) { ok = false; break; } if (ok) return j + 4; } return -1; };
+    const g1 = voicedAfter(8, 5);
+    const g2 = voicedAfter(16, 4);
+    const small = unionCoverage([noisy(source.subarray(0, g1 * 320)), noisy(source.subarray((g1 + 5) * 320, g2 * 320)), noisy(source.subarray((g2 + 4) * 320, at(24)))], source);
+    const reported = small.missingVoicedMs;
+    report(g1 > 0 && g2 > 0 && small.missingRuns.length === 2 && Math.abs(reported - 180) <= 40, 'metric: planted 100 ms and 80 ms gaps at ' + (g1 * 20) + ' and ' + (g2 * 20) + ' ms report ' + JSON.stringify(small.missingRuns));
+    const adjacent = unionCoverage([cut(10, 17), cut(0, 10), cut(17, 24)], source);
+    report(adjacent.missingVoicedMs === 0, 'metric: three exactly adjacent pieces report ' + adjacent.missingVoicedMs + ' ms missing ' + JSON.stringify(adjacent.missingRuns));
+  },
+
+  async baseline3() {
+    const a = speech(16, 0, 0);
+    const b = speech(14, 30, 0);
+    const run = await runPair({ name: 'baseline3', shots: false, extraWaitS: 4, mics: { A: join(silence(LEAD_S), a, silence(24)), B: join(silence(LEAD_S + 18), b, silence(6)), R: silence(LEAD_S + 40) } });
+    const short = Object.fromEntries(Object.entries(run.identities).map(([k, v]) => [k, v.pubkey.slice(0, 8)]));
+    const segments = audibleSegments(run.capture, 0.25);
+    const sources = { A: toRate16k(a, RATE), B: toRate16k(b, RATE) };
+    for (const k of ['A', 'B']) {
+      const own = segments.filter((seg) => seg.live && seg.peer && seg.peer.startsWith(short[k]));
+      const r = unionCoverage(own.map((seg) => seg.samples), sources[k]);
+      console.log('      BASELINE ' + k + ' live segments ' + own.length + ' span ' + Math.round(r.startMs) + '..' + Math.round(r.endMs) + ' missing ' + r.missingVoicedMs + ' ms runs ' + JSON.stringify(r.missingRuns));
+    }
+  },
+
+  async three(runName = 'three', hubRoleChoice = process.env.HUB_ROLE) {
+    const hubRole = hubRoleChoice === 'other' ? 'A' : 'R';
+    const generated = Array.from({ length: 3 }, () => { const sk = generateSecretKey(); return { sk: Buffer.from(sk).toString('hex'), pk: getPublicKey(sk) }; }).sort((x, y) => (x.pk > y.pk ? -1 : 1));
+    const keys = { [hubRole]: generated[0].sk, ...Object.fromEntries(['A', 'B', 'R'].filter((k) => k !== hubRole).map((k, i) => [k, generated[i + 1].sk])) };
+    const a = speech(16, 0, 0);
+    const b = speech(14, 30, 0);
+    const own = speech(5, 60);
+    const run = await runPair({ name: runName, shots: false, extraWaitS: 30, keys, mics: { A: join(silence(LEAD_S), a, silence(8)), B: join(silence(LEAD_S + 2), b, silence(8)), R: join(silence(LEAD_S + 7), own, silence(16)) } });
+    const sources = { A: toRate16k(a, RATE), B: toRate16k(b, RATE) };
+    const tl = analyseTimeline(run.timeline);
+    timelineReport(runName, tl);
+    const events = Object.fromEntries(['A', 'B', 'R'].map((k) => [k, JSON.parse(fs.readFileSync(path.join(WORK, runName + '-events-' + k + '.json'), 'utf8'))]));
+    const lastHub = (k) => events[k].filter((e) => e.type === 'hub-changed').map((e) => JSON.parse(e.detail).hub).at(-1) || null;
+    const short = Object.fromEntries(Object.entries(run.identities).map(([k, v]) => [k, v.pubkey.slice(0, 8)]));
+    const hubViews = Object.fromEntries(['A', 'B', 'R'].map((k) => [k, Object.entries(short).find(([, pk]) => pk === lastHub(k))?.[0] || lastHub(k)]));
+    console.log('      hub as seen by each peer ' + JSON.stringify(hubViews) + ' (final hub-changed event)');
+    const segments = audibleSegments(run.capture, 0.25);
+    const owner = (seg) => {
+      if (seg.live) return Object.entries(short).find(([, pk]) => seg.peer && seg.peer.startsWith(pk))?.[0] || null;
+      const costs = Object.fromEntries(Object.entries(sources).map(([k, src]) => [k, align(seg.samples, src).meanVoicedCost]));
+      return costs.A <= costs.B ? 'A' : 'B';
+    };
+    const bySpeaker = { A: [], B: [] };
+    for (const seg of segments) { const k = owner(seg); if (k && bySpeaker[k]) bySpeaker[k].push(seg); }
+    const perSpeaker = {};
+    for (const k of ['A', 'B']) {
+      const segs = bySpeaker[k].sort((x, y) => x.start - y.start);
+      console.log('      speaker ' + k + ' segments ' + segs.map((seg) => (seg.live ? 'live' : 'clip') + '@' + Math.round(seg.start - run.timeline[0].at) + ':' + frameMs(seg.samples.length)).join(' '));
+      if (process.env.DEBUG_SEGS) for (const seg of segs) { const one = align(seg.samples, sources[k]); console.log('      seg ' + k + ' ' + (seg.live ? 'live' : 'clip') + ' start ' + Math.round(seg.start - run.timeline[0].at) + ' dur ' + frameMs(seg.samples.length) + ' source ' + Math.round(one.startMs) + '..' + Math.round(one.endMs) + ' cost ' + one.meanVoicedCost.toFixed(2)); }
+      const r = unionCoverage(segs.map((seg) => seg.samples), sources[k]);
+      r.meanVoicedCost = 0;
+      r.gapWindows = [];
+      console.log('      speaker ' + k + ' aligned ' + Math.round(r.startMs) + '..' + Math.round(r.endMs) + ' ms cost ' + r.meanVoicedCost.toFixed(2) + ' gap windows [' + r.gapWindows + '] MISSING_RUNS ' + JSON.stringify(r.missingRuns));
+      perSpeaker[k] = { missingMs: r.missingVoicedMs, runs: r.missingRuns, spanS: Math.round((r.endMs - r.startMs) / 1000) };
+      report(r.missingVoicedMs <= MISSING_VOICED_LIMIT_MS && r.endMs - r.startMs > sources[k].length / 16 * 0.75, 'three: speaker ' + k + ' missed ' + r.missingVoicedMs + ' ms of voiced audio across ' + Math.round((r.endMs - r.startMs) / 1000) + ' s (limit ' + MISSING_VOICED_LIMIT_MS + ')');
+    }
+    const ownStart = run.timeline.find((t) => t.ownTalk);
+    report(!!bySpeaker.A.find((seg) => seg.live && ownStart && seg.start < ownStart.at), 'three: speaker A was heard live while we were idle');
+    report(bySpeaker.B.some((seg) => !seg.live), 'three: speaker B was queued and played after the live speech');
+    const stacked = run.timeline.filter((t) => t.ownTalk && t.lanes.filter((l) => /behind|catching/.test(l.lag)).length >= 2);
+    report(stacked.length > 0, 'three: while we talked ' + (stacked[0] ? stacked[0].lanes.length : 0) + ' lanes stacked behind (' + stacked.length + ' samples with two lanes behind)');
+    const laneNames = new Set(run.timeline.flatMap((t) => t.lanes.map((l) => l.name)));
+    report(laneNames.size >= 2, 'three: per-speaker lanes ' + [...laneNames].join(', '));
+    const hubIsInterrupter = hubRole === 'R' ? Object.values(hubViews).filter((v) => v === 'R').length : null;
+    console.log('      interrupter was hub in ' + hubIsInterrupter + ' of 3 views (HUB_ROLE ' + (process.env.HUB_ROLE || 'self') + ')');
+    return { run: runName, hubViews, interrupterIsHub: hubViews.R === 'R', perSpeaker };
+  },
+
+  async three10() {
+    process.env.LOCK_RATE ||= '1';
+    const table = [];
+    for (const role of ['self', 'other']) for (let n = 1; n <= 5; n++) table.push(await scenarios.three('three-' + role + '-' + n, role));
+    console.log('      THREE_TABLE run hub_views interrupter_is_hub A_missing_ms B_missing_ms');
+    for (const m of table) console.log('      THREE_TABLE ' + m.run + ' ' + JSON.stringify(m.hubViews) + ' ' + m.interrupterIsHub + ' ' + m.perSpeaker.A.missingMs + ' ' + m.perSpeaker.B.missingMs);
+    report(table.every((m) => m.perSpeaker.A.missingMs <= MISSING_VOICED_LIMIT_MS && m.perSpeaker.B.missingMs <= MISSING_VOICED_LIMIT_MS), 'three10: every run missed at most ' + MISSING_VOICED_LIMIT_MS + ' ms per speaker');
   },
 
   async two() {
@@ -521,6 +703,7 @@ const scenarios = {
       const r = align(join(...segs.map((seg) => seg.samples)), sources[key]);
       console.log('      speaker ' + key + ' segments ' + segs.map((seg) => (seg.live ? 'live' : 'clip') + ':' + frameMs(seg.samples.length)).join(' '));
       printHeard(segs, r, 0);
+      console.log('      MISSING_RUNS ' + key + ' ' + JSON.stringify(r.missingRuns));
       report(segs.some((seg) => !seg.live), 'two: ' + key + ' had its own catch-up playback');
       report(r.gapWindows.length === 0 && r.endMs - r.startMs > 17000, 'two: ' + key + ' heard in order without a content gap across ' + Math.round((r.endMs - r.startMs) / 1000) + ' s of its source (gap windows: ' + r.gapWindows.join(',') + ')');
     }
@@ -593,7 +776,7 @@ const scenarios = {
 };
 
 const wanted = process.argv.slice(2);
-await startRig();
+if (!wanted.includes('metric')) await startRig();
 try {
   for (const name of wanted.length ? wanted : ['interrupt', 'clip', 'two']) await scenarios[name]();
 } catch (e) { report(false, 'error: ' + e.message + '\n' + e.stack); }

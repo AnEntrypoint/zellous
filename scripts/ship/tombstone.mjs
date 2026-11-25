@@ -48,7 +48,10 @@ try {
   check('owner id prefix is the owner pubkey', sid.startsWith(ownerPk + ':'), sid);
   await owner.page.evaluate(() => window.chat.send('owner witness message'));
   await wait(1500);
-  for (const who of [admin, member, sleeper]) await who.page.evaluate(async (id) => { await window.__zellous.servers.join(id, { name: 'x' }); }, sid);
+  for (const who of [admin, member, sleeper]) {
+    await who.page.evaluate((id) => { window.__joinResult = null; window.__zellous.servers.join(id, { name: 'x' }).then(() => { window.__joinResult = 'ok'; }, (e) => { window.__joinResult = String(e && e.message); }); }, sid);
+    await who.page.waitForFunction(() => window.__joinResult !== null, null, { timeout: 20000 });
+  }
   await wait(3000);
   await owner.page.evaluate(async ([id, pk]) => { await window.serverRoles.setRole(id, pk, 'admin'); }, [sid, adminPk]);
   await wait(2000);
@@ -99,7 +102,7 @@ try {
   await owner.page.click(delBtn);
   await owner.page.waitForSelector('[role=alertdialog]');
   const dlg = await owner.page.evaluate(() => document.querySelector('[role=alertdialog]').innerText.replace(/\s+/g, ' '));
-  check('dialog states relays may keep messages', /Some may keep old messages/.test(dlg), dlg.slice(0, 160));
+  check('dialog states NIP-09 is a request and relays may keep messages', /NIP-09/.test(dlg) && /may still keep old messages/.test(dlg), dlg.slice(160, 520));
   const confirmBtn = '[role=alertdialog] .ds-g3-evb-danger';
   const disabledOf = () => owner.page.getAttribute(confirmBtn, 'aria-disabled');
   check('confirm disabled with empty name', (await disabledOf()) === 'true');

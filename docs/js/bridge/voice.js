@@ -114,7 +114,7 @@ export function installVoice(ww) {
         if (nowIds.some((id) => !prevIds.has(id))) playBloop(true);
         else if ([...prevIds].some((id) => !nowIds.includes(id))) playBloop(false);
       }
-      pruneVoiceMedia(new Set([...voice.peers.keys(), ...list.flatMap((p) => [p.identity, p.key])]));
+      pruneVoiceMedia(new Set([...voice.remoteKeys(), ...list.flatMap((p) => [p.identity, p.key])]));
       const sharing = new Set(list.filter((p) => p.hasVideo).map((p) => p.key));
       for (const key of Object.keys(state.voiceVideos || {})) if (key !== 'local' && !sharing.has(key)) setVoiceVideo(key, null);
     });
