@@ -6,7 +6,7 @@ export function installServers(ww) {
   const srv = ww.servers;
   srv.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage full — some data may not be saved', 4000, 'error'); });
   srv.addEventListener('updated', (e) => { state.servers = e.detail.servers; if (window.ui) ui.render.all(); });
-  srv.addEventListener('switched', (e) => { state.currentServerId = e.detail.serverId; if (window.nostrSelfRoles) window.nostrSelfRoles.subscribe(e.detail.serverId); state.chatMessages = []; state.channels = []; state.categories = []; if (window.ui) ui.render.all(); });
+  srv.addEventListener('switched', (e) => { state.currentServerId = e.detail.serverId; if (window.nostrSelfRoles) window.nostrSelfRoles.subscribe(e.detail.serverId); state.chatMessages = []; state.channelPins = []; state.channels = []; state.categories = []; if (window.ui) ui.render.all(); });
   window.serverManager = {
     loadServers: () => srv.load(),
     create: (n, c) => srv.create(n, c),

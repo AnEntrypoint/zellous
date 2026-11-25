@@ -2,7 +2,7 @@ export function installPins(ww) {
   const pins = ww.pins;
   pins.addEventListener('updated', (e) => {
     const cur = state.currentChannel;
-    if (cur && cur.id === e.detail.channelId) state.channelPins = e.detail.ids;
+    if (cur && cur.id === e.detail.channelId && e.detail.serverId === state.currentServerId) state.channelPins = e.detail.ids;
   });
   window.nostrPins = {
     ids: (sid, ch) => pins.ids(sid, ch),

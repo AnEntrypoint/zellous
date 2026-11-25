@@ -69,6 +69,8 @@ export function installChat(ww) {
   chat.addEventListener('send-blocked', (e) => {
     const msg = e.detail?.reason === 'announcement-admin-only'
       ? 'Only admins can post in announcement channels'
+      : e.detail?.reason === 'no-server'
+        ? 'Pick a server before sending a message'
       : e.detail?.reason === 'no-channel'
         ? 'Channels are still loading, try again in a moment'
         : e.detail?.reason === 'not-signed-in'

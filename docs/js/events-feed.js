@@ -2,16 +2,13 @@ const EVENT_KIND = 31923;
 const RSVP_KIND = 31925;
 const DELETE_KIND = 5;
 
-const channelTag = async (channelId, serverId) => {
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode((serverId || 'default') + ':' + channelId));
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
-};
+import { channelTag } from './channel-scope.js';
 
 const tagValue = (ev, key) => ((ev.tags || []).find((t) => t[0] === key) || [])[1] || '';
 
 export async function subscribeChannelEvents(channelId, serverId, onList) {
   const net = window.nostrNet;
-  if (!net || !channelId) { onList([]); return () => {}; }
+  if (!net || !channelId || !serverId) { onList([]); return () => {}; }
   const tag = await channelTag(channelId, serverId);
   const creator = serverId ? String(serverId).split(':')[0] : null;
   const events = new Map();
@@ -74,10 +71,10 @@ export async function subscribeChannelEvents(channelId, serverId, onList) {
 
 export async function subscribeServerEvents(channelIds, serverId, onList) {
   const net = window.nostrNet;
-  if (!net || !channelIds.length) { onList([]); return () => {}; }
+  if (!net || !channelIds.length || !serverId) { onList([]); return () => {}; }
   const tags = await Promise.all(channelIds.map((id) => channelTag(id, serverId)));
   const events = new Map();
-  const subId = 'events-server-' + String(serverId || 'default').slice(0, 24);
+  const subId = 'events-server-' + String(serverId).slice(0, 24);
   net.subscribe(subId, [{ kinds: [EVENT_KIND], '#e': tags, limit: 200 }], (ev) => {
     const start = Number(tagValue(ev, 'start'));
     if (!start) return;

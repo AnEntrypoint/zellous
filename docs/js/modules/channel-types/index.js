@@ -31,7 +31,7 @@ registerModule({
   id: 'type-forum', kind: 'channelType',
   channelType: {
     type: 'forum', label: 'Forum', traits: { forumPosts: true, members: true },
-    onOpen(channel, ctx) { if (ctx.forum) ctx.forum.loadChannel(channel.id, ctx.state.currentServerId || ''); },
+    onOpen(channel, ctx) { if (ctx.forum) ctx.forum.loadChannel(channel.id, ctx.state.currentServerId); },
   },
   snapshot: (deps, f) => {
     const ctx = getContext();

@@ -78,7 +78,7 @@ registerModule({
     };
 
     const loadHistory = async (current) => {
-      const channelHex = await proto.hexChannelId(current.id, ctx.state.currentServerId || '');
+      const channelHex = await proto.hexChannelId(current.id, ctx.state.currentServerId);
       const clips = await proto.verifyKeptClips(await proto.fetchKeptClips({ relayPool: ctx.ww.pool, channelHex }));
       if (!bound || channel !== current) return;
       for (const clip of clips) bound.thread.addHistory({ ...clip, name: ctx.chat && ctx.chat.resolveProfile ? ctx.chat.resolveProfile(clip.speaker) : String(clip.speaker).slice(0, 8) });

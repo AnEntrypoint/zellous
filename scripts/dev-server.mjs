@@ -13,14 +13,14 @@ import url from 'node:url';
 const ROOT = path.resolve(process.argv[2] ?? 'docs');
 const PORT = Number(process.env.PORT ?? process.argv[3] ?? 5175);
 
-const CDN_WIREWEAVE = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@1c48190b6394d432917c8c789e93e953934e652a/';
+const CDN_WIREWEAVE = 'https://cdn.jsdelivr.net/gh/AnEntrypoint/wireweave@a6d9d98cfb9d099176106fcb4cc27e68252a453b/';
 
 const SIBLINGS = path.dirname(path.dirname(path.resolve('.')));
 // The CDN paths already carry the subdir (`design@main/dist/...`, `wireweave@<sha>/src/...`),
 // so the mount prefix maps to each repo root, not to its build dir.
 const MOUNTS = [
   { prefix: '/deps/design/', dir: path.join(path.dirname(ROOT), '..', 'design') },
-  { prefix: '/deps/wireweave/', dir: path.join(path.dirname(ROOT), '..', 'wireweave') },
+  { prefix: '/deps/wireweave/', dir: process.env.WIREWEAVE_DIR || path.join(path.dirname(ROOT), '..', 'wireweave') },
 ].map((m) => ({ ...m, real: path.resolve(m.dir) }));
 
 const LOCAL_DEFAULT = process.env.ZELLOUS_LOCAL_DEPS === '1';

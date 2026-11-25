@@ -89,7 +89,7 @@ const threadManager = {
 
   async newForumPost(title, content) {
     if (!window.nostrForum || !window.zModules.trait(state.currentChannel?.type, 'forumPosts')) return null;
-    return window.nostrForum.createPost(state.currentChannel.id, state.currentServerId || '', title, content);
+    return window.nostrForum.createPost(state.currentChannel.id, state.currentServerId, title, content);
   },
 
   async replyToForumPost(content) {
