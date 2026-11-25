@@ -4,6 +4,7 @@ registerModule({
   id: 'servers', kind: 'service',
   setup(ctx) {
     const { S, v, call, state, ww } = ctx;
+    const deleteOpen = ctx.signal('deleteOpen', false);
 
     const ownerOf = (sv) => (String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null);
     const ownerName = (pubkey) => (pubkey ? ((ctx.chat && ctx.chat.resolveProfile && ctx.chat.resolveProfile(pubkey)) || pubkey.slice(0, 12)) : 'nobody (public room)');
@@ -35,6 +36,7 @@ registerModule({
     return {
       snapshot: () => ({
         serverSettings: serverSettings(),
+        serverDelete: deleteOpen.value ? { name: (serverSettings() || {}).name || '' } : null,
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: ctx.avatarColors,
         discoverServers: v('servers', []).map(discover),
@@ -57,7 +59,7 @@ registerModule({
           const sv = (state.servers || []).find((x) => x && x.id === state.currentServerId);
           if (sv && ctx.membership) return ctx.membership.invite(sv.id, sv.name, sv.iconColor);
         }),
-        joinInvite: (serverId, name, color) => call(async () => {
+        joinInvite: (serverId, name, color) => ctx.guard(async () => {
           await ctx.servers.join(serverId, { name, iconColor: color });
         }),
         saveServerSettings: (patch) => call(() => {
@@ -68,14 +70,16 @@ registerModule({
         }, 'Server settings'),
         renameServerChannel: (id, name) => call(() => ww.channels.rename(id, String(name || '').trim()), 'Rename channel'),
         deleteServerChannel: (id) => call(() => ww.channels.remove(id), 'Delete channel'),
-        deleteServer: () => call(async () => {
+        openServerDelete: () => call(() => { if (serverSettings()) deleteOpen.value = true; }),
+        closeServerDelete: () => call(() => { deleteOpen.value = false; }),
+        deleteServerForEveryone: (typedName) => ctx.guard(async () => {
           const cur = serverSettings();
-          if (!cur) return;
-          await ww.servers.delete(cur.id);
+          if (!cur || String(typedName || '').trim() !== cur.name) return;
+          const channelIds = (v('channels', []) || []).filter((c) => c && c.id).map((c) => c.id);
+          await ww.servers.deleteForEveryone(cur.id, { channelIds });
+          deleteOpen.value = false;
           if (S.gamePrefOpen) S.gamePrefOpen.value = false;
-          const next = (v('servers', []) || [])[0];
-          if (next) await ctx.servers.switchTo(next.id);
-        }, 'Delete server'),
+        }),
         leaveServer: () => call(() => ctx.servers.leave(state.currentServerId)),
       },
     };

@@ -14,7 +14,8 @@ const state = {
   pausedAudioBuffer: signal(null),
   pausedBuffers: signal(null),
   masterVolume: signal(0.7),
-  activeSpeakers: signal(new Set()),
+  voiceSpeaking: signal(''),
+  renderTick: signal(0),
   messages: signal([]),
   audioHistory: signal(new Map()),
   recordingAudio: signal(new Map()),
@@ -152,12 +153,12 @@ const state = {
   autoGainEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('autoGain') !== '0' : true),
   forceTurnEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('forceRelay') === '1' : false),
   dataChannelEnabled: signal(typeof localStorage !== 'undefined' ? localStorage.getItem('dataChannel') === '1' : false),
-  micRawLevel: signal(0),
   micProcessedLevel: signal(0),
   pttHeld: signal(false),
   pttUiMode: signal('idle'),
 
   servers: signal([]),
+  deletedServers: signal([]),
   currentServerId: signal(null),
   cameraEnabled: signal(false),
 

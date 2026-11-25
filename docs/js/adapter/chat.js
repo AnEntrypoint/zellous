@@ -25,9 +25,10 @@ const membershipView = (m, base) => {
   if (wave) return { ...base, content: '👋 waves at ' + nameOf(wave) };
   const inv = mem.parseInvite(m.content);
   if (!inv) return null;
+  if (window.serverManager) window.serverManager.watchTombstone(inv.serverId);
   const here = inv.serverId === st.currentServerId;
   const members = here ? (st.roomMembers || []) : null;
-  return { ...base, invite: { name: inv.name, color: inv.color, valid: inv.valid, serverId: inv.serverId, joined: (st.servers || []).some((x) => x && x.id === inv.serverId), online: members ? members.filter((x) => x.online !== false).length : null, members: members ? members.length : null } };
+  return { ...base, invite: { name: inv.name, color: inv.color, valid: inv.valid, deleted: (st.deletedServers || []).includes(inv.serverId), serverId: inv.serverId, joined: (st.servers || []).some((x) => x && x.id === inv.serverId), online: members ? members.filter((x) => x.online !== false).length : null, members: members ? members.length : null } };
 };
 
 export function buildChat({ v, S, call }) {

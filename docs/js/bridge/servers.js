@@ -5,7 +5,11 @@ export function installServers(ww) {
   const bans = ww.bans;
   const srv = ww.servers;
   srv.addEventListener('storage-error', (e) => { if (window.ui) ui.showToast(e.detail.message || 'Storage full — some data may not be saved', 4000, 'error'); });
-  srv.addEventListener('updated', (e) => { state.servers = e.detail.servers; if (window.ui) ui.render.all(); });
+  srv.addEventListener('updated', (e) => { state.servers = e.detail.servers; state.deletedServers = srv.deletedIds(); if (window.ui) ui.render.all(); });
+  srv.addEventListener('deleted', async (e) => {
+    if (e.detail.wasListed && window.ui?.showToast) ui.showToast('"' + e.detail.name + '" was deleted by its owner', 4500, 'error');
+    if (!state.currentServerId && state.servers.length && !state.homeMode) await window.serverManager.switchTo(state.servers[0].id);
+  });
   srv.addEventListener('switched', (e) => { state.currentServerId = e.detail.serverId; if (window.nostrSelfRoles) window.nostrSelfRoles.subscribe(e.detail.serverId); state.chatMessages = []; state.channelPins = []; state.channels = []; state.categories = []; if (window.ui) ui.render.all(); });
   window.serverManager = {
     loadServers: () => srv.load(),
@@ -20,6 +24,9 @@ export function installServers(ww) {
       if (!known && window.nostrMembership) window.nostrMembership.announceWhenReady(sid).catch(() => {});
     },
     delete: (sid) => srv.delete(sid),
+    deleteForEveryone: (sid, channelIds) => srv.deleteForEveryone(sid, { channelIds }),
+    watchTombstone: (sid) => srv.watchTombstone(sid),
+    isDeleted: (sid) => srv.isDeleted(sid),
     leave: (sid) => srv.leave(sid),
     switchTo: async (sid) => {
       state.homeMode = false;

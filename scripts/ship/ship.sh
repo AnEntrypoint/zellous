@@ -6,6 +6,7 @@ DESIGN=${DESIGN_DIR:-$ZELLOUS/../design}
 bash "$HERE/lint.sh" || { echo "SHIP BLOCKED: undefined names"; exit 1; }
 (cd "$ZELLOUS" && node "$HERE/kinds.mjs") || { echo "SHIP BLOCKED: a message kind failed to render locally"; exit 1; }
 (cd "$ZELLOUS" && node "$HERE/isolation.mjs") || { echo "SHIP BLOCKED: server isolation failed"; exit 1; }
+(cd "$ZELLOUS" && node "$HERE/redraw.mjs") || { echo "SHIP BLOCKED: redraw budget exceeded"; exit 1; }
 (cd "$ZELLOUS" && node "$HERE/sweep.mjs") || { echo "SHIP BLOCKED: a cancel path failed"; exit 1; }
 G="git -c user.name=lanmower -c user.email=lanmower@users.noreply.github.com"
 cd "$DESIGN"

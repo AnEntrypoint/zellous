@@ -69,6 +69,8 @@ export function installChat(ww) {
   chat.addEventListener('send-blocked', (e) => {
     const msg = e.detail?.reason === 'announcement-admin-only'
       ? 'Only admins can post in announcement channels'
+      : e.detail?.reason === 'server-deleted'
+        ? 'This server was deleted by its owner, so nothing can be sent to it'
       : e.detail?.reason === 'no-server'
         ? 'Pick a server before sending a message'
       : e.detail?.reason === 'no-channel'
@@ -88,10 +90,15 @@ export function installChat(ww) {
     });
     const now = Date.now();
     if (a.pubkey) lastSeen.set(a.pubkey, now);
-    state.roomMembers = Array.from(lastSeen.entries()).map(([id, ts]) => ({
+    const members = Array.from(lastSeen.entries()).map(([id, ts]) => ({
       id, username: chat.resolveProfile(id), online: (now - ts) <= ONLINE_WINDOW_MS
     }));
-    if (window.nostrPresence) window.nostrPresence.subscribe(state.roomMembers.map((m) => m.id));
+    const prev = state.roomMembers || [];
+    const sameMembers = prev.length === members.length && members.every((m, i) => prev[i].id === m.id && prev[i].username === m.username && prev[i].online === m.online);
+    if (sameMembers) return;
+    const sameIds = prev.length === members.length && members.every((m, i) => prev[i].id === m.id);
+    state.roomMembers = members;
+    if (!sameIds && window.nostrPresence) window.nostrPresence.subscribe(members.map((m) => m.id));
   }
   window.chat = {
     get activeChannelId() { return chat.activeChannelId; },

@@ -5,7 +5,7 @@ registerModule({
   setup(ctx) {
     const { v, call, hooks, ww } = ctx;
     const proto = ww.modules.protocolFor('servers-discovery');
-    const disc = proto.createServersDiscovery({ relayPool: ww.pool, auth: ww.auth });
+    const disc = proto.createServersDiscovery({ relayPool: ww.pool, auth: ww.auth, tombstones: ww.servers });
     const version = ctx.signal('version', 0);
     const edits = ctx.signal('edits', {});
     const query = ctx.signal('query', '');

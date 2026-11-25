@@ -56,6 +56,7 @@ const SURFACES = [
   { id: 'quick-switcher', open: [{ focus: SHEAD, rail: true }, { key: 'Control+p' }], root: '.ds-g3-sw', modal: true, focus: SHEAD },
   { id: 'command-palette', open: [{ focus: SHEAD, rail: true }, { js: "window.__zellous.overlays.commandPalette.show([{ label: 'Sweep one' }, { label: 'Sweep two' }], () => {})" }], root: '.ov-cmd-panel', modal: true, focus: SHEAD },
   { id: 'confirm-dialog', open: [{ focus: SHEAD, rail: true }, { js: "window.ui.confirm({ title: 'Sweep confirm', message: 'Sweep message', confirmLabel: 'Delete', danger: true })" }], root: '[role=alertdialog]', modal: true, focus: SHEAD },
+  { id: 'delete-server', open: [RAIL(SHEAD), { click: MENUITEM('Server Settings') }, { pane: 'Overview' }, { click: '.ds-g3-set .ds-g3-evb-danger' }], root: '[role=alertdialog]', modal: true, keep: ['div.ds-g3-set'], draft: { sel: '[role=alertdialog] input', text: 'draftname' }, focus: '.ds-g3-set .ds-g3-evb-danger' },
   { id: 'auth-modal', open: [{ focus: SHEAD, rail: true }, { signal: ['showAuthModal', true] }], root: '.ov-auth-panel', modal: true, focus: SHEAD },
   { id: 'voice-settings', open: [{ focus: SHEAD, rail: true }, { signal: ['voiceSettingsOpen', true] }], root: '.vx-modal', modal: true, focus: SHEAD },
   { id: 'search', vp: 'desktop', open: [{ fill: ['.ds-g3-srch input', 'sweep'] }, { key: 'Enter' }], root: '.ds-g3-sres', modal: false, outside: false, focus: null },
@@ -247,7 +248,7 @@ async function runSurface(page, s, mobile, rows, base) {
       continue;
     }
     if (await rootVisible(page, s.root)) problems.push('stays open');
-    const left = (await overlays(page)).filter((o) => !base.includes(o));
+    const left = (await overlays(page)).filter((o) => !base.includes(o) && !(s.keep || []).some((k) => o.startsWith(k)));
     if (left.length) problems.push('backdrop left: ' + [...new Set(left)].slice(0, 3).join(','));
     const railClosed = mobile && s.focus && await page.evaluate((sel) => !window.stateSignals.mobileMenuOpen.value && !!document.querySelector(sel)?.closest('.ca-rail'), s.focus).catch(() => false);
     if (s.focus && !railClosed && !/^outside/.test(p.path) && !(await focusOk(page, s.focus))) problems.push('focus not returned');

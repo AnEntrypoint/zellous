@@ -72,10 +72,12 @@ try {
   const B = await boot(browser);
   const C = await boot(browser);
   await wait(3500);
-  await A.evaluate(async () => { await window.__zellous.servers.create('hi'); });
+  await A.evaluate(() => { window.__createResult = null; window.__zellous.servers.create('hi').then(() => { window.__createResult = 'ok'; }, (e) => { window.__createResult = String(e && e.message); }); });
+  await A.waitForFunction(() => window.__createResult !== null, null, { timeout: 20000 });
   await wait(3500);
   const HI = (await cur(A)).sid;
-  await B.evaluate(async (id) => { await window.__zellous.servers.join(id, { name: 'hi' }); }, HI);
+  await B.evaluate((id) => { window.__joinResult = null; window.__zellous.servers.join(id, { name: 'hi' }).then(() => { window.__joinResult = 'ok'; }, (e) => { window.__joinResult = String(e && e.message); }); }, HI);
+  await B.waitForFunction(() => window.__joinResult !== null, null, { timeout: 20000 });
   await wait(3500);
   check('setup: two distinct servers, C on public', HI && HI !== PUB && (await cur(C)).sid === PUB && (await cur(B)).sid === HI);
 

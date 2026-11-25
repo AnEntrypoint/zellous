@@ -1,4 +1,5 @@
 const LEVEL_METER_CEILING = 0.35;
+const SPEAKING_MIN_MS = 250;
 
 let bloopCtx = null;
 const playBloop = (up) => {
@@ -22,6 +23,7 @@ export function installVoice(ww) {
   const a = ww.auth;
   const chat = ww.chat;
   let voice = null;
+  let refreshParticipants = () => {};
   const applyOutputSettings = () => {
     const vol = typeof state.masterVolume === 'number' ? state.masterVolume : 1.0;
     document.querySelectorAll('audio[data-voice-peer]').forEach((el) => {
@@ -74,32 +76,52 @@ export function installVoice(ww) {
         }
       });
     };
+    refreshParticipants = () => { const list = voice.getParticipants(); applyParticipants(list); publishSpeaking(list); };
+    voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });
+    let lastStructure = '';
+    const structureOf = (list) => JSON.stringify(list.map((p) => [p.key, p.identity, !!p.isMuted, !!p.isLocal, !!p.hasVideo, p.connectionQuality]));
+    const applyParticipants = (list) => {
+      const key = structureOf(list);
+      if (key === lastStructure) return false;
+      lastStructure = key;
+      state.voiceParticipants = list;
+      return true;
+    };
+    let speakingWrittenAt = 0;
+    let speakingPending = '';
+    let speakingTimer = null;
+    const flushSpeaking = () => {
+      speakingTimer = null;
+      if (state.voiceSpeaking === speakingPending) return;
+      state.voiceSpeaking = speakingPending;
+      speakingWrittenAt = performance.now();
+    };
+    const publishSpeaking = (list) => {
+      speakingPending = list.filter((p) => p.isSpeaking).map((p) => p.key).sort().join('|');
+      if (state.voiceSpeaking === speakingPending) return;
+      const wait = SPEAKING_MIN_MS - (performance.now() - speakingWrittenAt);
+      if (wait <= 0) { if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; } flushSpeaking(); }
+      else if (!speakingTimer) speakingTimer = setTimeout(flushSpeaking, wait);
+    };
     voice.addEventListener('state', (e) => { state.voiceConnectionState = e.detail.value === 'connected' ? 'connected' : e.detail.value === 'idle' ? 'disconnected' : e.detail.value; state.voiceConnected = e.detail.value === 'connected'; });
     voice.addEventListener('participants', (e) => {
+      const list = e.detail.list || [];
       const prevIds = new Set((state.voiceParticipants || []).map((p) => p.identity));
-      state.voiceParticipants = e.detail.list;
-      const nowIds = (e.detail.list || []).map((p) => p.identity);
+      publishSpeaking(list);
+      if (!applyParticipants(list)) return;
+      const nowIds = list.map((p) => p.identity);
       if (state.pref_vcsounds && state.pref_vcsounds.value && prevIds.size > 0) {
         if (nowIds.some((id) => !prevIds.has(id))) playBloop(true);
         else if ([...prevIds].some((id) => !nowIds.includes(id))) playBloop(false);
       }
-      pruneVoiceMedia(new Set([...voice.peers.keys(), ...(e.detail.list || []).flatMap((p) => [p.identity, p.key])]));
-      const sharing = new Set((e.detail.list || []).filter((p) => p.hasVideo).map((p) => p.key));
+      pruneVoiceMedia(new Set([...voice.peers.keys(), ...list.flatMap((p) => [p.identity, p.key])]));
+      const sharing = new Set(list.filter((p) => p.hasVideo).map((p) => p.key));
       for (const key of Object.keys(state.voiceVideos || {})) if (key !== 'local' && !sharing.has(key)) setVoiceVideo(key, null);
     });
-    voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; state.voiceParticipants = voice.getParticipants(); window.ui?.showToast?.('Voice connected', 2000); });
+    voice.addEventListener('connected', (e) => { state.voiceChannelName = e.detail.channelName; const list = voice.getParticipants(); applyParticipants(list); publishSpeaking(list); window.ui?.showToast?.('Voice connected', 2000); });
     voice.addEventListener('media-warning', (e) => { state.voiceListenOnly = true; window.ui?.showToast?.('Joined listen-only: no microphone available', 4500, 'error'); });
-    voice.addEventListener('disconnected', () => { state.voiceListenOnly = false; state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceDeafened = false; state.micMuted = false; state.activeSpeakers = new Set(); state.micRawLevel = 0; pruneVoiceMedia(null); });
+    voice.addEventListener('disconnected', () => { lastStructure = ''; speakingPending = ''; if (speakingTimer) { clearTimeout(speakingTimer); speakingTimer = null; } state.voiceListenOnly = false; state.voiceChannelName = ''; state.voiceParticipants = []; state.voiceSpeaking = ''; state.voiceDeafened = false; state.micMuted = false; pruneVoiceMedia(null); });
     voice.addEventListener('mic', (e) => { state.micMuted = !!e.detail.muted; });
-    voice.addEventListener('speaker', () => { try { state.activeSpeakers = new Set(voice.getParticipants().filter(p => p.isSpeaking && !p.isLocal).map(p => p.identity)); } catch {} });
-    let lastLevelWrite = 0;
-    voice.addEventListener('local-level', (e) => {
-      const q = Math.round(e.detail.level * 10) / 10;
-      const now = performance.now();
-      if (state.micRawLevel === q || (q !== 0 && now - lastLevelWrite < 150)) return;
-      lastLevelWrite = now;
-      state.micRawLevel = q;
-    });
     return voice;
   };
 
@@ -139,7 +161,7 @@ export function installVoice(ww) {
     anyRemoteSpeaking() { return voice ? voice.anyRemoteSpeaking() : false; },
     toggleDeafen() { ensureVoice().toggleDeafen(); state.voiceDeafened = voice.deafened; applyOutputSettings(); },
     async toggleCamera() {},
-    updateParticipants() { if (voice) { state.voiceParticipants = voice.getParticipants(); } },
+    updateParticipants() { if (voice) refreshParticipants(); },
     isDataChannelReady: () => { if (!voice) return false; for (const [, p] of voice.peers) if (p.dc?.readyState === 'open') return true; return false; },
     updateVoiceGrid() { voiceAPI.updateParticipants(); },
     applyOutputSettings,

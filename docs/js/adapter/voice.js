@@ -44,16 +44,15 @@ export function buildVoice({ v, S, call }) {
   };
 
   return {
-    snapshot: () => ({
+    snapshot: () => { const speakingKeys = String(v('voiceSpeaking', '')).split('|'); return ({
       voiceConnected: v('voiceConnected', false),
       voiceChannelName: v('voiceChannelName', ''),
       voiceConnectionState: v('voiceConnectionState', 'connected'),
       cameraOn: v('voiceParticipants', []).some(p => p.isLocal && p.hasVideo),
-      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, videoKey: p.hasVideo && (v('voiceVideos', {}) || {})[p.key] ? p.key : null, speaking: !!p.isSpeaking, muted: !!p.isMuted, color: (window.__zellous.helpers.getAvatarColor && window.__zellous.helpers.getAvatarColor(p.isLocal ? (window.state.userId || window.state.nostrPubkey) : p.identity)) || 'var(--accent)' })),
+      voiceParticipants: v('voiceParticipants', []).map(p => ({ ...p, videoKey: p.hasVideo && (v('voiceVideos', {}) || {})[p.key] ? p.key : null, speaking: speakingKeys.includes(p.key), muted: !!p.isMuted, color: (window.__zellous.helpers.getAvatarColor && window.__zellous.helpers.getAvatarColor(p.isLocal ? (window.state.userId || window.state.nostrPubkey) : p.identity)) || 'var(--accent)' })),
       voiceListenOnly: v('voiceListenOnly', false),
       micMuted: v('micMuted', false),
       voiceDeafened: v('voiceDeafened', false),
-      micRawLevel: v('micRawLevel', 0),
       voiceSettingsOpen: v('voiceSettingsOpen', false),
       voiceMode: v('vadEnabled', false) ? 'vad' : 'ptt',
       pttUiMode: v('vadEnabled', false) ? 'vad' : 'ptt',
@@ -71,7 +70,7 @@ export function buildVoice({ v, S, call }) {
       audioQueueItems: v('audioQueueItems', []),
       audioQueueCurrentId: v('audioQueueCurrentId', null),
       audioQueuePaused: v('audioQueuePaused', false),
-    }),
+    }); },
     actions: {
       toggleCamera: () => call(() => { const api = window.nostrVoice; if (!api) return; api.setCamera(!(v('voiceParticipants', []) || []).some(p => p.isLocal && p.hasVideo)); }),
       toggleMic: () => call(() => (window.lk && window.lk.toggleMic) ? window.lk.toggleMic() : (window.state.micMuted = !window.state.micMuted)),

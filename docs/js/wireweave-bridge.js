@@ -64,7 +64,7 @@ window.__wireweaveReady = (async () => {
     voiceParticipants: (state.voiceParticipants || []).map((p) => ({
       identity: p.identity,
       isLocal: !!p.isLocal,
-      isSpeaking: !!p.isSpeaking,
+      isSpeaking: String(state.voiceSpeaking || '').split('|').includes(p.key),
       isMuted: !!p.isMuted,
       hasVideo: !!p.hasVideo,
       connectionQuality: p.connectionQuality ?? null
