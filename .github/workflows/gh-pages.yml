@@ -3,13 +3,20 @@ name: Deploy GH Pages
 on:
   push:
     branches: [main]
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      attempt:
+        description: 'Attempt number, 2 is the self re-dispatch'
+        default: '1'
+      simulate:
+        description: 'none, retry (first deploy sees no artifact) or redispatch (both in-run deploys see none)'
+        default: 'none'
 
 permissions:
   contents: read
   pages: write
   id-token: write
-  actions: read
+  actions: write
 
 concurrency:
   group: pages
@@ -20,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.retry.outputs.page_url }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -37,15 +44,40 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for attempt in $(seq 1 30); do
-            found=$(gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '[.artifacts[] | select(.name == "github-pages")] | length')
-            if [ "${found:-0}" -ge 1 ]; then exit 0; fi
-            sleep 5
+          confirmed=0
+          for attempt in $(seq 1 40); do
+            found=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?name=github-pages" --jq '[.artifacts[] | select(.expired == false and .size_in_bytes > 0)] | length')
+            if [ "${found:-0}" -ge 1 ]; then confirmed=$((confirmed + 1)); else confirmed=0; fi
+            if [ "$confirmed" -ge 3 ]; then exit 0; fi
+            sleep 3
           done
           echo "github-pages artifact did not appear"
           exit 1
       - id: deployment
+        continue-on-error: true
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
         timeout-minutes: 15
         with:
-          timeout: 900000
+          artifact_name: ${{ (inputs.simulate != 'none' && inputs.simulate != '' && inputs.attempt != '2') && 'github-pages-missing' || 'github-pages' }}
+          timeout: 600000
+      - name: Pause before the in-run retry
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 30
+      - id: retry
+        if: steps.deployment.outcome == 'failure'
+        continue-on-error: true
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
+        timeout-minutes: 15
+        with:
+          artifact_name: ${{ (inputs.simulate == 'redispatch' && inputs.attempt != '2') && 'github-pages-missing' || 'github-pages' }}
+          timeout: 600000
+      - name: Re-dispatch once when both deploys failed
+        if: steps.deployment.outcome == 'failure' && steps.retry.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ inputs.attempt }}" != "2" ]; then
+            gh workflow run gh-pages.yml --repo ${{ github.repository }} --ref main -f attempt=2
+            echo "re-dispatched with attempt=2"
+          fi
+          exit 1

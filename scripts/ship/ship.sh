@@ -25,12 +25,17 @@ git add -A .
 if ! git diff --cached --quiet; then $G commit -q -m "$MSG"; fi
 git push origin main 2>&1 | tail -1
 git ls-remote origin main | cut -c1-12
-deployed() { V=$(curl -s "https://anentrypoint.github.io/zellous/nostr-chat/?cb=$(date +%s%N)" | grep -o 'design@[0-9a-f]\{40\}' | head -1 | cut -d@ -f2); [ "$V" = "$FULL" ]; }
-poll() { for i in $(seq 1 $1); do deployed && echo DEPLOYED $i && return 0; sleep 8; done; return 1; }
-if ! poll 40; then
-  echo "NOT DEPLOYED after 40 polls: $(gh run list --limit 1 --json status,conclusion,databaseId --jq '.[0] | "\(.status)/\(.conclusion)/\(.databaseId)"')"
-  gh workflow run gh-pages.yml >/dev/null 2>&1 && echo "re-dispatched once"
+PUSHED=$(git rev-parse HEAD)
+WANT_WW=$(grep -o 'wireweave@[0-9a-f]\{40\}' docs/nostr-chat/index.html | head -1 | cut -d@ -f2)
+deployed() { P=$(curl -s "https://anentrypoint.github.io/zellous/nostr-chat/?cb=$(date +%s%N)"); [ "$(echo "$P" | grep -o 'design@[0-9a-f]\{40\}' | head -1 | cut -d@ -f2)" = "$FULL" ] && [ "$(echo "$P" | grep -o 'wireweave@[0-9a-f]\{40\}' | head -1 | cut -d@ -f2)" = "$WANT_WW" ]; }
+redispatch() { gh workflow run gh-pages.yml --ref main -f attempt=2 >/dev/null 2>&1 && echo "re-dispatched attempt=2"; }
+RUN_FAILED=0
+poll() { for i in $(seq 1 $1); do deployed && echo DEPLOYED $i && return 0; if [ $((i % 4)) = 0 ] && [ "$RUN_FAILED" = 0 ]; then C=$(gh run list --limit 3 --json headSha,conclusion --jq "[.[] | select(.headSha == \"$PUSHED\" and .conclusion == \"failure\")] | length" 2>/dev/null); if [ "${C:-0}" -ge 1 ]; then echo "run for $PUSHED failed"; RUN_FAILED=1; redispatch; fi; fi; sleep 8; done; return 1; }
+if ! poll 60; then
+  echo "NOT DEPLOYED after 60 polls: $(gh run list --limit 1 --json status,conclusion,databaseId --jq '.[0] | "\(.status)/\(.conclusion)/\(.databaseId)"')"
+  [ "$RUN_FAILED" = 0 ] && redispatch
   poll 60 || { echo "DEPLOY FAILED"; exit 1; }
 fi
+echo LIVE_PINS_MATCH design=$FULL wireweave=$WANT_WW
 echo DESIGN=$FULL
 node "$HERE/live.mjs" || { echo "LIVE CHECK FAILED"; exit 1; }
