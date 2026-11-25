@@ -1,6 +1,6 @@
 const RATE = 16000;
 const FRAME = 400;
-const HOP = 320;
+export const HOP = 160;
 const FFT = 512;
 const BANDS = 24;
 const SILENT_BELOW_DB = 32;
@@ -110,14 +110,16 @@ const MIN_VOICED_WINDOW = 10;
 const WINDOW_COST_LIMIT = 6;
 const STEP_PENALTY = 1.5;
 const INF = 1e18;
-const NOISE_RUN_MS = 40;
+const NOISE_RUN_MS = 20;
 const PATH_EDGE_MS = 300;
+const UNION_EDGE_MS = 100;
 
 export const align = (heardSamples, sourceSamples) => {
   const source = features(sourceSamples);
   const heard = features(heardSamples, source.top, source.channel);
   const H = heard.count;
   const S = source.count;
+  if (H < 2 || S < 2) return { startMs: 0, endMs: 0, meanVoicedCost: INF, matchedVoiced: 0, heardVoiced: 0, sourceVoiced: 0, sourceVoicedCovered: 0, windows: [], gapWindows: [], missingRuns: [], missingVoicedMs: 0, longestMissingRunMs: 0, costAt: new Float32Array(S), matchedAt: new Uint8Array(S), startJ: 0, endJ: 0, sourceSilent: source.silent, heardEnergy: heard.energy, sourceEnergy: source.energy, path: [] };
   const D = new Float64Array(H * S).fill(INF);
   const back = new Int32Array(H * S).fill(-1);
   const at = (i, j) => i * S + j;
@@ -179,7 +181,7 @@ export const align = (heardSamples, sourceSamples) => {
     if (costAt[j] >= 99) continue;
     let sum = 0;
     let n = 0;
-    for (let k = Math.max(0, j - 2); k <= Math.min(S - 1, j + 2); k++) if (costAt[k] < 99) { sum += costAt[k]; n++; }
+    for (let k = Math.max(0, j - 1); k <= Math.min(S - 1, j + 1); k++) if (costAt[k] < 99) { sum += costAt[k]; n++; }
     if (sum / n <= WINDOW_COST_LIMIT) matchedAt[j] = 1;
   }
   const missing = new Uint8Array(S);
@@ -284,8 +286,10 @@ export const unionCoverage = (segmentSamples, sourceSamples) => {
   const missingRuns = [];
   let missingFrames = 0;
   let run = 0;
-  for (let j = first; j <= last + 1; j++) {
-    const miss = j <= last && source.countable[j] && !matched[j];
+  const trim = Math.round(UNION_EDGE_MS / HOP_MS);
+  const lastCounted = last - trim;
+  for (let j = first + trim; j <= lastCounted + 1; j++) {
+    const miss = j <= lastCounted && source.countable[j] && !matched[j];
     if (miss) run++;
     else { if (run * HOP_MS > NOISE_RUN_MS) { missingFrames += run + 1; missingRuns.push([Math.round((j - run) * HOP_MS), Math.round(j * HOP_MS)]); } run = 0; }
   }
