@@ -130,7 +130,7 @@ const probeInit = () => {
     session.__hubHooked = true;
     if (!session.remoteKeys) session.remoteKeys = () => [...session.peers.keys()];
     clearInterval(hookTimer);
-    for (const type of ['hub-changed', 'hub-lost']) session.addEventListener(type, (e) => window.__hubLog.push({ t: Math.round(performance.now()), type, hub: e.detail.hub && e.detail.hub.slice(0, 6), previous: e.detail.previous && e.detail.previous.slice(0, 6), silent: e.detail.silent }));
+    for (const type of ['hub-changed', 'hub-lost']) session.addEventListener(type, (e) => window.__hubLog.push({ t: Math.round(performance.now()), type, hub: e.detail.hub && e.detail.hub.slice(0, 6), previous: e.detail.previous && e.detail.previous.slice(0, 6), silent: e.detail.silent, hb: e.detail.hbAgeMs, net: e.detail.netAgeMs }));
   }, 100);
   window.__upload = async (ms) => {
     const session = window.lk.session();
@@ -275,6 +275,17 @@ const treePids = (root) => {
 const signalTree = (root, signal) => { for (const pid of treePids(root)) { try { process.kill(pid, signal); } catch {} } };
 
 const live = (peers) => peers.filter((p) => p.alive);
+
+const failPeer = async (peer, kind) => {
+  if (kind === 'close') { await peer.page.close(); }
+  else if (kind === 'crash') { process.kill(peer.pid, 'SIGKILL'); }
+  else if (kind === 'offline') { await peer.context.setOffline(true); if (process.env.OFFLINE_FREEZE !== '0') signalTree(peer.pid, 'SIGSTOP'); }
+  peer.alive = false;
+};
+
+const busyMainThread = (peer, ms) => peer.page.evaluate((n) => { setTimeout(() => { const end = performance.now() + n; while (performance.now() < end); }, 0); }, ms);
+
+const hubEvents = (peer) => peer.page.evaluate(() => window.__hubLog.map((e) => e.type + ':' + (e.hub || '')));
 const name = (peers, pubkey) => (peers.find((p) => p.pubkey === pubkey) || { tag: pubkey ? pubkey.slice(0, 8) : 'none' }).tag;
 
 const hearMatrix = async (peers, { ms = 1500, silent = new Set(), deaf = new Set() } = {}) => {
@@ -474,7 +485,8 @@ const scenarios = {
       if (process.env.HUBLOG) for (const p of live(peers)) console.log('      hublog ' + p.tag + ' ' + p.pubkey.slice(0, 6) + ' ' + JSON.stringify(await p.page.evaluate(() => window.__hubLog)));
       const after = await settle(peers, 'after');
       printMatrix(after.rows);
-      report(after.ok, kind + count + ': every remaining peer hears every other remaining peer, ' + (Date.now() - t0) + ' ms after the failure');
+      const hearMs = Date.now() - t0;
+      report(after.ok, kind + count + ': every remaining peer hears every other remaining peer, ' + hearMs + ' ms after the failure');
       const newest = await spawnPeer('L' + (count + 1));
       await joinServer(newest, sid);
       await joinVoice(newest);
@@ -483,7 +495,79 @@ const scenarios = {
       printMatrix(late.rows);
       report(late.ok, kind + count + ': a late joiner hears all remaining peers and is heard by all (' + late.ms + ' ms)');
       if (kind === 'offline') signalTree(hubPeer.pid, 'SIGCONT');
+      console.log('RECOVERY kind=' + kind + ' peers=' + count + ' hog=' + (process.env.HOG || 'none') + ' agree_ms=' + reMs + ' hear_ms=' + hearMs + ' late_ms=' + late.ms);
     } finally { await closeAll(peers.filter((p) => true)); }
+  },
+
+  async failover2(kind, count) {
+    console.log('--- failover2-' + kind + '-' + count);
+    const { peers, sid } = await bootRoom(count);
+    const errors = [];
+    peers.forEach((p) => p.page.on('pageerror', (e) => errors.push(p.tag + ' ' + e.message)));
+    try {
+      const agree = await waitHubAgreement(peers);
+      report(!!agree, 'f2-' + kind + count + ': ' + count + ' peers agree on hub ' + (agree ? name(peers, agree.hub) : '(none)'));
+      const first = await settle(peers, 'before');
+      report(first.ok, 'f2-' + kind + count + ': everyone hears everyone before the failure');
+      const hub1 = peers.find((p) => agree && p.pubkey === agree.hub);
+      const t1 = Date.now();
+      await failPeer(hub1, kind);
+      const re1 = await waitHubAgreement(peers, { not: hub1.pubkey, limit: REELECT_LIMIT_MS });
+      const re1Ms = Date.now() - t1;
+      report(!!re1, 'f2-' + kind + count + ': first failure, ' + (count - 1) + ' peers agree on hub ' + (re1 ? name(peers, re1.hub) : '') + ' after ' + re1Ms + ' ms');
+      const hub2 = peers.find((p) => re1 && p.pubkey === re1.hub);
+      const t2 = Date.now();
+      await failPeer(hub2, kind);
+      const remaining = live(peers);
+      const re2 = await waitHubAgreement(peers, { not: hub2.pubkey, limit: REELECT_LIMIT_MS });
+      const re2Ms = Date.now() - t2;
+      report(!!re2, 'f2-' + kind + count + ': second failure right after, ' + remaining.length + ' remaining agree on hub ' + (re2 ? name(peers, re2.hub) : '') + ' after ' + re2Ms + ' ms');
+      const after = await settle(peers, 'after2');
+      printMatrix(after.rows);
+      const hear2Ms = Date.now() - t2;
+      report(after.ok, 'f2-' + kind + count + ': every remaining peer hears every other, ' + hear2Ms + ' ms after the second failure');
+      if (remaining.length === 1) {
+        const st = await stateOf(remaining[0]);
+        const voice = await remaining[0].page.evaluate(() => ({ connected: window.state.voiceConnected, participants: window.lk.session().getParticipants().length }));
+        console.log('      lone peer state ' + JSON.stringify({ hub: name(peers, st.hub), peers: st.peers.length, voice }));
+        report(st.hub === remaining[0].pubkey && voice.connected === true, 'f2-' + kind + count + ': the lone peer stays connected to voice and is its own hub');
+      }
+      const newest = await spawnPeer('L' + (count + 1));
+      newest.page.on('pageerror', (e) => errors.push(newest.tag + ' ' + e.message));
+      await joinServer(newest, sid);
+      await joinVoice(newest);
+      peers.push(newest);
+      const late = await settle(peers, 'late');
+      printMatrix(late.rows);
+      report(late.ok, 'f2-' + kind + count + ': a late joiner hears all remaining peers and is heard by all (' + late.ms + ' ms)');
+      report(errors.length === 0, 'f2-' + kind + count + ': no page error (' + errors.length + ')');
+      for (const hp of [hub1, hub2]) if (kind === 'offline') signalTree(hp.pid, 'SIGCONT');
+      console.log('RECOVERY kind=' + kind + ' peers=' + count + ' hog=' + (process.env.HOG || 'none') + ' first_agree_ms=' + re1Ms + ' second_agree_ms=' + re2Ms + ' second_hear_ms=' + hear2Ms + ' late_ms=' + late.ms);
+    } finally { await closeAll(peers); }
+  },
+
+  async busy(who, count) {
+    console.log('--- busy-' + who + '-' + count);
+    const { peers } = await bootRoom(count);
+    try {
+      const agree = await waitHubAgreement(peers);
+      report(!!agree, 'busy-' + who + count + ': ' + count + ' peers agree on hub ' + (agree ? name(peers, agree.hub) : '(none)'));
+      const first = await settle(peers, 'before');
+      report(first.ok, 'busy-' + who + count + ': everyone hears everyone before');
+      const hubPeer = peers.find((p) => agree && p.pubkey === agree.hub);
+      const target = who === 'hub' ? hubPeer : peers.find((p) => p !== hubPeer);
+      const ms = Number(process.env.BUSY_MS || 9000);
+      const before = await Promise.all(peers.map(hubEvents));
+      await busyMainThread(target, ms);
+      await wait(ms + 6000);
+      const afterEv = await Promise.all(peers.map(hubEvents));
+      const changed = peers.filter((p, i) => JSON.stringify(before[i]) !== JSON.stringify(afterEv[i])).map((p) => p.tag);
+      const hubsNow = await hubOf(peers);
+      const same = new Set(hubsNow.map(([, s]) => s.hub));
+      report(changed.length === 0 && same.size === 1 && [...same][0] === agree.hub, 'busy-' + who + count + ': main thread of ' + target.tag + (target === hubPeer ? ' (the hub)' : '') + ' blocked ' + ms + ' ms, no hub change or loss on any peer (events changed on: ' + (changed.join(',') || 'none') + ')');
+      const after = await settle(peers, 'after');
+      report(after.ok, 'busy-' + who + count + ': everyone still hears everyone (' + after.ms + ' ms)');
+    } finally { await closeAll(peers); }
   },
 
   async start(kind, count) {
@@ -610,7 +694,9 @@ await startRig();
 try {
   for (const w of wanted) {
     const [name2, kind, count] = w.split(':');
-    if (name2 === 'failover') await scenarios.failover(kind, Number(count || 3));
+    if (name2 === 'failover2') await scenarios.failover2(kind, Number(count || 3));
+    else if (name2 === 'busy') await scenarios.busy(kind, Number(count || 3));
+    else if (name2 === 'failover') await scenarios.failover(kind, Number(count || 3));
     else if (name2 === 'start') await scenarios.start(kind, count);
     else if (name2 === 'failover-thread') await scenarios.failoverThread(kind);
     else await scenarios[name2]();
