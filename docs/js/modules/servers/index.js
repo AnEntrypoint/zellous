@@ -5,6 +5,7 @@ registerModule({
   setup(ctx) {
     const { S, v, call, state, ww } = ctx;
     const deleteOpen = ctx.signal('deleteOpen', false);
+    const settingsOpen = ctx.signal('serverSettingsOpen', false);
 
     const ownerOf = (sv) => (String(sv.id).includes(':') && !String(sv.id).startsWith('0'.repeat(64)) ? String(sv.id).split(':')[0] : null);
     const ownerName = (pubkey) => (pubkey ? ((ctx.chat && ctx.chat.resolveProfile && ctx.chat.resolveProfile(pubkey)) || pubkey.slice(0, 12)) : 'nobody (public room)');
@@ -25,7 +26,7 @@ registerModule({
       const sv = (v('servers', []) || []).find((x) => x && x.id === sid);
       if (!sv || !ww.auth.pubkey || !String(sid).startsWith(ww.auth.pubkey + ':')) return null;
       const channels = (v('channels', []) || []).filter((c) => c && c.id);
-      const pick = (voice) => channels.filter((c) => !!ctx.trait(c.type, 'voice') === voice).map((c) => ({ id: c.id, name: c.name }));
+      const pick = (voice) => channels.filter((c) => !!ctx.trait(c.type, 'voice') === voice).map((c) => ({ id: c.id, name: c.name, topic: c.topic || '' }));
       return {
         id: sid, name: sv.name || '', color: sv.iconColor || '', colors: ctx.avatarColors,
         textChannels: pick(false), voiceChannels: pick(true),
@@ -36,6 +37,7 @@ registerModule({
     return {
       snapshot: () => ({
         serverSettings: serverSettings(),
+        serverSettingsOpen: settingsOpen.value && !!serverSettings(),
         serverDelete: deleteOpen.value ? { name: (serverSettings() || {}).name || '' } : null,
         gameServerCreateOpen: v('gameServerCreateOpen', false),
         serverColors: ctx.avatarColors,
@@ -70,6 +72,15 @@ registerModule({
         }, 'Server settings'),
         renameServerChannel: (id, name) => call(() => ww.channels.rename(id, String(name || '').trim()), 'Rename channel'),
         deleteServerChannel: (id) => call(() => ww.channels.remove(id), 'Delete channel'),
+        openServerSettings: () => call(() => { if (serverSettings()) settingsOpen.value = true; }),
+        closeServerSettings: () => call(() => { settingsOpen.value = false; }),
+        openDiscoverySettings: () => call(() => { settingsOpen.value = false; if (S.gamePrefTab) S.gamePrefTab.value = 'discovery'; if (S.gamePrefOpen) S.gamePrefOpen.value = true; }),
+        addServerChannel: (kind, name) => call(() => {
+          const voice = kind === 'v';
+          const peer = (v('channels', []) || []).find((c) => c && !!ctx.trait(c.type, 'voice') === voice);
+          return ww.channels.create(String(name || '').trim(), voice ? 'voice' : 'text', (peer && peer.categoryId) || undefined);
+        }, 'Add channel'),
+        topicServerChannel: (id, topic) => call(() => ww.channels.update(id, { topic: String(topic || '').slice(0, 60) }), 'Channel topic'),
         openServerDelete: () => call(() => { if (serverSettings()) deleteOpen.value = true; }),
         closeServerDelete: () => call(() => { deleteOpen.value = false; }),
         deleteServerForEveryone: (typedName) => ctx.guard(async () => {

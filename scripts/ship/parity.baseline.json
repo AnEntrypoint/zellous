@@ -1,0 +1,322 @@
+{
+ "text-channel@mobile": {
+  "pixel": 0.22,
+  "props": 62
+ },
+ "text-channel@desktop": {
+  "pixel": 0.51,
+  "props": 146
+ },
+ "text-channel-empty@mobile": {
+  "pixel": 2.11,
+  "props": 36
+ },
+ "text-channel-empty@desktop": {
+  "pixel": 1.33,
+  "props": 132
+ },
+ "announcements-locked@mobile": {
+  "pixel": 3.68,
+  "props": 38
+ },
+ "announcements-locked@desktop": {
+  "pixel": 1.77,
+  "props": 137
+ },
+ "page-rules@mobile": {
+  "pixel": 3.25,
+  "props": 72
+ },
+ "page-rules@desktop": {
+  "pixel": 3,
+  "props": 177
+ },
+ "page-pick-roles@mobile": {
+  "pixel": 9.6,
+  "props": 105
+ },
+ "page-pick-roles@desktop": {
+  "pixel": 3.55,
+  "props": 208
+ },
+ "home@mobile": {
+  "pixel": 1.07,
+  "props": 40
+ },
+ "home@desktop": {
+  "pixel": 0.63,
+  "props": 69
+ },
+ "dm-thread@mobile": {
+  "pixel": 4.02,
+  "props": 16
+ },
+ "dm-thread@desktop": {
+  "pixel": 1.55,
+  "props": 49
+ },
+ "member-list-hidden@desktop": {
+  "pixel": 0.87,
+  "props": 216
+ },
+ "profile-card@mobile": {
+  "pixel": 12.53,
+  "props": 41
+ },
+ "profile-card@desktop": {
+  "pixel": 3.36,
+  "props": 39
+ },
+ "profile-card-self@mobile": {
+  "pixel": 12.85,
+  "props": 45
+ },
+ "profile-card-self@desktop": {
+  "pixel": 3.44,
+  "props": 43
+ },
+ "pins-popover@mobile": {
+  "pixel": 0.3,
+  "props": 73
+ },
+ "pins-popover@desktop": {
+  "pixel": 0.63,
+  "props": 155
+ },
+ "inbox-popover@mobile": {
+  "pixel": 0.72,
+  "props": 92
+ },
+ "inbox-popover@desktop": {
+  "pixel": 0.8,
+  "props": 182
+ },
+ "search-results@desktop": {
+  "pixel": 0.93,
+  "props": 135
+ },
+ "quick-switcher@mobile": {
+  "pixel": 5.9,
+  "props": 53
+ },
+ "quick-switcher@desktop": {
+  "pixel": 1.63,
+  "props": 52
+ },
+ "events-modal@mobile": {
+  "pixel": 2.47,
+  "props": 34
+ },
+ "events-modal@desktop": {
+  "pixel": 0.42,
+  "props": 32
+ },
+ "leaderboard-modal@mobile": {
+  "pixel": 23.51,
+  "props": 63
+ },
+ "leaderboard-modal@desktop": {
+  "pixel": 8.02,
+  "props": 61
+ },
+ "server-menu@mobile": {
+  "pixel": 15.2,
+  "props": 126
+ },
+ "server-menu@desktop": {
+  "pixel": 2.4,
+  "props": 135
+ },
+ "status-menu@mobile": {
+  "pixel": 4.05,
+  "props": 145
+ },
+ "status-menu@desktop": {
+  "pixel": 1.16,
+  "props": 163
+ },
+ "emoji-picker@mobile": {
+  "pixel": 4.83,
+  "props": 62
+ },
+ "emoji-picker@desktop": {
+  "pixel": 1.64,
+  "props": 146
+ },
+ "sticker-picker@mobile": {
+  "pixel": 0.35,
+  "props": 96
+ },
+ "sticker-picker@desktop": {
+  "pixel": 0.51,
+  "props": 148
+ },
+ "reaction-picker@desktop": {
+  "pixel": 3.68,
+  "props": 201
+ },
+ "message-more-menu@desktop": {
+  "pixel": 2.72,
+  "props": 224
+ },
+ "message-hover-bar@desktop": {
+  "pixel": 4.19,
+  "props": 221
+ },
+ "composer-reply@desktop": {
+  "pixel": 4.27,
+  "props": 202
+ },
+ "composer-autocomplete-slash@mobile": {
+  "pixel": 0.24,
+  "props": 62
+ },
+ "composer-autocomplete-slash@desktop": {
+  "pixel": 1.83,
+  "props": 204
+ },
+ "composer-autocomplete-mention@mobile": {
+  "pixel": 0.77,
+  "props": 82
+ },
+ "composer-autocomplete-mention@desktop": {
+  "pixel": 2.18,
+  "props": 231
+ },
+ "composer-autocomplete-emoji@mobile": {
+  "pixel": 0.24,
+  "props": 63
+ },
+ "composer-autocomplete-emoji@desktop": {
+  "pixel": 2.04,
+  "props": 222
+ },
+ "split-view@desktop": {
+  "pixel": 26.62,
+  "props": 240
+ },
+ "mobile-drawer@mobile": {
+  "pixel": 1.83,
+  "props": 134
+ },
+ "create-server-modal@mobile": {
+  "pixel": 5.31,
+  "props": 32
+ },
+ "create-server-modal@desktop": {
+  "pixel": 3.87,
+  "props": 60
+ },
+ "discover-servers-modal@mobile": {
+  "pixel": 23.65,
+  "props": 63
+ },
+ "discover-servers-modal@desktop": {
+  "pixel": 9.39,
+  "props": 91
+ },
+ "server-menu-owner@mobile": {
+  "pixel": 10.31,
+  "props": 98
+ },
+ "server-menu-owner@desktop": {
+  "pixel": 1.78,
+  "props": 114
+ },
+ "server-settings@mobile": {
+  "pixel": 5.39,
+  "props": 99
+ },
+ "server-settings@desktop": {
+  "pixel": 2.46,
+  "props": 96
+ },
+ "settings/account@mobile": {
+  "pixel": 4.53,
+  "props": 129
+ },
+ "settings/account@desktop": {
+  "pixel": 4.56,
+  "props": 196
+ },
+ "settings/profile@mobile": {
+  "pixel": 18.66,
+  "props": 137
+ },
+ "settings/profile@desktop": {
+  "pixel": 6.93,
+  "props": 200
+ },
+ "settings/appearance@mobile": {
+  "pixel": 2.48,
+  "props": 46
+ },
+ "settings/appearance@desktop": {
+  "pixel": 2.39,
+  "props": 109
+ },
+ "settings/access@mobile": {
+  "pixel": 1.28,
+  "props": 42
+ },
+ "settings/access@desktop": {
+  "pixel": 1.68,
+  "props": 104
+ },
+ "settings/voice@mobile": {
+  "pixel": 1.99,
+  "props": 48
+ },
+ "settings/voice@desktop": {
+  "pixel": 1.76,
+  "props": 106
+ },
+ "settings/notif@mobile": {
+  "pixel": 1.92,
+  "props": 57
+ },
+ "settings/notif@desktop": {
+  "pixel": 1.86,
+  "props": 119
+ },
+ "settings/media@mobile": {
+  "pixel": 1.9,
+  "props": 45
+ },
+ "settings/media@desktop": {
+  "pixel": 1.87,
+  "props": 109
+ },
+ "settings/lang@mobile": {
+  "pixel": 0.91,
+  "props": 39
+ },
+ "settings/lang@desktop": {
+  "pixel": 1.36,
+  "props": 97
+ },
+ "settings/keys@mobile": {
+  "pixel": 0.15,
+  "props": 30
+ },
+ "settings/keys@desktop": {
+  "pixel": 1.59,
+  "props": 99
+ },
+ "settings/adv@mobile": {
+  "pixel": 1.41,
+  "props": 53
+ },
+ "settings/adv@desktop": {
+  "pixel": 1.61,
+  "props": 112
+ },
+ "voice-room@mobile": {
+  "pixel": 57.29,
+  "props": 56
+ },
+ "voice-room@desktop": {
+  "pixel": 32.34,
+  "props": 230
+ }
+}

@@ -29,7 +29,7 @@ const SURFACES = [
   { id: 'discover', open: [RAIL('.ca-rail-server-explore')], root: '.ds-g3-scrim', modal: true, focus: '.ca-rail-server-explore' },
   { id: 'create-text-channel', open: [RAIL('.group-add-btn[aria-label="create Text Channels"]')], root: '#channelCreateModal', modal: true, draft: { sel: '#channelCreateModal input', text: 'draftchan' }, focus: '.group-add-btn[aria-label="create Text Channels"]' },
   { id: 'create-voice-channel', open: [RAIL('.group-add-btn[aria-label="create Voice Channels"]')], root: '#channelCreateModal', modal: true, draft: { sel: '#channelCreateModal input', text: 'draftvoice' }, focus: '.group-add-btn[aria-label="create Voice Channels"]' },
-  { id: 'share-terminal', open: [RAIL('.group-add-btn[aria-label="share a terminal"]')], root: '.ds-g3-scrim', modal: true, draft: { sel: '.ds-g3-scrim input', text: 'bash' }, focus: '.group-add-btn[aria-label="share a terminal"]' },
+  { id: 'share-terminal', open: [RAIL(SHEAD), { click: MENUITEM('Share a Terminal') }], root: '.ds-g3-scrim', modal: true, draft: { sel: '.ds-g3-scrim input', text: 'bash' }, focus: SHEAD },
   { id: 'events', open: [RAIL('.chans a:has-text("Events")')], root: '.ds-g3-scrim', modal: true, draft: { sel: '.ds-g3-scrim input', text: 'draftevent' }, focus: '.chans a:has-text("Events")' },
   { id: 'leaderboard', open: [RAIL('.chans a:has-text("Leaderboard")')], root: '.ds-g3-scrim', modal: true, focus: '.chans a:has-text("Leaderboard")' },
   { id: 'pins', open: [{ click: '.ds-g3-ibtn[aria-label="Pinned Messages"]' }], root: '.ds-g3-pop-wrap', modal: false, outside: false, focus: '.ds-g3-ibtn[aria-label="Pinned Messages"]' },
@@ -56,7 +56,8 @@ const SURFACES = [
   { id: 'quick-switcher', open: [{ focus: SHEAD, rail: true }, { key: 'Control+p' }], root: '.ds-g3-sw', modal: true, focus: SHEAD },
   { id: 'command-palette', open: [{ focus: SHEAD, rail: true }, { js: "window.__zellous.overlays.commandPalette.show([{ label: 'Sweep one' }, { label: 'Sweep two' }], () => {})" }], root: '.ov-cmd-panel', modal: true, focus: SHEAD },
   { id: 'confirm-dialog', open: [{ focus: SHEAD, rail: true }, { js: "window.ui.confirm({ title: 'Sweep confirm', message: 'Sweep message', confirmLabel: 'Delete', danger: true })" }], root: '[role=alertdialog]', modal: true, focus: SHEAD },
-  { id: 'delete-server', open: [RAIL(SHEAD), { click: MENUITEM('Server Settings') }, { pane: 'Overview' }, { click: '.ds-g3-set .ds-g3-evb-danger' }], root: '[role=alertdialog]', modal: true, keep: ['div.ds-g3-set'], draft: { sel: '[role=alertdialog] input', text: 'draftname' }, focus: '.ds-g3-set .ds-g3-evb-danger' },
+  { id: 'delete-server', open: [RAIL(SHEAD), { click: MENUITEM('Server Settings') }, { click: '.ds-g3-sform .ds-g3-srv-del' }], root: '[role=alertdialog]', modal: true, keep: ['div.ds-g3-scrim', 'div.ds-g3-evm'], draft: { sel: '[role=alertdialog] input', text: 'draftname' }, focus: '.ds-g3-srv-del' },
+  { id: 'server-settings', open: [RAIL(SHEAD), { click: MENUITEM('Server Settings') }], root: '.ds-g3-evm', modal: true, focus: SHEAD },
   { id: 'auth-modal', open: [{ focus: SHEAD, rail: true }, { signal: ['showAuthModal', true] }], root: '.ov-auth-panel', modal: true, focus: SHEAD },
   { id: 'voice-settings', open: [{ focus: SHEAD, rail: true }, { signal: ['voiceSettingsOpen', true] }], root: '.vx-modal', modal: true, focus: SHEAD },
   { id: 'search', vp: 'desktop', open: [{ fill: ['.ds-g3-srch input', 'sweep'] }, { key: 'Enter' }], root: '.ds-g3-sres', modal: false, outside: false, focus: null },
@@ -165,7 +166,7 @@ async function discover(page, root) {
     document.querySelectorAll('[data-sweep]').forEach((e) => e.removeAttribute('data-sweep'));
     for (const r of scope) {
       for (const e of r.querySelectorAll('button,[role=button],[role=menuitem],a,[tabindex],.ds-g3-evx,.ds-g3-pop-x,.ds-g3-set-close,.ds-g3-evb')) {
-        if (!e.getClientRects().length) continue;
+        if (!e.getClientRects().length || e.closest('.ds-g3-srow')) continue;
         const label = (e.getAttribute('aria-label') || e.textContent || e.title || '').trim().replace(/\s+/g, ' ');
         const cls = String(e.className || '');
         if (ct.test(label) || cc.test(cls) && !/ds-g3-evb/.test(cls) || /^(cancel|close|done|discard)/i.test(label)) {
