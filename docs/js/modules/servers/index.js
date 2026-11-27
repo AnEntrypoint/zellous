@@ -13,7 +13,7 @@ registerModule({
       const current = sv.id === v('currentServerId', null);
       const members = v('roomMembers', []);
       return {
-        id: sv.id, name: sv.name || 'server', current,
+        id: sv.id, name: sv.name || 'server', color: sv.iconColor || sv.color || null, current,
         owner: ownerName(ownerOf(sv)),
         members: current ? members.length : null,
         online: current ? members.filter((m) => m.online).length : null,

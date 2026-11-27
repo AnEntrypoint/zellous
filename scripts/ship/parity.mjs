@@ -42,6 +42,9 @@ async function runStep(page, st, mobile) {
   } else if (st.hover) {
     const box = await page.locator(st.hover + ':visible').last().evaluate((e) => { e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
     await page.mouse.move(box.x, box.y);
+  } else if (st.hoverFirst) {
+    const box = await page.locator(st.hoverFirst + ':visible').first().evaluate((e) => { e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; });
+    await page.mouse.move(box.x, box.y);
   } else if (st.focus) await page.locator(st.focus + ':visible').first().focus();
   else if (st.fill) await page.locator(st.fill[0] + ':visible').first().fill(st.fill[1]);
   else if (st.key) await page.keyboard.press(st.key);
@@ -221,6 +224,7 @@ async function measureScreen(env, screen, vpName) {
   if (screen.refSteps) for (const st of screen.refSteps) await runStep(refPage, st, mobile);
   await zelReset(zelPage, sid, mobile);
   if (screen.zel) for (const st of screen.zel) await runStep(zelPage, st, mobile);
+  if (!(screen.zel || []).some((st) => st.hover || st.rightClick)) { await zelPage.mouse.move(mobile ? 389 : 1439, mobile ? 843 : 899); await wait(200); }
   await Promise.all([refPage, zelPage].map((pg) => pg.evaluate(() => Promise.all([document.fonts.ready, ...[...document.images].map((i) => (i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; setTimeout(r, 2500); })))]))));
   await wait(450);
   await Promise.all([refPage.evaluate(quiet), zelPage.evaluate(quiet)]);
@@ -272,16 +276,16 @@ async function runViewport(browser, rig, vpName, screens) {
 }
 
 const started = Date.now();
-const rig = await startRig();
+const rigs = await Promise.all(vpsWanted.map(() => startRig()));
 let browser; let exit = 0;
 const rows = [];
 try {
   browser = await chromium.launch(launchOptions);
   const todo = SCREENS.filter((s) => !only || only.test(s.id));
-  const all = await Promise.all(vpsWanted.map((v) => runViewport(browser, rig, v, todo)));
+  const all = await Promise.all(vpsWanted.map((v, i) => runViewport(browser, rigs[i], v, todo)));
   for (const r of all.flat()) rows.push(r);
 } catch (e) { rows.push({ id: '(run)', vp: '-', error: e.message.split('\n')[0] }); }
-finally { try { await browser?.close(); } catch {} rig.stop(); }
+finally { try { await browser?.close(); } catch {} rigs.forEach((r) => r.stop()); }
 
 const order = new Map(SCREENS.map((s, i) => [s.id, i]));
 rows.sort((a, b) => (order.get(a.id) ?? 999) - (order.get(b.id) ?? 999) || (a.vp < b.vp ? 1 : -1));

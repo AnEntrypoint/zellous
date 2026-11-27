@@ -50,14 +50,14 @@ export function buildReactions() {
 export function makeRef(overrides = {}) {
   const boards = {};
   for (const ch of [...CHANNELS.text]) boards[ch] = buildLines(ch);
-  const players = ['me', 'mira', 'jun'].map((k) => ({ userId: uid(k), id: uid(k), displayName: PEOPLE[k].name, state: { status: PEOPLE[k].status, vc: null, roles: [] } }));
-  const members = Object.fromEntries(Object.keys(PEOPLE).map((k) => [uid(k), { name: PEOPLE[k].name }]));
-  const me = { userId: uid('me'), id: uid('me'), displayName: PEOPLE.me.name, state: { channel: 'general', status: 'online', prefs: {}, lastRead: {}, servers: [], vc: null, roles: [], xp: 160, saved: [], mutedCh: [], reminders: [] }, mail: [] };
+  const players = ['me', 'mira', 'jun'].map((k) => ({ userId: uid(k), id: uid(k), displayName: PEOPLE[k].name, state: { status: PEOPLE[k].status, vc: null, roles: [], xp: { me: 20, mira: 40, jun: 30 }[k] } }));
+  const members = Object.fromEntries(Object.keys(PEOPLE).map((k) => [uid(k), { name: PEOPLE[k].name, seen: new Date(NOW_MS).toLocaleDateString('en-US', { timeZone: 'UTC' }) }]));
+  const me = { userId: uid('me'), id: uid('me'), displayName: PEOPLE.me.name, state: { channel: 'general', status: 'online', prefs: {}, lastRead: {}, servers: [], vc: null, roles: [], xp: 20, saved: [], mutedCh: [], reminders: [] }, mail: [] };
   const session = { boards, boardsAt: NOW_MS };
   const ctx = {
     session,
     now: () => NOW_MS,
-    world: { state: { servers: {}, members, reactions: buildReactions(), polls: {}, pins: {}, events: [], links: {}, xp: {}, radio: null } },
+    world: { state: { servers: {}, members, reactions: buildReactions(), polls: {}, pins: {}, events: [], links: {}, xp: { [uid('mira')]: { n: 'Mira', xp: 40 }, [uid('jun')]: { n: 'Jun', xp: 30 }, [uid('me')]: { n: 'Alex', xp: 20 }, [uid('sol')]: { n: 'Sol', xp: 10 } }, radio: null } },
     place: { players },
     self: me,
   };

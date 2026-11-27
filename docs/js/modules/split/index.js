@@ -25,6 +25,7 @@ registerModule({
       }),
       actions: {
         splitTo: (id) => call(() => setSplit(id ? (v('channels', []) || []).find((c) => c && c.id === id) : null)),
+        splitSend: (text) => call(() => { const sp = v('splitChannel', null); if (sp) return ctx.chat.sendTo(v('currentServerId', null), sp.id, text); }),
         splitMain: () => call(() => { const sp = v('splitChannel', null); if (sp) ctx.goToChannel(sp.name); }),
       },
     };

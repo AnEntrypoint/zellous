@@ -25,7 +25,7 @@ export function buildRail({ v, S, call }) {
         channels: f.dm ? [] : withUnread([...v('channels', []).filter((c) => c && trait(c.type, 'inRail')), ...pageChannels()]),
         knownChannels: Object.entries(knownChannels).flatMap(([serverId, list]) => list.map((c) => ({ ...c, serverId }))),
         categories: v('categories', []),
-        servers: v('servers', []).map((sv) => ({ ...sv, unreadCount: sv.id === f.sid ? (v('channels', []) || []).reduce((n, c) => n + (unreadCounts[c.id] || 0), 0) : 0 })),
+        servers: v('servers', []).map((sv) => ({ ...sv, isPublic: /^0{64}:public$/.test(sv.id), unreadCount: sv.id === f.sid ? (v('channels', []) || []).reduce((n, c) => n + (unreadCounts[c.id] || 0), 0) : 0 })),
         currentChannel: f.curr,
         currentServerId: f.sid,
         canManage: f.canManage,
