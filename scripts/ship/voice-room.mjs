@@ -130,7 +130,9 @@ const probeInit = () => {
     session.__hubHooked = true;
     if (!session.remoteKeys) session.remoteKeys = () => [...session.peers.keys()];
     clearInterval(hookTimer);
-    for (const type of ['hub-changed', 'hub-lost']) session.addEventListener(type, (e) => window.__hubLog.push({ t: Math.round(performance.now()), type, hub: e.detail.hub && e.detail.hub.slice(0, 6), previous: e.detail.previous && e.detail.previous.slice(0, 6), silent: e.detail.silent, hb: e.detail.hbAgeMs, net: e.detail.netAgeMs }));
+    session.addEventListener('dbg', (e) => window.__hubLog.push({ at: Date.now(), type: 'dbg', ...e.detail }));
+    session.addEventListener('dc-open', (e) => window.__hubLog.push({ at: Date.now(), type: 'dc-open', peer: e.detail.peerPubkey.slice(0, 6) }));
+    for (const type of ['hub-changed', 'hub-lost', 'route-retry', 'signal-drop', 'link-state', 'tombstone', 'peer-replaced']) session.addEventListener(type, (e) => window.__hubLog.push({ t: Math.round(performance.now()), at: Date.now(), type, hub: e.detail.hub && e.detail.hub.slice(0, 6), previous: e.detail.previous && e.detail.previous.slice(0, 6), silent: e.detail.silent, hb: e.detail.hbAgeMs, net: e.detail.netAgeMs, peer: (e.detail.peer || e.detail.from || '').slice(0, 6) || undefined, why: e.detail.why, state: e.detail.state, kind: e.detail.type }));
   }, 100);
   window.__upload = async (ms) => {
     const session = window.lk.session();
@@ -175,7 +177,8 @@ const stopRig = () => { try { dev?.kill(); } catch {} try { relay?.close?.(); } 
 const chromeArgs = (mic, dir, port) => ['--headless=new', '--no-sandbox', '--remote-debugging-port=' + port, '--user-data-dir=' + dir, '--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-select-desktop-capture-source=Entire screen', '--enable-usermedia-screen-capturing', '--use-file-for-fake-audio-capture=' + mic, '--window-size=1440,900', 'about:blank'];
 let cdpPort = Number(process.env.CDP_BASE || 9440);
 const launchChrome = async (mic, tag) => {
-  const port = cdpPort++;
+  let port = cdpPort++;
+  while (await fetch('http://127.0.0.1:' + port + '/json/version').then((r) => r.ok, () => false)) port = cdpPort++;
   const dir = path.join(WORK, 'profile-' + tag);
   const child = spawn(process.env.CHROME_EXE || chromium.executablePath(), chromeArgs(mic, dir, port), { stdio: 'ignore' });
   for (let i = 0; i < 100; i++) {
@@ -187,7 +190,7 @@ const launchChrome = async (mic, tag) => {
 };
 
 let seq = 0;
-const spawnPeer = async (tag, { mesh = false, speechOffset = null } = {}) => {
+const spawnPeer = async (tag, { mesh = false, speechOffset = null, key: forcedKey = null, pubkey: forcedPubkey = null } = {}) => {
   const index = seq++;
   const hz = TONES[index % TONES.length];
   let mic = path.join(WORK, 'tone-' + hz + '.wav');
@@ -202,8 +205,8 @@ const spawnPeer = async (tag, { mesh = false, speechOffset = null } = {}) => {
   await page.addInitScript(wsInit, RELAY_PORT);
   await page.addInitScript(rawAudioInit);
   await page.addInitScript(probeInit);
-  const key = hex(generateSecretKey());
-  await page.addInitScript((k) => { try { if (!localStorage.getItem('zn_sk')) localStorage.setItem('zn_sk', k); } catch {} }, key);
+  const key = forcedKey || hex(generateSecretKey());
+  await page.addInitScript(([k, pk]) => { try { if (!localStorage.getItem('zn_sk')) { localStorage.setItem('zn_sk', k); if (pk) localStorage.setItem('zn_pk', pk); } } catch {} }, [key, forcedPubkey]);
   await page.goto('http://127.0.0.1:' + PORT + '/nostr-chat/?local=1&cb=' + Date.now());
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
@@ -215,7 +218,9 @@ const spawnPeer = async (tag, { mesh = false, speechOffset = null } = {}) => {
   }
   const pubkey = await page.evaluate(() => window.state.nostrPubkey);
   if (mesh) await page.evaluate(() => { const s = window.lk.session(); s._sfuShouldHaveConnectionTo = () => true; s._sfuElect = () => {}; s._sfuRelayAll = () => {}; });
-  return { tag, hz, browser, context, page, pubkey, child, pid: child.pid, alive: true };
+  const storedKey = await page.evaluate(() => { try { return localStorage.getItem('zn_sk'); } catch { return null; } });
+  if (forcedKey && storedKey !== forcedKey) console.log('      key not applied for ' + tag + ' stored=' + (storedKey ? storedKey.slice(0, 6) : null) + ' wanted=' + forcedKey.slice(0, 6));
+  return { tag, hz, browser, context, page, pubkey, key: storedKey || key, child, pid: child.pid, alive: true };
 };
 
 const makeServerWithVoice = async (first) => {
@@ -315,7 +320,7 @@ const settle = async (peers, label, opts = {}) => {
   const t0 = Date.now();
   let rows = [];
   while (Date.now() - t0 < (opts.limit || HEAR_LIMIT_MS)) {
-    rows = await hearMatrix(peers, { ms: 1200, ...opts });
+    rows = await hearMatrix(peers, { ms: Number(process.env.SETTLE_MS || 1200), ...opts });
     if (matrixOk(rows)) { const ms = Date.now() - t0; return { ok: true, ms, rows }; }
   }
   printMatrix(rows);
@@ -485,18 +490,130 @@ const scenarios = {
       if (process.env.HUBLOG) for (const p of live(peers)) console.log('      hublog ' + p.tag + ' ' + p.pubkey.slice(0, 6) + ' ' + JSON.stringify(await p.page.evaluate(() => window.__hubLog)));
       const after = await settle(peers, 'after');
       printMatrix(after.rows);
+      if (!after.ok || after.ms > 3000) for (const p of live(peers)) console.log('      after-hublog ' + p.tag + ' ' + p.pubkey.slice(0, 6) + ' ' + JSON.stringify((await p.page.evaluate(() => window.__hubLog)).filter((e) => e.at >= t0 - 500).map((e) => ({ ...e, t: undefined, at: e.at - t0 }))));
       const hearMs = Date.now() - t0;
       report(after.ok, kind + count + ': every remaining peer hears every other remaining peer, ' + hearMs + ' ms after the failure');
       const newest = await spawnPeer('L' + (count + 1));
       await joinServer(newest, sid);
+      const tLate = Date.now();
       await joinVoice(newest);
       peers.push(newest);
       const late = await settle(peers, 'late');
       printMatrix(late.rows);
       report(late.ok, kind + count + ': a late joiner hears all remaining peers and is heard by all (' + late.ms + ' ms)');
+      if (process.env.HUBLOG || late.ms > 3000) for (const p of live(peers)) console.log('      late-hublog ' + p.tag + ' ' + JSON.stringify((await p.page.evaluate(() => window.__hubLog)).filter((e) => e.at >= tLate - 500).map((e) => ({ ...e, t: undefined, at: e.at - tLate }))));
       if (kind === 'offline') signalTree(hubPeer.pid, 'SIGCONT');
       console.log('RECOVERY kind=' + kind + ' peers=' + count + ' hog=' + (process.env.HOG || 'none') + ' agree_ms=' + reMs + ' hear_ms=' + hearMs + ' late_ms=' + late.ms);
     } finally { await closeAll(peers.filter((p) => true)); }
+  },
+
+  async latejoin(kind, count, rejoin) {
+    const JOIN_AT_MS = Number(process.env.JOIN_AT_MS || 2000);
+    const BAR_MS = Number(process.env.LATE_BAR_MS || 3000);
+    const tag0 = 'lj-' + kind + count + (rejoin ? '-rejoin' : '');
+    console.log('--- latejoin-' + kind + '-' + count + (rejoin ? '-rejoin' : ''));
+    const { peers, sid } = await bootRoom(count);
+    const joiner = await spawnPeer('J' + (count + 1));
+    const errors = [];
+    [...peers, joiner].forEach((p) => p.page.on('pageerror', (e) => errors.push(p.tag + ' ' + e.message)));
+    try {
+      await joinServer(joiner, sid);
+      const agree = await waitHubAgreement(peers);
+      report(!!agree, tag0 + ': ' + count + ' peers agree on hub ' + (agree ? name(peers, agree.hub) : '(none)'));
+      const first = await settle(peers, 'before');
+      report(first.ok, tag0 + ': everyone hears everyone before the failure');
+      const hubPeer = peers.find((p) => agree && p.pubkey === agree.hub);
+      const t0 = Date.now();
+      await failPeer(hubPeer, kind);
+      await wait(Math.max(0, JOIN_AT_MS - (Date.now() - t0)));
+      const tClick = Date.now();
+      await joiner.page.evaluate(async () => {
+        const a = [...document.querySelectorAll('.ca-rail-channels a')].find((x) => x.textContent.includes('voice-one'));
+        a && a.click();
+        const end = performance.now() + 20000;
+        const ready = () => { try { const v = window.lk.session(); return window.state.voiceConnected === true && !!v.roomId && !!v.sfu.actor; } catch { return false; } };
+        while (!ready() && performance.now() < end) await new Promise((r) => setTimeout(r, 25));
+        const unmuteEnd = performance.now() + 3000;
+        let stable = 0;
+        while (stable < 4 && performance.now() < unmuteEnd) {
+          window.lk.setMuted(false);
+          await new Promise((r) => setTimeout(r, 50));
+          stable = window.lk.session().muted ? 0 : stable + 1;
+        }
+      });
+      const connectedMs = Date.now() - tClick;
+      peers.push(joiner);
+      let rows = [];
+      let endMs = null;
+      let startMs = null;
+      while (Date.now() - tClick < 20000) {
+        const w0 = Date.now() - tClick;
+        await joiner.page.evaluate(() => { try { if (window.lk.session().muted) window.lk.setMuted(false); } catch {} }).catch(() => {});
+        rows = await hearMatrix(peers, { ms: 500 });
+        if (matrixOk(rows)) { endMs = Date.now() - tClick; startMs = w0; break; }
+      }
+      printMatrix(rows);
+      const sinceKill = Date.now() - t0;
+      console.log('LATEJOIN kind=' + kind + ' peers=' + count + ' joined_after_kill_ms=' + (tClick - t0) + ' connected_ms=' + connectedMs + ' all_heard_window_start_ms=' + startMs + ' all_heard_ms=' + endMs + ' since_kill_ms=' + sinceKill);
+      const KILL_BAR_MS = Number(process.env.LATE_KILL_BAR_MS || 7000);
+      report(endMs !== null && (endMs <= BAR_MS || (tClick - t0) + endMs <= KILL_BAR_MS), tag0 + ': the joiner hears everyone and is heard by everyone within ' + BAR_MS + ' ms of joining or ' + KILL_BAR_MS + ' ms of the kill (' + endMs + ' ms after joining, ' + ((tClick - t0) + endMs) + ' ms after the kill)');
+      const hubLogs = [];
+      for (const p of live(peers)) hubLogs.push(p.tag + ' ' + JSON.stringify((await p.page.evaluate(() => window.__hubLog)).filter((e) => e.at >= t0 - 1000).map((e) => ({ ...e, t: undefined, at: e.at - t0 }))));
+      if (process.env.HUBLOG || endMs === null || endMs > BAR_MS) hubLogs.forEach((l) => console.log('      hublog ' + l));
+      if ((endMs === null || endMs > BAR_MS) && process.env.DIAG) for (const p of live(peers)) console.log('      diag ' + p.tag + ' ' + JSON.stringify(await diag(p)));
+      if (endMs === null || endMs > BAR_MS) for (const [p, st] of await hubOf(peers)) console.log('      state ' + p.tag + ' ' + JSON.stringify({ hub: name(peers, st.hub), peers: st.peers.map(([k, c]) => name(peers, k) + ':' + c), relayed: st.relayed.map((k) => name(peers, k)), participants: st.participants, muted: st.muted }));
+      if (rejoin) {
+        const old = hubPeer;
+        const again = await spawnPeer(old.tag + 'r', { key: old.key, pubkey: old.pubkey });
+        again.page.on('pageerror', (e) => errors.push(again.tag + ' ' + e.message));
+        await joinServer(again, sid);
+        const tR = Date.now();
+        await joinVoice(again);
+        peers.splice(peers.indexOf(old), 1);
+        peers.push(again);
+        const back = await settle(peers, 'rejoined');
+        printMatrix(back.rows);
+        if (process.env.HUBLOG || back.ms > 3000) for (const p of live(peers)) console.log('      rejoin-hublog ' + p.tag + ' ' + JSON.stringify((await p.page.evaluate(() => window.__hubLog)).filter((e) => e.at >= tR - 500).map((e) => ({ ...e, t: undefined, at: e.at - tR }))));
+        console.log('REJOIN same_pubkey=' + (again.pubkey === old.pubkey) + ' all_heard_ms=' + back.ms + ' since_join_ms=' + (Date.now() - tR));
+        report(again.pubkey === old.pubkey && back.ok, tag0 + ': the dead peer rejoined with the same pubkey, its tombstone cleared, everyone hears everyone (' + back.ms + ' ms)');
+      }
+      report(errors.length === 0, tag0 + ': no page error (' + errors.length + ')');
+      if (kind === 'offline') signalTree(hubPeer.pid, 'SIGCONT');
+    } finally { await closeAll([...peers, joiner].filter((p, i, a) => a.indexOf(p) === i)); }
+  },
+
+  async rejoin(kind, count) {
+    const tag0 = 'rj-' + kind + count;
+    console.log('--- rejoin-' + kind + '-' + count);
+    const { peers, sid } = await bootRoom(count);
+    const errors = [];
+    peers.forEach((p) => p.page.on('pageerror', (e) => errors.push(p.tag + ' ' + e.message)));
+    const dead = [];
+    try {
+      const agree = await waitHubAgreement(peers);
+      report(!!agree, tag0 + ': ' + count + ' peers agree on hub ' + (agree ? name(peers, agree.hub) : '(none)'));
+      const first = await settle(peers, 'before');
+      report(first.ok, tag0 + ': everyone hears everyone before the failure');
+      const old = peers.find((p) => agree && p.pubkey === agree.hub);
+      dead.push(old);
+      const again = await spawnPeer(old.tag + 'r', { key: old.key, pubkey: old.pubkey });
+      again.page.on('pageerror', (e) => errors.push(again.tag + ' ' + e.message));
+      await joinServer(again, sid);
+      const t0 = Date.now();
+      await failPeer(old, kind);
+      await wait(Math.max(0, Number(process.env.REJOIN_AT_MS || 2000) - (Date.now() - t0)));
+      const tR = Date.now();
+      await joinVoice(again);
+      peers.splice(peers.indexOf(old), 1);
+      peers.push(again);
+      const back = await settle(peers, 'rejoined');
+      printMatrix(back.rows);
+      if (process.env.HUBLOG || back.ms > 3000) for (const p of live(peers)) console.log('      rejoin-hublog ' + p.tag + ' ' + JSON.stringify((await p.page.evaluate(() => window.__hubLog)).filter((e) => e.at >= tR - 500).map((e) => ({ ...e, t: undefined, at: e.at - tR }))));
+      console.log('REJOIN kind=' + kind + ' peers=' + count + ' same_pubkey=' + (again.pubkey === old.pubkey) + ' all_heard_ms=' + back.ms + ' since_join_ms=' + (Date.now() - tR));
+      report(again.pubkey === old.pubkey && back.ok, tag0 + ': the same pubkey rejoined and everyone hears everyone (' + back.ms + ' ms)');
+      report(errors.length === 0, tag0 + ': no page error (' + errors.length + ')');
+      if (kind === 'offline') signalTree(old.pid, 'SIGCONT');
+    } finally { await closeAll([...peers, ...dead].filter((p, i, a) => a.indexOf(p) === i)); }
   },
 
   async failover2(kind, count) {
@@ -532,13 +649,17 @@ const scenarios = {
         console.log('      lone peer state ' + JSON.stringify({ hub: name(peers, st.hub), peers: st.peers.length, voice }));
         report(st.hub === remaining[0].pubkey && voice.connected === true, 'f2-' + kind + count + ': the lone peer stays connected to voice and is its own hub');
       }
+      if (process.env.HUBLOG || re2Ms > 4500 || hear2Ms > 7000) for (const p of live(peers)) console.log('      f2-hublog ' + p.tag + ' ' + p.pubkey.slice(0, 6) + ' ' + JSON.stringify((await p.page.evaluate(() => window.__hubLog)).filter((e) => e.at >= t1 - 500).map((e) => ({ ...e, t: undefined, at: e.at - t1 }))));
+      if (process.env.HUBLOG || re2Ms > 4500 || hear2Ms > 7000) console.log('      f2-times hub1=' + hub1.tag + ' ' + hub1.pubkey.slice(0, 6) + ' hub2=' + hub2.tag + ' ' + hub2.pubkey.slice(0, 6) + ' second_failure_at=' + (t2 - t1));
       const newest = await spawnPeer('L' + (count + 1));
       newest.page.on('pageerror', (e) => errors.push(newest.tag + ' ' + e.message));
       await joinServer(newest, sid);
+      const tLate = Date.now();
       await joinVoice(newest);
       peers.push(newest);
       const late = await settle(peers, 'late');
       printMatrix(late.rows);
+      if (process.env.HUBLOG || late.ms > 3000) for (const p of live(peers)) console.log('      late-hublog ' + p.tag + ' ' + p.pubkey.slice(0, 6) + ' ' + JSON.stringify((await p.page.evaluate(() => window.__hubLog)).filter((e) => e.at >= tLate - 500).map((e) => ({ ...e, t: undefined, at: e.at - tLate }))));
       report(late.ok, 'f2-' + kind + count + ': a late joiner hears all remaining peers and is heard by all (' + late.ms + ' ms)');
       report(errors.length === 0, 'f2-' + kind + count + ': no page error (' + errors.length + ')');
       for (const hp of [hub1, hub2]) if (kind === 'offline') signalTree(hp.pid, 'SIGCONT');
@@ -697,6 +818,8 @@ try {
     if (name2 === 'failover2') await scenarios.failover2(kind, Number(count || 3));
     else if (name2 === 'busy') await scenarios.busy(kind, Number(count || 3));
     else if (name2 === 'failover') await scenarios.failover(kind, Number(count || 3));
+    else if (name2 === 'rejoin') await scenarios.rejoin(kind, Number(count || 3));
+    else if (name2 === 'latejoin') await scenarios.latejoin(kind, Number(count || 3), w.endsWith(':rejoin'));
     else if (name2 === 'start') await scenarios.start(kind, count);
     else if (name2 === 'failover-thread') await scenarios.failoverThread(kind);
     else await scenarios[name2]();
