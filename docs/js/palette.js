@@ -18,5 +18,6 @@
     PALETTE.green, PALETTE.sky, PALETTE.sun,
     PALETTE.flame, PALETTE.purple, PALETTE.mascot,
   ];
-  window.__zellous.helpers = Object.assign(window.__zellous.helpers || {}, { ROLE_COLOR, AVATAR_COLORS });
+  const SERVER_COLORS = ['#5865f2', '#eb459e', '#57f287', '#f0b232', '#ed4245', '#1abc9c', '#c4602f', '#9b84ee'];
+  window.__zellous.helpers = Object.assign(window.__zellous.helpers || {}, { ROLE_COLOR, AVATAR_COLORS, SERVER_COLORS });
 })();

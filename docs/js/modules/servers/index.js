@@ -28,7 +28,7 @@ registerModule({
       const channels = (v('channels', []) || []).filter((c) => c && c.id);
       const pick = (voice) => channels.filter((c) => !!ctx.trait(c.type, 'voice') === voice).map((c) => ({ id: c.id, name: c.name, topic: c.topic || '' }));
       return {
-        id: sid, name: sv.name || '', color: sv.iconColor || '', colors: ctx.avatarColors,
+        id: sid, name: sv.name || '', color: sv.iconColor || '', colors: ctx.serverColors,
         textChannels: pick(false), voiceChannels: pick(true),
         members: (v('roomMembers', []) || []).map((m) => m.username || String(m.id || '').slice(0, 8)),
       };
@@ -40,7 +40,7 @@ registerModule({
         serverSettingsOpen: settingsOpen.value && !!serverSettings(),
         serverDelete: deleteOpen.value ? { name: (serverSettings() || {}).name || '' } : null,
         gameServerCreateOpen: v('gameServerCreateOpen', false),
-        serverColors: ctx.avatarColors,
+        serverColors: ctx.serverColors,
         discoverServers: v('servers', []).map(discover),
       }),
       actions: {

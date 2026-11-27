@@ -14,8 +14,12 @@ export const RULES = {
     ['main', '#dc > .main'],
     ['smi', '.smenu > div'],
     ['smh', '.smenu > hr'],
+    ['epick', '.epick'],
     ['mhead-t', '.mhead > .t'],
     ['mhead-tp', '.mhead > .tp'],
+    ['header-at', '.mhead > span[style*="font-size:22px"]'],
+    ['evx', '.evh > span'],
+    ['pc-status', '.card .inner > h2 + div'],
     ['mentext', '.mebtn > div:not(.dot)'],
     ['rep', '.grp .rep'],
     ['head', '.grp > div:not(.av):not(.tx):not(.bar) > div:has(> .who):not(.tx):not(.av)'],
@@ -38,6 +42,7 @@ export const RULES = {
     ['main', '.ca-right'],
     ['smi', '.ds-g3-smenu > [role=menuitem]'],
     ['smh', '.ds-g3-smenu > hr'],
+    ['epick', '.ds-g3-epick'],
     ['mhead-t', '.ds-g3-header-name'],
     ['mhead-tp', '.ds-g3-header-topic'],
     ['me-n', '.ds-g3-men'],
@@ -55,7 +60,7 @@ export const ALIAS = {
   'glyph-page': 'em', 'glyph-announcement': 'em',
   'ds-g3-dico': 'dico', 'ds-g3-vtile': 'tile', 'ds-g3-vnm': 'nm', 'ds-g3-vmo': 'mo', 'ds-g3-vcbtn': 'cbtn', 'ds-g3-vchat': 'chat', 'ds-g3-vav': 'av', 'ds-g3-av': 'av', 'ds-g3-mav': 'av', 'ds-g3-meav': 'av',
   'ds-g3-medot': null, 'ds-g3-mdot': null, 'ds-g3-nmtxt': null, 'ds-g3-tx-wrap': null, 'ds-g3-welcome-big': null, 'ds-g3-header-glyph': null, 'ds-g3-header-actions': null, 'ds-g3-crown': null,
-  'ds-g3-msub': 'sub', 'ds-g3-rep': 'rep', 'ds-g3-msuffix': 'tag',
+  'ds-g3-msub': 'sub', 'ds-g3-rep': 'rep', 'ds-g3-msuffix': 'tag', 'ds-g3-dmcat': 'cat', 'ds-g3-rolepick': 'rules', 'ds-g3-rl': 'rules', 'ds-g3-ric': 'ic', 'ds-g3-rtxt': null, 'ds-g3-rl-item': 'rule', 'ds-g3-rl-n': 'n', 'ds-g3-lbav': 'av', 'ds-g3-lbmid': null, 'ds-g3-lbtop': null,
   'ds-g3-msg': 'grp', 'ds-g3-day': 'div',
   'ds-g3-pollcard': 'poll', 'ds-g3-pollq': 'pq', 'ds-g3-pollo': 'po', 'ds-g3-pollf': 'pf', 'ds-g3-pollt': 'pt',
   'ds-g3-header': 'mhead', 'ca-right-body': 'body', chat: 'pagecol', 'chat-thread': 'msgs', 'chat-jump-latest': 'jump',
@@ -68,10 +73,11 @@ export const TAG_KEYED = ['i', 'svg', 'img', 'input', 'textarea', 'select', 'b',
 
 export const MASK = {
   ref: ['.av', '.dico', '.stks', '.pics', 'img', '.sv:not(.dm):not(.add)'],
-  zel: ['.ds-g3-av', '.ds-g3-mav', '.ds-g3-meav', '.ds-g3-vav', 'img', '.ca-rail-servers > a:not(.ca-rail-home):not(.ca-rail-server-add):not(.ca-rail-server-explore)'],
+  zel: ['.ds-g3-av', '.ds-g3-dico', '.ds-g3-mav', '.ds-g3-meav', '.ds-g3-vav', 'img', '.ca-rail-servers > a:not(.ca-rail-home):not(.ca-rail-server-add):not(.ca-rail-server-explore)'],
 };
 
 export const PURPOSE = [
+  { id: 'spawn-profile-hint', note: 'profile card hint line pointing at Spawn chat on the right (add friend or party up), wording differs because Spawn chat does not exist in zellous', ref: '.card .inner > div:last-child:not(.btnp)', zel: '.ds-g3-pc-hint' },
   { id: 'spawn-catchup', note: 'Catch up and Catch me up (Spawn AI)', ref: '.aibtn', zel: null },
   { id: 'split-picker', note: 'zoom and language pickers', ref: '.langsel:not(.setm), .zooms', zel: '.ds-g3-langsel, .ds-g3-zooms' },
   { id: 'radio', note: 'radio is a synthesised loop', ref: '.radio-on, .vctl .chat:first-child', zel: null },

@@ -47,7 +47,7 @@ const SURFACES = [
   { id: 'user-menu>switch-identity', open: [{ rightClick: '.ds-g3-mebtn', rail: true }, { click: '.ds-g3-usermenu [role=menuitem]:has-text("Switch identity")' }], root: '.ds-g3-usermenu', modal: false, focus: '.ds-g3-mebtn', navigates: ['Back'] },
   { id: 'setup-profile', open: [{ rightClick: '.ds-g3-mebtn', rail: true }, { click: '.ds-g3-usermenu [role=menuitem]:has-text("Set up your profile")' }], root: '.ds-g3-evm', modal: true, focus: '.ds-g3-mebtn' },
   { id: 'rename', open: [{ click: '.ds-g3-men', rail: true }], root: '.ds-g3-rename', modal: false, draft: { sel: '.ds-g3-rename', text: 'draft name' }, focus: '.ds-g3-mebtn', noControls: true },
-  { id: 'profile-card', open: [{ signal: ['memberListOpen', true] }, { click: '.ds-g3-mrow' }], root: '.ds-g3-scrim[aria-label$="profile"]', modal: true, focus: '.ds-g3-mrow' },
+  { id: 'profile-card', open: [{ signal: ['memberListOpen', true] }, { click: '.ds-g3-mrow' }], root: '.ds-g3-scrim[aria-label$="profile"]', modal: true, focus: '.ds-g3-mrow', mobileFocus: '.ds-g3-ibtn[aria-label="Member List"]' },
   { id: 'emoji-picker', open: [{ click: '.ds-g3-compbtn[title="Emoji"]' }], root: '.ds-g3-cpick', modal: false, focus: '.ds-g3-compbtn[title="Emoji"]' },
   { id: 'sticker-picker', open: [{ click: '.ds-g3-compbtn[title="Stickers"]' }], root: '.ds-g3-stkpop', modal: false, focus: '.ds-g3-compbtn[title="Stickers"]' },
   { id: 'reaction-picker', vp: 'desktop', open: [{ message: true, hover: '.ds-g3-msg' }, { click: '.ds-g3-bar [title="Add Reaction"]' }], root: '.ds-g3-rxpick', modal: false, focus: '.ds-g3-bar [title="Add Reaction"]' },
@@ -252,7 +252,10 @@ async function runSurface(page, s, mobile, rows, base) {
     const left = (await overlays(page)).filter((o) => !base.includes(o) && !(s.keep || []).some((k) => o.startsWith(k)));
     if (left.length) problems.push('backdrop left: ' + [...new Set(left)].slice(0, 3).join(','));
     const railClosed = mobile && s.focus && await page.evaluate((sel) => !window.stateSignals.mobileMenuOpen.value && !!document.querySelector(sel)?.closest('.ca-rail'), s.focus).catch(() => false);
-    if (s.focus && !railClosed && !/^outside/.test(p.path) && !(await focusOk(page, s.focus))) problems.push('focus not returned');
+    const equivalent = mobile && s.focus ? await page.locator(s.focus).first().evaluate((o) => (o.closest('[inert]') || !o.getClientRects().length ? (o.closest('.ds-g3-mem') ? '.ds-g3-ibtn[aria-label="Member List"]' : '.ds-g3-burger') : null)).catch(() => null) : null;
+    const openerAbsent = mobile && s.mobileFocus && !(await page.locator(s.focus).count());
+    const focusTarget = openerAbsent ? s.mobileFocus : (equivalent || s.focus);
+    if (s.focus && !railClosed && !/^outside/.test(p.path) && !(await focusOk(page, focusTarget))) problems.push('focus not returned');
     if (s.draft) {
       await softReset(page);
       try { await doOpen(page, s, mobile); const now = await page.evaluate((sel) => { const i = document.querySelector(sel); return i ? i.value : null; }, s.draft.sel); if (now !== original) problems.push('draft kept: ' + JSON.stringify(now)); } catch {}

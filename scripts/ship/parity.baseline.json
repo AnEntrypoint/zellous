@@ -4,76 +4,76 @@
   "props": 43
  },
  "text-channel@desktop": {
-  "pixel": 0.39,
-  "props": 119
+  "pixel": 0.33,
+  "props": 106
  },
  "text-channel-empty@mobile": {
-  "pixel": 2.15,
-  "props": 35
+  "pixel": 0.75,
+  "props": 34
  },
  "text-channel-empty@desktop": {
-  "pixel": 1.19,
-  "props": 121
+  "pixel": 0.78,
+  "props": 107
  },
  "announcements-locked@mobile": {
-  "pixel": 3.68,
-  "props": 37
+  "pixel": 1,
+  "props": 34
  },
  "announcements-locked@desktop": {
-  "pixel": 1.62,
-  "props": 126
+  "pixel": 0.91,
+  "props": 112
  },
  "page-rules@mobile": {
-  "pixel": 2.64,
-  "props": 59
+  "pixel": 2.51,
+  "props": 3
  },
  "page-rules@desktop": {
-  "pixel": 2.81,
-  "props": 143
+  "pixel": 0.49,
+  "props": 80
  },
  "page-pick-roles@mobile": {
-  "pixel": 9.58,
-  "props": 49
+  "pixel": 0.4,
+  "props": 3
  },
  "page-pick-roles@desktop": {
-  "pixel": 3.06,
-  "props": 132
+  "pixel": 0.49,
+  "props": 79
  },
  "home@mobile": {
   "pixel": 1.07,
   "props": 39
  },
  "home@desktop": {
-  "pixel": 0.51,
-  "props": 66
+  "pixel": 0.53,
+  "props": 61
  },
  "dm-thread@mobile": {
-  "pixel": 3.99,
-  "props": 21
+  "pixel": 1.78,
+  "props": 4
  },
  "dm-thread@desktop": {
-  "pixel": 1.42,
-  "props": 54
+  "pixel": 0.89,
+  "props": 27
  },
  "member-list-hidden@desktop": {
-  "pixel": 0.75,
-  "props": 191
+  "pixel": 0.74,
+  "props": 180
  },
  "profile-card@mobile": {
-  "pixel": 12.5,
-  "props": 14
+  "pixel": 2.16,
+  "props": 9
  },
  "profile-card@desktop": {
-  "pixel": 3.32,
-  "props": 12
+  "pixel": 0.76,
+  "props": 7
  },
  "profile-card-self@mobile": {
-  "pixel": 12.9,
-  "props": 18
+  "pixel": 2.62,
+  "props": 13
  },
  "profile-card-self@desktop": {
-  "pixel": 3.42,
-  "props": 16
+  "pixel": 0.88,
+  "props": 11
  },
  "pins-popover@mobile": {
   "pixel": 0.33,
@@ -81,7 +81,7 @@
  },
  "pins-popover@desktop": {
   "pixel": 0.52,
-  "props": 122
+  "props": 111
  },
  "inbox-popover@mobile": {
   "pixel": 0.72,
@@ -89,14 +89,14 @@
  },
  "inbox-popover@desktop": {
   "pixel": 0.68,
-  "props": 146
+  "props": 135
  },
  "search-results@desktop": {
-  "pixel": 0.81,
-  "props": 126
+  "pixel": 0.4,
+  "props": 105
  },
  "quick-switcher@mobile": {
-  "pixel": 2.08,
+  "pixel": 0.23,
   "props": 30
  },
  "quick-switcher@desktop": {
@@ -104,76 +104,76 @@
   "props": 29
  },
  "events-modal@mobile": {
-  "pixel": 2.23,
-  "props": 22
+  "pixel": 0.27,
+  "props": 15
  },
  "events-modal@desktop": {
-  "pixel": 0.3,
-  "props": 20
+  "pixel": 0.29,
+  "props": 13
  },
  "leaderboard-modal@mobile": {
-  "pixel": 8.18,
-  "props": 55
+  "pixel": 2.69,
+  "props": 22
  },
  "leaderboard-modal@desktop": {
-  "pixel": 2.28,
-  "props": 49
+  "pixel": 1.04,
+  "props": 20
  },
  "server-menu@mobile": {
-  "pixel": 5.66,
-  "props": 84
- },
- "server-menu@desktop": {
-  "pixel": 1.55,
+  "pixel": 1.2,
   "props": 79
  },
+ "server-menu@desktop": {
+  "pixel": 0.35,
+  "props": 71
+ },
  "status-menu@mobile": {
-  "pixel": 2.19,
-  "props": 129
+  "pixel": 2.1,
+  "props": 118
  },
  "status-menu@desktop": {
-  "pixel": 0.68,
-  "props": 135
+  "pixel": 0.67,
+  "props": 125
  },
  "emoji-picker@mobile": {
-  "pixel": 4.87,
-  "props": 44
+  "pixel": 0.26,
+  "props": 43
  },
  "emoji-picker@desktop": {
-  "pixel": 1.55,
-  "props": 120
+  "pixel": 0.38,
+  "props": 108
  },
  "sticker-picker@mobile": {
   "pixel": 0.39,
   "props": 78
  },
  "sticker-picker@desktop": {
-  "pixel": 0.41,
-  "props": 122
+  "pixel": 0.4,
+  "props": 111
  },
  "reaction-picker@desktop": {
-  "pixel": 2.92,
-  "props": 164
+  "pixel": 2.91,
+  "props": 153
  },
  "message-more-menu@desktop": {
   "pixel": 2.6,
-  "props": 186
+  "props": 175
  },
  "message-hover-bar@desktop": {
-  "pixel": 0.43,
-  "props": 119
+  "pixel": 0.42,
+  "props": 108
  },
  "composer-reply@desktop": {
-  "pixel": 2.14,
-  "props": 156
+  "pixel": 2.13,
+  "props": 145
  },
  "composer-autocomplete-slash@mobile": {
   "pixel": 0.27,
   "props": 43
  },
  "composer-autocomplete-slash@desktop": {
-  "pixel": 0.39,
-  "props": 120
+  "pixel": 0.38,
+  "props": 109
  },
  "composer-autocomplete-mention@mobile": {
   "pixel": 0.81,
@@ -181,7 +181,7 @@
  },
  "composer-autocomplete-mention@desktop": {
   "pixel": 0.56,
-  "props": 141
+  "props": 130
  },
  "composer-autocomplete-emoji@mobile": {
   "pixel": 0.28,
@@ -189,47 +189,47 @@
  },
  "composer-autocomplete-emoji@desktop": {
   "pixel": 0.39,
-  "props": 121
+  "props": 110
  },
  "split-view@desktop": {
   "pixel": 0.45,
-  "props": 125
+  "props": 114
  },
  "mobile-drawer@mobile": {
-  "pixel": 1.07,
-  "props": 119
+  "pixel": 0.99,
+  "props": 110
  },
  "create-server-modal@mobile": {
-  "pixel": 4.77,
-  "props": 18
+  "pixel": 0.14,
+  "props": 9
  },
  "create-server-modal@desktop": {
-  "pixel": 0.89,
-  "props": 16
+  "pixel": 0.25,
+  "props": 7
  },
  "discover-servers-modal@mobile": {
-  "pixel": 8.26,
-  "props": 55
+  "pixel": 1.95,
+  "props": 36
  },
  "discover-servers-modal@desktop": {
-  "pixel": 1.88,
-  "props": 53
+  "pixel": 0.76,
+  "props": 34
  },
  "server-menu-owner@mobile": {
-  "pixel": 5.66,
-  "props": 84
+  "pixel": 1.2,
+  "props": 79
  },
  "server-menu-owner@desktop": {
-  "pixel": 1.62,
-  "props": 84
+  "pixel": 0.42,
+  "props": 76
  },
  "server-settings@mobile": {
-  "pixel": 4.94,
-  "props": 68
+  "pixel": 0.34,
+  "props": 54
  },
  "server-settings@desktop": {
-  "pixel": 2.25,
-  "props": 60
+  "pixel": 1.84,
+  "props": 53
  },
  "settings/account@mobile": {
   "pixel": 2.09,
@@ -241,11 +241,11 @@
  },
  "settings/profile@mobile": {
   "pixel": 2.41,
-  "props": 31
+  "props": 25
  },
  "settings/profile@desktop": {
-  "pixel": 1.73,
-  "props": 37
+  "pixel": 1.72,
+  "props": 31
  },
  "settings/appearance@mobile": {
   "pixel": 0.82,
@@ -264,16 +264,16 @@
   "props": 21
  },
  "settings/voice@mobile": {
-  "pixel": 2.13,
-  "props": 25
+  "pixel": 0.01,
+  "props": 15
  },
  "settings/voice@desktop": {
-  "pixel": 1.09,
+  "pixel": 1.08,
   "props": 21
  },
  "settings/notif@mobile": {
   "pixel": 0.16,
-  "props": 19
+  "props": 15
  },
  "settings/notif@desktop": {
   "pixel": 1.08,
@@ -312,11 +312,19 @@
   "props": 36
  },
  "voice-room@mobile": {
-  "pixel": 12.76,
-  "props": 24
+  "pixel": 0.42,
+  "props": 13
  },
  "voice-room@desktop": {
-  "pixel": 1.17,
-  "props": 95
+  "pixel": 0.5,
+  "props": 81
+ },
+ "server-menu-member@mobile": {
+  "pixel": 3.54,
+  "props": 97
+ },
+ "server-menu-member@desktop": {
+  "pixel": 1.65,
+  "props": 129
  }
 }

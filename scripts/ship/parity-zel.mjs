@@ -96,8 +96,7 @@ export async function bootZel(browser, rig, viewport, mobile) {
     return window.state.currentServerId;
   }, ID_FOR);
   await seedMessages(rig.relayPort, sid);
-  await page.evaluate(() => { const c = window.state.channels.find((x) => x.name === 'announcements'); window.ui.actions.switchChannel(c); });
-  await wait(600);
+  await seedMessages(rig.relayPort, '0'.repeat(64) + ':public');
   await page.evaluate(() => { const c = window.state.channels.find((x) => x.name === 'general'); window.ui.actions.switchChannel(c); });
   await wait(1500);
   return { page, sid };
