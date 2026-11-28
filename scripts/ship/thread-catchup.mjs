@@ -215,6 +215,11 @@ const boot = async (browser, { capture = false, poll = 0, key = null, role = '',
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, permissions: ['microphone'] });
   const page = await context.newPage();
   page.on('pageerror', (e) => console.log('      pageerror', e.message, (e.stack || '').split('\n').slice(1, 4).join(' | ')));
+  if (process.env.DEBUG_PAGE) {
+    page.on('crash', () => console.log('      PAGE_CRASH ' + role));
+    page.on('framenavigated', (f) => { if (f === page.mainFrame()) console.log('      NAVIGATED ' + role + ' ' + f.url().slice(0, 80)); });
+    page.on('console', (m) => { if (m.type() === 'error') console.log('      CONSOLE_ERROR ' + role + ' ' + m.text().slice(0, 200)); });
+  }
   await page.addInitScript(wsInit, RELAY_PORT);
   await page.addInitScript(rawAudioInit);
   await page.addInitScript(eventLogInit);
@@ -244,7 +249,16 @@ const setupRoom = async (pages) => {
   const [first, ...rest] = pages;
   const sid = await first.evaluate(async () => { await window.__zellous.servers.create('catchup-' + Date.now().toString(36)); return window.state.currentServerId; }).catch(async () => { await first.waitForFunction(() => window.appReady === true); await wait(3000); return first.evaluate(() => window.state.currentServerId); });
   await wait(3000);
-  for (const p of rest) { await p.evaluate(async (s) => { await window.__zellous.servers.join(s, { name: 'catchup' }); }, sid); await wait(2500); }
+  for (const p of rest) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { await p.evaluate(async (s) => { await window.__zellous.servers.join(s, { name: 'catchup' }); }, sid); break; } catch (e) {
+        if (attempt === 2 || !/garbage collected|context was destroyed/i.test(e.message)) throw e;
+        await p.waitForFunction(() => window.appReady === true, null, { timeout: 40000 });
+        await wait(1500);
+      }
+    }
+    await wait(2500);
+  }
   await first.evaluate(() => window.channelManager.showCreateModal(null, null));
   await wait(400);
   await first.selectOption('#ccType', 'voice-thread');
@@ -663,6 +677,9 @@ const scenarios = {
     report(outside.length === 0, 'metric: no missing run outside the planted gaps (' + JSON.stringify(outside) + ')');
     const clean = unionCoverage([cut(0, 9), cut(8, 17), cut(16.5, 24)], source);
     report(clean.missingVoicedMs === 0, 'metric: three overlapping reordered pieces with no gap report ' + clean.missingVoicedMs + ' ms missing ' + JSON.stringify(clean.missingRuns));
+    const countedBetween = (a, b) => { let n = 0; for (let j = Math.ceil(a * 100); j < Math.floor(b * 100); j++) if (sf.countable[j]) n++; return n * 10; };
+    const plantedRepeat = countedBetween(8, 9) + countedBetween(16.5, 17);
+    report(Math.abs(clean.repeatedVoicedMs - plantedRepeat) <= 150, 'metric: planted overlaps of 1000 and 500 ms hold ' + plantedRepeat + ' voiced ms, reported repeated ' + clean.repeatedVoicedMs + ' ms ' + JSON.stringify(clean.repeatedRuns));
     const voicedAfter = (from, frames) => { for (let j = Math.floor(from * 100); j < sf.count - frames - 8; j++) { let ok = true; for (let k = 0; k < frames + 8; k++) if (!sf.countable[j + k]) { ok = false; break; } if (ok) return j + 4; } return -1; };
     const planted = [[voicedAfter(5, 10), 10], [voicedAfter(13, 6), 6], [voicedAfter(20, 4), 4]].sort((x, y) => x[0] - y[0]);
     const pieces = [];
@@ -741,6 +758,9 @@ const scenarios = {
         const ratio = heardPitch.hz && sourcePitch.hz ? heardPitch.hz / sourcePitch.hz : null;
         console.log('      PITCH ' + k + ' clip rate ' + seg.rate + ' heard ' + frameMs(seg.samples.length) + ' ms of source span ' + Math.round(one.endMs - one.startMs) + ' ms (compression ' + ((one.endMs - one.startMs) / frameMs(seg.samples.length)).toFixed(2) + ') f0 heard ' + (heardPitch.hz && heardPitch.hz.toFixed(1)) + ' source ' + (sourcePitch.hz && sourcePitch.hz.toFixed(1)) + ' ratio ' + (ratio && ratio.toFixed(3)) + ' frames ' + heardPitch.frames + '/' + sourcePitch.frames);
       }
+      const spans = segs.map((seg) => { const one = align(seg.samples, sources[k]); return { live: seg.live, from: one.startMs, to: one.endMs }; });
+      const classOf = ([a, b]) => { const cover = spans.filter((s) => s.from <= a + 30 && s.to >= b - 30); return cover.length ? (cover.some((s) => s.live) ? 'inside-live' : 'inside-clip') : 'between-segments'; };
+      console.log('      speaker ' + k + ' GAP_CLASS ' + JSON.stringify(net.runs.map((run) => [run[0], run[1] - run[0] + 10, classOf(run)])));
       console.log('      speaker ' + k + ' REPEATED_RUNS ' + JSON.stringify(rawUnion.repeatedRuns) + ' total ' + rawUnion.repeatedVoicedMs + ' ms');
       perSpeaker[k] = { missingMs: r.missingVoicedMs, repeatedMs: rawUnion.repeatedVoicedMs, runs: r.missingRuns, spanS: Math.round((r.endMs - r.startMs) / 1000) };
       report(r.missingVoicedMs <= MISSING_VOICED_LIMIT_MS && r.endMs - r.startMs > sources[k].length / 16 * 0.75, 'three: speaker ' + k + ' missed ' + r.missingVoicedMs + ' ms of voiced audio across ' + Math.round((r.endMs - r.startMs) / 1000) + ' s (limit ' + MISSING_VOICED_LIMIT_MS + ')');
@@ -765,6 +785,15 @@ const scenarios = {
     console.log('      THREE_TABLE run hub_views interrupter_is_hub A_missing_ms B_missing_ms');
     for (const m of table) console.log('      THREE_TABLE ' + m.run + ' ' + JSON.stringify(m.hubViews) + ' ' + m.interrupterIsHub + ' ' + m.perSpeaker.A.missingMs + ' ' + m.perSpeaker.B.missingMs + ' repeated ' + m.perSpeaker.A.repeatedMs + ' ' + m.perSpeaker.B.repeatedMs);
     report(table.every((m) => m.perSpeaker.A.missingMs <= MISSING_VOICED_LIMIT_MS && m.perSpeaker.B.missingMs <= MISSING_VOICED_LIMIT_MS), 'three10: every run missed at most ' + MISSING_VOICED_LIMIT_MS + ' ms per speaker');
+  },
+
+  async three15() {
+    delete process.env.LOCK_RATE;
+    const table = [];
+    const floors = { self: await scenarios.baseline3('self'), other: await scenarios.baseline3('other') };
+    for (const role of ['self', 'other']) for (let n = 1; n <= 5; n++) table.push(await scenarios.three('three15-' + role + '-' + n, role, floors[role]));
+    console.log('      THREE15_TABLE run A_missing_ms B_missing_ms A_repeated_ms B_repeated_ms');
+    for (const m of table) console.log('      THREE15_TABLE ' + m.run + ' ' + m.perSpeaker.A.missingMs + ' ' + m.perSpeaker.B.missingMs + ' ' + m.perSpeaker.A.repeatedMs + ' ' + m.perSpeaker.B.repeatedMs);
   },
 
   async two() {
@@ -800,6 +829,33 @@ const scenarios = {
       const sorted = [...p.longTasks].sort((a, b) => b - a);
       console.log('      PROFILE streams ' + n + ' nodes ' + p.nodes + ' messages ' + p.messages + ' handler_ms_per_audio_s ' + (p.handlerMsTotal / audioSeconds).toFixed(2) + ' per_stream_main_thread_pct ' + ((100 * p.handlerMsTotal) / (p.spanMs * p.nodes)).toFixed(2) + ' handler p50 ' + p.handlerP50.toFixed(3) + ' p99 ' + p.handlerP99.toFixed(3) + ' max ' + p.handlerMax.toFixed(2) + ' longtasks ' + p.longTasks.length + ' longest ' + JSON.stringify(sorted.slice(0, 5)) + ' loop_lag p50 ' + p.lagP50.toFixed(2) + ' p99 ' + p.lagP99.toFixed(2) + ' max ' + p.lagMax.toFixed(2) + ' lag_over_50ms ' + p.lagOver50 + ' playoutStats ' + JSON.stringify(p.playoutStats));
     }
+  },
+
+  async profilesplit() {
+    console.log('--- scenario profilesplit');
+    const browser = await chromium.launch(launchOptions(null));
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.goto('http://127.0.0.1:' + PORT + '/');
+      const out = await page.evaluate(async (speech) => {
+        const vad = await import('/deps/wireweave/src/vad/index.js');
+        const constants = await import('/deps/wireweave/src/vad/constants.js');
+        const pitchMod = await import('/deps/wireweave/src/vad/pitch.js');
+        const scoreMod = await import('/deps/wireweave/src/vad/rnnoise-score.js');
+        const loader = vad.createRnnoiseLoader(() => import('/vendor/rnnoise/dist/generated/rnnoise-sync.js'));
+        const scorer = await scoreMod.createVoiceScorer({ loader, smoothingFrames: 3 });
+        const pitch = new pitchMod.PitchTracker();
+        const bytes = Uint8Array.from(atob(speech), (c) => c.charCodeAt(0));
+        const pcm = new Float32Array(bytes.buffer);
+        const n = constants.RNNOISE_FRAME_SAMPLES;
+        const frames = Math.floor(pcm.length / n);
+        const time = (fn) => { const t0 = performance.now(); let count = 0; for (let k = 0; k < 3; k++) for (let f = 0; f < frames; f++) { fn(pcm.subarray(f * n, (f + 1) * n)); count++; } return (performance.now() - t0) / count; };
+        const scoreMs = time((frame) => scorer.scoreFrame(frame));
+        const pitchMs = time((frame) => pitch.push(frame));
+        return { frames, frameSamples: n, rate: constants.RNNOISE_SAMPLE_RATE, scoreMsPerFrame: scoreMs, pitchMsPerFrame: pitchMs };
+      }, Buffer.from(speech(12, 3, 0).buffer).toString('base64'));
+      console.log('      PROFILESPLIT ' + JSON.stringify(out) + ' frame budget ' + (out.frameSamples / out.rate * 1000) + ' ms');
+    } finally { await browser.close().catch(() => {}); }
   },
 
   async cap() {
