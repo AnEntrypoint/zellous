@@ -26,7 +26,7 @@ registerModule({
       const sv = (v('servers', []) || []).find((x) => x && x.id === sid);
       if (!sv || !ww.auth.pubkey || !String(sid).startsWith(ww.auth.pubkey + ':')) return null;
       const channels = (v('channels', []) || []).filter((c) => c && c.id);
-      const pick = (voice) => channels.filter((c) => !!ctx.trait(c.type, 'voice') === voice).map((c) => ({ id: c.id, name: c.name, topic: c.topic || '' }));
+      const pick = (voice) => channels.filter((c) => !!ctx.trait(c.type, 'voice') === voice).map((c) => ({ id: c.id, name: c.name, topic: c.topic || '', extra: c.type !== 'text' && !voice })).sort((a, b) => Number(a.extra) - Number(b.extra));
       return {
         id: sid, name: sv.name || '', color: sv.iconColor || '', colors: ctx.serverColors,
         textChannels: pick(false), voiceChannels: pick(true),

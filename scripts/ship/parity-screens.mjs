@@ -9,6 +9,7 @@ const ch = (name) => ({ click: `.chans a:has-text("${name}")`, rail: true });
 const MENU = (label) => ({ click: `.ds-g3-smenu [role=menuitem]:has-text("${label}")` });
 const openMembers = { signal: ['memberListOpen', true] };
 const TAB = { 'My Account': 'account', Profiles: 'profile', Appearance: 'appearance', Accessibility: 'access', 'Voice & Audio': 'voice', Notifications: 'notif', 'Chat & Media': 'media', 'Language & Time': 'lang', Keybinds: 'keys', Advanced: 'adv' };
+const PUBLIC_AS_GAME3 = `(() => { const ch = window.__zellous.wireweave.channels; const def = window.__parityChannels; ch.channels = def.channels; ch.categories = def.categories; ch._emit('updated', { channels: ch.channels, categories: ch.categories }); })()`;
 const iso = (min) => new Date(NOW_MS - min * 60000).toISOString();
 
 const settingsScreens = Object.entries(TAB).map(([label, tab]) => ({
@@ -47,7 +48,7 @@ export const SCREENS = [
   { id: 'emoji-picker', ref: (r) => { r.session.picker = true; }, zel: [{ click: '.ds-g3-compbtn[title="Emoji"]' }] },
   { id: 'sticker-picker', ref: (r) => { r.session.stickers = true; }, zel: [{ click: '.ds-g3-compbtn[title="Stickers"]' }] },
   { id: 'reaction-picker', vp: 'desktop', ref: (r) => { r.session.rxFor = lineKey('general', 9); }, zel: [{ hover: '.ds-g3-msg' }, { click: '.ds-g3-bar [title="Add Reaction"]' }] },
-  { id: 'message-more-menu', vp: 'desktop', ref: (r) => { r.session.moreFor = lineKey('general', 8); }, zel: [{ hover: '.ds-g3-msg' }, { click: '.ds-g3-bar [title="More"]' }] },
+  { id: 'message-more-menu', vp: 'desktop', ref: (r) => { r.session.moreFor = lineKey('general', 8); }, zel: [{ hover: '.ds-g3-msg:has(.ds-g3-pollcard)' }, { click: '.ds-g3-bar [title="More"]' }] },
   { id: 'message-hover-bar', vp: 'desktop', ref: () => {}, refSteps: [{ hoverFirst: '.msgs > .grp' }], zel: [{ hover: '.ds-g3-msg' }] },
   { id: 'composer-reply', vp: 'desktop', ref: (r) => { r.session.reply = { key: lineKey('general', 9), name: 'Jun' }; }, refSteps: [{ js: "document.querySelector('.msgs').scrollTop=0" }], zel: [{ hover: '.ds-g3-msg' }, { click: '.ds-g3-bar [title="Reply"]' }] },
   { id: 'composer-autocomplete-slash', ref: (r) => { r.session.ac = '/'; }, zel: [{ fill: ['.ds-g3-comp textarea', '/'] }] },
@@ -57,7 +58,7 @@ export const SCREENS = [
   { id: 'mobile-drawer', vp: 'mobile', ref: (r) => { r.session.drawer = true; }, zel: [{ signal: ['mobileMenuOpen', true] }] },
   { id: 'create-server-modal', ref: (r) => { r.session.srvModal = 'create'; }, zel: [{ click: '.ca-rail-server-add', rail: true }] },
   { id: 'discover-servers-modal', ref: (r) => { listedServers(r); r.session.srvModal = 'discover'; }, zel: [{ click: '.ca-rail-server-explore', rail: true }] },
-  { id: 'server-menu-member', ref: (r, { mobile }) => { r.session.serverMenu = true; if (mobile) r.session.drawer = true; }, zel: [{ click: '.ca-rail-public', rail: true }, { click: SHEAD, rail: true }] },
+  { id: 'server-menu-member', ref: (r, { mobile }) => { r.session.serverMenu = true; if (mobile) r.session.drawer = true; }, zel: [{ click: '.ca-rail-public', rail: true }, { js: PUBLIC_AS_GAME3, wait: 700 }, { click: SHEAD, rail: true }] },
   { id: 'server-menu-owner', ref: (r, { mobile }) => { ownServer(r); r.session.serverMenu = true; if (mobile) r.session.drawer = true; }, zel: [{ click: SHEAD, rail: true }] },
   { id: 'server-settings', ref: (r) => { ownServer(r); r.session.srvModal = 'settings'; }, zel: [{ click: SHEAD, rail: true }, MENU('Server Settings'), { pane: 'Overview', optional: true }] },
   ...settingsScreens,

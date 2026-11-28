@@ -29,8 +29,8 @@ export function ownServer(r) {
 
 export function listedServers(r) {
   const all = Object.keys(PEOPLE).map(uid);
-  const mk = (name, color, ownerKey) => ({ name, owner: uid(ownerKey), ownerName: PEOPLE[ownerKey].name, color, born: 1, members: all, ch: ['general', 'gaming', 'memes', 'clips'].map((n, i) => ({ i, name: n })), vc: [] });
-  r.ctx.world.state.servers = { 1: mk('Zellous Public', '#5865f2', 'mira'), 2: mk('game 3', '#c4602f', 'me') };
+  const mk = (name, color, ownerKey, channels = ['general', 'gaming', 'memes', 'clips']) => ({ name, owner: uid(ownerKey), ownerName: PEOPLE[ownerKey].name, color, born: 1, members: all, ch: channels.map((n, i) => ({ i, name: n })), vc: [] });
+  r.ctx.world.state.servers = { 1: mk('Zellous Public', '#5865f2', 'mira'), 2: mk('game 3', '#c4602f', 'me', ['rules', 'pick-roles', 'announcements', 'general', 'gaming', 'memes', 'clips']) };
   r.player.state.servers = [1, 2];
 }
 

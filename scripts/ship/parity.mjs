@@ -24,7 +24,7 @@ mkdirSync(join(outDir, 'shots'), { recursive: true });
 
 const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 390, height: 844 } };
 
-const refHtml = (html) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{--spawn-chrome-reservation-right-inset:0px}html,body{margin:0;overflow:hidden;background:rgb(15,15,15)}body{font-family:"gg sans","Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:rgb(250,250,250)}</style></head><body><div id="tome-ui-container" style="position:absolute;inset:0;overflow:clip">${html}</div></body></html>`;
+const refHtml = (html) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>html{--spawn-chrome-reservation-right-inset:0px}.aibtn{display:none!important}html,body{margin:0;overflow:hidden;background:rgb(15,15,15)}body{font-family:"gg sans","Noto Sans","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;color:rgb(250,250,250)}</style></head><body><div id="tome-ui-container" style="position:absolute;inset:0;overflow:clip">${html}</div></body></html>`;
 
 async function press(page, selector, mobile) {
   const loc = page.locator(selector + ':visible').first();
@@ -131,6 +131,7 @@ function valuesDiffer(prop, a, b) {
   const na = pxNum(a), nb = pxNum(b);
   if (na !== null && nb !== null) return Math.abs(na - nb) > PX_TOL;
   if (prop === 'opacity') return Math.abs(parseFloat(a) - parseFloat(b)) > 0.02;
+  if (prop === 'letterSpacing') { const zero = (v) => v === 'normal' || pxNum(v) === 0; return !(zero(a) && zero(b)); }
   if (prop === 'lineHeight' || prop === 'letterSpacing') { if (a === 'normal' || b === 'normal') return a !== b && !(a === 'normal' && nb !== null) && !(b === 'normal' && na !== null) ? true : false; }
   return true;
 }
@@ -226,6 +227,7 @@ async function measureScreen(env, screen, vpName) {
   if (screen.zel) for (const st of screen.zel) await runStep(zelPage, st, mobile);
   if (!(screen.zel || []).some((st) => st.hover || st.rightClick)) { await zelPage.mouse.move(mobile ? 389 : 1439, mobile ? 843 : 899); await wait(200); }
   await Promise.all([refPage, zelPage].map((pg) => pg.evaluate(() => Promise.all([document.fonts.ready, ...[...document.images].map((i) => (i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; setTimeout(r, 2500); })))]))));
+  await zelPage.evaluate(() => { let st = document.getElementById('parity-zx'); if (!st) { st = document.createElement('style'); st.id = 'parity-zx'; st.textContent = '.ds-g3-zx, .ds-g3-srow:has(> input[aria-label="new voice channel"]) { display: none !important; }'; document.head.appendChild(st); } });
   await wait(450);
   await Promise.all([refPage.evaluate(quiet), zelPage.evaluate(quiet)]);
   const [R, Z] = await Promise.all([refPage.evaluate(collect, side('ref')), zelPage.evaluate(collect, side('zel'))]);

@@ -1,330 +1,330 @@
 {
  "text-channel@mobile": {
-  "pixel": 0.26,
-  "props": 43
+  "pixel": 0.14,
+  "props": 17
  },
  "text-channel@desktop": {
-  "pixel": 0.33,
-  "props": 106
+  "pixel": 0.31,
+  "props": 104
  },
  "text-channel-empty@mobile": {
-  "pixel": 0.75,
-  "props": 34
+  "pixel": 0.06,
+  "props": 8
  },
  "text-channel-empty@desktop": {
-  "pixel": 0.78,
-  "props": 107
+  "pixel": 0.61,
+  "props": 105
  },
  "announcements-locked@mobile": {
-  "pixel": 1,
-  "props": 34
+  "pixel": 0.13,
+  "props": 8
  },
  "announcements-locked@desktop": {
-  "pixel": 0.91,
-  "props": 112
+  "pixel": 0.68,
+  "props": 110
  },
  "page-rules@mobile": {
-  "pixel": 2.51,
-  "props": 3
+  "pixel": 0.03,
+  "props": 0
  },
  "page-rules@desktop": {
-  "pixel": 0.49,
-  "props": 80
+  "pixel": 0.37,
+  "props": 76
  },
  "page-pick-roles@mobile": {
-  "pixel": 0.4,
-  "props": 3
+  "pixel": 0,
+  "props": 0
  },
  "page-pick-roles@desktop": {
-  "pixel": 0.49,
-  "props": 79
+  "pixel": 0.37,
+  "props": 75
  },
  "home@mobile": {
-  "pixel": 1.07,
-  "props": 39
+  "pixel": 0.99,
+  "props": 38
  },
  "home@desktop": {
-  "pixel": 0.53,
-  "props": 61
+  "pixel": 0.5,
+  "props": 59
  },
  "dm-thread@mobile": {
-  "pixel": 1.78,
-  "props": 4
+  "pixel": 0.2,
+  "props": 1
  },
  "dm-thread@desktop": {
-  "pixel": 0.89,
-  "props": 27
+  "pixel": 0.45,
+  "props": 25
  },
  "member-list-hidden@desktop": {
-  "pixel": 0.74,
-  "props": 180
+  "pixel": 0.72,
+  "props": 179
  },
  "profile-card@mobile": {
-  "pixel": 2.16,
-  "props": 9
+  "pixel": 0.02,
+  "props": 7
  },
  "profile-card@desktop": {
-  "pixel": 0.76,
+  "pixel": 0.25,
   "props": 7
  },
  "profile-card-self@mobile": {
-  "pixel": 2.62,
-  "props": 13
+  "pixel": 0.02,
+  "props": 7
  },
  "profile-card-self@desktop": {
-  "pixel": 0.88,
-  "props": 11
+  "pixel": 0.25,
+  "props": 7
  },
  "pins-popover@mobile": {
-  "pixel": 0.33,
-  "props": 49
+  "pixel": 0.2,
+  "props": 23
  },
  "pins-popover@desktop": {
-  "pixel": 0.52,
-  "props": 111
+  "pixel": 0.49,
+  "props": 109
  },
  "inbox-popover@mobile": {
-  "pixel": 0.72,
-  "props": 65
+  "pixel": 0.64,
+  "props": 37
  },
  "inbox-popover@desktop": {
-  "pixel": 0.68,
-  "props": 135
+  "pixel": 0.65,
+  "props": 131
  },
  "search-results@desktop": {
-  "pixel": 0.4,
-  "props": 105
+  "pixel": 0.38,
+  "props": 103
  },
  "quick-switcher@mobile": {
-  "pixel": 0.23,
-  "props": 30
+  "pixel": 0.1,
+  "props": 28
  },
  "quick-switcher@desktop": {
   "pixel": 0.27,
   "props": 29
  },
  "events-modal@mobile": {
-  "pixel": 0.27,
-  "props": 15
+  "pixel": 0.13,
+  "props": 13
  },
  "events-modal@desktop": {
   "pixel": 0.29,
   "props": 13
  },
  "leaderboard-modal@mobile": {
-  "pixel": 2.69,
-  "props": 22
+  "pixel": 0,
+  "props": 11
  },
  "leaderboard-modal@desktop": {
-  "pixel": 1.04,
-  "props": 20
+  "pixel": 0.25,
+  "props": 11
  },
  "server-menu@mobile": {
-  "pixel": 1.2,
-  "props": 79
+  "pixel": 0.18,
+  "props": 42
  },
  "server-menu@desktop": {
-  "pixel": 0.35,
-  "props": 71
+  "pixel": 0.14,
+  "props": 67
  },
  "status-menu@mobile": {
-  "pixel": 2.1,
-  "props": 118
+  "pixel": 0.75,
+  "props": 70
  },
  "status-menu@desktop": {
-  "pixel": 0.67,
-  "props": 125
+  "pixel": 0.36,
+  "props": 109
  },
  "emoji-picker@mobile": {
-  "pixel": 0.26,
-  "props": 43
+  "pixel": 0.14,
+  "props": 17
  },
  "emoji-picker@desktop": {
-  "pixel": 0.38,
-  "props": 108
+  "pixel": 0.36,
+  "props": 106
  },
  "sticker-picker@mobile": {
-  "pixel": 0.39,
-  "props": 78
+  "pixel": 0.26,
+  "props": 52
  },
  "sticker-picker@desktop": {
-  "pixel": 0.4,
-  "props": 111
- },
- "reaction-picker@desktop": {
-  "pixel": 2.91,
-  "props": 153
- },
- "message-more-menu@desktop": {
-  "pixel": 2.6,
-  "props": 175
- },
- "message-hover-bar@desktop": {
-  "pixel": 0.42,
-  "props": 108
- },
- "composer-reply@desktop": {
-  "pixel": 2.13,
-  "props": 145
- },
- "composer-autocomplete-slash@mobile": {
-  "pixel": 0.27,
-  "props": 43
- },
- "composer-autocomplete-slash@desktop": {
   "pixel": 0.38,
   "props": 109
  },
+ "reaction-picker@desktop": {
+  "pixel": 0.43,
+  "props": 111
+ },
+ "message-more-menu@desktop": {
+  "pixel": 0.84,
+  "props": 138
+ },
+ "message-hover-bar@desktop": {
+  "pixel": 0.4,
+  "props": 106
+ },
+ "composer-reply@desktop": {
+  "pixel": 0.43,
+  "props": 115
+ },
+ "composer-autocomplete-slash@mobile": {
+  "pixel": 0.15,
+  "props": 17
+ },
+ "composer-autocomplete-slash@desktop": {
+  "pixel": 0.36,
+  "props": 107
+ },
  "composer-autocomplete-mention@mobile": {
-  "pixel": 0.81,
-  "props": 63
+  "pixel": 0.69,
+  "props": 37
  },
  "composer-autocomplete-mention@desktop": {
-  "pixel": 0.56,
-  "props": 130
+  "pixel": 0.53,
+  "props": 128
  },
  "composer-autocomplete-emoji@mobile": {
-  "pixel": 0.28,
-  "props": 44
+  "pixel": 0.16,
+  "props": 18
  },
  "composer-autocomplete-emoji@desktop": {
-  "pixel": 0.39,
-  "props": 110
+  "pixel": 0.36,
+  "props": 108
  },
  "split-view@desktop": {
-  "pixel": 0.45,
-  "props": 114
+  "pixel": 0.43,
+  "props": 112
  },
  "mobile-drawer@mobile": {
-  "pixel": 0.99,
-  "props": 110
+  "pixel": 0.77,
+  "props": 75
  },
  "create-server-modal@mobile": {
-  "pixel": 0.14,
-  "props": 9
+  "pixel": 0.01,
+  "props": 7
  },
  "create-server-modal@desktop": {
   "pixel": 0.25,
   "props": 7
  },
  "discover-servers-modal@mobile": {
-  "pixel": 1.95,
-  "props": 36
+  "pixel": 0.02,
+  "props": 24
  },
  "discover-servers-modal@desktop": {
-  "pixel": 0.76,
-  "props": 34
+  "pixel": 0.25,
+  "props": 24
  },
  "server-menu-owner@mobile": {
-  "pixel": 1.2,
-  "props": 79
+  "pixel": 0.18,
+  "props": 42
  },
  "server-menu-owner@desktop": {
-  "pixel": 0.42,
-  "props": 76
+  "pixel": 0.21,
+  "props": 72
  },
  "server-settings@mobile": {
-  "pixel": 0.34,
-  "props": 54
- },
- "server-settings@desktop": {
-  "pixel": 1.84,
-  "props": 53
- },
- "settings/account@mobile": {
-  "pixel": 2.09,
-  "props": 34
- },
- "settings/account@desktop": {
-  "pixel": 1.47,
-  "props": 40
- },
- "settings/profile@mobile": {
-  "pixel": 2.41,
-  "props": 25
- },
- "settings/profile@desktop": {
-  "pixel": 1.72,
-  "props": 31
- },
- "settings/appearance@mobile": {
-  "pixel": 0.82,
-  "props": 19
- },
- "settings/appearance@desktop": {
-  "pixel": 1.15,
-  "props": 23
- },
- "settings/access@mobile": {
-  "pixel": 0.04,
+  "pixel": 0.03,
   "props": 15
  },
+ "server-settings@desktop": {
+  "pixel": 0.08,
+  "props": 13
+ },
+ "settings/account@mobile": {
+  "pixel": 0.07,
+  "props": 16
+ },
+ "settings/account@desktop": {
+  "pixel": 0.34,
+  "props": 16
+ },
+ "settings/profile@mobile": {
+  "pixel": 0.04,
+  "props": 8
+ },
+ "settings/profile@desktop": {
+  "pixel": 0.06,
+  "props": 8
+ },
+ "settings/appearance@mobile": {
+  "pixel": 0.75,
+  "props": 10
+ },
+ "settings/appearance@desktop": {
+  "pixel": 0.01,
+  "props": 8
+ },
+ "settings/access@mobile": {
+  "pixel": 0.02,
+  "props": 8
+ },
  "settings/access@desktop": {
-  "pixel": 1.06,
-  "props": 21
+  "pixel": 0.01,
+  "props": 8
  },
  "settings/voice@mobile": {
   "pixel": 0.01,
-  "props": 15
+  "props": 8
  },
  "settings/voice@desktop": {
-  "pixel": 1.08,
-  "props": 21
+  "pixel": 0.02,
+  "props": 8
  },
  "settings/notif@mobile": {
-  "pixel": 0.16,
-  "props": 15
+  "pixel": 0.14,
+  "props": 8
  },
  "settings/notif@desktop": {
-  "pixel": 1.08,
-  "props": 21
+  "pixel": 0.03,
+  "props": 8
  },
  "settings/media@mobile": {
-  "pixel": 0.02,
-  "props": 14
+  "pixel": 0,
+  "props": 7
  },
  "settings/media@desktop": {
-  "pixel": 1.07,
-  "props": 20
+  "pixel": 0,
+  "props": 7
  },
  "settings/lang@mobile": {
-  "pixel": 0.67,
-  "props": 18
+  "pixel": 0.56,
+  "props": 9
  },
  "settings/lang@desktop": {
-  "pixel": 1.23,
-  "props": 24
+  "pixel": 0.14,
+  "props": 9
  },
  "settings/keys@mobile": {
-  "pixel": 0.02,
-  "props": 14
+  "pixel": 0,
+  "props": 7
  },
  "settings/keys@desktop": {
-  "pixel": 1.09,
-  "props": 20
+  "pixel": 0,
+  "props": 7
  },
  "settings/adv@mobile": {
-  "pixel": 1.2,
-  "props": 30
+  "pixel": 0,
+  "props": 7
  },
  "settings/adv@desktop": {
-  "pixel": 1.38,
-  "props": 36
+  "pixel": 0,
+  "props": 7
  },
  "voice-room@mobile": {
-  "pixel": 0.42,
-  "props": 13
+  "pixel": 0.4,
+  "props": 12
  },
  "voice-room@desktop": {
   "pixel": 0.5,
   "props": 81
  },
  "server-menu-member@mobile": {
-  "pixel": 3.54,
-  "props": 97
+  "pixel": 0.79,
+  "props": 70
  },
  "server-menu-member@desktop": {
-  "pixel": 1.65,
-  "props": 129
+  "pixel": 0.85,
+  "props": 130
  }
 }

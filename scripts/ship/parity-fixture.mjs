@@ -18,7 +18,7 @@ export const SERVER_NAME = 'game 3';
 export const CHANNELS = {
   pages: ['rules', 'pick-roles'],
   text: ['announcements', 'general', 'gaming', 'memes', 'clips'],
-  voice: ['lounge', 'squad', 'late-night'],
+  voice: ['lounge', 'squad'],
 };
 
 const m = (min, by, text, extra = {}) => ({ min, by, text, ...extra });
@@ -44,4 +44,4 @@ export const MESSAGES = {
   clips: [],
 };
 
-export const VOICE_OCCUPANTS = { lounge: ['mira', 'jun'], squad: [], 'late-night': [] };
+export const VOICE_OCCUPANTS = { lounge: ['mira', 'jun'], squad: [] };

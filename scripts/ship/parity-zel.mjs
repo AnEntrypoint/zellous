@@ -27,7 +27,7 @@ export async function startRig() {
   return { devPort, relayPort, relay, dev, stop() { try { dev.kill(); } catch {} try { relay.close?.(); } catch {} } };
 }
 
-const ID_FOR = {
+export const ID_FOR = {
   channels: [
     { id: 'rules', name: 'rules', type: 'page', categoryId: 'info' },
     { id: 'pick-roles', name: 'pick-roles', type: 'page', categoryId: 'info' },
@@ -90,6 +90,7 @@ export async function bootZel(browser, rig, viewport, mobile) {
     await window.__zellous.servers.create('game 3', '#c4602f');
     await new Promise((r) => setTimeout(r, 800));
     const ch = window.__zellous.wireweave.channels;
+    window.__parityChannels = def;
     ch.channels = def.channels; ch.categories = def.categories;
     await ch._publish();
     ch._emit('updated', { channels: ch.channels, categories: ch.categories });
