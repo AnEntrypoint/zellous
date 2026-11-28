@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
-import { align, features, toRate16k, unionCoverage, HOP, HOP_MS } from './thread-catchup-align.mjs';
+import { align, features, medianF0, toRate16k, unionCoverage, HOP, HOP_MS } from './thread-catchup-align.mjs';
 
 const require = createRequire(new URL('../../package.json', import.meta.url));
 const { chromium } = require('playwright');
@@ -94,8 +94,24 @@ const captureInit = () => {
       const port = this.port;
       const nodeId = tapNodes++;
       const descriptor = Object.getOwnPropertyDescriptor(MessagePort.prototype, 'onmessage');
-      Object.defineProperty(port, 'onmessage', { configurable: true, get: () => descriptor.get.call(port), set: (fn) => descriptor.set.call(port, fn && ((e) => { let sum = 0; const d = e.data; for (let i = 0; i < d.length; i++) sum += d[i] * d[i]; window.__tapLog.push([nodeId, performance.now(), d.length, sum]); return fn(e); })) });
+      Object.defineProperty(port, 'onmessage', { configurable: true, get: () => descriptor.get.call(port), set: (fn) => descriptor.set.call(port, fn && ((e) => { let sum = 0; const d = e.data; for (let i = 0; i < d.length; i++) sum += d[i] * d[i]; const t0 = performance.now(); const result = fn(e); window.__tapLog.push([nodeId, t0, d.length, sum, performance.now() - t0]); return result; })) });
     }
+  };
+  const longTasks = [];
+  try { new PerformanceObserver((list) => { for (const t of list.getEntries()) longTasks.push(Math.round(t.duration)); }).observe({ entryTypes: ['longtask'] }); } catch {}
+  const lags = [];
+  let lagAt = performance.now();
+  setInterval(() => { const now = performance.now(); lags.push(now - lagAt - 10); lagAt = now; }, 10);
+  window.__perfReset = () => { window.__tapLog.length = 0; lags.length = 0; longTasks.length = 0; };
+  window.__perf = () => {
+    const log = window.__tapLog;
+    const durations = log.map((r) => r[4]).sort((a, b) => a - b);
+    const sorted = [...lags].sort((a, b) => a - b);
+    const q = (arr, p) => (arr.length ? arr[Math.min(arr.length - 1, Math.floor(arr.length * p))] : 0);
+    const nodes = new Set(log.map((r) => r[0])).size;
+    const spanMs = log.length ? log[log.length - 1][1] - log[0][1] : 0;
+    const stats = window.__ctx && window.__ctx.playoutStats ? JSON.parse(JSON.stringify(window.__ctx.playoutStats)) : null;
+    return { messages: log.length, nodes, handlerMsTotal: durations.reduce((a, b) => a + b, 0), handlerP50: q(durations, 0.5), handlerP99: q(durations, 0.99), handlerMax: durations[durations.length - 1] || 0, spanMs, longTasks, lagP50: q(sorted, 0.5), lagP99: q(sorted, 0.99), lagMax: sorted[sorted.length - 1] || 0, lagOver50: lags.filter((v) => v > 50).length, playoutStats: stats };
   };
   const lockedRate = window.__lockedRate;
   if (lockedRate) {
@@ -150,6 +166,11 @@ const uplinkInit = (kbps) => {
 const eventLogInit = () => {
   const events = [];
   window.__voiceEvents = events;
+  const nativeDispatch = EventTarget.prototype.dispatchEvent;
+  EventTarget.prototype.dispatchEvent = function (e) {
+    if (e && (e.type === 'clip-spliced' || e.type === 'stretch-interrupted' || e.type === 'clip-started')) events.push({ at: Math.round(performance.timeOrigin + performance.now()), perf: performance.now(), type: e.type, detail: JSON.stringify(e.detail) });
+    return nativeDispatch.call(this, e);
+  };
   const names = ['mic', 'transmit', 'segment-start', 'segment-finalized', 'segment-dropped', 'segment-received', 'speaker', 'live-playback', 'hub-changed', 'remote-stream'];
   const timer = setInterval(() => {
     let session = null;
@@ -441,6 +462,7 @@ const runInPage = async ({ sources, rate, own, endSpeakMs, minRunMs, maxRunMs, p
       const vad = await import('/deps/wireweave/src/vad/index.js');
       const decode = (parts) => { const chunks = parts.map((x) => { const bin = atob(x); const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }); const total = chunks.reduce((n, c) => n + c.length, 0); const all = new Uint8Array(total); let at = 0; for (const c of chunks) { all.set(c, at); at += c.length; } return new Float32Array(all.buffer); };
       const ctx = new AudioContext({ sampleRate: 48000 });
+      window.__ctx = ctx;
       const voice = new EventTarget();
       const streams = {};
       const buffers = {};
@@ -471,6 +493,7 @@ const runInPage = async ({ sources, rate, own, endSpeakMs, minRunMs, maxRunMs, p
       const bound = mod.createVoiceThread({ voice, player, vadLoader: vad.createRnnoiseLoader(() => import('/vendor/rnnoise/dist/generated/rnnoise-sync.js')), onWarning: (m) => warnings.push(m) });
       for (const el of Object.values(monitors)) el.play().catch(() => {});
       await new Promise((r) => setTimeout(r, 3000));
+      window.__perfReset();
       const start = performance.now();
       const timeline = [];
       const marks = [];
@@ -511,7 +534,8 @@ const runInPage = async ({ sources, rate, own, endSpeakMs, minRunMs, maxRunMs, p
     fs.writeFileSync(path.join(WORK, 'in-page-capture.json'), dump);
     const capture = decodeCapture(dump);
     fs.writeFileSync(path.join(WORK, 'in-page-run.json'), result);
-    return { ...JSON.parse(result), capture };
+    const perf = await page.evaluate(() => window.__perf());
+    return { ...JSON.parse(result), capture, perf };
   } finally { await browser.close().catch(() => {}); }
 };
 
@@ -577,6 +601,10 @@ const scenarios = {
     const b = speech(5, 30);
     const run = await runPair({ name: runName, shots: !quiet, mics: { A: join(silence(LEAD_S), a, silence(8)), R: join(silence(LEAD_S + 7), b, silence(14)) } });
     const tl = analyseTimeline(run.timeline);
+    if (!process.env.REANALYSE) {
+      const spliced = JSON.parse(fs.readFileSync(path.join(WORK, runName + '-events-R.json'), 'utf8')).filter((e) => e.type === 'clip-spliced').map((e) => JSON.parse(e.detail));
+      console.log('      SPLICES ' + spliced.length + ' ' + JSON.stringify(spliced.map((s) => ({ back: s.alignShiftMs, front: s.frontShiftMs, corr: s.alignCorrelation, hole: s.holeFrames, ins: s.insertedFrames, filled: s.filledFrames, lead: s.leadingUnplacedMs }))));
+    }
     const segments = audibleSegments(run.capture, Number(process.env.MIN_SEG_S || 0.25));
     const source = toRate16k(a, RATE);
     const r = align(withoutRepeats(segments, source), source);
@@ -590,7 +618,8 @@ const scenarios = {
     const unionRaw = unionCoverage(heardSegments, source);
     const net = netMissing(unionRaw.missingRuns, floor);
     const union = { ...unionRaw, missingRuns: net.runs, missingVoicedMs: net.ms };
-    const metrics = { run: runName, playedMissingVoicedMs: union.missingVoicedMs, playedLongestMissingMs: r.longestMissingRunMs, receivedMissingVoicedMs: received.missingVoicedMs, receivedLongestMissingMs: received.longestMissingRunMs };
+    console.log('      REPEATED_RUNS ' + JSON.stringify(unionRaw.repeatedRuns) + ' total ' + unionRaw.repeatedVoicedMs + ' ms');
+    const metrics = { run: runName, repeatedVoicedMs: unionRaw.repeatedVoicedMs, playedMissingVoicedMs: union.missingVoicedMs, playedLongestMissingMs: r.longestMissingRunMs, receivedMissingVoicedMs: received.missingVoicedMs, receivedLongestMissingMs: received.longestMissingRunMs };
     console.log('      RUN_METRICS ' + JSON.stringify(metrics));
     if (process.env.DEBUG_COST) for (const [a, b] of r.missingRuns) console.log('      cost ' + a + '..' + b + ': ' + Array.from(r.costAt.slice(Math.round(a / HOP_MS) - 4, Math.round(b / HOP_MS) + 4)).map((c) => c.toFixed(0)).join(' '));
     console.log('      MISSING_RUNS played ' + JSON.stringify(union.missingRuns) + ' (sequential ' + JSON.stringify(r.missingRuns) + ') received ' + JSON.stringify(received.missingRuns));
@@ -679,6 +708,8 @@ const scenarios = {
     const tl = analyseTimeline(run.timeline);
     timelineReport(runName, tl);
     const events = Object.fromEntries(['A', 'B', 'R'].map((k) => [k, JSON.parse(fs.readFileSync(path.join(WORK, runName + '-events-' + k + '.json'), 'utf8'))]));
+    const splices = events.R.filter((e) => e.type === 'clip-spliced').map((e) => JSON.parse(e.detail));
+    console.log('      SPLICES ' + splices.length + ' ' + JSON.stringify(splices.map((s) => ({ sp: (s.speaker || '').slice(0, 8), back: s.alignShiftMs, front: s.frontShiftMs, corr: s.alignCorrelation, hole: s.holeFrames, ins: s.insertedFrames, filled: s.filledFrames, lead: s.leadingUnplacedMs }))));
     const lastHub = (k) => events[k].filter((e) => e.type === 'hub-changed').map((e) => JSON.parse(e.detail).hub).at(-1) || null;
     const short = Object.fromEntries(Object.entries(run.identities).map(([k, v]) => [k, v.pubkey.slice(0, 8)]));
     const hubViews = Object.fromEntries(['A', 'B', 'R'].map((k) => [k, Object.entries(short).find(([, pk]) => pk === lastHub(k))?.[0] || lastHub(k)]));
@@ -702,7 +733,16 @@ const scenarios = {
       r.meanVoicedCost = 0;
       r.gapWindows = [];
       console.log('      speaker ' + k + ' aligned ' + Math.round(r.startMs) + '..' + Math.round(r.endMs) + ' ms cost ' + r.meanVoicedCost.toFixed(2) + ' gap windows [' + r.gapWindows + '] MISSING_RUNS ' + JSON.stringify(r.missingRuns));
-      perSpeaker[k] = { missingMs: r.missingVoicedMs, runs: r.missingRuns, spanS: Math.round((r.endMs - r.startMs) / 1000) };
+      for (const seg of segs.filter((s) => !s.live && s.samples.length >= 16000 * 1.5)) {
+        const one = align(seg.samples, sources[k]);
+        const sourceSpan = sources[k].subarray(Math.round(one.startJ * HOP), Math.min(sources[k].length, Math.round(one.endJ * HOP) + 400));
+        const heardPitch = medianF0(seg.samples);
+        const sourcePitch = medianF0(sourceSpan);
+        const ratio = heardPitch.hz && sourcePitch.hz ? heardPitch.hz / sourcePitch.hz : null;
+        console.log('      PITCH ' + k + ' clip rate ' + seg.rate + ' heard ' + frameMs(seg.samples.length) + ' ms of source span ' + Math.round(one.endMs - one.startMs) + ' ms (compression ' + ((one.endMs - one.startMs) / frameMs(seg.samples.length)).toFixed(2) + ') f0 heard ' + (heardPitch.hz && heardPitch.hz.toFixed(1)) + ' source ' + (sourcePitch.hz && sourcePitch.hz.toFixed(1)) + ' ratio ' + (ratio && ratio.toFixed(3)) + ' frames ' + heardPitch.frames + '/' + sourcePitch.frames);
+      }
+      console.log('      speaker ' + k + ' REPEATED_RUNS ' + JSON.stringify(rawUnion.repeatedRuns) + ' total ' + rawUnion.repeatedVoicedMs + ' ms');
+      perSpeaker[k] = { missingMs: r.missingVoicedMs, repeatedMs: rawUnion.repeatedVoicedMs, runs: r.missingRuns, spanS: Math.round((r.endMs - r.startMs) / 1000) };
       report(r.missingVoicedMs <= MISSING_VOICED_LIMIT_MS && r.endMs - r.startMs > sources[k].length / 16 * 0.75, 'three: speaker ' + k + ' missed ' + r.missingVoicedMs + ' ms of voiced audio across ' + Math.round((r.endMs - r.startMs) / 1000) + ' s (limit ' + MISSING_VOICED_LIMIT_MS + ')');
     }
     const ownStart = run.timeline.find((t) => t.ownTalk);
@@ -723,7 +763,7 @@ const scenarios = {
     const floors = { self: await scenarios.baseline3('self'), other: await scenarios.baseline3('other') };
     for (const role of ['self', 'other']) for (let n = 1; n <= 5; n++) table.push(await scenarios.three('three-' + role + '-' + n, role, floors[role]));
     console.log('      THREE_TABLE run hub_views interrupter_is_hub A_missing_ms B_missing_ms');
-    for (const m of table) console.log('      THREE_TABLE ' + m.run + ' ' + JSON.stringify(m.hubViews) + ' ' + m.interrupterIsHub + ' ' + m.perSpeaker.A.missingMs + ' ' + m.perSpeaker.B.missingMs);
+    for (const m of table) console.log('      THREE_TABLE ' + m.run + ' ' + JSON.stringify(m.hubViews) + ' ' + m.interrupterIsHub + ' ' + m.perSpeaker.A.missingMs + ' ' + m.perSpeaker.B.missingMs + ' repeated ' + m.perSpeaker.A.repeatedMs + ' ' + m.perSpeaker.B.repeatedMs);
     report(table.every((m) => m.perSpeaker.A.missingMs <= MISSING_VOICED_LIMIT_MS && m.perSpeaker.B.missingMs <= MISSING_VOICED_LIMIT_MS), 'three10: every run missed at most ' + MISSING_VOICED_LIMIT_MS + ' ms per speaker');
   },
 
@@ -747,6 +787,18 @@ const scenarios = {
       console.log('      MISSING_RUNS ' + key + ' ' + JSON.stringify(r.missingRuns));
       report(segs.some((seg) => !seg.live), 'two: ' + key + ' had its own catch-up playback');
       report(r.gapWindows.length === 0 && r.endMs - r.startMs > 17000, 'two: ' + key + ' heard in order without a content gap across ' + Math.round((r.endMs - r.startMs) / 1000) + ' s of its source (gap windows: ' + r.gapWindows.join(',') + ')');
+    }
+  },
+
+  async profile() {
+    console.log('--- scenario profile');
+    for (const n of (process.env.PROFILE_STREAMS || '1,2,3,4').split(',').map(Number)) {
+      const sources = Object.fromEntries(Array.from({ length: n }, (_, i) => ['spk-' + i, toRate16k(speech(20, 40 * i), RATE)]));
+      const result = await runInPage({ sources, rate: 16000, own: [[8000, 13000]], endSpeakMs: 20000, minRunMs: 21500, maxRunMs: 90000 });
+      const p = result.perf;
+      const audioSeconds = (p.messages * 128) / 48000;
+      const sorted = [...p.longTasks].sort((a, b) => b - a);
+      console.log('      PROFILE streams ' + n + ' nodes ' + p.nodes + ' messages ' + p.messages + ' handler_ms_per_audio_s ' + (p.handlerMsTotal / audioSeconds).toFixed(2) + ' per_stream_main_thread_pct ' + ((100 * p.handlerMsTotal) / (p.spanMs * p.nodes)).toFixed(2) + ' handler p50 ' + p.handlerP50.toFixed(3) + ' p99 ' + p.handlerP99.toFixed(3) + ' max ' + p.handlerMax.toFixed(2) + ' longtasks ' + p.longTasks.length + ' longest ' + JSON.stringify(sorted.slice(0, 5)) + ' loop_lag p50 ' + p.lagP50.toFixed(2) + ' p99 ' + p.lagP99.toFixed(2) + ' max ' + p.lagMax.toFixed(2) + ' lag_over_50ms ' + p.lagOver50 + ' playoutStats ' + JSON.stringify(p.playoutStats));
     }
   },
 

@@ -172,7 +172,14 @@ const startRig = async () => {
   dev = spawn('node', ['scripts/dev-server.mjs'], { cwd: new URL('../..', import.meta.url).pathname, env: { ...process.env, ZELLOUS_LOCAL_DEPS: '1', PORT: String(PORT) }, stdio: 'ignore' });
   await wait(2500);
 };
+const spawnedBrowsers = new Set();
 const stopRig = () => { try { dev?.kill(); } catch {} try { relay?.close?.(); } catch {} };
+const reapBrowsers = () => {
+  for (const child of spawnedBrowsers) { if (child.pid) { signalTree(child.pid, 'SIGCONT'); signalTree(child.pid, 'SIGKILL'); } }
+  spawnedBrowsers.clear();
+};
+process.on('exit', () => { reapBrowsers(); stopRig(); });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(130));
 
 const chromeArgs = (mic, dir, port) => ['--headless=new', '--no-sandbox', '--remote-debugging-port=' + port, '--user-data-dir=' + dir, '--autoplay-policy=no-user-gesture-required', '--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream', '--auto-select-desktop-capture-source=Entire screen', '--enable-usermedia-screen-capturing', '--use-file-for-fake-audio-capture=' + mic, '--window-size=1440,900', 'about:blank'];
 let cdpPort = Number(process.env.CDP_BASE || 9440);
@@ -181,6 +188,7 @@ const launchChrome = async (mic, tag) => {
   while (await fetch('http://127.0.0.1:' + port + '/json/version').then((r) => r.ok, () => false)) port = cdpPort++;
   const dir = path.join(WORK, 'profile-' + tag);
   const child = spawn(process.env.CHROME_EXE || chromium.executablePath(), chromeArgs(mic, dir, port), { stdio: 'ignore' });
+  spawnedBrowsers.add(child);
   for (let i = 0; i < 100; i++) {
     try { const r = await fetch('http://127.0.0.1:' + port + '/json/version'); if (r.ok) break; } catch {}
     await wait(200);
@@ -338,20 +346,20 @@ const bootRoom = async (count, { mesh = false } = {}) => {
   return { peers, sid };
 };
 
-const closeAll = async (peers) => { for (const p of peers) { signalTree(p.pid, 'SIGCONT'); await p.browser.close().catch(() => {}); try { p.child.kill('SIGKILL'); } catch {} } };
+const closeAll = async (peers) => { for (const p of peers) { signalTree(p.pid, 'SIGCONT'); await p.browser.close().catch(() => {}); signalTree(p.pid, 'SIGKILL'); spawnedBrowsers.delete(p.child); } };
 
 const hubOf = async (peers) => {
   const states = await Promise.all(live(peers).map(async (p) => [p, await stateOf(p)]));
   return states;
 };
 
-const waitHubAgreement = async (peers, { not = null, limit = 30000 } = {}) => {
+const waitHubAgreement = async (peers, { not = null, limit = 30000, pollMs = 300 } = {}) => {
   const t0 = Date.now();
   while (Date.now() - t0 < limit) {
     const states = await hubOf(peers);
     const hubs = new Set(states.map(([p, s]) => (s.hub === null ? '__null' : s.hub)));
     if (hubs.size === 1) { const h = [...hubs][0]; if (h !== '__null' && h !== not) return { hub: h, ms: Date.now() - t0 }; }
-    await wait(300);
+    await wait(pollMs);
   }
   return null;
 };
@@ -629,7 +637,7 @@ const scenarios = {
       const hub1 = peers.find((p) => agree && p.pubkey === agree.hub);
       const t1 = Date.now();
       await failPeer(hub1, kind);
-      const re1 = await waitHubAgreement(peers, { not: hub1.pubkey, limit: REELECT_LIMIT_MS });
+      const re1 = await waitHubAgreement(peers, { not: hub1.pubkey, limit: REELECT_LIMIT_MS, pollMs: Number(process.env.F2_POLL_MS || 300) });
       const re1Ms = Date.now() - t1;
       report(!!re1, 'f2-' + kind + count + ': first failure, ' + (count - 1) + ' peers agree on hub ' + (re1 ? name(peers, re1.hub) : '') + ' after ' + re1Ms + ' ms');
       const hub2 = peers.find((p) => re1 && p.pubkey === re1.hub);
@@ -825,6 +833,7 @@ try {
     else await scenarios[name2]();
   }
 } catch (e) { report(false, 'error: ' + e.message + '\n' + e.stack); }
+reapBrowsers();
 stopRig();
 console.log(failures.length ? 'VOICE_ROOM_FAIL ' + failures.length : 'VOICE_ROOM_OK');
 process.exit(failures.length ? 1 : 0);

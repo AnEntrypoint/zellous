@@ -242,6 +242,43 @@ export const toRate16k = (samples, fromRate) => {
 
 export const SAMPLE_RATE = RATE;
 
+const F0_FRAME = 640;
+const F0_HOP = 320;
+const F0_LAG_MIN = Math.floor(RATE / 400);
+const F0_LAG_MAX = Math.ceil(RATE / 70);
+const F0_MIN_CORRELATION = 0.5;
+const F0_ENERGY_FRACTION = 0.15;
+
+export const medianF0 = (samples) => {
+  const frames = Math.max(0, Math.floor((samples.length - F0_FRAME - F0_LAG_MAX) / F0_HOP));
+  const rms = new Float64Array(frames);
+  let peak = 0;
+  for (let f = 0; f < frames; f++) {
+    let sum = 0;
+    for (let i = 0; i < F0_FRAME; i++) sum += samples[f * F0_HOP + i] ** 2;
+    rms[f] = Math.sqrt(sum / F0_FRAME);
+    peak = Math.max(peak, rms[f]);
+  }
+  const pitches = [];
+  for (let f = 0; f < frames; f++) {
+    if (rms[f] < peak * F0_ENERGY_FRACTION) continue;
+    const base = f * F0_HOP;
+    let zero = 0;
+    for (let i = 0; i < F0_FRAME; i++) zero += samples[base + i] ** 2;
+    let best = null;
+    for (let lag = F0_LAG_MIN; lag <= F0_LAG_MAX; lag++) {
+      let dot = 0;
+      let shifted = 0;
+      for (let i = 0; i < F0_FRAME; i++) { dot += samples[base + i] * samples[base + i + lag]; shifted += samples[base + i + lag] ** 2; }
+      const correlation = dot / Math.sqrt(zero * shifted + 1e-12);
+      if (!best || correlation > best.correlation) best = { lag, correlation };
+    }
+    if (best && best.correlation >= F0_MIN_CORRELATION) pitches.push(RATE / best.lag);
+  }
+  pitches.sort((x, y) => x - y);
+  return { hz: pitches.length ? pitches[Math.floor(pitches.length / 2)] : null, frames: pitches.length };
+};
+
 
 const EDGE_BLOCK = 1600;
 const EDGE_SEARCH = 2400;
@@ -266,6 +303,7 @@ export const unionCoverage = (segmentSamples, sourceSamples) => {
   const source = features(sourceSamples);
   const S = source.count;
   const matched = new Uint8Array(S + 2);
+  const heardTimes = new Uint8Array(S + 2);
   let first = Infinity;
   let last = -Infinity;
   for (const seg of segmentSamples) {
@@ -280,6 +318,7 @@ export const unionCoverage = (segmentSamples, sourceSamples) => {
     if (tail) endFrame = Math.max(endFrame, Math.ceil((tail.lag + EDGE_BLOCK) / HOP));
     for (let j = startFrame; j <= one.startJ; j++) matched[j] = 1;
     for (let j = one.endJ; j <= endFrame && j < S; j++) matched[j] = 1;
+    for (let j = startFrame; j <= endFrame && j < S; j++) heardTimes[j]++;
     first = Math.min(first, startFrame);
     last = Math.max(last, endFrame);
   }
@@ -293,5 +332,13 @@ export const unionCoverage = (segmentSamples, sourceSamples) => {
     if (miss) run++;
     else { if (run * HOP_MS > NOISE_RUN_MS) { missingFrames += run + 1; missingRuns.push([Math.round((j - run) * HOP_MS), Math.round(j * HOP_MS)]); } run = 0; }
   }
-  return { missingVoicedMs: Math.round(missingFrames * HOP_MS), missingRuns, startMs: first * HOP_MS, endMs: last * HOP_MS };
+  const repeatedRuns = [];
+  let repeatedFrames = 0;
+  let repeat = 0;
+  for (let j = Math.max(0, first); j <= Math.min(S, last) + 1; j++) {
+    const again = j <= last && source.countable[j] && heardTimes[j] > 1;
+    if (again) repeat++;
+    else { if (repeat) { repeatedFrames += repeat; repeatedRuns.push([Math.round((j - repeat) * HOP_MS), Math.round(j * HOP_MS)]); } repeat = 0; }
+  }
+  return { missingVoicedMs: Math.round(missingFrames * HOP_MS), missingRuns, repeatedVoicedMs: Math.round(repeatedFrames * HOP_MS), repeatedRuns, startMs: first * HOP_MS, endMs: last * HOP_MS };
 };
