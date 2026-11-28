@@ -1649,3 +1649,17 @@ Witness: scripts/ship/isolation.mjs (now in ship.sh before the sweep). After the
     - Regressions on the fixed code: busy hub 3 and 4, busy peer 3 and 4 (3 runs each, 9 s busy loop, no hub change on any peer): 12 of 12 checks per cell; room3 three runs 33 of 33; single failure closed, crash, offline at 3 and 4 peers, 5 runs each: agreement 4.6 to 5.3 s, late joiner 1.2 to 1.5 s (a few 2.5 s), no failed check (crash 4 had one setup timeout while load was 18); latejoin crash 3 and 4 (shipped vs fixed, 10 runs each, joiner at 2 s): heard everyone 3.4 to 4.6 s shipped, 3.4 to 4.8 s fixed for 3 peers, 4.0 to 4.8 s shipped and 3.9 to 5.5 s fixed for 4 peers; the new rule never fired in these runs (no `contradicted` hub-lost), differences are noise; rejoin crash 3 and 4, 5 runs each: 1.25 to 1.37 s. Failures in these runs were setup timeouts (`joinVoice` waitForFunction, 20 s) under load, not election results.
     - Left unchanged and measured: when every remaining peer elected the dead hub before connecting to it and had never confirmed a hub, nothing but the connect watchdog notices (7.7 to 8.3 s); that needs two failures within about 0.3 s.
     - Harness: voice-room.mjs now records every browser it spawns and kills its whole process tree by PID on exit, on a thrown error, on SIGINT and on SIGTERM. The leak was `bootRoom` throwing (joinVoice timeout) before the scenario's `try/finally`, so the peers it had spawned were never closed; twelve such roots stayed alive at ppid 1 and loaded the host.
+256. Entry 255 repeated on a quiet host: second agreement, fixed a370a9b against shipped f944146, 10 runs per cell, every run started with the 1 minute load average under 3 (loop gate; the highest start value was 2.99, a run itself raises the load to 3 to 5)
+    - Witness: `F2_POLL_MS=50`, failover2 at 3 and 4 peers for closed, crash and offline, fixed and shipped alternating per kind in one session, nothing else of mine running, no other session's browsers present. Runs over 7 s: fixed 0 of 60 (max 5282 ms, medians 4.90 to 5.21 s); shipped 24 of 60 (closed 4: 1, crash 4: 6, offline 4: 3, closed 3: 3, crash 3: 7, offline 3: 4; max 10159 ms; medians 5.2 to 7.96 s).
+
+      | kind, peers | shipped median / max / over 7 s | fixed median / max / over 7 s |
+      |---|---|---|
+      | closed 4 | 5226 / 8031 / 1 | 5208 / 5282 / 0 |
+      | crash 4 | 7960 / 10115 / 6 | 4942 / 5256 / 0 |
+      | offline 4 | 5231 / 10159 / 3 | 4984 / 5261 / 0 |
+      | closed 3 | 5212 / 7722 / 3 | 4915 / 5228 / 0 |
+      | crash 3 | 7931 / 8237 / 7 | 4901 / 5201 / 0 |
+      | offline 3 | 5217 / 8254 / 4 | 4960 / 5243 / 0 |
+
+    - Remaining peers hear each other after the second failure: fixed median 6.1 to 6.6 s, max 7.5 s; shipped median 6.4 to 9.2 s, max 11.4 s. Quiet host and loaded host agree in kind: the fault appears in 40 percent of shipped runs on a quiet host (45 percent on the loaded one), the fix removes it in both.
+    - Harness leak: no browser, dev server or relay of mine survived the twelve cells (process list empty after the chain), with the PID reaper in voice-room.mjs; the earlier orphans came from `bootRoom` throwing before the scenario try block.
